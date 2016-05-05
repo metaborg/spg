@@ -12,32 +12,42 @@ object NameProvider {
 }
 
 // Rule
-case class Rule(pattern: Pattern, typ: Type, constraints: List[Constraint]) {
+case class Rule(pattern: Pattern, typ: Type, scope: Scope, constraints: List[Constraint]) {
   def merge(hole: TermVar, rule: Rule): Rule = {
     val freshRule = rule.freshen()
 
-    val unifier = hole.typ.unify(freshRule.typ).get
+    val typeUnifier = hole.typ.unify(freshRule.typ).get
+    val scopeUnifier = hole.scope.unify(freshRule.scope).get
 
     val merged = Rule(
       pattern =
         pattern.substituteTerm(Map(hole -> freshRule.pattern)),
       typ =
         typ,
+      scope =
+        scope,
       constraints =
         freshRule.constraints ++ constraints
     )
 
-    merged.substituteType(unifier)
+    merged
+      .substituteType(typeUnifier)
+      .substituteScope(scopeUnifier)
   }
 
   def substituteType(binding: TypeBinding): Rule =
-    Rule(pattern.substituteType(binding), typ.substituteType(binding), constraints.substituteType(binding))
+    Rule(pattern.substituteType(binding), typ.substituteType(binding), scope, constraints.substituteType(binding))
 
-  def freshen(nameBinding: NameBinding = Map.empty): Rule = {
-    typ.freshen(nameBinding).map { case (nameBinding, typ) =>
-      pattern.freshen(nameBinding).map { case (nameBinding, pattern) =>
-        constraints.freshen(nameBinding).map { case (nameBinding, constraints) =>
-          Rule(pattern, typ, constraints)
+  def substituteScope(binding: ScopeBinding): Rule =
+    Rule(pattern.substituteScope(binding), typ, scope.substituteScope(binding), constraints.substituteScope(binding))
+
+  def freshen(nameBinding: Map[String, String] = Map.empty): Rule = {
+    pattern.freshen(nameBinding).map { case (nameBinding, pattern) =>
+      typ.freshen(nameBinding).map { case (nameBinding, typ) =>
+        scope.freshen(nameBinding).map { case (nameBinding, scope) =>
+          constraints.freshen(nameBinding).map { case (nameBinding, constraints) =>
+            Rule(pattern, typ, scope, constraints)
+          }
         }
       }
     }
@@ -48,16 +58,102 @@ case class Rule(pattern: Pattern, typ: Type, constraints: List[Constraint]) {
 abstract class Constraint {
   def substituteType(binding: TypeBinding): Constraint
 
-  def freshen(nameBinding: NameBinding): (NameBinding, Constraint)
+  def substituteScope(binding: ScopeBinding): Constraint
+
+  def substituteName(binding: NameBinding): Constraint
+
+  def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint)
 }
 
-case class TypeOf(n: String, t: Type) extends Constraint {
+// Facts
+case class Par(s1: Scope, s2: Scope) extends Constraint {
+  override def substituteType(binding: TypeBinding): Constraint =
+    this
+
+  override def substituteScope(binding: ScopeBinding): Constraint =
+    Par(s1.substituteScope(binding), s2.substituteScope(binding))
+
+  override def substituteName(binding: NameBinding): Constraint =
+    this
+
+  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
+    s1.freshen(nameBinding).map { case (nameBinding, s1) =>
+      s2.freshen(nameBinding).map { case (nameBinding, s2) =>
+        (nameBinding, Par(s1, s2))
+      }
+    }
+}
+
+case class Dec(s: Scope, n: NameVar) extends Constraint {
+  override def substituteType(binding: TypeBinding): Constraint =
+    this
+
+  override def substituteScope(binding: ScopeBinding): Constraint =
+    Dec(s.substituteScope(binding), n)
+
+  override def substituteName(binding: NameBinding): Constraint =
+    Dec(s, n.substituteName(binding))
+
+  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
+    s.freshen(nameBinding).map { case (nameBinding, s) =>
+      n.freshen(nameBinding).map { case (nameBinding, n) =>
+        (nameBinding, Dec(s, n))
+      }
+    }
+}
+
+case class Ref(n: NameVar, s: Scope) extends Constraint {
+  override def substituteType(binding: TypeBinding): Constraint =
+    this
+
+  override def substituteScope(binding: ScopeBinding): Constraint =
+    Ref(n, s.substituteScope(binding))
+
+  override def substituteName(binding: NameBinding): Constraint =
+    Ref(n.substituteName(binding), s)
+
+  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
+    n.freshen(nameBinding).map { case (nameBinding, n) =>
+      s.freshen(nameBinding).map { case (nameBinding, s) =>
+        (nameBinding, Ref(n, s))
+      }
+    }
+}
+
+// Proper constraints
+case class Res(n1: NameVar, n2: NameVar) extends Constraint {
+  override def substituteType(binding: TypeBinding): Constraint =
+    this
+
+  override def substituteScope(binding: ScopeBinding): Constraint =
+    Res(n1, n2)
+
+  override def substituteName(binding: NameBinding): Constraint =
+    Res(n1.substituteName(binding), n2.substituteName(binding))
+
+  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
+    n1.freshen(nameBinding).map { case (nameBinding, n1) =>
+      n2.freshen(nameBinding).map { case (nameBinding, n2) =>
+        (nameBinding, Res(n1, n2))
+      }
+    }
+}
+
+case class TypeOf(n: NameVar, t: Type) extends Constraint {
   override def substituteType(binding: TypeBinding): Constraint =
     TypeOf(n, t.substituteType(binding))
 
-  override def freshen(nameBinding: NameBinding): (NameBinding, Constraint) =
+  override def substituteScope(binding: ScopeBinding): Constraint =
+    this
+
+  override def substituteName(binding: NameBinding): Constraint =
+    TypeOf(n.substituteName(binding), t)
+
+  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
     t.freshen(nameBinding).map { case (nameBinding, t) =>
-      (nameBinding, TypeOf(nameBinding.getOrElse(n, n), t))
+      n.freshen(nameBinding).map { case (nameBinding, n) =>
+        (nameBinding, TypeOf(n, t))
+      }
     }
 }
 
@@ -65,7 +161,13 @@ case class TypeEquals(t1: Type, t2: Type) extends Constraint {
   override def substituteType(binding: TypeBinding): Constraint =
     TypeEquals(t1.substituteType(binding), t2.substituteType(binding))
 
-  override def freshen(nameBinding: NameBinding): (NameBinding, Constraint) =
+  override def substituteScope(binding: ScopeBinding): Constraint =
+    this
+
+  override def substituteName(binding: NameBinding): Constraint =
+    this
+
+  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
     t1.freshen(nameBinding).map { case (nameBinding, t1) =>
       t2.freshen(nameBinding).map { case (nameBinding, t2) =>
         (nameBinding, TypeEquals(t1, t2))
@@ -77,7 +179,13 @@ case class Subtype(t1: Type, t2: Type) extends Constraint {
   override def substituteType(binding: TypeBinding): Constraint =
     Subtype(t1.substituteType(binding), t2.substituteType(binding))
 
-  override def freshen(nameBinding: NameBinding): (NameBinding, Constraint) =
+  override def substituteScope(binding: ScopeBinding): Constraint =
+    this
+
+  override def substituteName(binding: NameBinding): Constraint =
+    this
+
+  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
     t1.freshen(nameBinding).map { case (nameBinding, t1) =>
       t2.freshen(nameBinding).map { case (nameBinding, t2) =>
         (nameBinding, Subtype(t1, t2))
@@ -93,7 +201,11 @@ abstract class Pattern {
 
   def substituteType(binding: TypeBinding): Pattern
 
-  def freshen(nameBinding: NameBinding): (NameBinding, Pattern)
+  def substituteScope(binding: ScopeBinding): Pattern
+
+  def substituteName(binding: NameBinding): Pattern
+
+  def freshen(nameBinding: Map[String, String]): (Map[String, String], Pattern)
 }
 
 case class TermAppl(cons: String, children: List[Pattern] = List.empty) extends Pattern {
@@ -103,28 +215,47 @@ case class TermAppl(cons: String, children: List[Pattern] = List.empty) extends 
   override def substituteTerm(binding: Map[TermVar, Pattern]): Pattern =
     TermAppl(cons, children.map(_.substituteTerm(binding)))
 
-  override def substituteType(typeBinding: TypeBinding): Pattern =
-    TermAppl(cons, children.map(_.substituteType(typeBinding)))
+  override def substituteType(binding: TypeBinding): Pattern =
+    TermAppl(cons, children.map(_.substituteType(binding)))
 
-  override def freshen(nameBinding: NameBinding): (NameBinding, Pattern) =
+  override def substituteScope(binding: ScopeBinding): Pattern =
+    TermAppl(cons, children.map(_.substituteScope(binding)))
+
+  override def substituteName(binding: NameBinding): Pattern =
+    TermAppl(cons, children.map(_.substituteName(binding)))
+
+  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Pattern) =
     children.freshen(nameBinding).map { case (nameBinding, args) =>
       (nameBinding, TermAppl(cons, args))
     }
 }
 
-case class TermVar(name: String, typ: Type) extends Pattern {
+case class TermVar(name: String, typ: Type, scope: Scope) extends Pattern {
   override def vars: List[TermVar] =
     List(this)
 
   override def substituteTerm(binding: Map[TermVar, Pattern]): Pattern =
     binding.getOrElse(this, this)
 
-  override def substituteType(typeBinding: TypeBinding): Pattern =
-    TermVar(name, typ.substituteType(typeBinding))
+  override def substituteType(binding: TypeBinding): Pattern =
+    TermVar(name, typ.substituteType(binding), scope)
 
-  override def freshen(nameBinding: NameBinding): (NameBinding, Pattern) =
+  override def substituteScope(binding: ScopeBinding): Pattern =
+    TermVar(name, typ, scope.substituteScope(binding))
+
+  override def substituteName(binding: NameBinding): Pattern =
+    this
+
+  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Pattern) =
     typ.freshen(nameBinding).map { case (nameBinding, typ) =>
-      (nameBinding, TermVar(nameBinding.getOrElse(name, name), typ))
+      scope.freshen(nameBinding).map { case (nameBinding, scope) =>
+        if (nameBinding.contains(name)) {
+          (nameBinding, TermVar(nameBinding(name), typ, scope))
+        } else {
+          val fresh = "x" + NameProvider.next
+          (nameBinding + (name -> fresh), TermVar(fresh, typ, scope))
+        }
+      }
     }
 }
 
@@ -138,14 +269,53 @@ case class NameVar(name: String) extends Pattern {
   override def substituteType(typeBinding: TypeBinding): Pattern =
     this
 
-  override def freshen(nameBinding: NameBinding): (NameBinding, Pattern) =
-    ???
+  override def substituteScope(binding: ScopeBinding): Pattern =
+    this
+
+  override def substituteName(binding: NameBinding): NameVar =
+    binding.getOrElse(this, this)
+
+  override def freshen(nameBinding: Map[String, String]): (Map[String, String], NameVar) =
+    if (nameBinding.contains(name)) {
+      (nameBinding, NameVar(nameBinding(name)))
+    } else {
+      val fresh = "n" + NameProvider.next
+      (nameBinding + (name -> fresh), NameVar(fresh))
+    }
 }
 
 // Scope
-abstract class Scope
+abstract class Scope {
+  def unify(t: Scope, binding: ScopeBinding = Map.empty): Option[ScopeBinding]
 
-case class ScopeVar(name: String) extends Scope
+  def substituteScope(binding: ScopeBinding): Scope
+
+  def freshen(nameBinding: Map[String, String]): (Map[String, String], Scope)
+}
+
+case class ScopeVar(name: String) extends Scope {
+  override def unify(scope: Scope, binding: ScopeBinding): Option[ScopeBinding] = scope match {
+    case s@ScopeVar(_) if binding.contains(s) =>
+      unify(binding(s), binding)
+    case _ =>
+      if (binding.contains(this)) {
+        binding(this).unify(scope, binding)
+      } else {
+        Some(binding + (this -> scope))
+      }
+  }
+
+  override def substituteScope(binding: ScopeBinding): Scope =
+    binding.getOrElse(this, this)
+
+  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Scope) =
+    if (nameBinding.contains(name)) {
+      (nameBinding, ScopeVar(nameBinding(name)))
+    } else {
+      val fresh = "s" + NameProvider.next
+      (nameBinding + (name -> fresh), ScopeVar(fresh))
+    }
+}
 
 // Type
 abstract class Type {
@@ -153,7 +323,7 @@ abstract class Type {
 
   def unify(t: Type, binding: TypeBinding = Map.empty): Option[TypeBinding]
 
-  def freshen(nameBinding: NameBinding): (NameBinding, Type)
+  def freshen(nameBinding: Map[String, String]): (Map[String, String], Type)
 }
 
 case class TypeAppl(name: String, children: List[Type] = List.empty) extends Type {
@@ -172,7 +342,7 @@ case class TypeAppl(name: String, children: List[Type] = List.empty) extends Typ
       None
   }
 
-  override def freshen(nameBinding: NameBinding): (NameBinding, Type) =
+  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Type) =
     children.freshen(nameBinding).map { case (nameBinding, children) =>
       (nameBinding, TypeAppl(name, children))
     }
@@ -193,7 +363,7 @@ case class TypeVar(name: String) extends Type {
       }
   }
 
-  override def freshen(nameBinding: NameBinding): (NameBinding, Type) = {
+  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Type) = {
     if (nameBinding.contains(name)) {
       (nameBinding, TypeVar(nameBinding(name)))
     } else {

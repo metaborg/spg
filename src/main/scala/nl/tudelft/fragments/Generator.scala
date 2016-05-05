@@ -50,5 +50,4 @@ object Generator {
   }
 
   // TODO: `repeat` does not yet backtrack to choices made in `generate`. When repeat fails, the full generation fails.
-  // TODO: add scopes and references
 }

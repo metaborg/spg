@@ -6,7 +6,7 @@ package object fragments {
   type TermBinding = Map[TermVar, Pattern]
   type TypeBinding = Map[TypeVar, Type]
   type ScopeBinding = Map[ScopeVar, Scope]
-  type NameBinding = Map[String, String]
+  type NameBinding = Map[NameVar, NameVar]
 
   implicit class RichList[T](list: List[T]) {
     // Fold until the accumulator becomes None
@@ -38,14 +38,14 @@ package object fragments {
   }
 
   implicit class RichPatternList[T <: Pattern](list: List[T]) extends RichList[T](list) {
-    def freshen(nameBinding: NameBinding): (NameBinding, List[Pattern]) =
+    def freshen(nameBinding: Map[String, String]): (Map[String, String], List[Pattern]) =
       this.mapFoldLeft(nameBinding) { case (nameBinding, pattern) =>
         pattern.freshen(nameBinding)
       }
   }
 
   implicit class RichTypeList[T <: Type](list: List[T]) extends RichList[T](list) {
-    def freshen(nameBinding: NameBinding): (NameBinding, List[Type]) =
+    def freshen(nameBinding: Map[String, String]): (Map[String, String], List[Type]) =
       this.mapFoldLeft(nameBinding) { case (nameBinding, typ) =>
         typ.freshen(nameBinding)
       }
@@ -79,7 +79,7 @@ package object fragments {
 //  }
 
   implicit class RichConstraintList[T <: Constraint](list: List[T]) extends RichList[T](list) {
-    def freshen(nameBinding: NameBinding): (NameBinding, List[Constraint]) =
+    def freshen(nameBinding: Map[String, String]): (Map[String, String], List[Constraint]) =
       this.mapFoldLeft(nameBinding) { case (nameBinding, constraint) =>
         constraint.freshen(nameBinding)
       }
@@ -87,8 +87,11 @@ package object fragments {
     def substituteType(binding: TypeBinding): List[Constraint] =
       list.map(_.substituteType(binding))
 
-//    def substituteName(binding: NameBinding): List[Constraint] =
-//      list.map(_.substituteName(binding))
+    def substituteScope(binding: ScopeBinding): List[Constraint] =
+      list.map(_.substituteScope(binding))
+
+    def substituteName(binding: NameBinding): List[Constraint] =
+      list.map(_.substituteName(binding))
   }
 
   // CPS for Tuple2
