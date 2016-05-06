@@ -1,5 +1,7 @@
 package nl.tudelft.fragments
 
+import scala.util.Random
+
 object Solver {
   import Graph._
 
@@ -19,7 +21,7 @@ object Solver {
       for (u <- t1.unify(t2); r <- solve(cs.substituteType(u), all, ts))
         yield (r._1 ++ u, r._2, r._3)
     case Res(n1, n2) =>
-      for ((_, dec, cond) <- resolves(n1, all)) {
+      for ((_, dec, cond) <- Random.shuffle(resolves(n1, all))) {
         val result = solve(cs.substituteName(Map(n2 -> dec)), all, ts)
 
         if (result.isDefined) {
@@ -75,7 +77,7 @@ object Graph {
 
   // Reachable scopes
   def path(s: Scope, all: List[Constraint]): List[(Path, Scope)] =
-    parent(s, all).flatMap(path(_, all)).map { case (path, scope) =>
+    List((Nil, s)) ++ parent(s, all).flatMap(path(_, all)).map { case (path, scope) =>
       (s :: path, scope)
     }
 

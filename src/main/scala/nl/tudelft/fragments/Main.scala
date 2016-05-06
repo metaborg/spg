@@ -41,7 +41,7 @@ object Main {
       TermAppl("Abs", List(
         NameVar("n"),
         TermVar("e1", "Type", TypeVar("t1"), ScopeVar("s")),
-        TermVar("e2", "Exp", TypeVar("t1"), ScopeVar("s1"))
+        TermVar("e2", "Exp", TypeVar("t2"), ScopeVar("s1"))
       )),
       "Exp",
       TypeVar("t"),
@@ -85,18 +85,14 @@ object Main {
     )
 
     // Have the generator perform a single step
-    val r1 = new Rule(TermAppl("Program", List(
-      TermVar("x1", "Exp", TypeVar("t"), ScopeVar("s")),
-      TermVar("x2", "Exp", TypeVar("t"), ScopeVar("s"))
-    )), "Exp", TypeVar("t"), ScopeVar("s"), List())
-
-    val r2 = r1.merge(TermVar("x1", "Exp", TypeVar("t"), ScopeVar("s")), r1)
+    val r2 = ruleAbs.merge(TermVar("e2", "Exp", TypeVar("t1"), ScopeVar("s1")), ruleAbs)
 
     println(r2)
+    println(Solver.solve(r2.constraints, types))
 
     // Make the generator repeat at most 10 times
-    for (i <- 1 to 10) {
-      val r1 = Generator.generate(rules, new Rule(TermVar("e", "Exp", TypeVar("t"), ScopeVar("s")), "Exp", TypeVar("t"), ScopeVar("s"), List()), 5, types)
+    for (i <- 1 to 1000) {
+      val r1 = Generator.generate(rules, new Rule(TermVar("e", "Exp", TypeVar("t"), ScopeVar("s")), "Exp", TypeVar("t"), ScopeVar("s"), List()), 10, types)
       println(r1)
 
       if (r1.isDefined) {
