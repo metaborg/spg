@@ -12,7 +12,7 @@ object NameProvider {
 }
 
 // Rule
-case class Rule(pattern: Pattern, typ: Type, scope: Scope, constraints: List[Constraint]) {
+case class Rule(pattern: Pattern, sort: String, typ: Type, scope: Scope, constraints: List[Constraint]) {
   def merge(hole: TermVar, rule: Rule): Rule = {
     val freshRule = rule.freshen()
 
@@ -22,6 +22,8 @@ case class Rule(pattern: Pattern, typ: Type, scope: Scope, constraints: List[Con
     val merged = Rule(
       pattern =
         pattern.substituteTerm(Map(hole -> freshRule.pattern)),
+      sort =
+        sort,
       typ =
         typ,
       scope =
@@ -36,22 +38,25 @@ case class Rule(pattern: Pattern, typ: Type, scope: Scope, constraints: List[Con
   }
 
   def substituteType(binding: TypeBinding): Rule =
-    Rule(pattern.substituteType(binding), typ.substituteType(binding), scope, constraints.substituteType(binding))
+    Rule(pattern.substituteType(binding), sort, typ.substituteType(binding), scope, constraints.substituteType(binding))
 
   def substituteScope(binding: ScopeBinding): Rule =
-    Rule(pattern.substituteScope(binding), typ, scope.substituteScope(binding), constraints.substituteScope(binding))
+    Rule(pattern.substituteScope(binding), sort, typ, scope.substituteScope(binding), constraints.substituteScope(binding))
 
   def freshen(nameBinding: Map[String, String] = Map.empty): Rule = {
     pattern.freshen(nameBinding).map { case (nameBinding, pattern) =>
       typ.freshen(nameBinding).map { case (nameBinding, typ) =>
         scope.freshen(nameBinding).map { case (nameBinding, scope) =>
           constraints.freshen(nameBinding).map { case (nameBinding, constraints) =>
-            Rule(pattern, typ, scope, constraints)
+            Rule(pattern, sort, typ, scope, constraints)
           }
         }
       }
     }
   }
+
+  override def toString: String =
+    s"""Rule($pattern, "$sort", $typ, $scope, $constraints)"""
 }
 
 // Constraint
@@ -197,6 +202,8 @@ case class Subtype(t1: Type, t2: Type) extends Constraint {
 abstract class Pattern {
   def vars: List[TermVar]
 
+  def size: Int
+
   def substituteTerm(binding: Map[TermVar, Pattern]): Pattern
 
   def substituteType(binding: TypeBinding): Pattern
@@ -211,6 +218,9 @@ abstract class Pattern {
 case class TermAppl(cons: String, children: List[Pattern] = List.empty) extends Pattern {
   override def vars: List[TermVar] =
     children.flatMap(_.vars).distinct
+
+  override def size: Int =
+    1 + children.map(_.size).sum
 
   override def substituteTerm(binding: Map[TermVar, Pattern]): Pattern =
     TermAppl(cons, children.map(_.substituteTerm(binding)))
@@ -228,20 +238,26 @@ case class TermAppl(cons: String, children: List[Pattern] = List.empty) extends 
     children.freshen(nameBinding).map { case (nameBinding, args) =>
       (nameBinding, TermAppl(cons, args))
     }
+
+  override def toString: String =
+    s"""TermAppl("$cons", $children)"""
 }
 
-case class TermVar(name: String, typ: Type, scope: Scope) extends Pattern {
+case class TermVar(name: String, sort: String, typ: Type, scope: Scope) extends Pattern {
   override def vars: List[TermVar] =
     List(this)
+
+  override def size: Int =
+    0
 
   override def substituteTerm(binding: Map[TermVar, Pattern]): Pattern =
     binding.getOrElse(this, this)
 
   override def substituteType(binding: TypeBinding): Pattern =
-    TermVar(name, typ.substituteType(binding), scope)
+    TermVar(name, sort, typ.substituteType(binding), scope)
 
   override def substituteScope(binding: ScopeBinding): Pattern =
-    TermVar(name, typ, scope.substituteScope(binding))
+    TermVar(name, sort, typ, scope.substituteScope(binding))
 
   override def substituteName(binding: NameBinding): Pattern =
     this
@@ -250,18 +266,24 @@ case class TermVar(name: String, typ: Type, scope: Scope) extends Pattern {
     typ.freshen(nameBinding).map { case (nameBinding, typ) =>
       scope.freshen(nameBinding).map { case (nameBinding, scope) =>
         if (nameBinding.contains(name)) {
-          (nameBinding, TermVar(nameBinding(name), typ, scope))
+          (nameBinding, TermVar(nameBinding(name), sort, typ, scope))
         } else {
           val fresh = "x" + NameProvider.next
-          (nameBinding + (name -> fresh), TermVar(fresh, typ, scope))
+          (nameBinding + (name -> fresh), TermVar(fresh, sort, typ, scope))
         }
       }
     }
+
+  override def toString: String =
+    s"""TermVar("$name", "$sort", $typ, $scope)"""
 }
 
 case class NameVar(name: String) extends Pattern {
   override def vars: List[TermVar] =
     List.empty
+
+  override def size: Int =
+    1
 
   override def substituteTerm(binding: Map[TermVar, Pattern]): Pattern =
     this
@@ -282,6 +304,9 @@ case class NameVar(name: String) extends Pattern {
       val fresh = "n" + NameProvider.next
       (nameBinding + (name -> fresh), NameVar(fresh))
     }
+
+  override def toString: String =
+    s"""NameVar("$name")"""
 }
 
 // Scope
@@ -315,6 +340,9 @@ case class ScopeVar(name: String) extends Scope {
       val fresh = "s" + NameProvider.next
       (nameBinding + (name -> fresh), ScopeVar(fresh))
     }
+
+  override def toString: String =
+    s"""ScopeVar("$name")"""
 }
 
 // Type
@@ -346,6 +374,9 @@ case class TypeAppl(name: String, children: List[Type] = List.empty) extends Typ
     children.freshen(nameBinding).map { case (nameBinding, children) =>
       (nameBinding, TypeAppl(name, children))
     }
+
+  override def toString: String =
+    s"""TypeAppl("$name", $children)"""
 }
 
 case class TypeVar(name: String) extends Type {
@@ -371,4 +402,7 @@ case class TypeVar(name: String) extends Type {
       (nameBinding + (name -> fresh), TypeVar(fresh))
     }
   }
+
+  override def toString: String =
+    s"""TypeVar("$name")"""
 }

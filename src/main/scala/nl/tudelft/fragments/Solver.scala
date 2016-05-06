@@ -1,7 +1,7 @@
 package nl.tudelft.fragments
 
 object Solver {
-  type Substitution = (TypeBinding, NameBinding)
+  import Graph._
 
   // Solve one constraint
   def solve(c: Constraint, cs: List[Constraint], all: List[Constraint], ts: List[Type]): Option[Substitution] = c match {
@@ -41,7 +41,9 @@ object Solver {
   // Solve all constraints
   def solve(constraints: List[Constraint], ts: List[Type]): Option[Substitution] =
     solve(constraints, constraints, ts)
+}
 
+object Graph {
   // Parent scope
   def parent(s: Scope, all: List[Constraint]): List[Scope] =
     all.flatMap {

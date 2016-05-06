@@ -2,10 +2,19 @@ package nl.tudelft.fragments
 
 object Main {
   def main(args: Array[String]): Unit = {
-    // TODO: Add sorts
+    val ruleNumber = Rule(
+      TermAppl("Number"),
+      "Exp",
+      TypeVar("t"),
+      ScopeVar("s"),
+      List(
+        TypeEquals(TypeVar("t"), TypeAppl("Int"))
+      )
+    )
 
     val ruleInt = Rule(
       TermAppl("Int"),
+      "Type",
       TypeVar("t"),
       ScopeVar("s"),
       List(
@@ -15,9 +24,10 @@ object Main {
 
     val ruleAdd = Rule(
       TermAppl("Add", List(
-        TermVar("e1", TypeVar("t1"), ScopeVar("s")),
-        TermVar("e2", TypeVar("t2"), ScopeVar("s"))
+        TermVar("e1", "Exp", TypeVar("t1"), ScopeVar("s")),
+        TermVar("e2", "Exp", TypeVar("t2"), ScopeVar("s"))
       )),
+      "Exp",
       TypeVar("t"),
       ScopeVar("s"),
       List(
@@ -30,9 +40,10 @@ object Main {
     val ruleAbs = Rule(
       TermAppl("Abs", List(
         NameVar("n"),
-        TermVar("e1", TypeVar("t1"), ScopeVar("s")),
-        TermVar("e2", TypeVar("t1"), ScopeVar("s1"))
+        TermVar("e1", "Type", TypeVar("t1"), ScopeVar("s")),
+        TermVar("e2", "Exp", TypeVar("t1"), ScopeVar("s1"))
       )),
+      "Exp",
       TypeVar("t"),
       ScopeVar("s"),
       List(
@@ -47,6 +58,7 @@ object Main {
       TermAppl("Var", List(
         NameVar("n")
       )),
+      "Exp",
       TypeVar("t"),
       ScopeVar("s"),
       List(
@@ -58,7 +70,7 @@ object Main {
 
     // ---
 
-    val rules = List(ruleAdd, ruleInt, ruleAbs, ruleVar)
+    val rules = List(ruleNumber, ruleAdd, ruleInt, ruleAbs, ruleVar)
 
     val types = List(
       TypeAppl("Int"),
@@ -74,17 +86,17 @@ object Main {
 
     // Have the generator perform a single step
     val r1 = new Rule(TermAppl("Program", List(
-      TermVar("x1", TypeVar("t"), ScopeVar("s")),
-      TermVar("x2", TypeVar("t"), ScopeVar("s"))
-    )), TypeVar("t"), ScopeVar("s"), List())
+      TermVar("x1", "Exp", TypeVar("t"), ScopeVar("s")),
+      TermVar("x2", "Exp", TypeVar("t"), ScopeVar("s"))
+    )), "Exp", TypeVar("t"), ScopeVar("s"), List())
 
-    val r2 = r1.merge(TermVar("x1", TypeVar("t"), ScopeVar("s")), r1)
+    val r2 = r1.merge(TermVar("x1", "Exp", TypeVar("t"), ScopeVar("s")), r1)
 
     println(r2)
 
     // Make the generator repeat at most 10 times
-    for (i <- 0 to 100) {
-      val r1 = Generator.repeat(rules, new Rule(TermVar("e", TypeVar("t"), ScopeVar("s")), TypeVar("t"), ScopeVar("s"), List()), types, 10)
+    for (i <- 1 to 10) {
+      val r1 = Generator.generate(rules, new Rule(TermVar("e", "Exp", TypeVar("t"), ScopeVar("s")), "Exp", TypeVar("t"), ScopeVar("s"), List()), 5, types)
       println(r1)
 
       if (r1.isDefined) {

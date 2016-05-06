@@ -7,6 +7,7 @@ package object fragments {
   type TypeBinding = Map[TypeVar, Type]
   type ScopeBinding = Map[ScopeVar, Scope]
   type NameBinding = Map[NameVar, NameVar]
+  type Substitution = (TypeBinding, NameBinding)
 
   implicit class RichList[T](list: List[T]) {
     // Fold until the accumulator becomes None
