@@ -5,7 +5,7 @@ import nl.tudelft.fragments._
 object Lambda {
   private val ruleNumber = Rule(
     TermAppl("Number"),
-    "Exp",
+    SortAppl("Exp"),
     TypeVar("t"),
     ScopeVar("s"),
     List(
@@ -15,7 +15,7 @@ object Lambda {
 
   private val ruleInt = Rule(
     TermAppl("Int"),
-    "Type",
+    SortAppl("Type"),
     TypeVar("t"),
     ScopeVar("s"),
     List(
@@ -25,10 +25,10 @@ object Lambda {
 
   private val ruleAdd = Rule(
     TermAppl("Add", List(
-      TermVar("e1", "Exp", TypeVar("t1"), ScopeVar("s")),
-      TermVar("e2", "Exp", TypeVar("t2"), ScopeVar("s"))
+      TermVar("e1", SortAppl("Exp"), TypeVar("t1"), ScopeVar("s")),
+      TermVar("e2", SortAppl("Exp"), TypeVar("t2"), ScopeVar("s"))
     )),
-    "Exp",
+    SortAppl("Exp"),
     TypeVar("t"),
     ScopeVar("s"),
     List(
@@ -41,10 +41,10 @@ object Lambda {
   private val ruleAbs = Rule(
     TermAppl("Abs", List(
       NameVar("n"),
-      TermVar("e1", "Type", TypeVar("t1"), ScopeVar("s")),
-      TermVar("e2", "Exp", TypeVar("t2"), ScopeVar("s1"))
+      TermVar("e1", SortAppl("Type"), TypeVar("t1"), ScopeVar("s")),
+      TermVar("e2", SortAppl("Exp"), TypeVar("t2"), ScopeVar("s1"))
     )),
-    "Exp",
+    SortAppl("Exp"),
     TypeVar("t"),
     ScopeVar("s"),
     List(
@@ -59,7 +59,7 @@ object Lambda {
     TermAppl("Var", List(
       NameVar("n")
     )),
-    "Exp",
+    SortAppl("Exp"),
     TypeVar("t"),
     ScopeVar("s"),
     List(

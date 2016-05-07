@@ -14,8 +14,12 @@ object Generator {
 
       // Compute applicable rules
       val applicable = rules
-        .filter(_.sort == hole.sort)                          // Filter rules on matching sorts
-        .filter(_.pattern.vars.length < maxSize/holes.length) // Filter rules that are not too large
+        // Filter and instantiate rules with polymorphic sorts
+        .flatMap(rule =>
+          rule.sort.unify(hole.sort).map(rule.substituteSort)
+        )
+        // Filter rules that are not too large
+        .filter(_.pattern.vars.length < maxSize/holes.length)
 
       // Shuffle the rules
       val random = Random.shuffle(applicable)

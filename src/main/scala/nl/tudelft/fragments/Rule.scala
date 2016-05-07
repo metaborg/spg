@@ -12,7 +12,7 @@ object NameProvider {
 }
 
 // Rule
-case class Rule(pattern: Pattern, sort: String, typ: Type, scope: Scope, constraints: List[Constraint]) {
+case class Rule(pattern: Pattern, sort: Sort, typ: Type, scope: Scope, constraints: List[Constraint]) {
   def merge(hole: TermVar, rule: Rule): Rule = {
     val freshRule = rule.freshen()
 
@@ -43,6 +43,9 @@ case class Rule(pattern: Pattern, sort: String, typ: Type, scope: Scope, constra
   def substituteScope(binding: ScopeBinding): Rule =
     Rule(pattern.substituteScope(binding), sort, typ, scope.substituteScope(binding), constraints.substituteScope(binding))
 
+  def substituteSort(binding: SortBinding): Rule =
+    Rule(pattern.substituteSort(binding), sort.substituteSort(binding), typ, scope, constraints)
+
   def freshen(nameBinding: Map[String, String] = Map.empty): Rule = {
     pattern.freshen(nameBinding).map { case (nameBinding, pattern) =>
       typ.freshen(nameBinding).map { case (nameBinding, typ) =>
@@ -56,7 +59,7 @@ case class Rule(pattern: Pattern, sort: String, typ: Type, scope: Scope, constra
   }
 
   override def toString: String =
-    s"""Rule($pattern, "$sort", $typ, $scope, $constraints)"""
+    s"""Rule($pattern, $sort, $typ, $scope, $constraints)"""
 }
 
 // Constraint
@@ -198,6 +201,52 @@ case class Subtype(t1: Type, t2: Type) extends Constraint {
     }
 }
 
+// Sort
+abstract class Sort {
+  def substituteSort(binding: SortBinding): Sort
+
+  def unify(s: Sort, binding: SortBinding = Map.empty): Option[SortBinding]
+}
+
+case class SortAppl(cons: String, children: List[Sort] = Nil) extends Sort {
+  override def substituteSort(binding: SortBinding): Sort =
+    SortAppl(cons, children.map(_.substituteSort(binding)))
+
+  override def unify(sort: Sort, binding: SortBinding): Option[SortBinding] = sort match {
+    case c@SortAppl(`cons`, _) if children.length == c.children.length =>
+      children.zip(c.children).foldLeftWhile(binding) {
+        case (binding, (t1, t2)) =>
+          t1.unify(t2, binding)
+      }
+    case SortVar(_) =>
+      sort.unify(this, binding)
+    case _ =>
+      None
+  }
+
+  override def toString: String =
+    s"""SortAppl("$cons", $children)"""
+}
+
+case class SortVar(name: String) extends Sort {
+  override def substituteSort(binding: SortBinding): Sort =
+    binding.getOrElse(this, this)
+
+  override def unify(sort: Sort, binding: SortBinding): Option[SortBinding] = sort match {
+    case s@SortVar(_) if binding.contains(s) =>
+      unify(binding(s), binding)
+    case _ =>
+      if (binding.contains(this)) {
+        binding(this).unify(sort, binding)
+      } else {
+        Some(binding + (this -> sort))
+      }
+  }
+
+  override def toString: String =
+    s"""SortVar("$name")"""
+}
+
 // Pattern
 abstract class Pattern {
   def vars: List[TermVar]
@@ -212,10 +261,12 @@ abstract class Pattern {
 
   def substituteName(binding: NameBinding): Pattern
 
+  def substituteSort(binding: SortBinding): Pattern
+
   def freshen(nameBinding: Map[String, String]): (Map[String, String], Pattern)
 }
 
-case class TermAppl(cons: String, children: List[Pattern] = List.empty) extends Pattern {
+case class TermAppl(cons: String, children: List[Pattern] = Nil) extends Pattern {
   override def vars: List[TermVar] =
     children.flatMap(_.vars).distinct
 
@@ -234,6 +285,9 @@ case class TermAppl(cons: String, children: List[Pattern] = List.empty) extends 
   override def substituteName(binding: NameBinding): Pattern =
     TermAppl(cons, children.map(_.substituteName(binding)))
 
+  override def substituteSort(binding: SortBinding): Pattern =
+    TermAppl(cons, children.map(_.substituteSort(binding)))
+
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Pattern) =
     children.freshen(nameBinding).map { case (nameBinding, args) =>
       (nameBinding, TermAppl(cons, args))
@@ -243,7 +297,7 @@ case class TermAppl(cons: String, children: List[Pattern] = List.empty) extends 
     s"""TermAppl("$cons", $children)"""
 }
 
-case class TermVar(name: String, sort: String, typ: Type, scope: Scope) extends Pattern {
+case class TermVar(name: String, sort: Sort, typ: Type, scope: Scope) extends Pattern {
   override def vars: List[TermVar] =
     List(this)
 
@@ -261,6 +315,9 @@ case class TermVar(name: String, sort: String, typ: Type, scope: Scope) extends 
 
   override def substituteName(binding: NameBinding): Pattern =
     this
+
+  override def substituteSort(binding: SortBinding): Pattern =
+    TermVar(name, sort.substituteSort(binding), typ, scope)
 
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Pattern) =
     typ.freshen(nameBinding).map { case (nameBinding, typ) =>
@@ -280,7 +337,7 @@ case class TermVar(name: String, sort: String, typ: Type, scope: Scope) extends 
 
 case class NameVar(name: String) extends Pattern {
   override def vars: List[TermVar] =
-    List.empty
+    Nil
 
   override def size: Int =
     1
@@ -296,6 +353,9 @@ case class NameVar(name: String) extends Pattern {
 
   override def substituteName(binding: NameBinding): NameVar =
     binding.getOrElse(this, this)
+
+  override def substituteSort(binding: SortBinding): Pattern =
+    this
 
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], NameVar) =
     if (nameBinding.contains(name)) {
@@ -354,7 +414,7 @@ abstract class Type {
   def freshen(nameBinding: Map[String, String]): (Map[String, String], Type)
 }
 
-case class TypeAppl(name: String, children: List[Type] = List.empty) extends Type {
+case class TypeAppl(name: String, children: List[Type] = Nil) extends Type {
   override def substituteType(binding: TypeBinding): Type =
     TypeAppl(name, children.map(_.substituteType(binding)))
 

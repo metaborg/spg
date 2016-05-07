@@ -7,6 +7,7 @@ package object fragments {
   type TypeBinding = Map[TypeVar, Type]
   type ScopeBinding = Map[ScopeVar, Scope]
   type NameBinding = Map[NameVar, NameVar]
+  type SortBinding = Map[SortVar, Sort]
   type Substitution = (TypeBinding, NameBinding, List[Diseq])
   type Path = List[Scope]
 

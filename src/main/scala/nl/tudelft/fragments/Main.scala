@@ -11,8 +11,15 @@ object Main {
     val types = MiniJava.types
 
     // Make the generator repeat at most 10 times
-    for (i <- 1 to 1000) {
-      val r1 = Generator.generate(rules, new Rule(TermVar("x", "Program", TypeVar("t"), ScopeVar("s")), "_", TypeVar("t"), ScopeVar("s"), List()), 10, types)
+    for (i <- 1 to 10) {
+      val r1 = Generator.generate(rules, new Rule(
+        TermVar("x", SortAppl("Program"), TypeVar("t"), ScopeVar("s")),
+        SortAppl("Program"),
+        TypeVar("t"),
+        ScopeVar("s"),
+        Nil
+      ), 25, types)
+
       println(r1)
 
       if (r1.isDefined) {
