@@ -98,6 +98,11 @@ package object fragments {
       list.map(_.substituteConcrete(binding))
   }
 
+  implicit class RichDiseqList[T <: Diseq](list: List[T]) extends RichList[T](list) {
+    def substituteConcrete(binding: ConcreteBinding): List[Diseq] =
+      list.map(_.substituteConcrete(binding))
+  }
+
   // CPS for Tuple2
   implicit class RichTuple2[T1, T2](tuple2: Tuple2[T1, T2]) {
     def map[T3](f: ((T1, T2)) => T3) =

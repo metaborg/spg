@@ -459,7 +459,7 @@ case class PatternNameAdapter(n: Name) extends Pattern {
 
   override def names: List[SymbolicName] = n match {
     case s@SymbolicName(_) => List(s)
-    case _ => throw new IllegalStateException
+    case _ => Nil
   }
 
   override def substituteType(binding: TypeBinding): Pattern =
@@ -536,7 +536,7 @@ case class ConcreteName(name: String) extends Name {
     ???
 
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Name) =
-    ???
+    (nameBinding, this)
 }
 
 case class NameVar(name: String) extends Name {

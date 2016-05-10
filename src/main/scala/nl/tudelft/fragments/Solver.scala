@@ -193,8 +193,15 @@ case class Declaration(n: NameVar) extends PathElem
 case class Parent() extends PathElem
 case class Import(s: Scope) extends PathElem
 
-abstract class Condition
-case class Diseq(n1: SymbolicName, n2: SymbolicName) extends Condition
+abstract class Condition {
+  def substituteConcrete(binding: ConcreteBinding): Condition
+}
+
+case class Diseq(n1: Name, n2: Name) extends Condition {
+  override def substituteConcrete(binding: ConcreteBinding) =
+    Diseq(n1.substituteConcrete(binding), n2.substituteConcrete(binding))
+}
+
 case class Eq(n1: Name, n2: Name) extends Condition {
   def substituteConcrete(binding: ConcreteBinding) =
     Eq(n1.substituteConcrete(binding), n2.substituteConcrete(binding))

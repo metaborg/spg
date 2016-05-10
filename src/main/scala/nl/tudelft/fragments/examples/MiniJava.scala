@@ -41,7 +41,6 @@ object MiniJava {
     ScopeVar("s"),
     List(
       Dec(ScopeVar("s"), SymbolicName("n")),
-      Dec(ScopeVar("s"), ConcreteName("this")),
       TypeOf(SymbolicName("n"), TypeAppl("ClassType", List(TypeNameAdapter(SymbolicName("n"))))),
       Par(ScopeVar("s1"), ScopeVar("s")),
       AssocFact(NameVar("n"), ScopeVar("s1"))
@@ -277,7 +276,7 @@ object MiniJava {
       TypeEquals(TypeVar("t2"), TypeAppl("ClassType", List(TypeNameAdapter(NameVar("d1")))))
     )
   )
-  
+
   // This : Exp (TODO: This requires concrete names in the generation)
   private val ruleThis = Rule(
     TermAppl("This"),
@@ -546,7 +545,7 @@ object MiniJava {
     ruleNewObject,
     ruleSubscript,
     ruleCall,
-    ruleThis,
+//    ruleThis,
     ruleLength,
     ruleNewArray,
     ruleAnd,
