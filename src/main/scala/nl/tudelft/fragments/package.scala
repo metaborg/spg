@@ -6,10 +6,14 @@ package object fragments {
   type TermBinding = Map[TermVar, Pattern]
   type TypeBinding = Map[TypeVar, Type]
   type ScopeBinding = Map[ScopeVar, Scope]
-  type NameBinding = Map[NameVar, NameVar]
+  type NameBinding = Map[NameVar, Name]
   type SortBinding = Map[SortVar, Sort]
-  type Substitution = (TypeBinding, NameBinding, List[Diseq])
-  type Path = List[Scope]
+  type ConcreteBinding = Map[SymbolicName, ConcreteName]
+  type Substitution = (TypeBinding, NameBinding, List[Condition])
+  type Path = List[PathElem]
+
+  // An instance of the NameProvider made globally available
+  val nameProvider = NameProvider(9)
 
   implicit class RichList[T](list: List[T]) {
     // Fold until the accumulator becomes None
@@ -29,6 +33,12 @@ package object fragments {
         (a2, elem :: list)
       case _ =>
         (z, Nil)
+    }
+
+    // Pair consecutive elements. I.e. turn [1,2,3, ...] into [(1,2); (2,3), ...]
+    def pairs: List[(T, T)] = list match {
+      case x1 :: x2 :: xs => (x1, x2) :: (x2 :: xs).pairs
+      case _ => Nil
     }
 
     // Get random element from the list
@@ -53,33 +63,16 @@ package object fragments {
         typ.freshen(nameBinding)
       }
 
-    def unify(types: List[Type]): Option[TypeBinding] =
+    def unify(types: List[Type]): Option[(TypeBinding, NameBinding)] =
       if (list.length == types.length) {
-        list.zip(types).foldLeftWhile(Map.empty[TypeVar, Type]) {
-          case (typeBinding, (t1, t2)) =>
-            t1.unify(t2, typeBinding)
+        list.zip(types).foldLeftWhile(Map.empty[TypeVar, Type], Map.empty[NameVar, Name]) {
+          case ((typeBinding, nameBinding), (t1, t2)) =>
+            t1.unify(t2, typeBinding, nameBinding)
         }
       } else {
         None
       }
   }
-
-//  implicit class RichScopeList[T <: Scope](list: List[T]) extends RichList[T](list) {
-//    def fresh(nameBinding: NameBinding): (NameBinding, List[Scope]) =
-//      this.mapFoldLeft(nameBinding) { case (nameBinding, scope) =>
-//        scope.fresh(nameBinding)
-//      }
-//
-//    def unify(scopes: List[Scope]): Option[ScopeBinding] =
-//      if (list.length == scopes.length) {
-//        list.zip(scopes).foldLeftWhile(Map.empty[ScopeVar, Scope]) {
-//          case (scopeBinding, (s1, s2)) =>
-//            s1.unify(s2, scopeBinding)
-//        }
-//      } else {
-//        None
-//      }
-//  }
 
   implicit class RichConstraintList[T <: Constraint](list: List[T]) extends RichList[T](list) {
     def freshen(nameBinding: Map[String, String]): (Map[String, String], List[Constraint]) =
@@ -95,6 +88,14 @@ package object fragments {
 
     def substituteName(binding: NameBinding): List[Constraint] =
       list.map(_.substituteName(binding))
+
+    def substituteConcrete(binding: ConcreteBinding): List[Constraint] =
+      list.map(_.substituteConcrete(binding))
+  }
+
+  implicit class RichEqList[T <: Eq](list: List[T]) extends RichList[T](list) {
+    def substituteConcrete(binding: ConcreteBinding): List[Eq] =
+      list.map(_.substituteConcrete(binding))
   }
 
   // CPS for Tuple2

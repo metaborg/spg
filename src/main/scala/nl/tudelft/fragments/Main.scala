@@ -1,6 +1,7 @@
 package nl.tudelft.fragments
 
 import nl.tudelft.fragments.examples.{Lambda, MiniJava}
+import nl.tudelft.fragments.spoofax.{Converter, Printer}
 
 object Main {
   def main(args: Array[String]): Unit = {
@@ -9,9 +10,10 @@ object Main {
 
     val rules = MiniJava.rules
     val types = MiniJava.types
+    val printer = Printer.print("/Users/martijn/Documents/workspace/MiniJava")
 
     // Make the generator repeat at most 10 times
-    for (i <- 1 to 10) {
+    for (i <- 1 to 1000) {
       val r1 = Generator.generate(rules, new Rule(
         TermVar("x", SortAppl("Program"), TypeVar("t"), ScopeVar("s")),
         SortAppl("Program"),
@@ -20,13 +22,24 @@ object Main {
         Nil
       ), 25, types)
 
-      println(r1)
-
       if (r1.isDefined) {
-        val soln = Solver.solve(r1.get.constraints, types)
+        val soln = Solver.solve(r1.get.constraints)
 
         if (soln.isDefined) {
-          println(soln)
+//          println(r1)
+
+//          println(soln)
+
+          val concrete = Concretor.concretize(r1.get, soln.get)
+//          println(concrete)
+
+          val sterm = Converter.toTerm(concrete)
+//          println(sterm)
+
+          val s = printer(sterm)
+          println(s.stringValue())
+
+          println("-----")
         }
       }
     }

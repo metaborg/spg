@@ -1,16 +1,5 @@
 package nl.tudelft.fragments
 
-// Globals
-object NameProvider {
-  // Start high enough to prevent clashes with names in the original rules
-  var c = 9
-
-  def next = {
-    c = c + 1
-    c
-  }
-}
-
 // Rule
 case class Rule(pattern: Pattern, sort: Sort, typ: Type, scope: Scope, constraints: List[Constraint]) {
   def merge(hole: TermVar, rule: Rule): Rule = {
@@ -33,12 +22,19 @@ case class Rule(pattern: Pattern, sort: Sort, typ: Type, scope: Scope, constrain
     )
 
     merged
-      .substituteType(typeUnifier)
+      .substituteType(typeUnifier._1)
+      .substituteName(typeUnifier._2)
       .substituteScope(scopeUnifier)
   }
 
   def substituteType(binding: TypeBinding): Rule =
     Rule(pattern.substituteType(binding), sort, typ.substituteType(binding), scope, constraints.substituteType(binding))
+
+  def substituteName(binding: NameBinding): Rule =
+    Rule(pattern.substituteName(binding), sort, typ.substituteName(binding), scope, constraints.substituteName(binding))
+
+  def substituteConcrete(binding: ConcreteBinding): Rule =
+    Rule(pattern.substituteConcrete(binding), sort, typ.substituteConcrete(binding), scope, constraints.substituteConcrete(binding))
 
   def substituteScope(binding: ScopeBinding): Rule =
     Rule(pattern.substituteScope(binding), sort, typ, scope.substituteScope(binding), constraints.substituteScope(binding))
@@ -70,7 +66,11 @@ abstract class Constraint {
 
   def substituteName(binding: NameBinding): Constraint
 
+  def substituteConcrete(binding: ConcreteBinding): Constraint
+
   def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint)
+
+  def isProper: Boolean = false
 }
 
 // Facts
@@ -84,6 +84,9 @@ case class Par(s1: Scope, s2: Scope) extends Constraint {
   override def substituteName(binding: NameBinding): Constraint =
     this
 
+  override def substituteConcrete(binding: ConcreteBinding): Constraint =
+    this
+
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
     s1.freshen(nameBinding).map { case (nameBinding, s1) =>
       s2.freshen(nameBinding).map { case (nameBinding, s2) =>
@@ -92,7 +95,7 @@ case class Par(s1: Scope, s2: Scope) extends Constraint {
     }
 }
 
-case class Dec(s: Scope, n: NameVar) extends Constraint {
+case class Dec(s: Scope, n: Name) extends Constraint {
   override def substituteType(binding: TypeBinding): Constraint =
     this
 
@@ -102,6 +105,9 @@ case class Dec(s: Scope, n: NameVar) extends Constraint {
   override def substituteName(binding: NameBinding): Constraint =
     Dec(s, n.substituteName(binding))
 
+  override def substituteConcrete(binding: ConcreteBinding): Constraint =
+    Dec(s, n.substituteConcrete(binding))
+
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
     s.freshen(nameBinding).map { case (nameBinding, s) =>
       n.freshen(nameBinding).map { case (nameBinding, n) =>
@@ -110,7 +116,7 @@ case class Dec(s: Scope, n: NameVar) extends Constraint {
     }
 }
 
-case class Ref(n: NameVar, s: Scope) extends Constraint {
+case class Ref(n: Name, s: Scope) extends Constraint {
   override def substituteType(binding: TypeBinding): Constraint =
     this
 
@@ -120,6 +126,9 @@ case class Ref(n: NameVar, s: Scope) extends Constraint {
   override def substituteName(binding: NameBinding): Constraint =
     Ref(n.substituteName(binding), s)
 
+  override def substituteConcrete(binding: ConcreteBinding): Constraint =
+    Ref(n.substituteConcrete(binding), s)
+
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
     n.freshen(nameBinding).map { case (nameBinding, n) =>
       s.freshen(nameBinding).map { case (nameBinding, s) =>
@@ -128,8 +137,74 @@ case class Ref(n: NameVar, s: Scope) extends Constraint {
     }
 }
 
+case class DirectImport(s1: Scope, s2: Scope) extends Constraint {
+  override def substituteType(binding: TypeBinding): Constraint =
+    this
+
+  override def substituteScope(binding: ScopeBinding): Constraint =
+    DirectImport(s1.substituteScope(binding), s2.substituteScope(binding))
+
+  override def substituteName(binding: NameBinding): Constraint =
+    this
+
+  override def substituteConcrete(binding: ConcreteBinding): Constraint =
+    this
+
+  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
+    s1.freshen(nameBinding).map { case (nameBinding, s1) =>
+      s2.freshen(nameBinding).map { case (nameBinding, s2) =>
+        (nameBinding, DirectImport(s1, s2))
+      }
+    }
+}
+
+case class AssocFact(n: Name, s: Scope) extends Constraint {
+  override def substituteType(binding: TypeBinding): Constraint =
+    this
+
+  override def substituteScope(binding: ScopeBinding): Constraint =
+    AssocFact(n, s.substituteScope(binding))
+
+  override def substituteName(binding: NameBinding): Constraint =
+    AssocFact(n.substituteName(binding), s)
+
+  override def substituteConcrete(binding: ConcreteBinding): Constraint =
+    AssocFact(n.substituteConcrete(binding), s)
+
+  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
+    n.freshen(nameBinding).map { case (nameBinding, n) =>
+      s.freshen(nameBinding).map { case (nameBinding, s) =>
+        (nameBinding, AssocFact(n, s))
+      }
+    }
+}
+
 // Proper constraints
-case class Res(n1: NameVar, n2: NameVar) extends Constraint {
+case class AssocConstraint(n: Name, s: Scope) extends Constraint {
+  override def substituteType(binding: TypeBinding): Constraint =
+    this
+
+  override def substituteScope(binding: ScopeBinding): Constraint =
+    AssocConstraint(n, s.substituteScope(binding))
+
+  override def substituteName(binding: NameBinding): Constraint =
+    AssocConstraint(n.substituteName(binding), s)
+
+  override def substituteConcrete(binding: ConcreteBinding): Constraint =
+    AssocConstraint(n.substituteConcrete(binding), s)
+
+  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
+    n.freshen(nameBinding).map { case (nameBinding, n) =>
+      s.freshen(nameBinding).map { case (nameBinding, s) =>
+        (nameBinding, AssocConstraint(n, s))
+      }
+    }
+
+  override def isProper =
+    true
+}
+
+case class Res(n1: Name, n2: Name) extends Constraint {
   override def substituteType(binding: TypeBinding): Constraint =
     this
 
@@ -139,15 +214,21 @@ case class Res(n1: NameVar, n2: NameVar) extends Constraint {
   override def substituteName(binding: NameBinding): Constraint =
     Res(n1.substituteName(binding), n2.substituteName(binding))
 
+  override def substituteConcrete(binding: ConcreteBinding): Constraint =
+    Res(n1.substituteConcrete(binding), n2.substituteConcrete(binding))
+
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
     n1.freshen(nameBinding).map { case (nameBinding, n1) =>
       n2.freshen(nameBinding).map { case (nameBinding, n2) =>
         (nameBinding, Res(n1, n2))
       }
     }
+
+  override def isProper =
+    true
 }
 
-case class TypeOf(n: NameVar, t: Type) extends Constraint {
+case class TypeOf(n: Name, t: Type) extends Constraint {
   override def substituteType(binding: TypeBinding): Constraint =
     TypeOf(n, t.substituteType(binding))
 
@@ -157,12 +238,18 @@ case class TypeOf(n: NameVar, t: Type) extends Constraint {
   override def substituteName(binding: NameBinding): Constraint =
     TypeOf(n.substituteName(binding), t)
 
+  override def substituteConcrete(binding: ConcreteBinding): Constraint =
+    TypeOf(n.substituteConcrete(binding), t)
+
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
     t.freshen(nameBinding).map { case (nameBinding, t) =>
       n.freshen(nameBinding).map { case (nameBinding, n) =>
         (nameBinding, TypeOf(n, t))
       }
     }
+
+  override def isProper =
+    true
 }
 
 case class TypeEquals(t1: Type, t2: Type) extends Constraint {
@@ -175,12 +262,18 @@ case class TypeEquals(t1: Type, t2: Type) extends Constraint {
   override def substituteName(binding: NameBinding): Constraint =
     this
 
+  override def substituteConcrete(binding: ConcreteBinding): Constraint =
+    this
+
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
     t1.freshen(nameBinding).map { case (nameBinding, t1) =>
       t2.freshen(nameBinding).map { case (nameBinding, t2) =>
         (nameBinding, TypeEquals(t1, t2))
       }
     }
+
+  override def isProper =
+    true
 }
 
 case class Subtype(t1: Type, t2: Type) extends Constraint {
@@ -193,12 +286,18 @@ case class Subtype(t1: Type, t2: Type) extends Constraint {
   override def substituteName(binding: NameBinding): Constraint =
     this
 
+  override def substituteConcrete(binding: ConcreteBinding): Constraint =
+    this
+
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
     t1.freshen(nameBinding).map { case (nameBinding, t1) =>
       t2.freshen(nameBinding).map { case (nameBinding, t2) =>
         (nameBinding, Subtype(t1, t2))
       }
     }
+
+  override def isProper =
+    true
 }
 
 // Sort
@@ -253,6 +352,8 @@ abstract class Pattern {
 
   def size: Int
 
+  def names: List[SymbolicName]
+
   def substituteTerm(binding: Map[TermVar, Pattern]): Pattern
 
   def substituteType(binding: TypeBinding): Pattern
@@ -260,6 +361,8 @@ abstract class Pattern {
   def substituteScope(binding: ScopeBinding): Pattern
 
   def substituteName(binding: NameBinding): Pattern
+
+  def substituteConcrete(binding: ConcreteBinding): Pattern
 
   def substituteSort(binding: SortBinding): Pattern
 
@@ -273,6 +376,9 @@ case class TermAppl(cons: String, children: List[Pattern] = Nil) extends Pattern
   override def size: Int =
     1 + children.map(_.size).sum
 
+  override def names: List[SymbolicName] =
+    children.flatMap(_.names).distinct
+
   override def substituteTerm(binding: Map[TermVar, Pattern]): Pattern =
     TermAppl(cons, children.map(_.substituteTerm(binding)))
 
@@ -284,6 +390,9 @@ case class TermAppl(cons: String, children: List[Pattern] = Nil) extends Pattern
 
   override def substituteName(binding: NameBinding): Pattern =
     TermAppl(cons, children.map(_.substituteName(binding)))
+
+  override def substituteConcrete(binding: ConcreteBinding): Pattern =
+    TermAppl(cons, children.map(_.substituteConcrete(binding)))
 
   override def substituteSort(binding: SortBinding): Pattern =
     TermAppl(cons, children.map(_.substituteSort(binding)))
@@ -304,6 +413,9 @@ case class TermVar(name: String, sort: Sort, typ: Type, scope: Scope) extends Pa
   override def size: Int =
     0
 
+  override def names: List[SymbolicName] =
+    Nil
+
   override def substituteTerm(binding: Map[TermVar, Pattern]): Pattern =
     binding.getOrElse(this, this)
 
@@ -316,6 +428,9 @@ case class TermVar(name: String, sort: Sort, typ: Type, scope: Scope) extends Pa
   override def substituteName(binding: NameBinding): Pattern =
     this
 
+  override def substituteConcrete(binding: ConcreteBinding): Pattern =
+    this
+
   override def substituteSort(binding: SortBinding): Pattern =
     TermVar(name, sort.substituteSort(binding), typ, scope)
 
@@ -325,43 +440,124 @@ case class TermVar(name: String, sort: Sort, typ: Type, scope: Scope) extends Pa
         if (nameBinding.contains(name)) {
           (nameBinding, TermVar(nameBinding(name), sort, typ, scope))
         } else {
-          val fresh = "x" + NameProvider.next
+          val fresh = "x" + nameProvider.next
           (nameBinding + (name -> fresh), TermVar(fresh, sort, typ, scope))
         }
       }
     }
 
   override def toString: String =
-    s"""TermVar("$name", "$sort", $typ, $scope)"""
+    s"""TermVar("$name", $sort, $typ, $scope)"""
 }
 
-case class NameVar(name: String) extends Pattern {
+case class PatternNameAdapter(n: Name) extends Pattern {
   override def vars: List[TermVar] =
     Nil
 
   override def size: Int =
     1
 
-  override def substituteTerm(binding: Map[TermVar, Pattern]): Pattern =
+  override def names: List[SymbolicName] = n match {
+    case s@SymbolicName(_) => List(s)
+    case _ => throw new IllegalStateException
+  }
+
+  override def substituteType(binding: TypeBinding): Pattern =
     this
 
-  override def substituteType(typeBinding: TypeBinding): Pattern =
+  override def substituteName(binding: NameBinding): Pattern =
+    PatternNameAdapter(n.substituteName(binding))
+
+  override def substituteConcrete(binding: ConcreteBinding): Pattern =
+    PatternNameAdapter(n.substituteConcrete(binding))
+
+  override def substituteSort(binding: SortBinding): Pattern =
+    this
+
+  override def substituteTerm(binding: Map[TermVar, Pattern]): Pattern =
     this
 
   override def substituteScope(binding: ScopeBinding): Pattern =
     this
 
-  override def substituteName(binding: NameBinding): NameVar =
-    binding.getOrElse(this, this)
+  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Pattern) =
+    n.freshen(nameBinding).map { case (nameBinding, n) =>
+      (nameBinding, PatternNameAdapter(n))
+    }
+}
 
-  override def substituteSort(binding: SortBinding): Pattern =
+// Name
+abstract class Name {
+  def substituteName(binding: NameBinding): Name
+
+  def substituteConcrete(binding: ConcreteBinding): Name
+
+  def unify(n: Name, nameBinding: NameBinding): Option[NameBinding]
+
+  def freshen(nameBinding: Map[String, String]): (Map[String, String], Name)
+}
+
+case class SymbolicName(name: String) extends Name {
+  override def substituteName(binding: NameBinding): Name =
     this
 
-  override def freshen(nameBinding: Map[String, String]): (Map[String, String], NameVar) =
+  override def substituteConcrete(binding: ConcreteBinding): Name =
+    binding.getOrElse(this, this)
+
+  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Name) =
+    if (nameBinding.contains(name)) {
+      (nameBinding, SymbolicName(nameBinding(name)))
+    } else {
+      val fresh = "n" + nameProvider.next
+      (nameBinding + (name -> fresh), SymbolicName(fresh))
+    }
+
+  override def unify(n: Name, nameBinding: NameBinding): Option[NameBinding] = n match {
+    case SymbolicName(`name`) =>
+      Some(Map())
+    case v@NameVar(_) =>
+      v.unify(this, nameBinding)
+    case _ =>
+      None
+  }
+
+  override def toString: String =
+    s"""SymbolicName("$name")"""
+}
+
+case class ConcreteName(name: String) extends Name {
+  override def substituteName(binding: NameBinding): Name =
+    this
+
+  override def substituteConcrete(binding: ConcreteBinding): Name =
+    this
+
+  override def unify(n: Name, nameBinding: NameBinding): Option[NameBinding] =
+    ???
+
+  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Name) =
+    ???
+}
+
+case class NameVar(name: String) extends Name {
+  override def substituteName(binding: NameBinding): Name =
+    binding.getOrElse(this, this)
+
+  override def substituteConcrete(binding: ConcreteBinding): Name =
+    this
+
+  override def unify(n: Name, nameBinding: NameBinding): Option[NameBinding] =
+    if (this == n) {
+      Some(Map())
+    } else {
+      Some(Map(this -> n))
+    }
+
+  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Name) =
     if (nameBinding.contains(name)) {
       (nameBinding, NameVar(nameBinding(name)))
     } else {
-      val fresh = "n" + NameProvider.next
+      val fresh = "d" + nameProvider.next
       (nameBinding + (name -> fresh), NameVar(fresh))
     }
 
@@ -397,7 +593,7 @@ case class ScopeVar(name: String) extends Scope {
     if (nameBinding.contains(name)) {
       (nameBinding, ScopeVar(nameBinding(name)))
     } else {
-      val fresh = "s" + NameProvider.next
+      val fresh = "s" + nameProvider.next
       (nameBinding + (name -> fresh), ScopeVar(fresh))
     }
 
@@ -406,10 +602,14 @@ case class ScopeVar(name: String) extends Scope {
 }
 
 // Type
-abstract class Type {
+trait Type {
   def substituteType(binding: TypeBinding): Type
 
-  def unify(t: Type, binding: TypeBinding = Map.empty): Option[TypeBinding]
+  def substituteName(binding: NameBinding): Type
+
+  def substituteConcrete(binding: ConcreteBinding): Type
+
+  def unify(t: Type, typeBinding: TypeBinding = Map.empty, nameBinding: NameBinding = Map.empty): Option[(TypeBinding, NameBinding)]
 
   def freshen(nameBinding: Map[String, String]): (Map[String, String], Type)
 }
@@ -418,14 +618,20 @@ case class TypeAppl(name: String, children: List[Type] = Nil) extends Type {
   override def substituteType(binding: TypeBinding): Type =
     TypeAppl(name, children.map(_.substituteType(binding)))
 
-  override def unify(typ: Type, binding: TypeBinding): Option[TypeBinding] = typ match {
+  override def substituteName(binding: NameBinding): Type =
+    TypeAppl(name, children.map(_.substituteName(binding)))
+
+  override def substituteConcrete(binding: ConcreteBinding): Type =
+    TypeAppl(name, children.map(_.substituteConcrete(binding)))
+
+  override def unify(typ: Type, typeBinding: TypeBinding, nameBinding: NameBinding): Option[(TypeBinding, NameBinding)] = typ match {
     case c@TypeAppl(`name`, _) if children.length == c.children.length =>
-      children.zip(c.children).foldLeftWhile(binding) {
-        case (binding, (t1, t2)) =>
-          t1.unify(t2, binding)
+      children.zip(c.children).foldLeftWhile((typeBinding, nameBinding)) {
+        case ((typeBinding, nameBinding), (t1, t2)) =>
+          t1.unify(t2, typeBinding, nameBinding)
       }
     case TypeVar(_) =>
-      typ.unify(this, binding)
+      typ.unify(this, typeBinding, nameBinding)
     case _ =>
       None
   }
@@ -443,14 +649,20 @@ case class TypeVar(name: String) extends Type {
   override def substituteType(binding: TypeBinding): Type =
     binding.getOrElse(this, this)
 
-  override def unify(typ: Type, typeBinding: TypeBinding): Option[TypeBinding] = typ match {
+  override def substituteName(binding: NameBinding): Type =
+    this
+
+  override def substituteConcrete(binding: ConcreteBinding): Type =
+    this
+
+  override def unify(typ: Type, typeBinding: TypeBinding, nameBinding: NameBinding): Option[(TypeBinding, NameBinding)] = typ match {
     case t@TypeVar(_) if typeBinding.contains(t) =>
-      unify(typeBinding(t), typeBinding)
+      unify(typeBinding(t), typeBinding, nameBinding)
     case _ =>
       if (typeBinding.contains(this)) {
-        typeBinding(this).unify(typ, typeBinding)
+        typeBinding(this).unify(typ, typeBinding, nameBinding)
       } else {
-        Some(typeBinding + (this -> typ))
+        Some((typeBinding + (this -> typ), nameBinding))
       }
   }
 
@@ -458,11 +670,36 @@ case class TypeVar(name: String) extends Type {
     if (nameBinding.contains(name)) {
       (nameBinding, TypeVar(nameBinding(name)))
     } else {
-      val fresh = "t" + NameProvider.next
+      val fresh = "t" + nameProvider.next
       (nameBinding + (name -> fresh), TypeVar(fresh))
     }
   }
 
   override def toString: String =
     s"""TypeVar("$name")"""
+}
+
+case class TypeNameAdapter(n: Name) extends Type {
+  override def substituteType(binding: TypeBinding): Type =
+    this
+
+  override def substituteName(binding: NameBinding): Type =
+    TypeNameAdapter(n.substituteName(binding))
+
+  override def substituteConcrete(binding: ConcreteBinding): Type =
+    TypeNameAdapter(n.substituteConcrete(binding))
+
+  override def unify(typ: Type, typeBinding: TypeBinding, nameBinding: NameBinding): Option[(TypeBinding, NameBinding)] = typ match {
+    case TypeNameAdapter(n2) =>
+      n.unify(n2, nameBinding).map { case (nameBinding) =>
+        (typeBinding, nameBinding)
+      }
+    case _ =>
+      None
+  }
+
+  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Type) =
+    n.freshen(nameBinding).map { case (nameBinding, n) =>
+      (nameBinding, TypeNameAdapter(n))
+    }
 }
