@@ -28,8 +28,11 @@ object Generator {
         // Merge rule into current at hole
         val merged = current.merge(hole, rule)
 
+        // Check if the result can be solved
+        // if (Solver.solve(merged.constraints).isDefined) {
+
         // Check if the result is consistent
-        if (Solver.solve(merged.constraints, ts).isDefined) {
+        if (Consistency.check(merged.constraints)) {
           val complete = generate(rules, merged, maxSize-(merged.pattern.size-current.pattern.size), ts)
 
           if (complete.isDefined) {
