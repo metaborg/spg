@@ -55,9 +55,22 @@ object Lambda {
     )
   )
 
+  private val ruleApp = Rule(
+    TermAppl("App", List(
+      TermVar("e1", SortAppl("Exp"), TypeVar("t1"), ScopeVar("s")),
+      TermVar("e2", SortAppl("Exp"), TypeVar("t2"), ScopeVar("s"))
+    )),
+    SortAppl("Exp"),
+    TypeVar("t"),
+    ScopeVar("s"),
+    List(
+      TypeEquals(TypeVar("t1"), TypeAppl("Fun", List(TypeVar("t2"), TypeVar("t"))))
+    )
+  )
+
   private val ruleVar = Rule(
     TermAppl("Var", List(
-      PatternNameAdapter(NameVar("n"))
+      PatternNameAdapter(SymbolicName("n"))
     )),
     SortAppl("Exp"),
     TypeVar("t"),
@@ -74,6 +87,7 @@ object Lambda {
     ruleAdd,
     ruleInt,
     ruleAbs,
+    ruleApp,
     ruleVar
   )
 

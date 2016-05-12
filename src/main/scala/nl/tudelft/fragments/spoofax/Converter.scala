@@ -16,7 +16,7 @@ object Converter {
         case "Nil" =>
           consToList(term)
         case "Number" =>
-          toString("42")
+          termFactory.makeAppl(toConstructor("Number", 1), toString("42"))
         case _ =>
           termFactory.makeAppl(
             toConstructor(cons, children.length),

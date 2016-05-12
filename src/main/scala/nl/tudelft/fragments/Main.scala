@@ -5,18 +5,19 @@ import nl.tudelft.fragments.spoofax.{Converter, Printer}
 
 object Main {
   def main(args: Array[String]): Unit = {
-//    val rules = Lambda.rules
-//    val types = Lambda.types
+    val rules = Lambda.rules
+    val types = Lambda.types
+    val printer = Printer.print("/Users/martijn/Documents/workspace/Lamda")
 
-    val rules = MiniJava.rules
-    val types = MiniJava.types
-    val printer = Printer.print("/Users/martijn/Documents/workspace/MiniJava")
+//    val rules = MiniJava.rules
+//    val types = MiniJava.types
+//    val printer = Printer.print("/Users/martijn/Documents/workspace/MiniJava")
 
     // Make the generator repeat at most 10 times
     for (i <- 1 to 1000) {
       val r1 = Generator.generate(rules, new Rule(
-        TermVar("x", SortAppl("Program"), TypeVar("t"), ScopeVar("s")),
-        SortAppl("Program"),
+        TermVar("x", SortAppl("Exp"), TypeVar("t"), ScopeVar("s")),
+        SortAppl("Exp"),
         TypeVar("t"),
         ScopeVar("s"),
         Nil
