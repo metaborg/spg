@@ -108,4 +108,10 @@ package object fragments {
     def map[T3](f: ((T1, T2)) => T3) =
       f(tuple2._1, tuple2._2)
   }
+
+  // Extract a random element from a list
+  object ~ {
+    def unapply[T](xs: List[T]): Some[T] =
+      Some(xs.random)
+  }
 }

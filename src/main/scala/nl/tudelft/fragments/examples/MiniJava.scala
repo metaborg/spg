@@ -471,7 +471,7 @@ object MiniJava {
   )
 
   private val ruleIntValue = Rule(
-    TermAppl("Number"),
+    TermAppl("IntValue"),
     SortAppl("Exp"),
     TypeVar("t"),
     ScopeVar("s"),
