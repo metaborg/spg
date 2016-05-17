@@ -45,6 +45,10 @@ package object fragments {
     def random: T =
       list(Random.nextInt(list.length))
 
+    // Get a random subset of the list
+    def randomSubset(n: Int): List[T] =
+      Random.shuffle(list).take(n)
+
     // Remove element from list
     def -(elem: T): List[T] =
       list diff List(elem)

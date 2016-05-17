@@ -537,6 +537,9 @@ case class ConcreteName(name: String) extends Name {
 
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Name) =
     (nameBinding, this)
+
+  override def toString: String =
+    s"""ConcreteName("$name")"""
 }
 
 case class NameVar(name: String) extends Name {

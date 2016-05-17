@@ -7,7 +7,7 @@ object MiniJava {
   private val ruleProgram = Rule(
     TermAppl("Program", List(
       TermVar("x1", SortAppl("MainClass"), TypeVar("t"), ScopeVar("s")),
-      TermVar("x2", SortAppl("List", List(SortAppl("Class"))), TypeVar("t"), ScopeVar("s"))
+      TermVar("x2", SortAppl("List", List(SortAppl("ClassDecl"))), TypeVar("t"), ScopeVar("s"))
     )),
     SortAppl("Program"),
     TypeVar("t"),
@@ -36,13 +36,14 @@ object MiniJava {
       TermVar("x2", SortAppl("List", List(SortAppl("FieldDecl"))), TypeVar("t"), ScopeVar("s1")),
       TermVar("x3", SortAppl("List", List(SortAppl("MethodDecl"))), TypeVar("t"), ScopeVar("s1"))
     )),
-    SortAppl("Class"),
+    SortAppl("ClassDecl"),
     TypeVar("t"),
     ScopeVar("s"),
     List(
       Dec(ScopeVar("s"), SymbolicName("n")),
       TypeOf(SymbolicName("n"), TypeAppl("ClassType", List(TypeNameAdapter(SymbolicName("n"))))),
       Par(ScopeVar("s1"), ScopeVar("s")),
+//      Dec(ScopeVar("s1"), ConcreteName("this")),
       AssocFact(NameVar("n"), ScopeVar("s1"))
     )
   )
@@ -109,7 +110,7 @@ object MiniJava {
   // Var : Type * ID -> VarDecl
   private val ruleVar = Rule(
     TermAppl("Var", List(
-      TermVar("x", SortAppl("Type"), TypeVar("t"), ScopeVar("s")),
+      TermVar("x", SortAppl("Type"), TypeVar("t1"), ScopeVar("s")),
       PatternNameAdapter(SymbolicName("n"))
     )),
     SortAppl("VarDecl"),
@@ -117,7 +118,7 @@ object MiniJava {
     ScopeVar("s"),
     List(
       Dec(ScopeVar("s"), SymbolicName("n")),
-      TypeOf(SymbolicName("n"), TypeVar("t"))
+      TypeOf(SymbolicName("n"), TypeVar("t1"))
     )
   )
 
@@ -277,14 +278,16 @@ object MiniJava {
     )
   )
 
-  // This : Exp (TODO: This requires concrete names in the generation)
+  // This : Exp (TODO: Solving with same name and different type depending on context, such as this, is not supported?)
   private val ruleThis = Rule(
     TermAppl("This"),
     SortAppl("Exp"),
     TypeVar("t"),
     ScopeVar("s"),
     List(
-
+//      Ref(ConcreteName("this"), ScopeVar("s")),
+//      Res(ConcreteName("this"), ConcreteName("this")),
+//      TypeOf(ConcreteName("this"), TypeVar("t"))
     )
   )
 
@@ -500,20 +503,134 @@ object MiniJava {
     )
   )
 
-  private val ruleNil = Rule(
+  private val ruleNilClassDecl = Rule(
     TermAppl("Nil"),
-    SortAppl("List", List(SortVar("a"))),
+    SortAppl("List", List(SortAppl("ClassDecl"))),
     TypeVar("t"),
     ScopeVar("s"),
     Nil
   )
 
-  val ruleCons = Rule(
+  private val ruleConsClassDecl = Rule(
     TermAppl("Cons", List(
-      TermVar("x", SortVar("a"), TypeVar("t"), ScopeVar("s")),
-      TermVar("xs", SortAppl("List", List(SortVar("a"))), TypeVar("t"), ScopeVar("s"))
+      TermVar("x", SortAppl("ClassDecl"), TypeVar("t"), ScopeVar("s")),
+      TermVar("xs", SortAppl("List", List(SortAppl("ClassDecl"))), TypeVar("t"), ScopeVar("s"))
     )),
-    SortAppl("List", List(SortVar("a"))),
+    SortAppl("List", List(SortAppl("ClassDecl"))),
+    TypeVar("t"),
+    ScopeVar("s"),
+    Nil
+  )
+
+  private val ruleNilFieldDecl = Rule(
+    TermAppl("Nil"),
+    SortAppl("List", List(SortAppl("FieldDecl"))),
+    TypeVar("t"),
+    ScopeVar("s"),
+    Nil
+  )
+
+  private val ruleConsFieldDecl = Rule(
+    TermAppl("Cons", List(
+      TermVar("x", SortAppl("FieldDecl"), TypeVar("t"), ScopeVar("s")),
+      TermVar("xs", SortAppl("List", List(SortAppl("FieldDecl"))), TypeVar("t"), ScopeVar("s"))
+    )),
+    SortAppl("List", List(SortAppl("FieldDecl"))),
+    TypeVar("t"),
+    ScopeVar("s"),
+    Nil
+  )
+
+  private val ruleNilMethodDecl = Rule(
+    TermAppl("Nil"),
+    SortAppl("List", List(SortAppl("MethodDecl"))),
+    TypeVar("t"),
+    ScopeVar("s"),
+    Nil
+  )
+
+  private val ruleConsMethodDecl = Rule(
+    TermAppl("Cons", List(
+      TermVar("x", SortAppl("MethodDecl"), TypeVar("t"), ScopeVar("s")),
+      TermVar("xs", SortAppl("List", List(SortAppl("MethodDecl"))), TypeVar("t"), ScopeVar("s"))
+    )),
+    SortAppl("List", List(SortAppl("MethodDecl"))),
+    TypeVar("t"),
+    ScopeVar("s"),
+    Nil
+  )
+
+  private val ruleNilParamDecl = Rule(
+    TermAppl("Nil"),
+    SortAppl("List", List(SortAppl("ParamDecl"))),
+    TypeVar("t"),
+    ScopeVar("s"),
+    Nil
+  )
+
+  private val ruleConsParamDecl = Rule(
+    TermAppl("Cons", List(
+      TermVar("x", SortAppl("ParamDecl"), TypeVar("t"), ScopeVar("s")),
+      TermVar("xs", SortAppl("List", List(SortAppl("ParamDecl"))), TypeVar("t"), ScopeVar("s"))
+    )),
+    SortAppl("List", List(SortAppl("ParamDecl"))),
+    TypeVar("t"),
+    ScopeVar("s"),
+    Nil
+  )
+
+  private val ruleNilVarDecl = Rule(
+    TermAppl("Nil"),
+    SortAppl("List", List(SortAppl("VarDecl"))),
+    TypeVar("t"),
+    ScopeVar("s"),
+    Nil
+  )
+
+  private val ruleConsVarDecl = Rule(
+    TermAppl("Cons", List(
+      TermVar("x", SortAppl("VarDecl"), TypeVar("t"), ScopeVar("s")),
+      TermVar("xs", SortAppl("List", List(SortAppl("VarDecl"))), TypeVar("t"), ScopeVar("s"))
+    )),
+    SortAppl("List", List(SortAppl("VarDecl"))),
+    TypeVar("t"),
+    ScopeVar("s"),
+    Nil
+  )
+
+  private val ruleNilStatement = Rule(
+    TermAppl("Nil"),
+    SortAppl("List", List(SortAppl("Statement"))),
+    TypeVar("t"),
+    ScopeVar("s"),
+    Nil
+  )
+
+  private val ruleConsStatement = Rule(
+    TermAppl("Cons", List(
+      TermVar("x", SortAppl("Statement"), TypeVar("t"), ScopeVar("s")),
+      TermVar("xs", SortAppl("List", List(SortAppl("Statement"))), TypeVar("t"), ScopeVar("s"))
+    )),
+    SortAppl("List", List(SortAppl("Statement"))),
+    TypeVar("t"),
+    ScopeVar("s"),
+    Nil
+  )
+
+  private val ruleNilExp = Rule(
+    TermAppl("Nil"),
+    SortAppl("List", List(SortAppl("Exp"))),
+    TypeVar("t"),
+    ScopeVar("s"),
+    Nil
+  )
+
+  private val ruleConsExp = Rule(
+    TermAppl("Cons", List(
+      TermVar("x", SortAppl("Exp"), TypeVar("t"), ScopeVar("s")),
+      TermVar("xs", SortAppl("List", List(SortAppl("Exp"))), TypeVar("t"), ScopeVar("s"))
+    )),
+    SortAppl("List", List(SortAppl("Exp"))),
     TypeVar("t"),
     ScopeVar("s"),
     Nil
@@ -527,7 +644,6 @@ object MiniJava {
     ruleNone,
     ruleMethod,
     ruleParam,
-    ruleVar,
     ruleField,
     // Types
     ruleClassType,
@@ -543,25 +659,38 @@ object MiniJava {
     ruleAssign,
     // Exp
     ruleNewObject,
-    ruleSubscript,
-    ruleCall,
+//    ruleSubscript,
+//    ruleCall,
 //    ruleThis,
-    ruleLength,
-    ruleNewArray,
-    ruleAnd,
-    ruleLt,
-    ruleMul,
-    ruleSub,
-    ruleAdd,
-    ruleNot,
+    ruleVar,
+//    ruleLength,
+//    ruleNewArray,
+//    ruleAnd,
+//    ruleLt,
+//    ruleMul,
+//    ruleSub,
+//    ruleAdd,
+//    ruleNot,
     ruleVarRef,
     // Literals
     ruleIntValue,
     ruleTrue,
     ruleFalse,
     // Generic list
-    ruleNil,
-    ruleCons
+    ruleNilClassDecl,
+    ruleConsClassDecl,
+    ruleNilFieldDecl,
+    ruleConsFieldDecl,
+    ruleNilMethodDecl,
+    ruleConsMethodDecl,
+    ruleNilParamDecl,
+    ruleConsParamDecl,
+    ruleNilVarDecl,
+    ruleConsVarDecl,
+    ruleNilStatement,
+    ruleConsStatement
+//    ruleNilExp,
+//    ruleConsExp
   )
 
   val types = List(

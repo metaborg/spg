@@ -11,9 +11,7 @@ object Converter {
   def toTerm(term: Pattern): IStrategoTerm = term match {
     case TermAppl(cons, children) =>
       cons match {
-        case "Cons" =>
-          consToList(term)
-        case "Nil" =>
+        case "Cons" | "Nil" =>
           consToList(term)
         case "Number" =>
           termFactory.makeAppl(toConstructor("Number", 1), toString("42"))
