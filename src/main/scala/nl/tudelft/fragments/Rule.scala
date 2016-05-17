@@ -458,7 +458,7 @@ case class PatternNameAdapter(n: Name) extends Pattern {
     1
 
   override def names: List[SymbolicName] = n match {
-    case s@SymbolicName(_) => List(s)
+    case s@SymbolicName(_, _) => List(s)
     case _ => Nil
   }
 
@@ -497,7 +497,7 @@ abstract class Name {
   def freshen(nameBinding: Map[String, String]): (Map[String, String], Name)
 }
 
-case class SymbolicName(name: String) extends Name {
+case class SymbolicName(namespace: String, name: String) extends Name {
   override def substituteName(binding: NameBinding): Name =
     this
 
@@ -506,14 +506,14 @@ case class SymbolicName(name: String) extends Name {
 
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Name) =
     if (nameBinding.contains(name)) {
-      (nameBinding, SymbolicName(nameBinding(name)))
+      (nameBinding, SymbolicName(namespace, nameBinding(name)))
     } else {
       val fresh = "n" + nameProvider.next
-      (nameBinding + (name -> fresh), SymbolicName(fresh))
+      (nameBinding + (name -> fresh), SymbolicName(namespace, fresh))
     }
 
   override def unify(n: Name, nameBinding: NameBinding): Option[NameBinding] = n match {
-    case SymbolicName(`name`) =>
+    case SymbolicName(`namespace`, `name`) =>
       Some(Map())
     case v@NameVar(_) =>
       v.unify(this, nameBinding)
@@ -522,10 +522,10 @@ case class SymbolicName(name: String) extends Name {
   }
 
   override def toString: String =
-    s"""SymbolicName("$name")"""
+    s"""SymbolicName("$namespace", "$name")"""
 }
 
-case class ConcreteName(name: String) extends Name {
+case class ConcreteName(namespace: String, name: String) extends Name {
   override def substituteName(binding: NameBinding): Name =
     this
 
@@ -539,7 +539,7 @@ case class ConcreteName(name: String) extends Name {
     (nameBinding, this)
 
   override def toString: String =
-    s"""ConcreteName("$name")"""
+    s"""ConcreteName("$namespace", "$name")"""
 }
 
 case class NameVar(name: String) extends Name {

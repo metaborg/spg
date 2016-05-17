@@ -7,7 +7,7 @@ object Solver {
 
   // Solve one constraint
   def solve(c: Constraint, cs: List[Constraint], all: List[Constraint], ts: TypeEnv): Option[Substitution] = c match {
-    case TypeOf(n@SymbolicName(_), t) =>
+    case TypeOf(n@SymbolicName(_, _), t) =>
       if (ts.contains(n)) {
         solve(TypeEquals(ts(n), t) :: cs, all, ts)
       } else {
@@ -24,7 +24,7 @@ object Solver {
       )
       yield (r._1 ++ u._1, r._2 ++ u._2, r._3)
     // TODO: stable graph thingy
-    case Res(n1@SymbolicName(_), n2@NameVar(_)) =>
+    case Res(n1@SymbolicName(_, _), n2@NameVar(_)) =>
       for ((_, dec, cond) <- Random.shuffle(resolves(n1, all))) {
         val result = solve(cs.substituteName(Map[NameVar, Name](n2 -> dec)), all.substituteName(Map(n2 -> dec)), ts)
 
@@ -34,7 +34,7 @@ object Solver {
       }
 
       None
-    case AssocConstraint(n@SymbolicName(_), s@ScopeVar(_)) =>
+    case AssocConstraint(n@SymbolicName(_, _), s@ScopeVar(_)) =>
       val scope = associated(n, all)
 
       if (scope.isDefined) {
@@ -112,7 +112,7 @@ object Graph {
   // Declarations
   def declarations(s: Scope, all: List[Constraint]): List[SymbolicName] =
     all.flatMap {
-      case Dec(`s`, n@SymbolicName(_)) =>
+      case Dec(`s`, n@SymbolicName(_, _)) =>
         Some(n)
       case _ =>
         None
@@ -182,9 +182,11 @@ object Graph {
   // Resolution
   def resolves(n: SymbolicName, all: List[Constraint]): List[(Path, SymbolicName, List[Condition])] =
     scope(n, all).flatMap(s =>
-      visible(s, all).map { case (path, dec, cs) =>
-        (path, dec, Eq(n, dec) :: cs)
-      }
+      visible(s, all)
+        .filter(_._2.namespace == n.namespace)
+        .map { case (path, dec, cs) =>
+          (path, dec, Eq(n, dec) :: cs)
+        }
     )
 }
 

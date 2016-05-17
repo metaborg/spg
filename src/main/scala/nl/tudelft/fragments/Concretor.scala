@@ -19,28 +19,28 @@ object Concretor {
     // Convert remaining symbolic names. This is a lazy solution; we can use names sparingly/randomly.
     partially
       .substituteConcrete(
-        partially.names.map((_, ConcreteName("n" + nameProvider.next))).toMap
+        partially.names.map(s => (s, ConcreteName(s.namespace, "n" + nameProvider.next))).toMap
       )
   }
 
   // Generate a binding from symbolcic names to concrete names satisfying the equality constraints
   def nameEq(eqs: List[Eq], nameProvider: NameProvider): ConcreteBinding = eqs match {
-    case Eq(SymbolicName(n1), ConcreteName(n2)) :: _ =>
-      val binding = Map(SymbolicName(n1) -> ConcreteName(n2))
+    case Eq(s@SymbolicName(_, _), c@ConcreteName(_, _)) :: _ =>
+      val binding = Map(s -> c)
 
       nameEq(eqs.substituteConcrete(binding), nameProvider) ++ binding
-    case Eq(ConcreteName(n2), SymbolicName(n1)) :: _ =>
-      val binding = Map(SymbolicName(n1) -> ConcreteName(n2))
+    case Eq(c@ConcreteName(_, _), s@SymbolicName(_, _)) :: _ =>
+      val binding = Map(s -> c)
 
       nameEq(eqs.substituteConcrete(binding), nameProvider) ++ binding
-    case Eq(SymbolicName(n), _) :: _ =>
+    case Eq(s@SymbolicName(ns, _), _) :: _ =>
       val next = "n" + nameProvider.next
-      val binding = Map(SymbolicName(n) -> ConcreteName(next))
+      val binding = Map(s -> ConcreteName(ns, next))
 
       nameEq(eqs.substituteConcrete(binding), nameProvider) ++ binding
-    case Eq(_, SymbolicName(n)) :: _ =>
+    case Eq(_, s@SymbolicName(ns, n)) :: _ =>
       val next = "n" + nameProvider.next
-      val binding = Map(SymbolicName(n) -> ConcreteName(next))
+      val binding = Map(s -> ConcreteName(ns, next))
 
       nameEq(eqs.substituteConcrete(binding), nameProvider) ++ binding
     case _ :: tail =>
@@ -52,7 +52,7 @@ object Concretor {
   // Give each name in the DisEq a different name. This is a lazy solution; we can use names sparingly/randomly.
   def nameDiseq(diseqs: List[Diseq], nameProvider: NameProvider): ConcreteBinding =
     diseqsToNames(diseqs)
-      .map((_, ConcreteName("n" + nameProvider.next)))
+      .map(s => (s, ConcreteName(s.namespace, "n" + nameProvider.next)))
       .toMap
 
   // Get the equality conditions
@@ -75,7 +75,7 @@ object Concretor {
 
   // Get the symbolic names in the disequality conditions
   def diseqsToNames(diseqs: List[Diseq]): List[SymbolicName] =
-    diseqs.flatMap { case Diseq(n1@SymbolicName(_), n2@SymbolicName(_)) =>
+    diseqs.flatMap { case Diseq(n1@SymbolicName(_, _), n2@SymbolicName(_, _)) =>
       List(n1, n2)
     }.distinct
 }
