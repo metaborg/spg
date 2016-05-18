@@ -488,6 +488,10 @@ case class PatternNameAdapter(n: Name) extends Pattern {
 
 // Name
 abstract class Name {
+  def name: String
+
+  def namespace: String
+
   def substituteName(binding: NameBinding): Name
 
   def substituteConcrete(binding: ConcreteBinding): Name
@@ -525,7 +529,7 @@ case class SymbolicName(namespace: String, name: String) extends Name {
     s"""SymbolicName("$namespace", "$name")"""
 }
 
-case class ConcreteName(namespace: String, name: String) extends Name {
+case class ConcreteName(namespace: String, name: String, pos: Int) extends Name {
   override def substituteName(binding: NameBinding): Name =
     this
 
@@ -536,13 +540,20 @@ case class ConcreteName(namespace: String, name: String) extends Name {
     ???
 
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Name) =
-    (nameBinding, this)
+    if (nameBinding.contains(name + pos)) {
+      (nameBinding, ConcreteName(namespace, name, nameBinding(name + pos).toInt))
+    } else {
+      val fresh = nameProvider.next
+      (nameBinding + (name + pos -> fresh.toString), ConcreteName(namespace, name, fresh))
+    }
 
   override def toString: String =
-    s"""ConcreteName("$namespace", "$name")"""
+    s"""ConcreteName("$namespace", "$name", $pos)"""
 }
 
 case class NameVar(name: String) extends Name {
+  override def namespace = ""
+
   override def substituteName(binding: NameBinding): Name =
     binding.getOrElse(this, this)
 

@@ -15,7 +15,7 @@ object MiniJava {
     Nil
   )
 
-  // MainClass : ID * ID * Statement -> MainClass (TODO: declaration for name of argument with type String(?))
+  // MainClass : ID * ID * Statement -> MainClass
   private val ruleMainClass = Rule(
     TermAppl("MainClass", List(
       PatternNameAdapter(SymbolicName("Class", "n1")),
@@ -32,9 +32,9 @@ object MiniJava {
   private val ruleClass = Rule(
     TermAppl("Class", List(
       PatternNameAdapter(SymbolicName("Class", "n")),
-      TermVar("x1", SortAppl("ParentDecl"), TypeVar("t"), ScopeVar("s")),
-      TermVar("x2", SortAppl("List", List(SortAppl("FieldDecl"))), TypeVar("t"), ScopeVar("s1")),
-      TermVar("x3", SortAppl("List", List(SortAppl("MethodDecl"))), TypeVar("t"), ScopeVar("s1"))
+      TermVar("x1", SortAppl("ParentDecl"), TypeVar("t1"), ScopeVar("s")),
+      TermVar("x2", SortAppl("List", List(SortAppl("FieldDecl"))), TypeVar("t2"), ScopeVar("s1")),
+      TermVar("x3", SortAppl("List", List(SortAppl("MethodDecl"))), TypeVar("t3"), ScopeVar("s1"))
     )),
     SortAppl("ClassDecl"),
     TypeVar("t"),
@@ -43,7 +43,8 @@ object MiniJava {
       Dec(ScopeVar("s"), SymbolicName("Class", "n")),
       TypeOf(SymbolicName("Class", "n"), TypeAppl("ClassType", List(TypeNameAdapter(SymbolicName("Class", "n"))))),
       Par(ScopeVar("s1"), ScopeVar("s")),
-//      Dec(ScopeVar("s1"), ConcreteName("this")),
+      Dec(ScopeVar("s1"), ConcreteName("Implicit", "this", 1)),
+      TypeOf(ConcreteName("Implicit", "this", 1), TypeAppl("ClassType", List(TypeNameAdapter(SymbolicName("Class", "n"))))),
       AssocFact(NameVar("n"), ScopeVar("s1"))
     )
   )
@@ -57,9 +58,7 @@ object MiniJava {
     TypeVar("t"),
     ScopeVar("s"),
     List(
-      Ref(ConcreteName("Implicit", "this"), ScopeVar("s")),
-      Res(ConcreteName("Implicit", "this"), NameVar("d")),
-      TypeOf(NameVar("d"), TypeVar("t")
+      DirectImport(ScopeVar("s"), ScopeVar("s3"))
     )
   )
 
@@ -72,7 +71,7 @@ object MiniJava {
     Nil
   )
 
-  // Method : Type * ID * List(ParamDecl) * List(VarDecl) * List(Statement) * Exp -> MethodDecl (TODO: Type of list of ParamDecl goes wrong)
+  // Method : Type * ID * List(ParamDecl) * List(VarDecl) * List(Statement) * Exp -> MethodDecl
   private val ruleMethod = Rule(
     TermAppl("Method", List(
       TermVar("x1", SortAppl("Type"), TypeVar("t2"), ScopeVar("s")),
@@ -279,16 +278,16 @@ object MiniJava {
     )
   )
 
-  // This : Exp (TODO: Solving with same name and different type depending on context, such as this, is not supported?)
+  // This : Exp
   private val ruleThis = Rule(
     TermAppl("This"),
     SortAppl("Exp"),
     TypeVar("t"),
     ScopeVar("s"),
     List(
-//      Ref(ConcreteName("this"), ScopeVar("s")),
-//      Res(ConcreteName("this"), ConcreteName("this")),
-//      TypeOf(ConcreteName("this"), TypeVar("t"))
+      Ref(ConcreteName("Implicit", "this", 1), ScopeVar("s")),
+      Res(ConcreteName("Implicit", "this", 1), NameVar("d")),
+      TypeOf(NameVar("d"), TypeVar("t"))
     )
   )
 
@@ -670,7 +669,7 @@ object MiniJava {
     ruleNewObject,
     ruleSubscript,
     ruleCall,
-//    ruleThis, (TODO)
+    ruleThis,
     ruleVar,
     ruleLength,
     ruleNewArray,

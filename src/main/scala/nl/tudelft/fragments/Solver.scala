@@ -13,6 +13,12 @@ object Solver {
       } else {
         solve(cs, all, ts + (n -> t))
       }
+    case TypeOf(n@ConcreteName(_, _, _), t) =>
+      if (ts.contains(n)) {
+        solve(TypeEquals(ts(n), t) :: cs, all, ts)
+      } else {
+        solve(cs, all, ts + (n -> t))
+      }
     case TypeEquals(t1, t2) =>
       for (
         u <- t1.unify(t2);
@@ -34,6 +40,16 @@ object Solver {
       }
 
       None
+    case Res(n1@ConcreteName(_, _, _), n2@NameVar(_)) =>
+      for ((_, dec, cond) <- Random.shuffle(resolves(n1, all))) {
+        val result = solve(cs.substituteName(Map[NameVar, Name](n2 -> dec)), all.substituteName(Map(n2 -> dec)), ts)
+
+        if (result.isDefined) {
+          return Some((result.get._1, result.get._2 ++ Map(n2 -> dec), result.get._3 ++ cond))
+        }
+      }
+
+      None
     case AssocConstraint(n@SymbolicName(_, _), s@ScopeVar(_)) =>
       val scope = associated(n, all)
 
@@ -46,17 +62,29 @@ object Solver {
       None
   }
 
-  // Solve all constraints non-deterministically, but give TypeEquals and TypeOf(SymbolicName(_), _) precedence
+  // Solve all constraints non-deterministically, but give TypeEquals(_, _) and TypeOf(SymbolicName(_), _) precedence
   def solve(C: List[Constraint], all: List[Constraint], ts: TypeEnv): Option[Substitution] =
     if (C.nonEmpty) {
+      // Give `TypeOf(SymbolicName(_), _)` precedence
       if (C.exists(c => c.isInstanceOf[TypeOf] && c.asInstanceOf[TypeOf].n.isInstanceOf[SymbolicName])) {
         val c = C.find(c => c.isInstanceOf[TypeOf] && c.asInstanceOf[TypeOf].n.isInstanceOf[SymbolicName]).get
+        val result = solve(c, C - c, all, ts)
+
+        if (result.isDefined) {
+          return result
+        }
+      }
+      // Give `TypeOf(ConcreteName(_), _)` precedence
+      else if (C.exists(c => c.isInstanceOf[TypeOf] && c.asInstanceOf[TypeOf].n.isInstanceOf[ConcreteName])) {
+        val c = C.find(c => c.isInstanceOf[TypeOf] && c.asInstanceOf[TypeOf].n.isInstanceOf[ConcreteName]).get
         val result = solve(c, C-c, all, ts)
 
         if (result.isDefined) {
           return result
         }
-      } else if (C.exists(_.isInstanceOf[TypeEquals])) {
+      }
+      // Give `TypeEquals(_, _)` precedence
+      else if (C.exists(_.isInstanceOf[TypeEquals])) {
         val c = C.find(_.isInstanceOf[TypeEquals]).get
         val result = solve(c, C-c, all, ts)
 
@@ -83,14 +111,14 @@ object Solver {
     solve(constraints.filter(_.isProper), constraints, TypeEnv())
 }
 
-case class TypeEnv(bindings: Map[SymbolicName, Type] = Map.empty) {
-  def contains(n: SymbolicName): Boolean =
+case class TypeEnv(bindings: Map[Name, Type] = Map.empty) {
+  def contains(n: Name): Boolean =
     bindings.contains(n)
 
-  def apply(n: SymbolicName) =
+  def apply(n: Name) =
     bindings(n)
 
-  def +(e: (SymbolicName, Type)) =
+  def +(e: (Name, Type)) =
     TypeEnv(bindings + e)
 
   def substituteType(typeBinding: TypeBinding) =
@@ -110,19 +138,19 @@ object Graph {
     }
 
   // Declarations
-  def declarations(s: Scope, all: List[Constraint]): List[SymbolicName] =
+  def declarations(s: Scope, all: List[Constraint]): List[Name] =
     all.flatMap {
       case Dec(`s`, n@SymbolicName(_, _)) =>
+        Some(n)
+      case Dec(`s`, n@ConcreteName(_, _, _)) =>
         Some(n)
       case _ =>
         None
     }
 
-  // Scope for name
-  def scope(n: SymbolicName, all: List[Constraint]): List[Scope] =
+  // Scope for reference
+  def scope(n: Name, all: List[Constraint]): List[Scope] =
     all.flatMap {
-      case Dec(s, `n`) =>
-        Some(s)
       case Ref(`n`, s) =>
         Some(s)
       case _ =>
@@ -164,13 +192,13 @@ object Graph {
     List((Nil, s)) ++ edgeParent(s, all) ++ edgeDImport(s, all)
 
   // Reachable declarations
-  def reachable(s: Scope, all: List[Constraint]): List[(Path, SymbolicName)] =
+  def reachable(s: Scope, all: List[Constraint]): List[(Path, Name)] =
     path(s, all).flatMap { case (path, scope) =>
       declarations(scope, all).map(dec => (path, dec))
     }
 
   // Visible declarations
-  def visible(s: Scope, all: List[Constraint]): List[(Path, SymbolicName, List[Condition])] =
+  def visible(s: Scope, all: List[Constraint]): List[(Path, Name, List[Condition])] =
     reachable(s, all).map { case (path, name) =>
       val condition = reachable(s, all)
         .filter(_._1.length < path.length)
@@ -180,14 +208,25 @@ object Graph {
     }
 
   // Resolution
-  def resolves(n: SymbolicName, all: List[Constraint]): List[(Path, SymbolicName, List[Condition])] =
-    scope(n, all).flatMap(s =>
-      visible(s, all)
-        .filter(_._2.namespace == n.namespace)
-        .map { case (path, dec, cs) =>
-          (path, dec, Eq(n, dec) :: cs)
-        }
-    )
+  def resolves(n: Name, all: List[Constraint]): List[(Path, Name, List[Condition])] = n match {
+    case ConcreteName(namespace, name, pos) =>
+      scope(n, all).flatMap(s =>
+        visible(s, all)
+          .filter(_._2.namespace == namespace)
+          .filter(_._2.name == name)
+          .map { case (path, dec, cs) =>
+            (path, dec, cs)
+          }
+      )
+    case SymbolicName(namespace, name) =>
+      scope(n, all).flatMap(s =>
+        visible(s, all)
+          .filter(_._2.namespace == n.namespace)
+          .map { case (path, dec, cs) =>
+            (path, dec, Eq(n, dec) :: cs)
+          }
+      )
+  }
 }
 
 abstract class PathElem

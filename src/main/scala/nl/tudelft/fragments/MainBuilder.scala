@@ -63,7 +63,7 @@ object MainBuilder {
     for (i <- 1 to 1000) {
       println(i)
       val result = Builder.build(kb, kb.random, 30, up, down)
-//      println(result)
+      println(result)
 
       if (result.isDefined) {
         val substitution = Solver.solve(result.get.constraints)
