@@ -48,7 +48,7 @@ object MiniJava {
     )
   )
 
-  // Parent : ID -> ParentDecl
+  // Parent : ID -> ParentDecl // TODO: Import scope (inheritance), supertyping fact
   private val ruleParent = Rule(
     TermAppl("Parent", List(
       PatternNameAdapter(SymbolicName("Class", "n"))
@@ -57,8 +57,9 @@ object MiniJava {
     TypeVar("t"),
     ScopeVar("s"),
     List(
-      Ref(SymbolicName("Class", "n"), ScopeVar("s")),
-      Res(SymbolicName("Class", "n"), NameVar("d"))
+      Ref(ConcreteName("Implicit", "this"), ScopeVar("s")),
+      Res(ConcreteName("Implicit", "this"), NameVar("d")),
+      TypeOf(NameVar("d"), TypeVar("t")
     )
   )
 

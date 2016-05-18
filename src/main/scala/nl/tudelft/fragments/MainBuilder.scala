@@ -16,21 +16,21 @@ object MainBuilder {
     val up = Map[Sort, Int](
       SortAppl("Program") -> 0,
       SortAppl("MainClass") -> 2,
-      SortAppl("List", List(SortAppl("ClassDecl"))) -> 2,
-      SortAppl("ClassDecl") -> 4,
-      SortAppl("ParentDecl") -> 8,
-      SortAppl("List", List(SortAppl("FieldDecl"))) -> 8,
-      SortAppl("FieldDecl") -> 10,
-      SortAppl("List", List(SortAppl("MethodDecl"))) -> 8,
-      SortAppl("MethodDecl") -> 10,
-      SortAppl("List", List(SortAppl("VarDecl"))) -> 16,
-      SortAppl("VarDecl") -> 18,
-      SortAppl("List", List(SortAppl("ParamDecl"))) -> 16,
-      SortAppl("ParamDecl") -> 18,
-      SortAppl("Type") -> 12,
-      SortAppl("List", List(SortAppl("Statement"))) -> 16,
-      SortAppl("Statement") -> 18,
-      SortAppl("Exp") -> 16
+      SortAppl("List", List(SortAppl("ClassDecl"))) -> 6,
+      SortAppl("ClassDecl") -> 8,
+      SortAppl("ParentDecl") -> 12,
+      SortAppl("List", List(SortAppl("FieldDecl"))) -> 12,
+      SortAppl("FieldDecl") -> 14,
+      SortAppl("List", List(SortAppl("MethodDecl"))) -> 12,
+      SortAppl("MethodDecl") -> 14,
+      SortAppl("List", List(SortAppl("VarDecl"))) -> 20,
+      SortAppl("VarDecl") -> 22,
+      SortAppl("List", List(SortAppl("ParamDecl"))) -> 20,
+      SortAppl("ParamDecl") -> 22,
+      SortAppl("Type") -> 16,
+      SortAppl("List", List(SortAppl("Statement"))) -> 20,
+      SortAppl("Statement") -> 22,
+      SortAppl("Exp") -> 20
     )
 
     // Minimal size needed to bottom from given sort
@@ -63,7 +63,7 @@ object MainBuilder {
     for (i <- 1 to 1000) {
       println(i)
       val result = Builder.build(kb, kb.random, 30, up, down)
-      println(result)
+//      println(result)
 
       if (result.isDefined) {
         val substitution = Solver.solve(result.get.constraints)
