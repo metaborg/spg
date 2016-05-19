@@ -7,18 +7,18 @@ object Simple {
     TermAppl("Number"),
     SortAppl("Exp"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     Nil
   )
 
   private val ruleCons = Rule(
     TermAppl("Cons", List(
-      TermVar("e1", SortAppl("Exp"), TypeVar("t1"), ScopeVar("s")),
-      TermVar("e2", SortAppl("List"), TypeVar("t2"), ScopeVar("s"))
+      TermVar("e1", SortAppl("Exp"), TypeVar("t1"), List(ScopeVar("s"))),
+      TermVar("e2", SortAppl("List"), TypeVar("t2"), List(ScopeVar("s")))
     )),
     SortAppl("List"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     Nil
   )
 
@@ -26,7 +26,7 @@ object Simple {
     TermAppl("Nil"),
     SortAppl("List"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     Nil
   )
 

@@ -196,8 +196,10 @@ object Graph {
     aimports(s, all)
       .filter(ref => !seen.contains(ref))
       .flatMap(ref =>
-        resolves(seen, ref, all).map { case (seen, path, dec, conditions) =>
-          (seen, List(AImport(ref, dec)), associated(dec, all).head, conditions)
+        resolves(seen, ref, all).flatMap { case (seen, path, dec, conditions) =>
+          associated(dec, all).map(scope =>
+            (seen, List(AImport(ref, dec)), scope, conditions)
+          )
         }
       )
 

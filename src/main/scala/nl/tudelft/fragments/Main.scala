@@ -21,7 +21,7 @@ object Main {
 //    val printer = (x: IStrategoTerm) => new StrategoString(x.toString(), null, 0)
 
     // Start variable
-    val start = TermVar("x", SortAppl("Program"), TypeVar("t"), ScopeVar("s"))
+    val start = TermVar("x", SortAppl("Program"), TypeVar("t"), List(ScopeVar("s")))
 
     // Graph that memorizes generation paths
     val graph = Node(start)
@@ -35,7 +35,7 @@ object Main {
         start,
         SortAppl("Program"),
         TypeVar("t"),
-        ScopeVar("s"),
+        List(ScopeVar("s")),
         Nil
       ), 25, graph, graph)
 

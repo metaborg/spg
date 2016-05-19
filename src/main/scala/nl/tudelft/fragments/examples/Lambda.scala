@@ -7,7 +7,7 @@ object Lambda {
     TermAppl("Number"),
     SortAppl("Exp"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     List(
       TypeEquals(TypeVar("t"), TypeAppl("Int"))
     )
@@ -17,7 +17,7 @@ object Lambda {
     TermAppl("Int"),
     SortAppl("Type"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     List(
       TypeEquals(TypeVar("t"), TypeAppl("Int"))
     )
@@ -25,12 +25,12 @@ object Lambda {
 
   private val ruleAdd = Rule(
     TermAppl("Add", List(
-      TermVar("e1", SortAppl("Exp"), TypeVar("t1"), ScopeVar("s")),
-      TermVar("e2", SortAppl("Exp"), TypeVar("t2"), ScopeVar("s"))
+      TermVar("e1", SortAppl("Exp"), TypeVar("t1"), List(ScopeVar("s"))),
+      TermVar("e2", SortAppl("Exp"), TypeVar("t2"), List(ScopeVar("s")))
     )),
     SortAppl("Exp"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     List(
       TypeEquals(TypeVar("t"), TypeAppl("Int")),
       TypeEquals(TypeVar("t1"), TypeAppl("Int")),
@@ -41,12 +41,12 @@ object Lambda {
   private val ruleAbs = Rule(
     TermAppl("Abs", List(
       PatternNameAdapter(SymbolicName("Variable", "n")),
-      TermVar("e1", SortAppl("Type"), TypeVar("t1"), ScopeVar("s")),
-      TermVar("e2", SortAppl("Exp"), TypeVar("t2"), ScopeVar("s1"))
+      TermVar("e1", SortAppl("Type"), TypeVar("t1"), List(ScopeVar("s"))),
+      TermVar("e2", SortAppl("Exp"), TypeVar("t2"), List(ScopeVar("s1")))
     )),
     SortAppl("Exp"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     List(
       TypeEquals(TypeVar("t"), TypeAppl("Fun", List(TypeVar("t1"), TypeVar("t2")))),
       Par(ScopeVar("s1"), ScopeVar("s")),
@@ -57,12 +57,12 @@ object Lambda {
 
   private val ruleApp = Rule(
     TermAppl("App", List(
-      TermVar("e1", SortAppl("Exp"), TypeVar("t1"), ScopeVar("s")),
-      TermVar("e2", SortAppl("Exp"), TypeVar("t2"), ScopeVar("s"))
+      TermVar("e1", SortAppl("Exp"), TypeVar("t1"), List(ScopeVar("s"))),
+      TermVar("e2", SortAppl("Exp"), TypeVar("t2"), List(ScopeVar("s")))
     )),
     SortAppl("Exp"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     List(
       TypeEquals(TypeVar("t1"), TypeAppl("Fun", List(TypeVar("t2"), TypeVar("t"))))
     )
@@ -74,7 +74,7 @@ object Lambda {
     )),
     SortAppl("Exp"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     List(
       Ref(SymbolicName("Variable", "n"), ScopeVar("s")),
       Res(SymbolicName("Variable", "n"), NameVar("d")),

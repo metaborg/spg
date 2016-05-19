@@ -55,6 +55,26 @@ package object fragments {
       list diff List(elem)
   }
 
+  implicit class RichScopeList[T <: Scope](list: List[T]) extends RichList[T](list) {
+    def unify(scopes: List[Scope]): Option[ScopeBinding] =
+      if (list.length == scopes.length) {
+        list.zip(scopes).foldLeftWhile(Map.empty[ScopeVar, Scope]) {
+          case (scopeBinding, (s1, s2)) =>
+            s1.unify(s2, scopeBinding)
+        }
+      } else {
+        None
+      }
+
+    def substituteScope(binding: ScopeBinding): List[Scope] =
+      list.map(_.substituteScope(binding))
+
+    def freshen(scopeBinding: Map[String, String]): (Map[String, String], List[Scope]) =
+      this.mapFoldLeft(scopeBinding) { case (nameBinding, scope) =>
+        scope.freshen(nameBinding)
+      }
+  }
+
   implicit class RichPatternList[T <: Pattern](list: List[T]) extends RichList[T](list) {
     def freshen(nameBinding: Map[String, String]): (Map[String, String], List[Pattern]) =
       this.mapFoldLeft(nameBinding) { case (nameBinding, pattern) =>

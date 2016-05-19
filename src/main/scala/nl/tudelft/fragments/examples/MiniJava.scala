@@ -6,12 +6,12 @@ object MiniJava {
   // Program : MainClass * List(ClassDecl) -> Program
   private val ruleProgram = Rule(
     TermAppl("Program", List(
-      TermVar("x1", SortAppl("MainClass"), TypeVar("t"), ScopeVar("s")),
-      TermVar("x2", SortAppl("List", List(SortAppl("ClassDecl"))), TypeVar("t"), ScopeVar("s"))
+      TermVar("x1", SortAppl("MainClass"), TypeVar("t"), List(ScopeVar("s"))),
+      TermVar("x2", SortAppl("List", List(SortAppl("ClassDecl"))), TypeVar("t"), List(ScopeVar("s")))
     )),
     SortAppl("Program"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     Nil
   )
 
@@ -20,11 +20,11 @@ object MiniJava {
     TermAppl("MainClass", List(
       PatternNameAdapter(SymbolicName("Class", "n1")),
       PatternNameAdapter(SymbolicName("Method", "n2")),
-      TermVar("x", SortAppl("Statement"), TypeVar("t"), ScopeVar("s"))
+      TermVar("x", SortAppl("Statement"), TypeVar("t"), List(ScopeVar("s")))
     )),
     SortAppl("MainClass"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     Nil
   )
 
@@ -32,13 +32,13 @@ object MiniJava {
   private val ruleClass = Rule(
     TermAppl("Class", List(
       PatternNameAdapter(SymbolicName("Class", "n")),
-      TermVar("x1", SortAppl("ParentDecl"), TypeVar("t1"), ScopeVar("s1")), // TODO: To be correct, ParentDecl needs two scopes (see Hendrik's paper)
-      TermVar("x2", SortAppl("List", List(SortAppl("FieldDecl"))), TypeVar("t2"), ScopeVar("s1")),
-      TermVar("x3", SortAppl("List", List(SortAppl("MethodDecl"))), TypeVar("t3"), ScopeVar("s1"))
+      TermVar("x1", SortAppl("ParentDecl"), TypeVar("t1"), List(ScopeVar("s"), ScopeVar("s1"))),
+      TermVar("x2", SortAppl("List", List(SortAppl("FieldDecl"))), TypeVar("t2"), List(ScopeVar("s1"))),
+      TermVar("x3", SortAppl("List", List(SortAppl("MethodDecl"))), TypeVar("t3"), List(ScopeVar("s1")))
     )),
     SortAppl("ClassDecl"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     List(
       Dec(ScopeVar("s"), SymbolicName("Class", "n")),
       TypeOf(SymbolicName("Class", "n"), TypeAppl("ClassType", List(TypeNameAdapter(SymbolicName("Class", "n"))))),
@@ -56,11 +56,11 @@ object MiniJava {
     )),
     SortAppl("ParentDecl"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s1"), ScopeVar("s2")),
     List(
-      Ref(SymbolicName("Class", "n"), ScopeVar("s")),
+      Ref(SymbolicName("Class", "n"), ScopeVar("s1")),
       Res(SymbolicName("Class", "n"), NameVar("d")),
-      AssociatedImport(ScopeVar("s"), SymbolicName("Class", "n"))
+      AssociatedImport(ScopeVar("s2"), SymbolicName("Class", "n"))
     )
   )
 
@@ -69,23 +69,23 @@ object MiniJava {
     TermAppl("None"),
     SortAppl("ParentDecl"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s1"), ScopeVar("s2")),
     Nil
   )
 
   // Method : Type * ID * List(ParamDecl) * List(VarDecl) * List(Statement) * Exp -> MethodDecl
   private val ruleMethod = Rule(
     TermAppl("Method", List(
-      TermVar("x1", SortAppl("Type"), TypeVar("t2"), ScopeVar("s")),
+      TermVar("x1", SortAppl("Type"), TypeVar("t2"), List(ScopeVar("s"))),
       PatternNameAdapter(SymbolicName("Method", "n1")),
-      TermVar("x2", SortAppl("List", List(SortAppl("ParamDecl"))), TypeVar("t1"), ScopeVar("s1")),
-      TermVar("x3", SortAppl("List", List(SortAppl("VarDecl"))), TypeVar("t4"), ScopeVar("s1")),
-      TermVar("x4", SortAppl("List", List(SortAppl("Statement"))), TypeVar("t5"), ScopeVar("s1")),
-      TermVar("x5", SortAppl("Exp"), TypeVar("t2"), ScopeVar("s1"))
+      TermVar("x2", SortAppl("List", List(SortAppl("ParamDecl"))), TypeVar("t1"), List(ScopeVar("s1"))),
+      TermVar("x3", SortAppl("List", List(SortAppl("VarDecl"))), TypeVar("t4"), List(ScopeVar("s1"))),
+      TermVar("x4", SortAppl("List", List(SortAppl("Statement"))), TypeVar("t5"), List(ScopeVar("s1"))),
+      TermVar("x5", SortAppl("Exp"), TypeVar("t2"), List(ScopeVar("s1")))
     )),
     SortAppl("MethodDecl"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     List(
       Dec(ScopeVar("s"), SymbolicName("Method", "n1")),
       Par(ScopeVar("s1"), ScopeVar("s")),
@@ -97,12 +97,12 @@ object MiniJava {
   // Param : Type * ID -> ParamDecl
   private val ruleParam = Rule(
     TermAppl("Param", List(
-      TermVar("x", SortAppl("Type"), TypeVar("t1"), ScopeVar("s")),
+      TermVar("x", SortAppl("Type"), TypeVar("t1"), List(ScopeVar("s"))),
       PatternNameAdapter(SymbolicName("Variable", "n"))
     )),
     SortAppl("ParamDecl"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     List(
       Dec(ScopeVar("s"), SymbolicName("Variable", "n")),
       TypeOf(SymbolicName("Variable", "n"), TypeVar("t1"))
@@ -112,12 +112,12 @@ object MiniJava {
   // Var : Type * ID -> VarDecl
   private val ruleVar = Rule(
     TermAppl("Var", List(
-      TermVar("x", SortAppl("Type"), TypeVar("t1"), ScopeVar("s")),
+      TermVar("x", SortAppl("Type"), TypeVar("t1"), List(ScopeVar("s"))),
       PatternNameAdapter(SymbolicName("Variable", "n"))
     )),
     SortAppl("VarDecl"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     List(
       Dec(ScopeVar("s"), SymbolicName("Variable", "n")),
       TypeOf(SymbolicName("Variable", "n"), TypeVar("t1"))
@@ -127,12 +127,12 @@ object MiniJava {
   // Field : Type * ID -> FieldDecl
   private val ruleField = Rule(
     TermAppl("Field", List(
-      TermVar("x", SortAppl("Type"), TypeVar("t1"), ScopeVar("s")),
+      TermVar("x", SortAppl("Type"), TypeVar("t1"), List(ScopeVar("s"))),
       PatternNameAdapter(SymbolicName("Variable", "n"))
     )),
     SortAppl("FieldDecl"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     List(
       Dec(ScopeVar("s"), SymbolicName("Variable", "n")),
       TypeOf(SymbolicName("Variable", "n"), TypeVar("t1"))
@@ -142,11 +142,11 @@ object MiniJava {
   // Print : Exp -> Statement
   private val rulePrint = Rule(
     TermAppl("Print", List(
-      TermVar("x", SortAppl("Exp"), TypeVar("t1"), ScopeVar("s"))
+      TermVar("x", SortAppl("Exp"), TypeVar("t1"), List(ScopeVar("s")))
     )),
     SortAppl("Statement"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     List(
       TypeEquals(TypeVar("t1"), TypeAppl("Int"))
     )
@@ -155,12 +155,12 @@ object MiniJava {
   // While : Exp * Statement -> Statement
   private val ruleWhile = Rule(
     TermAppl("While", List(
-      TermVar("x1", SortAppl("Exp"), TypeVar("t1"), ScopeVar("s")),
-      TermVar("x2", SortAppl("Statement"), TypeVar("t2"), ScopeVar("s"))
+      TermVar("x1", SortAppl("Exp"), TypeVar("t1"), List(ScopeVar("s"))),
+      TermVar("x2", SortAppl("Statement"), TypeVar("t2"), List(ScopeVar("s")))
     )),
     SortAppl("Statement"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     List(
       TypeEquals(TypeVar("t1"), TypeAppl("Bool"))
     )
@@ -169,13 +169,13 @@ object MiniJava {
   // If : Exp * Statement * Statement -> Statement
   private val ruleIf = Rule(
     TermAppl("If", List(
-      TermVar("x1", SortAppl("Exp"), TypeVar("t1"), ScopeVar("s")),
-      TermVar("x2", SortAppl("Statement"), TypeVar("t2"), ScopeVar("s1")),
-      TermVar("x3", SortAppl("Statement"), TypeVar("t3"), ScopeVar("s2"))
+      TermVar("x1", SortAppl("Exp"), TypeVar("t1"), List(ScopeVar("s"))),
+      TermVar("x2", SortAppl("Statement"), TypeVar("t2"), List(ScopeVar("s1"))),
+      TermVar("x3", SortAppl("Statement"), TypeVar("t3"), List(ScopeVar("s2")))
     )),
     SortAppl("Statement"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     List(
       TypeEquals(TypeVar("t1"), TypeAppl("Bool")),
       Par(ScopeVar("s1"), ScopeVar("s")),
@@ -186,11 +186,11 @@ object MiniJava {
   //  Block : List(Statement) -> Statement
   private val ruleBlock = Rule(
     TermAppl("Block", List(
-      TermVar("x", SortAppl("List", List(SortAppl("Statement"))), TypeVar("t"), ScopeVar("s"))
+      TermVar("x", SortAppl("List", List(SortAppl("Statement"))), TypeVar("t"), List(ScopeVar("s")))
     )),
     SortAppl("Statement"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     Nil
   )
 
@@ -198,12 +198,12 @@ object MiniJava {
   private val ruleArrayAssign = Rule(
     TermAppl("ArrayAssign", List(
       PatternNameAdapter(SymbolicName("Variable", "n")),
-      TermVar("x1", SortAppl("Exp"), TypeVar("t1"), ScopeVar("s")),
-      TermVar("x2", SortAppl("Exp"), TypeVar("t2"), ScopeVar("s"))
+      TermVar("x1", SortAppl("Exp"), TypeVar("t1"), List(ScopeVar("s"))),
+      TermVar("x2", SortAppl("Exp"), TypeVar("t2"), List(ScopeVar("s")))
     )),
     SortAppl("Statement"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     List(
       Ref(SymbolicName("Variable", "n"), ScopeVar("s")),
       Res(SymbolicName("Variable", "n"), NameVar("d")),
@@ -217,11 +217,11 @@ object MiniJava {
   private val ruleAssign = Rule(
     TermAppl("Assign", List(
       PatternNameAdapter(SymbolicName("Variable", "n")),
-      TermVar("x", SortAppl("Exp"), TypeVar("t1"), ScopeVar("s"))
+      TermVar("x", SortAppl("Exp"), TypeVar("t1"), List(ScopeVar("s")))
     )),
     SortAppl("Statement"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     List(
       Ref(SymbolicName("Variable", "n"), ScopeVar("s")),
       Res(SymbolicName("Variable", "n"), NameVar("d")),
@@ -236,7 +236,7 @@ object MiniJava {
     )),
     SortAppl("Exp"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     List(
       Ref(SymbolicName("Class", "n"), ScopeVar("s")),
       Res(SymbolicName("Class", "n"), NameVar("d")),
@@ -247,12 +247,12 @@ object MiniJava {
   // Subscript : Exp * IndexExp -> Exp
   private val ruleSubscript = Rule(
     TermAppl("Subscript", List(
-      TermVar("x1", SortAppl("Exp"), TypeVar("t1"), ScopeVar("s")),
-      TermVar("x2", SortAppl("IndexExp"), TypeVar("t2"), ScopeVar("s"))
+      TermVar("x1", SortAppl("Exp"), TypeVar("t1"), List(ScopeVar("s"))),
+      TermVar("x2", SortAppl("IndexExp"), TypeVar("t2"), List(ScopeVar("s")))
     )),
     SortAppl("Exp"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     List(
       TypeEquals(TypeVar("t"), TypeAppl("IntType")),
       TypeEquals(TypeVar("t1"), TypeAppl("IntArrayType")),
@@ -263,13 +263,13 @@ object MiniJava {
   // Call : Exp * ID * List(Exp) -> Exp (TODO: Type of arguments goes wrong, assoc is wrong)
   private val ruleCall = Rule(
     TermAppl("Call", List(
-      TermVar("x1", SortAppl("Exp"), TypeVar("t2"), ScopeVar("s")),
+      TermVar("x1", SortAppl("Exp"), TypeVar("t2"), List(ScopeVar("s"))),
       PatternNameAdapter(SymbolicName("Method", "n")),
-      TermVar("x2", SortAppl("List", List(SortAppl("Exp"))), TypeVar("t1"), ScopeVar("s"))
+      TermVar("x2", SortAppl("List", List(SortAppl("Exp"))), TypeVar("t1"), List(ScopeVar("s")))
     )),
     SortAppl("Exp"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     List(
       DirectImport(ScopeVar("s2"), ScopeVar("s3")),
       Ref(SymbolicName("Method", "n"), ScopeVar("s2")),
@@ -285,7 +285,7 @@ object MiniJava {
     TermAppl("This"),
     SortAppl("Exp"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     List(
       Ref(ConcreteName("Implicit", "this", 1), ScopeVar("s")),
       Res(ConcreteName("Implicit", "this", 1), NameVar("d")),
@@ -296,11 +296,11 @@ object MiniJava {
   // Length : Exp -> Exp
   private val ruleLength = Rule(
     TermAppl("Length", List(
-      TermVar("x", SortAppl("Exp"), TypeVar("t1"), ScopeVar("s"))
+      TermVar("x", SortAppl("Exp"), TypeVar("t1"), List(ScopeVar("s")))
     )),
     SortAppl("Exp"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     List(
       TypeEquals(TypeVar("t1"), TypeAppl("IntArray")),
       TypeEquals(TypeVar("t"), TypeAppl("Int"))
@@ -310,11 +310,11 @@ object MiniJava {
   // NewArray : Exp -> Exp
   private val ruleNewArray = Rule(
     TermAppl("NewArray", List(
-      TermVar("x", SortAppl("Exp"), TypeVar("t1"), ScopeVar("s"))
+      TermVar("x", SortAppl("Exp"), TypeVar("t1"), List(ScopeVar("s")))
     )),
     SortAppl("Exp"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     List(
       TypeEquals(TypeVar("t1"), TypeAppl("Int")),
       TypeEquals(TypeVar("t"), TypeAppl("IntArray"))
@@ -324,12 +324,12 @@ object MiniJava {
   // And : Exp * Exp -> Exp
   private val ruleAnd = Rule(
     TermAppl("And", List(
-      TermVar("x1", SortAppl("Exp"), TypeVar("t1"), ScopeVar("s")),
-      TermVar("x2", SortAppl("Exp"), TypeVar("t2"), ScopeVar("s"))
+      TermVar("x1", SortAppl("Exp"), TypeVar("t1"), List(ScopeVar("s"))),
+      TermVar("x2", SortAppl("Exp"), TypeVar("t2"), List(ScopeVar("s")))
     )),
     SortAppl("Exp"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     List(
       TypeEquals(TypeVar("t"), TypeAppl("Bool")),
       TypeEquals(TypeVar("t1"), TypeAppl("Bool")),
@@ -340,12 +340,12 @@ object MiniJava {
   //  Lt : Exp * Exp -> Exp
   private val ruleLt = Rule(
     TermAppl("Lt", List(
-      TermVar("x1", SortAppl("Exp"), TypeVar("t1"), ScopeVar("s")),
-      TermVar("x2", SortAppl("Exp"), TypeVar("t2"), ScopeVar("s"))
+      TermVar("x1", SortAppl("Exp"), TypeVar("t1"), List(ScopeVar("s"))),
+      TermVar("x2", SortAppl("Exp"), TypeVar("t2"), List(ScopeVar("s")))
     )),
     SortAppl("Exp"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     List(
       TypeEquals(TypeVar("t"), TypeAppl("Bool")),
       TypeEquals(TypeVar("t1"), TypeAppl("Int")),
@@ -356,12 +356,12 @@ object MiniJava {
   // Mul : Exp * Exp -> Exp
   private val ruleMul = Rule(
     TermAppl("Mul", List(
-      TermVar("x1", SortAppl("Exp"), TypeVar("t1"), ScopeVar("s")),
-      TermVar("x2", SortAppl("Exp"), TypeVar("t2"), ScopeVar("s"))
+      TermVar("x1", SortAppl("Exp"), TypeVar("t1"), List(ScopeVar("s"))),
+      TermVar("x2", SortAppl("Exp"), TypeVar("t2"), List(ScopeVar("s")))
     )),
     SortAppl("Exp"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     List(
       TypeEquals(TypeVar("t"), TypeAppl("Int")),
       TypeEquals(TypeVar("t1"), TypeAppl("Int")),
@@ -372,12 +372,12 @@ object MiniJava {
   // Sub : Exp * Exp -> Exp
   private val ruleSub = Rule(
     TermAppl("Sub", List(
-      TermVar("x1", SortAppl("Exp"), TypeVar("t1"), ScopeVar("s")),
-      TermVar("x2", SortAppl("Exp"), TypeVar("t2"), ScopeVar("s"))
+      TermVar("x1", SortAppl("Exp"), TypeVar("t1"), List(ScopeVar("s"))),
+      TermVar("x2", SortAppl("Exp"), TypeVar("t2"), List(ScopeVar("s")))
     )),
     SortAppl("Exp"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     List(
       TypeEquals(TypeVar("t"), TypeAppl("Int")),
       TypeEquals(TypeVar("t1"), TypeAppl("Int")),
@@ -388,12 +388,12 @@ object MiniJava {
   // Add : Exp * Exp -> Exp
   private val ruleAdd = Rule(
     TermAppl("Add", List(
-      TermVar("x1", SortAppl("Exp"), TypeVar("t1"), ScopeVar("s")),
-      TermVar("x2", SortAppl("Exp"), TypeVar("t2"), ScopeVar("s"))
+      TermVar("x1", SortAppl("Exp"), TypeVar("t1"), List(ScopeVar("s"))),
+      TermVar("x2", SortAppl("Exp"), TypeVar("t2"), List(ScopeVar("s")))
     )),
     SortAppl("Exp"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     List(
       TypeEquals(TypeVar("t"), TypeAppl("Int")),
       TypeEquals(TypeVar("t1"), TypeAppl("Int")),
@@ -404,11 +404,11 @@ object MiniJava {
   // Not : Exp -> Exp
   private val ruleNot = Rule(
     TermAppl("Not", List(
-      TermVar("x", SortAppl("Exp"), TypeVar("t1"), ScopeVar("s"))
+      TermVar("x", SortAppl("Exp"), TypeVar("t1"), List(ScopeVar("s")))
     )),
     SortAppl("Exp"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     List(
       TypeEquals(TypeVar("t"), TypeAppl("Bool")),
       TypeEquals(TypeVar("t1"), TypeAppl("Bool"))
@@ -422,7 +422,7 @@ object MiniJava {
     )),
     SortAppl("Exp"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     List(
       Ref(SymbolicName("Variable", "n"), ScopeVar("s")),
       Res(SymbolicName("Variable", "n"), NameVar("d")),
@@ -437,7 +437,7 @@ object MiniJava {
     )),
     SortAppl("Type"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     List(
       Ref(SymbolicName("Class", "n"), ScopeVar("s")),
       Res(SymbolicName("Class", "n"), NameVar("d")),
@@ -449,7 +449,7 @@ object MiniJava {
     TermAppl("IntArray"),
     SortAppl("Type"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     List(
       TypeEquals(TypeVar("t"), TypeAppl("IntArray"))
     )
@@ -459,7 +459,7 @@ object MiniJava {
     TermAppl("Int"),
     SortAppl("Type"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     List(
       TypeEquals(TypeVar("t"), TypeAppl("Int"))
     )
@@ -469,7 +469,7 @@ object MiniJava {
     TermAppl("Bool"),
     SortAppl("Type"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     List(
       TypeEquals(TypeVar("t"), TypeAppl("Bool"))
     )
@@ -479,7 +479,7 @@ object MiniJava {
     TermAppl("IntValue"),
     SortAppl("Exp"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     List(
       TypeEquals(TypeVar("t"), TypeAppl("Int"))
     )
@@ -489,7 +489,7 @@ object MiniJava {
     TermAppl("True"),
     SortAppl("Exp"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     List(
       TypeEquals(TypeVar("t"), TypeAppl("Bool"))
     )
@@ -499,7 +499,7 @@ object MiniJava {
     TermAppl("False"),
     SortAppl("Exp"),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     List(
       TypeEquals(TypeVar("t"), TypeAppl("Bool"))
     )
@@ -509,18 +509,18 @@ object MiniJava {
     TermAppl("Nil"),
     SortAppl("List", List(SortAppl("ClassDecl"))),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     Nil
   )
 
   private val ruleConsClassDecl = Rule(
     TermAppl("Cons", List(
-      TermVar("x", SortAppl("ClassDecl"), TypeVar("t"), ScopeVar("s")),
-      TermVar("xs", SortAppl("List", List(SortAppl("ClassDecl"))), TypeVar("t"), ScopeVar("s"))
+      TermVar("x", SortAppl("ClassDecl"), TypeVar("t"), List(ScopeVar("s"))),
+      TermVar("xs", SortAppl("List", List(SortAppl("ClassDecl"))), TypeVar("t"), List(ScopeVar("s")))
     )),
     SortAppl("List", List(SortAppl("ClassDecl"))),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     Nil
   )
 
@@ -528,18 +528,18 @@ object MiniJava {
     TermAppl("Nil"),
     SortAppl("List", List(SortAppl("FieldDecl"))),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     Nil
   )
 
   private val ruleConsFieldDecl = Rule(
     TermAppl("Cons", List(
-      TermVar("x", SortAppl("FieldDecl"), TypeVar("t"), ScopeVar("s")),
-      TermVar("xs", SortAppl("List", List(SortAppl("FieldDecl"))), TypeVar("t"), ScopeVar("s"))
+      TermVar("x", SortAppl("FieldDecl"), TypeVar("t"), List(ScopeVar("s"))),
+      TermVar("xs", SortAppl("List", List(SortAppl("FieldDecl"))), TypeVar("t"), List(ScopeVar("s")))
     )),
     SortAppl("List", List(SortAppl("FieldDecl"))),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     Nil
   )
 
@@ -547,18 +547,18 @@ object MiniJava {
     TermAppl("Nil"),
     SortAppl("List", List(SortAppl("MethodDecl"))),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     Nil
   )
 
   private val ruleConsMethodDecl = Rule(
     TermAppl("Cons", List(
-      TermVar("x", SortAppl("MethodDecl"), TypeVar("t"), ScopeVar("s")),
-      TermVar("xs", SortAppl("List", List(SortAppl("MethodDecl"))), TypeVar("t"), ScopeVar("s"))
+      TermVar("x", SortAppl("MethodDecl"), TypeVar("t"), List(ScopeVar("s"))),
+      TermVar("xs", SortAppl("List", List(SortAppl("MethodDecl"))), TypeVar("t"), List(ScopeVar("s")))
     )),
     SortAppl("List", List(SortAppl("MethodDecl"))),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     Nil
   )
 
@@ -566,7 +566,7 @@ object MiniJava {
     TermAppl("Nil"),
     SortAppl("List", List(SortAppl("ParamDecl"))),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     List(
       TypeEquals(TypeVar("t"), TypeAppl("Nil"))
     )
@@ -574,12 +574,12 @@ object MiniJava {
 
   private val ruleConsParamDecl = Rule(
     TermAppl("Cons", List(
-      TermVar("x", SortAppl("ParamDecl"), TypeVar("t1"), ScopeVar("s")),
-      TermVar("xs", SortAppl("List", List(SortAppl("ParamDecl"))), TypeVar("t2"), ScopeVar("s"))
+      TermVar("x", SortAppl("ParamDecl"), TypeVar("t1"), List(ScopeVar("s"))),
+      TermVar("xs", SortAppl("List", List(SortAppl("ParamDecl"))), TypeVar("t2"), List(ScopeVar("s")))
     )),
     SortAppl("List", List(SortAppl("ParamDecl"))),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     List(
       TypeEquals(TypeVar("t"), TypeAppl("Cons", List(TypeVar("t1"), TypeVar("t2"))))
     )
@@ -589,18 +589,18 @@ object MiniJava {
     TermAppl("Nil"),
     SortAppl("List", List(SortAppl("VarDecl"))),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     Nil
   )
 
   private val ruleConsVarDecl = Rule(
     TermAppl("Cons", List(
-      TermVar("x", SortAppl("VarDecl"), TypeVar("t"), ScopeVar("s")),
-      TermVar("xs", SortAppl("List", List(SortAppl("VarDecl"))), TypeVar("t"), ScopeVar("s"))
+      TermVar("x", SortAppl("VarDecl"), TypeVar("t"), List(ScopeVar("s"))),
+      TermVar("xs", SortAppl("List", List(SortAppl("VarDecl"))), TypeVar("t"), List(ScopeVar("s")))
     )),
     SortAppl("List", List(SortAppl("VarDecl"))),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     Nil
   )
 
@@ -608,18 +608,18 @@ object MiniJava {
     TermAppl("Nil"),
     SortAppl("List", List(SortAppl("Statement"))),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     Nil
   )
 
   private val ruleConsStatement = Rule(
     TermAppl("Cons", List(
-      TermVar("x", SortAppl("Statement"), TypeVar("t"), ScopeVar("s")),
-      TermVar("xs", SortAppl("List", List(SortAppl("Statement"))), TypeVar("t"), ScopeVar("s"))
+      TermVar("x", SortAppl("Statement"), TypeVar("t"), List(ScopeVar("s"))),
+      TermVar("xs", SortAppl("List", List(SortAppl("Statement"))), TypeVar("t"), List(ScopeVar("s")))
     )),
     SortAppl("List", List(SortAppl("Statement"))),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     Nil
   )
 
@@ -627,7 +627,7 @@ object MiniJava {
     TermAppl("Nil"),
     SortAppl("List", List(SortAppl("Exp"))),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     List(
       TypeEquals(TypeVar("t"), TypeAppl("Nil"))
     )
@@ -635,12 +635,12 @@ object MiniJava {
 
   private val ruleConsExp = Rule(
     TermAppl("Cons", List(
-      TermVar("x", SortAppl("Exp"), TypeVar("t1"), ScopeVar("s")),
-      TermVar("xs", SortAppl("List", List(SortAppl("Exp"))), TypeVar("t2"), ScopeVar("s"))
+      TermVar("x", SortAppl("Exp"), TypeVar("t1"), List(ScopeVar("s"))),
+      TermVar("xs", SortAppl("List", List(SortAppl("Exp"))), TypeVar("t2"), List(ScopeVar("s")))
     )),
     SortAppl("List", List(SortAppl("Exp"))),
     TypeVar("t"),
-    ScopeVar("s"),
+    List(ScopeVar("s")),
     List(
       TypeEquals(TypeVar("t"), TypeAppl("Cons", List(TypeVar("t1"), TypeVar("t2"))))
     )
