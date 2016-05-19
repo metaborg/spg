@@ -11,6 +11,7 @@ package object fragments {
   type ConcreteBinding = Map[SymbolicName, ConcreteName]
   type Substitution = (TypeBinding, NameBinding, List[Condition])
   type Path = List[PathElem]
+  type Seen = List[Name]
 
   // An instance of the NameProvider made globally available
   val nameProvider = NameProvider(9)

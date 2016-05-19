@@ -19,22 +19,64 @@ class GraphSuite extends FunSuite {
     assert(scope(SymbolicName("", "n190"), constraints) == List(ScopeVar("s192")))
   }
 
-  test("visible") {
+  test("associated import") {
     val constraints = List(
-      Ref(NameVar("n190"),ScopeVar("s192")),
-      Res(NameVar("n190"),NameVar("n193")),
-      TypeOf(NameVar("n190"),TypeVar("t191")),
-      TypeEquals(TypeVar("t176"),TypeAppl("Fun", List(TypeVar("t191"), TypeVar("t177")))),
-      Par(ScopeVar("s192"),ScopeVar("s172")),
-      Dec(ScopeVar("s192"),NameVar("n170")),
-      TypeOf(NameVar("n170"),TypeVar("t191"))
+      Par(ScopeVar("s1"), ScopeVar("s")),
+      Par(ScopeVar("s2"), ScopeVar("s")),
+      Dec(ScopeVar("s"), SymbolicName("C", "n1")),
+      Dec(ScopeVar("s"), SymbolicName("C", "n2")),
+      AssocFact(SymbolicName("C", "n1"), ScopeVar("s1")),
+      AssocFact(SymbolicName("C", "n2"), ScopeVar("s2")),
+      Ref(SymbolicName("C", "n3"), ScopeVar("s2")),
+      AssociatedImport(ScopeVar("s2"), SymbolicName("C", "n3"))
     )
 
-    assert(visible(ScopeVar("s192"), constraints) == List(
-      (List(), NameVar("n170"), List())
-    ))
+    assert(resolves(Nil, SymbolicName("C", "n3"), constraints) == List((
+      List(SymbolicName("C", "n3")),
+      List(Parent()),
+      SymbolicName("C", "n1"),
+      List(Eq(SymbolicName("C", "n3"),SymbolicName("C", "n1")))
+    ), (
+      List(SymbolicName("C", "n3")),
+      List(Parent()),
+      SymbolicName("C", "n2"),
+      List(Eq(SymbolicName("C", "n3"),SymbolicName("C", "n2")))
+    )))
   }
 
+  test("chained associated import") {
+    val constraints = List(
+      Par(ScopeVar("s1"), ScopeVar("s")),
+      Par(ScopeVar("s2"), ScopeVar("s")),
+      Par(ScopeVar("s3"), ScopeVar("s")),
+      Dec(ScopeVar("s"), SymbolicName("C", "n1")),
+      Dec(ScopeVar("s"), SymbolicName("C", "n2")),
+      Dec(ScopeVar("s"), SymbolicName("C", "n3")),
+      AssocFact(SymbolicName("C", "n1"), ScopeVar("s1")),
+      AssocFact(SymbolicName("C", "n2"), ScopeVar("s2")),
+      AssocFact(SymbolicName("C", "n3"), ScopeVar("s3")),
+      Ref(SymbolicName("C", "n4"), ScopeVar("s")),
+      Ref(SymbolicName("C", "n5"), ScopeVar("s")),
+      AssociatedImport(ScopeVar("s1"), SymbolicName("C", "n4")),
+      AssociatedImport(ScopeVar("s3"), SymbolicName("C", "n5"))
+    )
 
+    assert(resolves(Nil, SymbolicName("C", "n4"), constraints) == List((
+      List(SymbolicName("C", "n4")),
+      List(),
+      SymbolicName("C", "n1"),
+      List(Eq(SymbolicName("C", "n4"),SymbolicName("C", "n1")))
+    ), (
+      List(SymbolicName("C", "n4")),
+      List(),
+      SymbolicName("C", "n2"),
+      List(Eq(SymbolicName("C", "n4"),SymbolicName("C", "n2")))
+    ), (
+      List(SymbolicName("C", "n4")),
+      List(),
+      SymbolicName("C", "n3"),
+      List(Eq(SymbolicName("C", "n4"),SymbolicName("C", "n3")))
+    )))
+  }
 
 }

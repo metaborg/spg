@@ -32,7 +32,7 @@ object MiniJava {
   private val ruleClass = Rule(
     TermAppl("Class", List(
       PatternNameAdapter(SymbolicName("Class", "n")),
-      TermVar("x1", SortAppl("ParentDecl"), TypeVar("t1"), ScopeVar("s")),
+      TermVar("x1", SortAppl("ParentDecl"), TypeVar("t1"), ScopeVar("s1")), // TODO: To be correct, ParentDecl needs two scopes (see Hendrik's paper)
       TermVar("x2", SortAppl("List", List(SortAppl("FieldDecl"))), TypeVar("t2"), ScopeVar("s1")),
       TermVar("x3", SortAppl("List", List(SortAppl("MethodDecl"))), TypeVar("t3"), ScopeVar("s1"))
     )),
@@ -58,7 +58,9 @@ object MiniJava {
     TypeVar("t"),
     ScopeVar("s"),
     List(
-      DirectImport(ScopeVar("s"), ScopeVar("s3"))
+      Ref(SymbolicName("Class", "n"), ScopeVar("s")),
+      Res(SymbolicName("Class", "n"), NameVar("d")),
+      AssociatedImport(ScopeVar("s"), SymbolicName("Class", "n"))
     )
   )
 

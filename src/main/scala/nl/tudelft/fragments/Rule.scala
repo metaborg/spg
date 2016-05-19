@@ -158,6 +158,27 @@ case class DirectImport(s1: Scope, s2: Scope) extends Constraint {
     }
 }
 
+case class AssociatedImport(s: Scope, n: Name) extends Constraint {
+  override def substituteType(binding: TypeBinding): Constraint =
+    this
+
+  override def substituteName(binding: NameBinding): Constraint =
+    AssociatedImport(s, n.substituteName(binding))
+
+  override def substituteScope(binding: ScopeBinding): Constraint =
+    AssociatedImport(s.substituteScope(binding), n)
+
+  override def substituteConcrete(binding: ConcreteBinding): Constraint =
+    AssociatedImport(s, n.substituteConcrete(binding))
+
+  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
+    s.freshen(nameBinding).map { case (nameBinding, s) =>
+      n.freshen(nameBinding).map { case (nameBinding, n) =>
+        (nameBinding, AssociatedImport(s, n))
+      }
+    }
+}
+
 case class AssocFact(n: Name, s: Scope) extends Constraint {
   override def substituteType(binding: TypeBinding): Constraint =
     this

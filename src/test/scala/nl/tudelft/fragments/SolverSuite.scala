@@ -158,4 +158,38 @@ class SolverSuite extends FunSuite {
     assert(Solver.solve(constraints).nonEmpty)
   }
 
+  test("chained associated import") {
+    val constraints = List(
+      Par(ScopeVar("s1"), ScopeVar("s")),
+      Par(ScopeVar("s2"), ScopeVar("s")),
+      Par(ScopeVar("s3"), ScopeVar("s")),
+      Dec(ScopeVar("s"), SymbolicName("C", "n1")),
+      Dec(ScopeVar("s"), SymbolicName("C", "n2")),
+      Dec(ScopeVar("s"), SymbolicName("C", "n3")),
+      AssocFact(SymbolicName("C", "n1"), ScopeVar("s1")),
+      AssocFact(SymbolicName("C", "n2"), ScopeVar("s2")),
+      AssocFact(SymbolicName("C", "n3"), ScopeVar("s3")),
+      Ref(SymbolicName("C", "n4"), ScopeVar("s")),
+      Ref(SymbolicName("C", "n5"), ScopeVar("s")),
+      AssociatedImport(ScopeVar("s1"), SymbolicName("C", "n4")),
+      AssociatedImport(ScopeVar("s3"), SymbolicName("C", "n5")),
+      Res(SymbolicName("C", "n4"), NameVar("d1")),
+      Res(SymbolicName("C", "n5"), NameVar("d2"))
+    )
+
+    // NOTE: The solver gives a random solution, so this test will fail in the future.
+
+    assert(Solver.solve(constraints) == Some((
+      // Type binding
+      Map(),
+      // Name binding
+      Map(NameVar("d2") -> SymbolicName("C", "n2"), NameVar("d1") -> SymbolicName("C", "n3")),
+      // Conditions
+      List(
+        Eq(SymbolicName("C", "n5"),SymbolicName("C", "n2")),
+        Eq(SymbolicName("C", "n4"),SymbolicName("C", "n3"))
+      )
+    )))
+  }
+
 }

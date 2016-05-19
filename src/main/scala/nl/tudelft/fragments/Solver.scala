@@ -1,5 +1,6 @@
 package nl.tudelft.fragments
 
+import scala.collection.immutable.Nil
 import scala.util.Random
 
 object Solver {
@@ -31,7 +32,7 @@ object Solver {
       yield (r._1 ++ u._1, r._2 ++ u._2, r._3)
     // TODO: stable graph thingy
     case Res(n1@SymbolicName(_, _), n2@NameVar(_)) =>
-      for ((_, dec, cond) <- Random.shuffle(resolves(n1, all))) {
+      for ((_, _, dec, cond) <- Random.shuffle(resolves(Nil, n1, all))) {
         val result = solve(cs.substituteName(Map[NameVar, Name](n2 -> dec)), all.substituteName(Map(n2 -> dec)), ts)
 
         if (result.isDefined) {
@@ -41,7 +42,7 @@ object Solver {
 
       None
     case Res(n1@ConcreteName(_, _, _), n2@NameVar(_)) =>
-      for ((_, dec, cond) <- Random.shuffle(resolves(n1, all))) {
+      for ((_, _, dec, cond) <- Random.shuffle(resolves(Nil, n1, all))) {
         val result = solve(cs.substituteName(Map[NameVar, Name](n2 -> dec)), all.substituteName(Map(n2 -> dec)), ts)
 
         if (result.isDefined) {
@@ -158,13 +159,22 @@ object Graph {
     }
 
   // Scope associated with a declaration
-  def associated(n: SymbolicName, all: List[Constraint]): Option[Scope] =
+  def associated(n: Name, all: List[Constraint]): Option[Scope] =
     all.flatMap {
       case AssocFact(`n`, s) =>
         Some(s)
       case _ =>
         None
     }.headOption
+
+  // Associated imports
+  def aimports(s: Scope, all: List[Constraint]): List[Name] =
+    all.flatMap {
+      case AssociatedImport(`s`, n) =>
+        Some(n)
+      case _ =>
+        None
+    }
 
   // Direct imports
   def dimports(s: Scope, all: List[Constraint]): List[Scope] =
@@ -176,54 +186,65 @@ object Graph {
     }
 
   // Parent edge
-  def edgeParent(s: Scope, all: List[Constraint]): List[(Path, Scope)] =
-    parent(s, all).flatMap(path(_, all)).map { case (path, scope) =>
-      (Parent() :: path, scope)
+  def edgeParent(seen: Seen, s: Scope, all: List[Constraint]): List[(Seen, Path, Scope, List[Condition])] =
+    parent(s, all).flatMap(path(seen, _, all)).map { case (seen, path, scope, conditions) =>
+      (seen, Parent() :: path, scope, conditions)
     }
+
+  // Associated Import edge
+  def edgeAImport(seen: Seen, s: Scope, all: List[Constraint]): List[(Seen, Path, Scope, List[Condition])] =
+    aimports(s, all)
+      .filter(ref => !seen.contains(ref))
+      .flatMap(ref =>
+        resolves(seen, ref, all).map { case (seen, path, dec, conditions) =>
+          (seen, List(AImport(ref, dec)), associated(dec, all).head, conditions)
+        }
+      )
 
   // Direct Import edge
-  def edgeDImport(s: Scope, all: List[Constraint]): List[(Path, Scope)] =
-    dimports(s, all).flatMap(imports => path(imports, all).map((imports, _))).map { case (imports, (path, scope)) =>
-      (Import(imports) :: path, scope)
+  def edgeDImport(seen: Seen, s: Scope, all: List[Constraint]): List[(Seen, Path, Scope, List[Condition])] =
+    dimports(s, all).flatMap(imports => path(seen, imports, all).map((imports, _))).map {
+      case (imports, (seen, path, scope, conditions)) =>
+        (seen, Import(imports) :: path, scope, conditions)
     }
 
-  // Transitive reflexive closure of edge relation // TODO: Include named imports
-  def path(s: Scope, all: List[Constraint]): List[(Path, Scope)] =
-    List((Nil, s)) ++ edgeParent(s, all) ++ edgeDImport(s, all)
+  // Transitive reflexive closure of edge relation
+  def path(seen: Seen, s: Scope, all: List[Constraint]): List[(Seen, Path, Scope, List[Condition])] =
+    List((seen, Nil, s, Nil)) ++ edgeParent(seen, s, all) ++ edgeDImport(seen, s, all) ++ edgeAImport(seen, s, all)
 
   // Reachable declarations
-  def reachable(s: Scope, all: List[Constraint]): List[(Path, Name)] =
-    path(s, all).flatMap { case (path, scope) =>
-      declarations(scope, all).map(dec => (path, dec))
+  def reachable(seen: Seen, s: Scope, all: List[Constraint]): List[(Seen, Path, Name, List[Condition])] =
+    path(seen, s, all).flatMap { case (seen, path, scope, conditions) =>
+      declarations(scope, all).map(dec => (seen, path, dec, conditions))
     }
 
   // Visible declarations
-  def visible(s: Scope, all: List[Constraint]): List[(Path, Name, List[Condition])] =
-    reachable(s, all).map { case (path, name) =>
-      val condition = reachable(s, all)
-        .filter(_._1.length < path.length)
-        .map { case (_, other) => Diseq(name, other) }
+  def visible(seen: Seen, s: Scope, all: List[Constraint]): List[(Seen, Path, Name, List[Condition])] =
+    reachable(seen, s, all).map { case (seen, path, name, conditions) =>
+      val condition = reachable(seen, s, all)
+        .filter(_._2.length < path.length)
+        .map { case (_, _, other, _) => Diseq(name, other) }
 
-      (path, name, condition)
+      (seen, path, name, condition ++ conditions)
     }
 
   // Resolution
-  def resolves(n: Name, all: List[Constraint]): List[(Path, Name, List[Condition])] = n match {
+  def resolves(seen: Seen, n: Name, all: List[Constraint]): List[(Seen, Path, Name, List[Condition])] = n match {
     case ConcreteName(namespace, name, pos) =>
       scope(n, all).flatMap(s =>
-        visible(s, all)
-          .filter(_._2.namespace == namespace)
-          .filter(_._2.name == name)
-          .map { case (path, dec, cs) =>
-            (path, dec, cs)
+        visible(n :: seen, s, all)
+          .filter(_._3.namespace == namespace)
+          .filter(_._3.name == name)
+          .map { case (seen, path, dec, cs) =>
+            (seen, path, dec, cs)
           }
       )
     case SymbolicName(namespace, name) =>
       scope(n, all).flatMap(s =>
-        visible(s, all)
-          .filter(_._2.namespace == n.namespace)
-          .map { case (path, dec, cs) =>
-            (path, dec, Eq(n, dec) :: cs)
+        visible(n :: seen, s, all)
+          .filter(_._3.namespace == n.namespace)
+          .map { case (seen, path, dec, cs) =>
+            (seen, path, dec, Eq(n, dec) :: cs)
           }
       )
   }
@@ -233,6 +254,7 @@ abstract class PathElem
 case class Declaration(n: NameVar) extends PathElem
 case class Parent() extends PathElem
 case class Import(s: Scope) extends PathElem
+case class AImport(n1: Name, n2: Name) extends PathElem
 
 abstract class Condition {
   def substituteConcrete(binding: ConcreteBinding): Condition
