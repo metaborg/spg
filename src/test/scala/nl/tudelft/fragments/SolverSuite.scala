@@ -192,4 +192,27 @@ class SolverSuite extends FunSuite {
     )))
   }
 
+  test("associated import with symbolic names") {
+    val constraints = List(
+      Par(ScopeVar("s1"), ScopeVar("s")),
+      Par(ScopeVar("s2"), ScopeVar("s")),
+      Par(ScopeVar("s"), ScopeVar("s3")),
+      Dec(ScopeVar("s3"), SymbolicName("C", "n6")),
+      Dec(ScopeVar("s2"), SymbolicName("V", "n3")),
+      Dec(ScopeVar("s"), SymbolicName("C", "n1")),
+      Dec(ScopeVar("s"), SymbolicName("C", "n2")),
+      AssocFact(SymbolicName("C", "n1"), ScopeVar("s1")),
+      AssocFact(SymbolicName("C", "n2"), ScopeVar("s2")),
+      AssociatedImport(ScopeVar("s1"), SymbolicName("C", "n4")),
+      Ref(SymbolicName("C", "n4"), ScopeVar("s")),
+      Res(SymbolicName("C", "n4"), NameVar("d1")),
+      Ref(SymbolicName("V", "n5"), ScopeVar("s1")),
+      Res(SymbolicName("V", "n5"), NameVar("d2"))
+    )
+
+    for (i <- 0 to 20) {
+      println(Solver.solve(constraints))
+    }
+  }
+
 }

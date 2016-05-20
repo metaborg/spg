@@ -510,6 +510,11 @@ case class PatternNameAdapter(n: Name) extends Pattern {
 
 // Name
 abstract class Name {
+  def substitute(on1: Name, on2: Name): Name = this match {
+    case `on1` => on2
+    case _ => this
+  }
+
   def name: String
 
   def namespace: String

@@ -31,7 +31,7 @@ class GraphSuite extends FunSuite {
       AssociatedImport(ScopeVar("s2"), SymbolicName("C", "n3"))
     )
 
-    assert(resolves(Nil, SymbolicName("C", "n3"), constraints) == List((
+    assert(resolves(Nil, SymbolicName("C", "n3"), constraints, Nil) == List((
       List(SymbolicName("C", "n3")),
       List(Parent()),
       SymbolicName("C", "n1"),
@@ -61,7 +61,7 @@ class GraphSuite extends FunSuite {
       AssociatedImport(ScopeVar("s3"), SymbolicName("C", "n5"))
     )
 
-    assert(resolves(Nil, SymbolicName("C", "n4"), constraints) == List((
+    assert(resolves(Nil, SymbolicName("C", "n4"), constraints, Nil) == List((
       List(SymbolicName("C", "n4")),
       List(),
       SymbolicName("C", "n1"),

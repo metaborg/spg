@@ -31,4 +31,32 @@ class ConsistencySuite extends FunSuite {
     assert(!Consistency.check(constraints))
   }
 
+  test("no cycle in disequalities") {
+    val disEqs = List(
+      Diseq(SymbolicName("C", "n1"), SymbolicName("C", "n2"))
+    )
+
+    assert(!Consistency.detectCycle(disEqs))
+  }
+
+  test("cycle in disequalities") {
+    val disEqs = List(
+      Diseq(SymbolicName("C", "n1"), SymbolicName("C", "n2")),
+      Diseq(SymbolicName("C", "n2"), SymbolicName("C", "n3")),
+      Diseq(SymbolicName("C", "n3"), SymbolicName("C", "n1"))
+    )
+
+    assert(Consistency.detectCycle(disEqs))
+  }
+
+  test("consistency of naming conditions") {
+    val conditions = List(
+      Diseq(SymbolicName("C", "n1"), SymbolicName("C", "n2")),
+      Eq(SymbolicName("C", "n3"), SymbolicName("C", "n1")),
+      Eq(SymbolicName("C", "n3"), SymbolicName("C", "n2"))
+    )
+
+    assert(!Consistency.checkNamingConditions(conditions))
+  }
+
 }

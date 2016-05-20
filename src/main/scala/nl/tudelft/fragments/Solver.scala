@@ -7,33 +7,29 @@ object Solver {
   import Graph._
 
   // Solve one constraint
-  def solve(c: Constraint, cs: List[Constraint], all: List[Constraint], ts: TypeEnv): Option[Substitution] = c match {
+  def solve(c: Constraint, cs: List[Constraint], all: List[Constraint], ts: TypeEnv, conditions: List[Condition]): Option[Substitution] = c match {
     case TypeOf(n@SymbolicName(_, _), t) =>
       if (ts.contains(n)) {
-        solve(TypeEquals(ts(n), t) :: cs, all, ts)
+        solve(TypeEquals(ts(n), t) :: cs, all, ts, conditions)
       } else {
-        solve(cs, all, ts + (n -> t))
+        solve(cs, all, ts + (n -> t), conditions)
       }
     case TypeOf(n@ConcreteName(_, _, _), t) =>
       if (ts.contains(n)) {
-        solve(TypeEquals(ts(n), t) :: cs, all, ts)
+        solve(TypeEquals(ts(n), t) :: cs, all, ts, conditions)
       } else {
-        solve(cs, all, ts + (n -> t))
+        solve(cs, all, ts + (n -> t), conditions)
       }
     case TypeEquals(t1, t2) =>
       for (
         u <- t1.unify(t2);
-        r <- solve(
-          cs.substituteType(u._1).substituteName(u._2),
-          all.substituteType(u._1).substituteName(u._2),
-          ts.substituteType(u._1)
-        )
+        r <- solve(cs.substituteType(u._1).substituteName(u._2), all.substituteType(u._1).substituteName(u._2), ts.substituteType(u._1), conditions)
       )
       yield (r._1 ++ u._1, r._2 ++ u._2, r._3)
     // TODO: stable graph thingy
     case Res(n1@SymbolicName(_, _), n2@NameVar(_)) =>
-      for ((_, _, dec, cond) <- Random.shuffle(resolves(Nil, n1, all))) {
-        val result = solve(cs.substituteName(Map[NameVar, Name](n2 -> dec)), all.substituteName(Map(n2 -> dec)), ts)
+      for ((_, _, dec, cond) <- Random.shuffle(resolves(Nil, n1, all, conditions))) {
+        val result = solve(cs.substituteName(Map[NameVar, Name](n2 -> dec)), all.substituteName(Map(n2 -> dec)), ts, cond ++ conditions)
 
         if (result.isDefined) {
           return Some((result.get._1, result.get._2 ++ Map(n2 -> dec), result.get._3 ++ cond))
@@ -42,8 +38,8 @@ object Solver {
 
       None
     case Res(n1@ConcreteName(_, _, _), n2@NameVar(_)) =>
-      for ((_, _, dec, cond) <- Random.shuffle(resolves(Nil, n1, all))) {
-        val result = solve(cs.substituteName(Map[NameVar, Name](n2 -> dec)), all.substituteName(Map(n2 -> dec)), ts)
+      for ((_, _, dec, cond) <- Random.shuffle(resolves(Nil, n1, all, conditions))) {
+        val result = solve(cs.substituteName(Map[NameVar, Name](n2 -> dec)), all.substituteName(Map(n2 -> dec)), ts, cond ++ conditions)
 
         if (result.isDefined) {
           return Some((result.get._1, result.get._2 ++ Map(n2 -> dec), result.get._3 ++ cond))
@@ -55,7 +51,7 @@ object Solver {
       val scope = associated(n, all)
 
       if (scope.isDefined) {
-        solve(cs.substituteScope(Map(s -> scope.get)), all.substituteScope(Map(s -> scope.get)), ts)
+        solve(cs.substituteScope(Map(s -> scope.get)), all.substituteScope(Map(s -> scope.get)), ts, conditions)
       } else {
         None
       }
@@ -64,12 +60,12 @@ object Solver {
   }
 
   // Solve all constraints non-deterministically, but give TypeEquals(_, _) and TypeOf(SymbolicName(_), _) precedence
-  def solve(C: List[Constraint], all: List[Constraint], ts: TypeEnv): Option[Substitution] =
+  def solve(C: List[Constraint], all: List[Constraint], ts: TypeEnv, conditions: List[Condition]): Option[Substitution] =
     if (C.nonEmpty) {
       // Give `TypeOf(SymbolicName(_), _)` precedence
       if (C.exists(c => c.isInstanceOf[TypeOf] && c.asInstanceOf[TypeOf].n.isInstanceOf[SymbolicName])) {
         val c = C.find(c => c.isInstanceOf[TypeOf] && c.asInstanceOf[TypeOf].n.isInstanceOf[SymbolicName]).get
-        val result = solve(c, C - c, all, ts)
+        val result = solve(c, C - c, all, ts, conditions)
 
         if (result.isDefined) {
           return result
@@ -78,7 +74,7 @@ object Solver {
       // Give `TypeOf(ConcreteName(_), _)` precedence
       else if (C.exists(c => c.isInstanceOf[TypeOf] && c.asInstanceOf[TypeOf].n.isInstanceOf[ConcreteName])) {
         val c = C.find(c => c.isInstanceOf[TypeOf] && c.asInstanceOf[TypeOf].n.isInstanceOf[ConcreteName]).get
-        val result = solve(c, C-c, all, ts)
+        val result = solve(c, C-c, all, ts, conditions)
 
         if (result.isDefined) {
           return result
@@ -87,14 +83,14 @@ object Solver {
       // Give `TypeEquals(_, _)` precedence
       else if (C.exists(_.isInstanceOf[TypeEquals])) {
         val c = C.find(_.isInstanceOf[TypeEquals]).get
-        val result = solve(c, C-c, all, ts)
+        val result = solve(c, C-c, all, ts, conditions)
 
         if (result.isDefined) {
           return result
         }
       } else {
         for (c <- C) {
-          val result = solve(c, C - c, all, ts)
+          val result = solve(c, C - c, all, ts, conditions)
 
           if (result.isDefined) {
             return result
@@ -109,7 +105,7 @@ object Solver {
 
   // Solve all constraints
   def solve(constraints: List[Constraint]): Option[Substitution] =
-    solve(constraints.filter(_.isProper), constraints, TypeEnv())
+    solve(constraints.filter(_.isProper), constraints, TypeEnv(), Nil)
 }
 
 case class TypeEnv(bindings: Map[Name, Type] = Map.empty) {
@@ -186,17 +182,17 @@ object Graph {
     }
 
   // Parent edge
-  def edgeParent(seen: Seen, s: Scope, all: List[Constraint]): List[(Seen, Path, Scope, List[Condition])] =
-    parent(s, all).flatMap(path(seen, _, all)).map { case (seen, path, scope, conditions) =>
+  def edgeParent(seen: Seen, s: Scope, all: List[Constraint], conditions: List[Condition]): List[(Seen, Path, Scope, List[Condition])] =
+    parent(s, all).flatMap(path(seen, _, all, conditions)).map { case (seen, path, scope, conditions) =>
       (seen, Parent() :: path, scope, conditions)
     }
 
   // Associated Import edge
-  def edgeAImport(seen: Seen, s: Scope, all: List[Constraint]): List[(Seen, Path, Scope, List[Condition])] =
+  def edgeAImport(seen: Seen, s: Scope, all: List[Constraint], conditions: List[Condition]): List[(Seen, Path, Scope, List[Condition])] =
     aimports(s, all)
       .filter(ref => !seen.contains(ref))
       .flatMap(ref =>
-        resolves(seen, ref, all).flatMap { case (seen, path, dec, conditions) =>
+        resolves(seen, ref, all, conditions).flatMap { case (seen, path, dec, conditions) =>
           associated(dec, all).map(scope =>
             (seen, List(AImport(ref, dec)), scope, conditions)
           )
@@ -204,26 +200,26 @@ object Graph {
       )
 
   // Direct Import edge
-  def edgeDImport(seen: Seen, s: Scope, all: List[Constraint]): List[(Seen, Path, Scope, List[Condition])] =
-    dimports(s, all).flatMap(imports => path(seen, imports, all).map((imports, _))).map {
+  def edgeDImport(seen: Seen, s: Scope, all: List[Constraint], conditions: List[Condition]): List[(Seen, Path, Scope, List[Condition])] =
+    dimports(s, all).flatMap(imports => path(seen, imports, all, conditions).map((imports, _))).map {
       case (imports, (seen, path, scope, conditions)) =>
         (seen, Import(imports) :: path, scope, conditions)
     }
 
   // Transitive reflexive closure of edge relation
-  def path(seen: Seen, s: Scope, all: List[Constraint]): List[(Seen, Path, Scope, List[Condition])] =
-    List((seen, Nil, s, Nil)) ++ edgeParent(seen, s, all) ++ edgeDImport(seen, s, all) ++ edgeAImport(seen, s, all)
+  def path(seen: Seen, s: Scope, all: List[Constraint], conditions: List[Condition]): List[(Seen, Path, Scope, List[Condition])] =
+    List((seen, Nil, s, Nil)) ++ edgeParent(seen, s, all, conditions) ++ edgeDImport(seen, s, all, conditions) ++ edgeAImport(seen, s, all, conditions)
 
   // Reachable declarations
-  def reachable(seen: Seen, s: Scope, all: List[Constraint]): List[(Seen, Path, Name, List[Condition])] =
-    path(seen, s, all).flatMap { case (seen, path, scope, conditions) =>
+  def reachable(seen: Seen, s: Scope, all: List[Constraint], conditions: List[Condition]): List[(Seen, Path, Name, List[Condition])] =
+    path(seen, s, all, conditions).flatMap { case (seen, path, scope, conditions) =>
       declarations(scope, all).map(dec => (seen, path, dec, conditions))
     }
 
   // Visible declarations
-  def visible(seen: Seen, s: Scope, all: List[Constraint]): List[(Seen, Path, Name, List[Condition])] =
-    reachable(seen, s, all).map { case (seen, path, name, conditions) =>
-      val condition = reachable(seen, s, all)
+  def visible(seen: Seen, s: Scope, all: List[Constraint], conditions: List[Condition]): List[(Seen, Path, Name, List[Condition])] =
+    reachable(seen, s, all, conditions).map { case (seen, path, name, conditions) =>
+      val condition = reachable(seen, s, all, conditions)
         .filter(_._2.length < path.length)
         .map { case (_, _, other, _) => Diseq(name, other) }
 
@@ -231,20 +227,23 @@ object Graph {
     }
 
   // Resolution
-  def resolves(seen: Seen, n: Name, all: List[Constraint]): List[(Seen, Path, Name, List[Condition])] = n match {
+  def resolves(seen: Seen, n: Name, all: List[Constraint], conditions: List[Condition]): List[(Seen, Path, Name, List[Condition])] = n match {
     case ConcreteName(namespace, name, pos) =>
       scope(n, all).flatMap(s =>
-        visible(n :: seen, s, all)
+        visible(n :: seen, s, all, conditions)
           .filter(_._3.namespace == namespace)
           .filter(_._3.name == name)
-          .map { case (seen, path, dec, cs) =>
-            (seen, path, dec, cs)
+          .filter { case (_, _, _, cs) =>
+            Consistency.checkNamingConditions(cs ++ conditions)
           }
       )
     case SymbolicName(namespace, name) =>
       scope(n, all).flatMap(s =>
-        visible(n :: seen, s, all)
+        visible(n :: seen, s, all, conditions)
           .filter(_._3.namespace == n.namespace)
+          .filter { case (_, _, _, cs) =>
+            Consistency.checkNamingConditions(cs ++ conditions)
+          }
           .map { case (seen, path, dec, cs) =>
             (seen, path, dec, Eq(n, dec) :: cs)
           }
@@ -263,11 +262,17 @@ abstract class Condition {
 }
 
 case class Diseq(n1: Name, n2: Name) extends Condition {
+  def substitute(on1: Name, on2: Name) =
+    Diseq(n1.substitute(on1, on2), n2.substitute(on1, on2))
+
   override def substituteConcrete(binding: ConcreteBinding) =
     Diseq(n1.substituteConcrete(binding), n2.substituteConcrete(binding))
 }
 
 case class Eq(n1: Name, n2: Name) extends Condition {
+  def substitute(on1: Name, on2: Name) =
+    Eq(n1.substitute(on1, on2), n2.substitute(on1, on2))
+
   def substituteConcrete(binding: ConcreteBinding) =
     Eq(n1.substituteConcrete(binding), n2.substituteConcrete(binding))
 }
