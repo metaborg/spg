@@ -29,7 +29,7 @@ object Printer {
 
     val project = s.projectService.get(projectLocation)
     val context = s.contextService.get(languageLocation, project, languageImpl)
-    val runtime = s.strategoRuntimeService.runtime(component, context)
+    val runtime = s.strategoRuntimeService.runtime(component, context, false)
 
     (term: IStrategoTerm) => s.strategoCommon.invoke(runtime, term, "pp-debug").asInstanceOf[IStrategoString]
   }

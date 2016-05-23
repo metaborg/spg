@@ -9,8 +9,8 @@ package object fragments {
   type NameBinding = Map[NameVar, Name]
   type SortBinding = Map[SortVar, Sort]
   type ConcreteBinding = Map[SymbolicName, ConcreteName]
-  type Substitution = (TypeBinding, NameBinding, List[Condition])
-  type Solution = List[(List[Constraint], List[Constraint], TypeEnv, List[Condition])]
+  type Substitution = (TypeBinding, NameBinding, List[Constraint])
+  type Solution = List[(List[Constraint], List[Constraint], TypeEnv, List[Constraint])]
   type Path = List[PathElem]
   type Seen = List[Name]
 

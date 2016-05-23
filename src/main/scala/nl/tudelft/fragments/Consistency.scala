@@ -45,7 +45,7 @@ object Consistency {
   }
 
   // Check if the naming conditions are consistent
-  def checkNamingConditions(C: List[Condition]): Boolean = {
+  def checkNamingConditions(C: List[Constraint]): Boolean = {
     val eqs: List[Eq] = C
       .filter(_.isInstanceOf[Eq])
       .map(_.asInstanceOf[Eq])

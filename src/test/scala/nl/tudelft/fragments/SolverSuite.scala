@@ -78,7 +78,7 @@ class SolverSuite extends FunSuite {
       Res(ConcreteName("Implicit", "this", 4), NameVar("d1"))
     )
 
-    assert(Solver.solve(constraints).isDefined)
+    assert(Solver.solve(constraints).nonEmpty)
   }
 
   test("example with this") {
@@ -101,7 +101,7 @@ class SolverSuite extends FunSuite {
       AssocFact(NameVar("n1951"),ScopeVar("s2030"))
     )
 
-    assert(Solver.solve(constraints).isDefined)
+    assert(Solver.solve(constraints).nonEmpty)
   }
 
   test("matching concrete names resolve") {

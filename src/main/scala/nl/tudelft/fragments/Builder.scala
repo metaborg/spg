@@ -1,6 +1,8 @@
 package nl.tudelft.fragments
 
 object Builder {
+  import Graph._
+
   // Complete the given rule
   def build(rules: List[Rule], current: Rule, size: Int, up: Map[Sort, Int], down: Map[Sort, Int]): Option[Rule] = {
     val holes = current.pattern.vars
@@ -82,9 +84,32 @@ object Builder {
     None
   }
 
-  // 1. Pick two random rules
-  // 2. Combine the rules to produce new rule
-  // 3. Divide term size among holes (with root being an implicit hole if it is not Program)
-  // 4. Only check for consistency, until the program is finished
-  // 5. When it's finished, solve. If it is solvable, output.
+  // Try to solve the given resolution constraint and return a new rule with
+  // the resolution constraint replaced by naming constraints.
+  def resolve(rule: Rule, res: Res, all: List[Constraint]) = res match {
+    case Res(n1, n2@NameVar(_)) =>
+      // All the names that we can resolve to
+      val names = resolves(Nil, n1, all, Nil)
+
+      // All the names that we can resolve to and do not cause a direct inconsistency
+      val consistentNames = names.filter { case (_, _, _, conditions) =>
+        Consistency.checkNamingConditions(rule.constraints - res ++ conditions)
+      }
+
+      // TODO: after choosing a name, there must still be a way to complete the program (e.g. the other references)
+
+      if (consistentNames.nonEmpty) {
+        val name = consistentNames.random
+
+        Some(
+          // TODO: besides settings the ref and dec name equal, we must also prevent the resolution from being altered
+
+          rule.copy(
+            constraints = rule.constraints - res ++ name._4
+          )
+        )
+      } else {
+        None
+      }
+  }
 }

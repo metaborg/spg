@@ -42,12 +42,12 @@ object Main {
       if (r.isDefined) {
         val soln = Solver.solve(r.get._1.constraints)
 
-        if (soln.isDefined) {
+        if (soln.nonEmpty) {
 //          println(r)
 
 //          println(soln)
 
-          val concrete = Concretor.concretize(r.get._1, soln.get)
+          val concrete = Concretor.concretize(r.get._1, soln.random._4)
 //          println(concrete)
 
           val sterm = Converter.toTerm(concrete)

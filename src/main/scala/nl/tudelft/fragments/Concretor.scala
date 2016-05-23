@@ -1,8 +1,8 @@
 package nl.tudelft.fragments
 
 object Concretor {
-  // Assign concrete names to symbolic names satisfying the equality and disequality conditions (TODO: We only need the Eqs and Diseqs from the solution..)
-  def concretize(rule: Rule, solution: Substitution): Pattern = {
+  // Assign concrete names to symbolic names satisfying the equality and disequality constraints
+  def concretize(rule: Rule, solution: List[Constraint]): Pattern = {
     // Use a new name provider to keep the numbers low
     val nameProvider = NameProvider(0)
 
@@ -52,8 +52,8 @@ object Concretor {
       .toMap
 
   // Get the equality conditions
-  def filterEqs(substitution: Substitution) =
-    substitution._3.flatMap {
+  def filterEqs(substitution: List[Constraint]) =
+    substitution.flatMap {
       case x: Eq =>
         Some(x)
       case _ =>
@@ -61,8 +61,8 @@ object Concretor {
     }
 
   // Get the disequality conditions
-  def filterDiseqs(substitution: Substitution) =
-    substitution._3.flatMap {
+  def filterDiseqs(substitution: List[Constraint]) =
+    substitution.flatMap {
       case x: Diseq =>
         Some(x)
       case _ =>

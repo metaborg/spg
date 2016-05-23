@@ -55,23 +55,23 @@ object MainBuilder {
     )
 
     // Generation phase
-    val kb = repeat(generate, 1000)(rules)
+    val kb = repeat(generate, 2000)(rules)
 
     // Start variable
     println("Start")
 
     for (i <- 1 to 10000) {
 //      println(i)
-      val result = Builder.build(kb, kb.random, 30, up, down)
+      val result = Builder.build(kb, kb.random, 40, up, down)
 //      println(result)
 
       if (result.isDefined) {
         val substitution = Solver.solve(result.get.constraints)
 
-        if (substitution.isDefined) {
+        if (substitution.nonEmpty) {
 //          println("WERKT!")
 
-          val concretePattern = Concretor.concretize(result.get, substitution.get)
+          val concretePattern = Concretor.concretize(result.get, substitution.random._4)
           val strategoTerm = Converter.toTerm(concretePattern)
           val text = printer(strategoTerm).stringValue()
 

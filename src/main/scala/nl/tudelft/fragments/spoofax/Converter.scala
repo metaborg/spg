@@ -23,10 +23,10 @@ object Converter {
             listToList(children)
           )
       }
-    case PatternNameAdapter(ConcreteName(name)) =>
+    case PatternNameAdapter(ConcreteName(namespace, name, pos)) =>
       toString(name)
     // TODO: We should not have symbolic names during conversion, but these are not yet all replaced by concrete ones
-    case PatternNameAdapter(SymbolicName(name)) =>
+    case PatternNameAdapter(SymbolicName(namespace, name)) =>
       toString(name)
   }
 
