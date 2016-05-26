@@ -84,10 +84,160 @@ object Builder {
     None
   }
 
+  // Close a hole in rule
+  def buildToClose(rules: List[Rule], rule: Rule): Option[Rule] = {
+    for (hole <- rule.pattern.vars; other <- rules; if hole.sort.unify(other.sort).isDefined) {
+      val merged = rule
+        .merge(hole, other)
+        .substituteSort(hole.sort.unify(other.sort).get)
+
+      if (Consistency.check(merged.constraints)) {
+        return Some(merged)
+      }
+    }
+
+    None
+  }
+
+  // Build to resolve on a single rule
+  def buildToResolve(rules: List[Rule], rule: Rule): Rule = {
+
+  }
+
+  // Merge fragments in such a way that we close resolution constraints
+  def buildToResolve(rules: List[Rule]): List[Rule] = {
+    // TODO: We might be able to resolve a reference within the fragment itself; no need to merge (though we stil can)
+
+    val ruleWithRefs: List[(Rule, List[Res])] = rulesWithRes(rules)
+
+    val ruleWithRefsWithScopes: List[(Rule, List[(Res, List[Scope])])] = ruleWithRefs
+      .map { case (rule, ress) =>
+        (rule, ress.map { case res@Res(ref, _) =>
+          (res, path(Nil, scope(ref, rule.constraints).head, rule.constraints, Nil).map(_._3))
+        })
+      }
+
+    val ruleWithRefsWithScopesWithPoints = ruleWithRefsWithScopes
+      .map { case (rule, ressAndScopes) =>
+        (rule, ressAndScopes.map { case (res, scopes) =>
+          (res, scopes.map { case scope =>
+            (scope, rule.points.filter(_._3.contains(scope))) // TODO: this should not be a contains check, but a unify check?
+          })
+        })
+      }
+
+    val ruleWithRefsWithScopesWithPointsWithRules = ruleWithRefsWithScopesWithPoints
+      .map { case (rule, ressAndScopes) =>
+        (rule, ressAndScopes.map { case (res, scopes) =>
+          (res, scopes.map { case (scope, points) =>
+            (scope, points.map { case point =>
+              (point,
+                // Merge other rule in this rule
+                if (point._1.isInstanceOf[TermVar]) {
+                  rules
+                    // The sorts must unify
+                    .filter(rule => {
+                      point._1.asInstanceOf[TermVar].sort.unify(rule.sort).isDefined
+                    })
+                    // Other rule must have a reachable declaration from any of the merge-scopes (TODO: "exists" on list of scopes is wrong)
+                    .filter(other => other.scopes.exists(s =>
+                      decls(other, s).exists {
+                        case (_, _, SymbolicName(ns, _), _) =>
+                          ns == res.n1.namespace
+                        // TODO: ConcreteName (+ ConcreteName should not be reserved)
+                      }
+                    ))
+                    .map(other => {
+                      // Merge other in rule at point
+                      (rule, point._1.asInstanceOf[TermVar], other)
+                    })
+                // Merge this rule in other rule
+                } else {
+                  rules
+                    .flatMap(other => {
+                      other.pattern.vars.flatMap(hole =>
+                        if (hole.sort.unify(rule.sort).isDefined) {
+                          if (hole.scope.exists(s =>
+                            decls(other, s).exists {
+                              case (_, _, SymbolicName(ns, _), _) =>
+                                ns == res.n1.namespace
+                              case (_, _, ConcreteName(ns, name, _), _) =>
+                                ns == res.n1.namespace && name == res.n1.name // TODO: If ref is a symbolic name, then the names do not need to be equal.. ConcreteName should not be reserved. I.e.
+                            })) {
+                            Some((other, hole, rule))
+                          } else {
+                            None
+                          }
+                        } else {
+                          None
+                        }
+                      )
+                    })
+                }
+              )
+            })
+          })
+        })
+      }
+
+    // Now flatten all the nested lists
+    val tuples: List[(Rule, Res, Scope, (Pattern, Sort, List[Scope]), (Rule, TermVar, Rule))] = ruleWithRefsWithScopesWithPointsWithRules.flatMap { case (rule, ress) =>
+      ress.flatMap { case (res, scopes) =>
+        scopes.flatMap { case (scope, holes) =>
+          holes.flatMap { case (hole, applicables) =>
+            applicables.flatMap { case applicable =>
+              List((rule, res, scope, hole, applicable))
+            }
+          }
+        }
+      }
+    }
+
+    if (tuples.nonEmpty) {
+      val (rule, res, _, (_, _, _), (r1, x, r2)) = tuples.random
+      val (merged, nameBinding) = r1.mergex(x, r2)
+
+      // The merge may have changed the name of the Res-constraint that we are trying to fix, so apply same name substitution
+      val newRes = res.substitute(nameBinding)
+
+      println(rule)
+      println(merged)
+
+      val resolved = resolve(merged, newRes, merged.constraints)
+
+      if (resolved.isDefined) {
+        println(resolved)
+        resolved.get :: rules
+      } else {
+        println("Could not resolve. Naming conflict?")
+        rules
+      }
+    } else {
+      rules
+    }
+  }
+  
+  // Get the declarations that are reachable from given scope (TODO: "visible from given scope" ignores that we are looking for resolutions of a name, which has a namespace. We don't need DisEq constraints if the namespaces don't match anyway.)
+  def decls(rule: Rule, scope: Scope) =
+    visible(Nil, scope, rule.constraints, Nil)
+
+  // Get [Rule, [Res]]
+  def rulesWithRes(rules: List[Rule]) = rules
+    .filter(_.constraints.exists {
+      case Res(n1, n2) => true
+      case _ => false
+    })
+    .map(rule =>
+      (rule, rule.constraints.flatMap {
+        case res@Res(_, _) => Some(res)
+        case _ => None
+      })
+    )
+
   // Try to solve the given resolution constraint and return a new rule with
   // the resolution constraint replaced by naming constraints.
   def resolve(rule: Rule, res: Res, all: List[Constraint]) = res match {
-    case Res(n1, n2@NameVar(_)) =>
+    case Res(n1, _) =>
       // All the names that we can resolve to
       val names = resolves(Nil, n1, all, Nil)
 

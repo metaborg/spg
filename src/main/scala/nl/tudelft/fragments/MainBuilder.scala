@@ -5,6 +5,7 @@ import nl.tudelft.fragments.memory.Node
 import nl.tudelft.fragments.spoofax.{Converter, Printer}
 
 import scala.collection.immutable.IndexedSeq
+import scala.util.Random
 
 object MainBuilder {
   def main(args: Array[String]): Unit = {
@@ -54,36 +55,132 @@ object MainBuilder {
       SortAppl("Exp") -> 1
     )
 
-    // Generation phase
-    val kb = repeat(generate, 2000)(rules)
+    // Generation phase (TODO: the generated rules should not be "beyond repair", i.e. there must be reachable scopes to which we can add a declaration)
+    //val kb = repeat(generateNaive, 10)(rules)
+    //val (kb, _) = repeat(Function.tupled(generateIntelligent _), 10)((rules, Map.empty))
+    val kb1 = repeat(generateOutwards, 1)(rules)
 
     // Start variable
     println("Start")
 
-    for (i <- 1 to 10000) {
-//      println(i)
-      val result = Builder.build(kb, kb.random, 40, up, down)
-//      println(result)
+    // Resolve some refs
+    val kb2 = repeat(Builder.buildToResolve, 20)(kb1)
 
-      if (result.isDefined) {
-        val substitution = Solver.solve(result.get.constraints)
+    println(kb1.length)
+    println(kb2.length)
 
-        if (substitution.nonEmpty) {
-//          println("WERKT!")
+    // Pick a fragment without references, close a hole
+    val r = kb2.random
+    println(r)
+    println(Builder.buildToClose(rules, r))
+    // TODO: we want buildToResolve on a single rule as well?
 
-          val concretePattern = Concretor.concretize(result.get, substitution.random._4)
-          val strategoTerm = Converter.toTerm(concretePattern)
-          val text = printer(strategoTerm).stringValue()
+//    for (i <- 1 to 10000) {
+////      println(i)
+//      val result = Builder.build(kb, kb.random, 40, up, down)
+////      println(result)
+//
+//      if (result.isDefined) {
+//        val substitution = Solver.solve(result.get.constraints)
+//
+//        if (substitution.isDefined) {
+////          println("WERKT!")
+//
+//          val concretePattern = Concretor.concretize(result.get, substitution.get)
+//          val strategoTerm = Converter.toTerm(concretePattern)
+//          val text = printer(strategoTerm).stringValue()
+//
+//          println(text)
+//          println("-----")
+//        }
+//      }
+//    }
+  }
 
-          println(text)
-          println("-----")
+  // Generate rules by combining each rule with every other rule
+  def generateOutwards(rules: List[Rule]): List[Rule] = {
+    val compute = for (rule <- rules; hole <- rule.pattern.vars; other <- rules) yield
+      (rule, hole, other)
+
+    val filtered = compute
+      .filter { case (rule, hole, other) => other.sort.unify(hole.sort).isDefined }
+
+    val generated = filtered.flatMap { case (rule, hole, other) =>
+      val merged = rule
+        .merge(hole, other)
+        .substituteSort(hole.sort.unify(other.sort).get)
+
+      if (Consistency.check(merged.constraints)) {
+        Some(merged)
+      } else {
+        None
+      }
+    }
+
+    generated ++ rules
+  }
+
+  // Generate rules by combining a random rule with another rule that matches the hole. OBSERVATION: misses crucial parts due to randomness..
+  def generateIntelligent(rules: List[Rule], cache: Map[(Rule, TermVar, Rule), Option[Rule]]): (List[Rule], Map[(Rule, TermVar, Rule), Option[Rule]]) = {
+    println("Generated now " + rules.length)
+
+    // Compute what needs to be computed
+    val compute = for (r1 <- rules; hole <- r1.pattern.vars; r2 <- rules; if !cache.contains((r1, hole, r2)))
+      yield (r1, hole, r2)
+
+    for ((r1, hole, r2) <- Random.shuffle(compute)) {
+      if (r2.sort.unify(hole.sort).isDefined) {
+        val merged = r1
+          .merge(hole, r2)
+          .substituteSort(hole.sort.unify(r2.sort).get)
+
+        if (Consistency.check(merged.constraints)) {
+          return (merged :: rules, cache.updated((r1, hole, r2), Some(merged)))
         }
       }
     }
+
+    (rules, cache)
+
+    /*
+    // Old, inefficient code:
+
+    val rulesWithHole = rules.flatMap(rule =>
+      rule.pattern.vars.map(hole =>
+        (rule, hole)
+      )
+    )
+
+    val rulesWithHoleWithOther: List[(Rule, TermVar, Rule, Rule)] = rulesWithHole.flatMap { case (rule, hole) =>
+      rules.flatMap(otherRule =>
+        if (otherRule.sort.unify(hole.sort).isDefined) {
+          val merged = rule
+            .merge(hole, otherRule)
+            .substituteSort(hole.sort.unify(otherRule.sort).get)
+
+          if (Consistency.check(merged.constraints)) {
+            Some(rule, hole, otherRule, merged)
+          } else {
+            None
+          }
+        } else {
+          None
+        }
+      )
+    }
+
+    if (rulesWithHoleWithOther.nonEmpty) {
+      val (rule, hole, other, merged) = rulesWithHoleWithOther.random
+
+      merged :: rules
+    } else {
+      rules
+    }
+    */
   }
 
-  // Generate rules
-  def generate(rules: List[Rule]): List[Rule] = {
+  // Generate rules naively
+  def generateNaive(rules: List[Rule]): List[Rule] = {
     val r1 = rules.random
     val r2 = rules.random
 

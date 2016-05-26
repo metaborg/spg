@@ -1,6 +1,7 @@
 package nl.tudelft
 
 import scala.util.Random
+import shapeless.syntax.std.tuple._
 
 package object fragments {
   type TermBinding = Map[TermVar, Pattern]
