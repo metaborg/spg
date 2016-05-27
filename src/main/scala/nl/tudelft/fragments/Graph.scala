@@ -99,7 +99,8 @@ object Graph {
     reachable(seen, s, all, conditions).map { case (seen, path, name, conditions) =>
       val condition = reachable(seen, s, all, conditions)
         .filter(_._2.length < path.length)
-        .map { case (_, _, other, _) => Diseq(name, other) }
+        .map { case (_, _, other, _) => Diseq(name, other)
+        }
 
       (seen, path, name, condition ++ conditions)
     }

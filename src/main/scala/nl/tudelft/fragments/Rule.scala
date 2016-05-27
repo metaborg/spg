@@ -294,7 +294,7 @@ case class TypeOf(n: Name, t: Type) extends Constraint {
     this
 
   override def substituteName(binding: NameBinding): Constraint =
-    TypeOf(n.substituteName(binding), t)
+    TypeOf(n.substituteName(binding), t.substituteName(binding))
 
   override def substituteConcrete(binding: ConcreteBinding): Constraint =
     TypeOf(n.substituteConcrete(binding), t)
@@ -318,10 +318,10 @@ case class TypeEquals(t1: Type, t2: Type) extends Constraint {
     this
 
   override def substituteName(binding: NameBinding): Constraint =
-    this
+    TypeEquals(t1.substituteName(binding), t2.substituteName(binding))
 
   override def substituteConcrete(binding: ConcreteBinding): Constraint =
-    this
+    TypeEquals(t1.substituteConcrete(binding), t2.substituteConcrete(binding))
 
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
     t1.freshen(nameBinding).map { case (nameBinding, t1) =>
@@ -342,10 +342,10 @@ case class Subtype(t1: Type, t2: Type) extends Constraint {
     this
 
   override def substituteName(binding: NameBinding): Constraint =
-    this
+    Subtype(t1.substituteName(binding), t2.substituteName(binding))
 
   override def substituteConcrete(binding: ConcreteBinding): Constraint =
-    this
+    Subtype(t1.substituteConcrete(binding), t2.substituteConcrete(binding))
 
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
     t1.freshen(nameBinding).map { case (nameBinding, t1) =>
@@ -618,8 +618,14 @@ case class ConcreteName(namespace: String, name: String, pos: Int) extends Name 
   override def substituteConcrete(binding: ConcreteBinding): Name =
     this
 
-  override def unify(n: Name, nameBinding: NameBinding): Option[NameBinding] =
-    ???
+  override def unify(n: Name, nameBinding: NameBinding): Option[NameBinding] = n match {
+    case ConcreteName(`namespace`, `name`, `pos`) =>
+      Some(Map())
+    case v@NameVar(_) =>
+      v.unify(this, nameBinding)
+    case _ =>
+      None
+  }
 
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Name) =
     if (nameBinding.contains(name + pos)) {

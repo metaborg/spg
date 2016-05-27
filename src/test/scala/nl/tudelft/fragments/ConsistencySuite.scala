@@ -13,6 +13,18 @@ class ConsistencySuite extends FunSuite {
     assert(Consistency.checkTypeOf(constraints))
   }
 
+  test("complicated type of") {
+    val constraints = List(
+      TypeOf(SymbolicName("Variable", "n2201"),TypeVar("t2721")),
+      TypeOf(SymbolicName("Variable", "n2201"),TypeVar("t2721")),
+      TypeOf(SymbolicName("Variable", "n2201"),TypeVar("t2198")),
+      TypeOf(SymbolicName("Variable", "n2201"),TypeVar("t176")),
+      TypeOf(SymbolicName("Method", "n1"),TypeAppl("Pair", List(TypeVar("t1"), TypeVar("t176"))))
+    )
+
+    assert(Consistency.checkTypeOf(constraints))
+  }
+
   test("type equals") {
     val constraints = List(
       TypeEquals(TypeVar("t1"), TypeAppl("Int"))
@@ -57,6 +69,19 @@ class ConsistencySuite extends FunSuite {
     )
 
     assert(!Consistency.checkNamingConditions(conditions))
+  }
+
+  test("consistency with same name multiple equalities") {
+    val conditions = List(
+      Eq(SymbolicName("Class", "n2156"),SymbolicName("Class", "n")),
+      Diseq(SymbolicName("Class", "n"),SymbolicName("Method", "n2157")),
+      Diseq(SymbolicName("Class", "n"),ConcreteName("Implicit", "this", 1)),
+      Eq(SymbolicName("Class", "n2271"),SymbolicName("Class", "n")),
+      Diseq(SymbolicName("Class", "n"),SymbolicName("Method", "n2157")),
+      Diseq(SymbolicName("Class", "n"),ConcreteName("Implicit", "this", 1))
+    )
+
+    assert(Consistency.checkNamingConditions(conditions))
   }
 
 }

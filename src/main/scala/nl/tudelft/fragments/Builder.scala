@@ -100,15 +100,10 @@ object Builder {
   }
 
   // Build to resolve on a single rule
-  def buildToResolve(rules: List[Rule], rule: Rule): Rule = {
-
-  }
-
-  // Merge fragments in such a way that we close resolution constraints
-  def buildToResolve(rules: List[Rule]): List[Rule] = {
+  def buildToResolve(rules: List[Rule], rule: Rule): Option[Rule] = {
     // TODO: We might be able to resolve a reference within the fragment itself; no need to merge (though we stil can)
 
-    val ruleWithRefs: List[(Rule, List[Res])] = rulesWithRes(rules)
+    val ruleWithRefs: List[(Rule, List[Res])] = rulesWithRes(List(rule))
 
     val ruleWithRefsWithScopes: List[(Rule, List[(Res, List[Scope])])] = ruleWithRefs
       .map { case (rule, ress) =>
@@ -117,11 +112,12 @@ object Builder {
         })
       }
 
+    // TODO: the situation is more complex with direct imports. E.g. n -> (s2) -> (s3), there is no hole with scope s3. There is one with s2,
     val ruleWithRefsWithScopesWithPoints = ruleWithRefsWithScopes
       .map { case (rule, ressAndScopes) =>
         (rule, ressAndScopes.map { case (res, scopes) =>
           (res, scopes.map { case scope =>
-            (scope, rule.points.filter(_._3.contains(scope))) // TODO: this should not be a contains check, but a unify check?
+            (scope, rule.points.filter(_._3.contains(scope)))
           })
         })
       }
@@ -150,21 +146,25 @@ object Builder {
                     .map(other => {
                       // Merge other in rule at point
                       (rule, point._1.asInstanceOf[TermVar], other)
+
+                      // TODO: Do the merge as well, check consistency of the result. We do not want to resolve an integer varref to a boolean vardec.
                     })
-                // Merge this rule in other rule
+                  // Merge this rule in other rule
                 } else {
                   rules
                     .flatMap(other => {
                       other.pattern.vars.flatMap(hole =>
                         if (hole.sort.unify(rule.sort).isDefined) {
                           if (hole.scope.exists(s =>
+                            // TODO: We also want the declaration to have a compatible type
                             decls(other, s).exists {
                               case (_, _, SymbolicName(ns, _), _) =>
                                 ns == res.n1.namespace
                               case (_, _, ConcreteName(ns, name, _), _) =>
                                 ns == res.n1.namespace && name == res.n1.name // TODO: If ref is a symbolic name, then the names do not need to be equal.. ConcreteName should not be reserved. I.e.
                             })) {
-                            Some((other, hole, rule))
+                              // TODO: Do the merge as well.
+                              Some((other, hole, rule))
                           } else {
                             None
                           }
@@ -174,7 +174,7 @@ object Builder {
                       )
                     })
                 }
-              )
+                )
             })
           })
         })
@@ -207,16 +207,25 @@ object Builder {
 
       if (resolved.isDefined) {
         println(resolved)
-        resolved.get :: rules
+        resolved
       } else {
         println("Could not resolve. Naming conflict?")
-        rules
+        None
       }
     } else {
-      rules
+      None
     }
   }
-  
+
+  // Merge fragments in such a way that we close resolution constraints (TODO: after resolving, we should canonicalize the constraints)
+  def buildToResolve(rules: List[Rule]): List[Rule] = {
+    val generated = rulesWithRes(rules).flatMap { case (rule, ress) =>
+      buildToResolve(rules, rule)
+    }
+
+    generated ++ rules
+  }
+
   // Get the declarations that are reachable from given scope (TODO: "visible from given scope" ignores that we are looking for resolutions of a name, which has a namespace. We don't need DisEq constraints if the namespaces don't match anyway.)
   def decls(rule: Rule, scope: Scope) =
     visible(Nil, scope, rule.constraints, Nil)
@@ -237,25 +246,33 @@ object Builder {
   // Try to solve the given resolution constraint and return a new rule with
   // the resolution constraint replaced by naming constraints.
   def resolve(rule: Rule, res: Res, all: List[Constraint]) = res match {
-    case Res(n1, _) =>
+    case Res(n1, d@NameVar(_)) =>
       // All the names that we can resolve to
       val names = resolves(Nil, n1, all, Nil)
 
-      // All the names that we can resolve to and do not cause a direct inconsistency
-      val consistentNames = names.filter { case (_, _, _, conditions) =>
-        Consistency.checkNamingConditions(rule.constraints - res ++ conditions)
+      // All the names that we can resolve to and do not cause an inconsistency in a) the naming constraints and b) the whole constraint problem
+      val consistentNames = names.flatMap { case (_, _, n, conditions) =>
+        // Remove resolution constraint and substitute the unknown name by the resolvd name
+        val resultingConstraints = (rule.constraints - res ++ conditions)
+          .substituteName(Map(d -> n))
+
+        if (Consistency.checkNamingConditions(resultingConstraints) && Consistency.check(resultingConstraints)) {
+          Some(resultingConstraints)
+        } else {
+          None
+        }
       }
 
       // TODO: after choosing a name, there must still be a way to complete the program (e.g. the other references)
 
       if (consistentNames.nonEmpty) {
-        val name = consistentNames.random
+        val resultingConstraints = consistentNames.random
 
         Some(
           // TODO: besides settings the ref and dec name equal, we must also prevent the resolution from being altered
 
           rule.copy(
-            constraints = rule.constraints - res ++ name._4
+            constraints = resultingConstraints
           )
         )
       } else {

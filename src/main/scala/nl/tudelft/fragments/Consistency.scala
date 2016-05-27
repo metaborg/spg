@@ -36,7 +36,9 @@ object Consistency {
         None
     }
 
-    typeOf.groupBy(_.n).values.forall(typeOfs =>
+    val uniqueTypeOf = typeOf.distinct
+
+    uniqueTypeOf.groupBy(_.n).values.forall(typeOfs =>
       typeOfs.map(_.t).pairs.foldLeftWhile((typeBinding, nameBinding)) {
         case ((typeBinding, nameBinding), (t1, t2)) =>
           t1.unify(t2, typeBinding, nameBinding)
@@ -46,11 +48,14 @@ object Consistency {
 
   // Check if the naming conditions are consistent
   def checkNamingConditions(C: List[Constraint]): Boolean = {
-    val eqs: List[Eq] = C
+    // Remove duplicates (the algorithm fails on duplicate disequality constraints)
+    val unique = C.distinct
+
+    val eqs: List[Eq] = unique
       .filter(_.isInstanceOf[Eq])
       .map(_.asInstanceOf[Eq])
 
-    val disEqs = C
+    val disEqs = unique
       .filter(_.isInstanceOf[Diseq])
       .map(_.asInstanceOf[Diseq])
 

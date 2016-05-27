@@ -58,22 +58,36 @@ object MainBuilder {
     // Generation phase (TODO: the generated rules should not be "beyond repair", i.e. there must be reachable scopes to which we can add a declaration)
     //val kb = repeat(generateNaive, 10)(rules)
     //val (kb, _) = repeat(Function.tupled(generateIntelligent _), 10)((rules, Map.empty))
-    val kb1 = repeat(generateOutwards, 1)(rules)
+    val kb1 = repeat(generateOutwards, 2)(rules)
 
     // Start variable
     println("Start")
 
     // Resolve some refs
-    val kb2 = repeat(Builder.buildToResolve, 20)(kb1)
+    val kb2 = repeat(Builder.buildToResolve, 1)(kb1)
 
     println(kb1.length)
     println(kb2.length)
 
     // Pick a fragment without references, close a hole
-    val r = kb2.random
+    var r = kb2.random
     println(r)
-    println(Builder.buildToClose(rules, r))
-    // TODO: we want buildToResolve on a single rule as well?
+
+    for (i <- 0 to 10) {
+      println(i)
+
+      val resolve = Builder.buildToResolve(kb2, r)
+      if (resolve.isDefined) {
+        r = resolve.get
+        println(r)
+      }
+
+      val resolve2 = Builder.buildToClose(kb2, r)
+      if (resolve2.isDefined) {
+        r = resolve2.get
+        println(r)
+      }
+    }
 
 //    for (i <- 1 to 10000) {
 ////      println(i)
