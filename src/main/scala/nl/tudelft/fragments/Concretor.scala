@@ -1,18 +1,13 @@
 package nl.tudelft.fragments
 
 object Concretor {
-  // Assign concrete names to symbolic names satisfying the equality and disequality conditions
+  // Assign concrete names to symbolic names satisfying the equality and disequality conditions (TODO: We only need the Eqs and Diseqs from the solution..)
   def concretize(rule: Rule, solution: Substitution): Pattern = {
-    // Apply the given solution to the pattern
-    val solved = rule.pattern
-      .substituteType(solution._1)
-      .substituteName(solution._2)
-
     // Use a new name provider to keep the numbers low
     val nameProvider = NameProvider(0)
 
     // Convert symbolic names based on equality and disequality conditions
-    val partially = solved
+    val partially = rule.pattern
       .substituteConcrete(nameEq(filterEqs(solution), nameProvider))
       .substituteConcrete(nameDiseq(filterDiseqs(solution), nameProvider))
 

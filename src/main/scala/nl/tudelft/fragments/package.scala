@@ -10,11 +10,18 @@ package object fragments {
   type SortBinding = Map[SortVar, Sort]
   type ConcreteBinding = Map[SymbolicName, ConcreteName]
   type Substitution = (TypeBinding, NameBinding, List[Condition])
+  type Solution = List[(List[Constraint], List[Constraint], TypeEnv, List[Condition])]
   type Path = List[PathElem]
   type Seen = List[Name]
 
   // An instance of the NameProvider made globally available
   val nameProvider = NameProvider(9)
+
+  // Implicitly convert Option[T] to List[T]. Allows returning an option when a list is required.
+  implicit def optionToList[T](o: Option[T]): List[T] = o match {
+    case None => Nil
+    case Some(x) => List(x)
+  }
 
   implicit class RichList[T](list: List[T]) {
     // Fold until the accumulator becomes None
