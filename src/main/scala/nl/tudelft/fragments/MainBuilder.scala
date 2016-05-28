@@ -11,49 +11,6 @@ object MainBuilder {
   def main(args: Array[String]): Unit = {
     val rules = MiniJava.rules
     val types = MiniJava.types
-    val printer = Printer.print("/Users/martijn/Documents/workspace/MiniJava")
-
-    // Minimal size needed to root from given sort
-    val up = Map[Sort, Int](
-      SortAppl("Program") -> 0,
-      SortAppl("MainClass") -> 2,
-      SortAppl("List", List(SortAppl("ClassDecl"))) -> 6,
-      SortAppl("ClassDecl") -> 8,
-      SortAppl("ParentDecl") -> 12,
-      SortAppl("List", List(SortAppl("FieldDecl"))) -> 12,
-      SortAppl("FieldDecl") -> 14,
-      SortAppl("List", List(SortAppl("MethodDecl"))) -> 12,
-      SortAppl("MethodDecl") -> 14,
-      SortAppl("List", List(SortAppl("VarDecl"))) -> 20,
-      SortAppl("VarDecl") -> 22,
-      SortAppl("List", List(SortAppl("ParamDecl"))) -> 20,
-      SortAppl("ParamDecl") -> 22,
-      SortAppl("Type") -> 16,
-      SortAppl("List", List(SortAppl("Statement"))) -> 20,
-      SortAppl("Statement") -> 22,
-      SortAppl("Exp") -> 20
-    )
-
-    // Minimal size needed to bottom from given sort
-    val down = Map[Sort, Int](
-      SortAppl("Program") -> 7,
-      SortAppl("MainClass") -> 5,
-      SortAppl("List", List(SortAppl("ClassDecl"))) -> 1,
-      SortAppl("ClassDecl") -> 5,
-      SortAppl("ParentDecl") -> 1,
-      SortAppl("List", List(SortAppl("FieldDecl"))) -> 1,
-      SortAppl("FieldDecl") -> 3,
-      SortAppl("List", List(SortAppl("MethodDecl"))) -> 1,
-      SortAppl("MethodDecl") -> 7,
-      SortAppl("List", List(SortAppl("VarDecl"))) -> 1,
-      SortAppl("VarDecl") -> 3,
-      SortAppl("List", List(SortAppl("ParamDecl"))) -> 1,
-      SortAppl("ParamDecl") -> 3,
-      SortAppl("Type") -> 1,
-      SortAppl("List", List(SortAppl("Statement"))) -> 1,
-      SortAppl("Statement") -> 2,
-      SortAppl("Exp") -> 1
-    )
 
     // Generation phase (TODO: the generated rules should not be "beyond repair", i.e. there must be reachable scopes to which we can add a declaration)
     //val kb = repeat(generateNaive, 10)(rules)
@@ -63,8 +20,11 @@ object MainBuilder {
     // Start variable
     println("Start")
 
+    val rr = Rule(TermAppl("If", List(TermAppl("And", List(TermAppl("Lt", List(TermAppl("Call", List(TermAppl("NewObject", List(PatternNameAdapter(SymbolicName("Class", "n372933")))), PatternNameAdapter(SymbolicName("Method", "n372934")), TermAppl("Cons", List(TermAppl("NewObject", List(PatternNameAdapter(SymbolicName("Class", "n372935")))), TermVar("x372938", SortAppl("List", List(SortAppl("Exp", List()))), TypeVar("t372936"), List(ScopeVar("s372937"))))))), TermAppl("Call", List(TermVar("x67512", SortAppl("Exp", List()), TypeVar("t67511"), List(ScopeVar("s372937"))), PatternNameAdapter(SymbolicName("Method", "n67513")), TermVar("x67515", SortAppl("List", List(SortAppl("Exp", List()))), TypeVar("t67514"), List(ScopeVar("s372937"))))))), TermVar("x433", SortAppl("Exp", List()), TypeVar("t432"), List(ScopeVar("s372937"))))), TermVar("x2", SortAppl("Statement", List()), TypeVar("t2"), List(ScopeVar("s1"))), TermVar("x3", SortAppl("Statement", List()), TypeVar("t3"), List(ScopeVar("s2"))))), SortAppl("Statement", List()), TypeVar("t"), List(ScopeVar("s372937")), List(Ref(SymbolicName("Class", "n372935"),ScopeVar("s372937")), Res(SymbolicName("Class", "n372935"),NameVar("d372940")), TypeEquals(TypeVar("t372941"),TypeAppl("ClassType", List(TypeNameAdapter(NameVar("d372940"))))), TypeEquals(TypeVar("t372942"),TypeAppl("Cons", List(TypeVar("t372941"), TypeVar("t372936")))), Ref(SymbolicName("Class", "n372933"),ScopeVar("s372937")), Res(SymbolicName("Class", "n372933"),NameVar("d372943")), TypeEquals(TypeVar("t372944"),TypeAppl("ClassType", List(TypeNameAdapter(NameVar("d372943"))))), DirectImport(ScopeVar("s372945"),ScopeVar("s372946")), Ref(SymbolicName("Method", "n372934"),ScopeVar("s372945")), AssocConstraint(NameVar("d372947"),ScopeVar("s372946")), Res(SymbolicName("Method", "n372934"),NameVar("d372948")), TypeOf(NameVar("d372948"),TypeAppl("Pair", List(TypeVar("t372942"), TypeVar("t372939")))), TypeEquals(TypeVar("t372944"),TypeAppl("ClassType", List(TypeNameAdapter(NameVar("d372947"))))), DirectImport(ScopeVar("s67517"),ScopeVar("s67518")), Ref(SymbolicName("Method", "n67513"),ScopeVar("s67517")), AssocConstraint(NameVar("d67519"),ScopeVar("s67518")), Res(SymbolicName("Method", "n67513"),NameVar("d67520")), TypeOf(NameVar("d67520"),TypeAppl("Pair", List(TypeVar("t67514"), TypeVar("t67521")))), TypeEquals(TypeVar("t67511"),TypeAppl("ClassType", List(TypeNameAdapter(NameVar("d67519"))))), TypeEquals(TypeVar("t67516"),TypeAppl("Bool", List())), TypeEquals(TypeVar("t372939"),TypeAppl("Int", List())), TypeEquals(TypeVar("t67521"),TypeAppl("Int", List())), TypeEquals(TypeVar("t434"),TypeAppl("Bool", List())), TypeEquals(TypeVar("t67516"),TypeAppl("Bool", List())), TypeEquals(TypeVar("t432"),TypeAppl("Bool", List())), TypeEquals(TypeVar("t434"),TypeAppl("Bool", List())), Par(ScopeVar("s1"),ScopeVar("s372937")), Par(ScopeVar("s2"),ScopeVar("s372937"))))
+    println(Builder.buildToResolve(kb1, rr))
+
     // Resolve some refs
-    val kb2 = repeat(Builder.buildToResolve, 1)(kb1)
+    val kb2 = repeat(Builder.buildToResolve, 100)(kb1)
 
     println(kb1.length)
     println(kb2.length)
