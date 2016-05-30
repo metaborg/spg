@@ -12,7 +12,8 @@ object MiniJava {
     SortAppl("Program"),
     TypeVar("t"),
     List(ScopeVar("s")),
-    Nil
+    Nil,
+    State(Nil, Nil, TypeEnv(), Nil)
   )
 
   // MainClass : ID * ID * Statement -> MainClass
@@ -25,7 +26,8 @@ object MiniJava {
     SortAppl("MainClass"),
     TypeVar("t"),
     List(ScopeVar("s")),
-    Nil
+    Nil,
+    State(Nil, Nil, TypeEnv(), Nil)
   )
 
   // Class : ID * ParentDecl * List(FieldDecl) * List(MethodDecl) -> ClassDecl

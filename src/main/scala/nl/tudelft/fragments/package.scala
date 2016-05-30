@@ -1,7 +1,6 @@
 package nl.tudelft
 
 import scala.util.Random
-import shapeless.syntax.std.tuple._
 
 package object fragments {
   type TermBinding = Map[TermVar, Pattern]
@@ -10,8 +9,6 @@ package object fragments {
   type NameBinding = Map[NameVar, Name]
   type SortBinding = Map[SortVar, Sort]
   type ConcreteBinding = Map[SymbolicName, ConcreteName]
-  type Substitution = (TypeBinding, NameBinding, List[Constraint])
-  type Solution = List[(List[Constraint], List[Constraint], TypeEnv, List[Constraint])]
   type Path = List[PathElem]
   type Seen = List[Name]
 
@@ -23,6 +20,9 @@ package object fragments {
     case None => Nil
     case Some(x) => List(x)
   }
+
+  // Implicitly convert State to List[State]. Allows returning a State when a List[State] is required.
+  implicit def stateToList(s: State): List[State] = List(s)
 
   implicit class RichList[T](list: List[T]) {
     // Fold until the accumulator becomes None
@@ -147,4 +147,5 @@ package object fragments {
     def unapply[T](xs: List[T]): Some[T] =
       Some(xs.random)
   }
+
 }

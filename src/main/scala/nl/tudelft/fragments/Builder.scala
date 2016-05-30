@@ -272,11 +272,15 @@ object Builder {
 
       // All the names that we can resolve to and do not cause an inconsistency in a) the naming constraints and b) the whole constraint problem
       val consistentNames = names.flatMap { case (_, _, n, conditions) =>
-        // Remove resolution constraint and substitute the unknown name by the resolvd name
+        // Remove resolution constraint and substitute the unknown name by the resolved name
         val resultingConstraints = (rule.constraints - res ++ conditions)
           .substituteName(Map(d -> n))
 
+        Solver.solve(resultingConstraints, rule.state)
+
+
         // TODO: Just substituting names is not sufficient. E.g. with type-dependent name resolution, we also need to propagate to other constraints.. (see notes)
+        // TODO: I.e. we need to _solve_ the constraints. But then we get a Solution that we need to attach to the rule.
 
         if (Consistency.checkNamingConditions(resultingConstraints) && Consistency.check(resultingConstraints)) {
           Some(resultingConstraints)

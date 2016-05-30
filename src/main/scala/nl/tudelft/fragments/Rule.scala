@@ -1,25 +1,26 @@
 package nl.tudelft.fragments
 
-// Rule
-case class Rule(pattern: Pattern, sort: Sort, typ: Type, scopes: List[Scope], constraints: List[Constraint]) {
+// Rule (TODO: The constraints are now inside the state. Remove constraints from rule?)
+case class Rule(pattern: Pattern, sort: Sort, typ: Type, scopes: List[Scope], constraints: List[Constraint], state: State) {
   def mergex(hole: TermVar, rule: Rule): (Rule, Map[String, String]) = {
     val (nameBinding, freshRule) = rule.freshen()
 
     val typeUnifier = hole.typ.unify(freshRule.typ).get
     val scopeUnifier = hole.scope.unify(freshRule.scopes).get
 
-    val merged = Rule(
+    val merged = copy(
       pattern =
         pattern.substituteTerm(Map(hole -> freshRule.pattern)),
-      sort =
-        sort,
-      typ =
-        typ,
-      scopes =
-        scopes,
       constraints =
-        freshRule.constraints ++ constraints
+        freshRule.constraints ++ constraints,
+      state =
+        state.merge(freshRule.state)
     )
+
+    // TODO: 1) The merge may allow us to solve constraints. E.g. merging something with type 't' with something with type 'Int' gives t = Int.
+    // TODO: Now we only substitute the type unifier, but we may propagate this info by solving as well?
+
+    // TODO: 2) Unify `mergex` and `merge` methods.. we don't want duplicate code!
 
     (merged
       .substituteType(typeUnifier._1)
@@ -34,17 +35,13 @@ case class Rule(pattern: Pattern, sort: Sort, typ: Type, scopes: List[Scope], co
     val typeUnifier = hole.typ.unify(freshRule.typ).get
     val scopeUnifier = hole.scope.unify(freshRule.scopes).get
 
-    val merged = Rule(
+    val merged = copy(
       pattern =
         pattern.substituteTerm(Map(hole -> freshRule.pattern)),
-      sort =
-        sort,
-      typ =
-        typ,
-      scopes =
-        scopes,
       constraints =
-        freshRule.constraints ++ constraints
+        freshRule.constraints ++ constraints,
+      state =
+        state.merge(freshRule.state)
     )
 
     merged
@@ -61,27 +58,25 @@ case class Rule(pattern: Pattern, sort: Sort, typ: Type, scopes: List[Scope], co
     }
 
   def substituteType(binding: TypeBinding): Rule =
-    Rule(pattern.substituteType(binding), sort, typ.substituteType(binding), scopes, constraints.substituteType(binding))
+    Rule(pattern.substituteType(binding), sort, typ.substituteType(binding), scopes, constraints.substituteType(binding), state.substituteType(binding))
 
   def substituteName(binding: NameBinding): Rule =
-    Rule(pattern.substituteName(binding), sort, typ.substituteName(binding), scopes, constraints.substituteName(binding))
+    Rule(pattern.substituteName(binding), sort, typ.substituteName(binding), scopes, constraints.substituteName(binding), state.substituteName(binding))
 
-  def substituteConcrete(binding: ConcreteBinding): Rule =
-    Rule(pattern.substituteConcrete(binding), sort, typ.substituteConcrete(binding), scopes, constraints.substituteConcrete(binding))
-
-  def substituteScope(binding: ScopeBinding): Rule = {
-    Rule(pattern.substituteScope(binding), sort, typ, scopes.substituteScope(binding), constraints.substituteScope(binding))
-  }
+  def substituteScope(binding: ScopeBinding): Rule =
+    Rule(pattern.substituteScope(binding), sort, typ, scopes.substituteScope(binding), constraints.substituteScope(binding), state.substituteScope(binding))
 
   def substituteSort(binding: SortBinding): Rule =
-    Rule(pattern.substituteSort(binding), sort.substituteSort(binding), typ, scopes, constraints)
+    Rule(pattern.substituteSort(binding), sort.substituteSort(binding), typ, scopes, constraints, state)
 
   def freshen(nameBinding: Map[String, String] = Map.empty): (Map[String, String], Rule) = {
     pattern.freshen(nameBinding).map { case (nameBinding, pattern) =>
       typ.freshen(nameBinding).map { case (nameBinding, typ) =>
         scopes.freshen(nameBinding).map { case (nameBinding, scope) =>
           constraints.freshen(nameBinding).map { case (nameBinding, constraints) =>
-            (nameBinding, Rule(pattern, sort, typ, scope, constraints))
+            state.freshen(nameBinding).map { case (nameBinding, state) =>
+              (nameBinding, Rule(pattern, sort, typ, scope, constraints, state))
+            }
           }
         }
       }
