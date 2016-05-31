@@ -1,7 +1,7 @@
 package nl.tudelft.fragments
 
 // Rule (TODO: The constraints are now inside the state. Remove constraints from rule?)
-case class Rule(pattern: Pattern, sort: Sort, typ: Type, scopes: List[Scope], constraints: List[Constraint], state: State) {
+case class Rule(pattern: Pattern, sort: Sort, typ: Type, scopes: List[Scope], state: State) {
   def mergex(hole: TermVar, rule: Rule): (Rule, Map[String, String]) = {
     val (nameBinding, freshRule) = rule.freshen()
 
@@ -11,8 +11,6 @@ case class Rule(pattern: Pattern, sort: Sort, typ: Type, scopes: List[Scope], co
     val merged = copy(
       pattern =
         pattern.substituteTerm(Map(hole -> freshRule.pattern)),
-      constraints =
-        freshRule.constraints ++ constraints,
       state =
         state.merge(freshRule.state)
     )
@@ -38,8 +36,6 @@ case class Rule(pattern: Pattern, sort: Sort, typ: Type, scopes: List[Scope], co
     val merged = copy(
       pattern =
         pattern.substituteTerm(Map(hole -> freshRule.pattern)),
-      constraints =
-        freshRule.constraints ++ constraints,
       state =
         state.merge(freshRule.state)
     )
@@ -57,26 +53,28 @@ case class Rule(pattern: Pattern, sort: Sort, typ: Type, scopes: List[Scope], co
       pattern.points
     }
 
+  // Backwards compatibility
+  def constraints: List[Constraint] =
+    state.constraints
+
   def substituteType(binding: TypeBinding): Rule =
-    Rule(pattern.substituteType(binding), sort, typ.substituteType(binding), scopes, constraints.substituteType(binding), state.substituteType(binding))
+    Rule(pattern.substituteType(binding), sort, typ.substituteType(binding), scopes, state.substituteType(binding))
 
   def substituteName(binding: NameBinding): Rule =
-    Rule(pattern.substituteName(binding), sort, typ.substituteName(binding), scopes, constraints.substituteName(binding), state.substituteName(binding))
+    Rule(pattern.substituteName(binding), sort, typ.substituteName(binding), scopes, state.substituteName(binding))
 
   def substituteScope(binding: ScopeBinding): Rule =
-    Rule(pattern.substituteScope(binding), sort, typ, scopes.substituteScope(binding), constraints.substituteScope(binding), state.substituteScope(binding))
+    Rule(pattern.substituteScope(binding), sort, typ, scopes.substituteScope(binding), state.substituteScope(binding))
 
   def substituteSort(binding: SortBinding): Rule =
-    Rule(pattern.substituteSort(binding), sort.substituteSort(binding), typ, scopes, constraints, state)
+    Rule(pattern.substituteSort(binding), sort.substituteSort(binding), typ, scopes, state)
 
   def freshen(nameBinding: Map[String, String] = Map.empty): (Map[String, String], Rule) = {
     pattern.freshen(nameBinding).map { case (nameBinding, pattern) =>
       typ.freshen(nameBinding).map { case (nameBinding, typ) =>
         scopes.freshen(nameBinding).map { case (nameBinding, scope) =>
-          constraints.freshen(nameBinding).map { case (nameBinding, constraints) =>
-            state.freshen(nameBinding).map { case (nameBinding, state) =>
-              (nameBinding, Rule(pattern, sort, typ, scope, constraints, state))
-            }
+          state.freshen(nameBinding).map { case (nameBinding, state) =>
+            (nameBinding, Rule(pattern, sort, typ, scope, state))
           }
         }
       }
@@ -84,7 +82,7 @@ case class Rule(pattern: Pattern, sort: Sort, typ: Type, scopes: List[Scope], co
   }
 
   override def toString: String =
-    s"""Rule($pattern, $sort, $typ, $scopes, $constraints)"""
+    s"""Rule($pattern, $sort, $typ, $scopes, $state)"""
 }
 
 // Constraint

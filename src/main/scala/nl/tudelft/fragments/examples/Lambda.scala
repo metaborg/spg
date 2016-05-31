@@ -8,9 +8,9 @@ object Lambda {
     SortAppl("Exp"),
     TypeVar("t"),
     List(ScopeVar("s")),
-    List(
+    State(List(
       TypeEquals(TypeVar("t"), TypeAppl("Int"))
-    )
+    ))
   )
 
   private val ruleInt = Rule(
@@ -18,9 +18,9 @@ object Lambda {
     SortAppl("Type"),
     TypeVar("t"),
     List(ScopeVar("s")),
-    List(
+    State(List(
       TypeEquals(TypeVar("t"), TypeAppl("Int"))
-    )
+    ))
   )
 
   private val ruleAdd = Rule(
@@ -31,11 +31,11 @@ object Lambda {
     SortAppl("Exp"),
     TypeVar("t"),
     List(ScopeVar("s")),
-    List(
+    State(List(
       TypeEquals(TypeVar("t"), TypeAppl("Int")),
       TypeEquals(TypeVar("t1"), TypeAppl("Int")),
       TypeEquals(TypeVar("t2"), TypeAppl("Int"))
-    )
+    ))
   )
 
   private val ruleAbs = Rule(
@@ -47,12 +47,12 @@ object Lambda {
     SortAppl("Exp"),
     TypeVar("t"),
     List(ScopeVar("s")),
-    List(
+    State(List(
       TypeEquals(TypeVar("t"), TypeAppl("Fun", List(TypeVar("t1"), TypeVar("t2")))),
       Par(ScopeVar("s1"), ScopeVar("s")),
       Dec(ScopeVar("s1"), SymbolicName("Variable", "n")),
       TypeOf(SymbolicName("Variable", "n"), TypeVar("t1"))
-    )
+    ))
   )
 
   private val ruleApp = Rule(
@@ -63,9 +63,9 @@ object Lambda {
     SortAppl("Exp"),
     TypeVar("t"),
     List(ScopeVar("s")),
-    List(
+    State(List(
       TypeEquals(TypeVar("t1"), TypeAppl("Fun", List(TypeVar("t2"), TypeVar("t"))))
-    )
+    ))
   )
 
   private val ruleVar = Rule(
@@ -75,11 +75,11 @@ object Lambda {
     SortAppl("Exp"),
     TypeVar("t"),
     List(ScopeVar("s")),
-    List(
+    State(List(
       Ref(SymbolicName("Variable", "n"), ScopeVar("s")),
       Res(SymbolicName("Variable", "n"), NameVar("d")),
       TypeOf(NameVar("d"), TypeVar("t"))
-    )
+    ))
   )
 
   val rules = List(

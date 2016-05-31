@@ -145,6 +145,14 @@ case class State(constraints: List[Constraint], facts: List[Constraint], typeEnv
     }
 }
 
+object State {
+  def apply(constraints: List[Constraint]) = {
+    val (proper, facts) = constraints.partition(_.isProper)
+
+    State(proper, facts, TypeEnv(), Nil)
+  }
+}
+
 /**
   * Representation of a typing environment
   *

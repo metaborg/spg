@@ -276,6 +276,7 @@ object Builder {
         val resultingConstraints = (rule.constraints - res ++ conditions)
           .substituteName(Map(d -> n))
 
+        // TODO: Solving might assign a concrete name to a name variable, but we do not propagate this to the pattern..
         Solver.solve(resultingConstraints, rule.state)
 
 

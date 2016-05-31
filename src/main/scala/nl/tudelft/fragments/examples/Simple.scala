@@ -8,7 +8,7 @@ object Simple {
     SortAppl("Exp"),
     TypeVar("t"),
     List(ScopeVar("s")),
-    Nil
+    State(Nil)
   )
 
   private val ruleCons = Rule(
@@ -19,7 +19,7 @@ object Simple {
     SortAppl("List"),
     TypeVar("t"),
     List(ScopeVar("s")),
-    Nil
+    State(Nil)
   )
 
   private val ruleNil = Rule(
@@ -27,7 +27,7 @@ object Simple {
     SortAppl("List"),
     TypeVar("t"),
     List(ScopeVar("s")),
-    Nil
+    State(Nil)
   )
 
   val rules = List(
