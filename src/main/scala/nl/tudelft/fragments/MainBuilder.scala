@@ -9,6 +9,60 @@ import scala.util.Random
 import scala.util.control.Breaks._
 
 object MainBuilder {
+  // Minimal size needed to root from given sort
+  val up = Map[Sort, Int](
+    SortAppl("Program") -> 0,
+    SortAppl("MainClass") -> 2,
+    SortAppl("List", List(SortAppl("ClassDecl"))) -> 6,
+    SortAppl("ClassDecl") -> 8,
+    SortAppl("ParentDecl") -> 12,
+    SortAppl("List", List(SortAppl("FieldDecl"))) -> 12,
+    SortAppl("FieldDecl") -> 14,
+    SortAppl("List", List(SortAppl("MethodDecl"))) -> 12,
+    SortAppl("MethodDecl") -> 14,
+    SortAppl("List", List(SortAppl("VarDecl"))) -> 20,
+    SortAppl("VarDecl") -> 22,
+    SortAppl("List", List(SortAppl("ParamDecl"))) -> 20,
+    SortAppl("ParamDecl") -> 22,
+    SortAppl("Type") -> 16,
+    SortAppl("List", List(SortAppl("Statement"))) -> 20,
+    SortAppl("Statement") -> 22,
+    SortAppl("List", List(SortAppl("Exp", List()))) -> 20,
+    SortAppl("Exp") -> 20
+  )
+
+  // Minimal size needed to bottom from given sort
+  val down = Map[Sort, Int](
+    SortAppl("Program") -> 7,
+    SortAppl("MainClass") -> 5,
+    SortAppl("List", List(SortAppl("ClassDecl"))) -> 1,
+    SortAppl("ClassDecl") -> 5,
+    SortAppl("ParentDecl") -> 1,
+    SortAppl("List", List(SortAppl("FieldDecl"))) -> 1,
+    SortAppl("FieldDecl") -> 3,
+    SortAppl("List", List(SortAppl("MethodDecl"))) -> 1,
+    SortAppl("MethodDecl") -> 7,
+    SortAppl("List", List(SortAppl("VarDecl"))) -> 1,
+    SortAppl("VarDecl") -> 3,
+    SortAppl("List", List(SortAppl("ParamDecl"))) -> 1,
+    SortAppl("ParamDecl") -> 3,
+    SortAppl("Type") -> 1,
+    SortAppl("List", List(SortAppl("Statement"))) -> 1,
+    SortAppl("Statement") -> 2,
+    SortAppl("Exp") -> 1
+  )
+
+  // Sort needed to go to root quickest
+  val root = Map[Sort, Sort](
+    SortAppl("List", List(SortAppl("ClassDecl"))) -> SortAppl("Program"),
+    SortAppl("ClassDecl") -> SortAppl("List", List(SortAppl("ClassDecl"))),
+    SortAppl("List", List(SortAppl("MethodDecl"))) -> SortAppl("ClassDecl"),
+    SortAppl("MethodDecl") -> SortAppl("List", List(SortAppl("MethodDecl"))),
+    SortAppl("Statement") -> SortAppl("MethodDecl"),
+    SortAppl("List", List(SortAppl("Exp", List()))) -> SortAppl("Exp"),
+    SortAppl("Exp") -> SortAppl("Statement")
+  )
+
   def main(args: Array[String]): Unit = {
     val rules = MiniJava.rules
     val types = MiniJava.types
@@ -28,7 +82,9 @@ object MainBuilder {
     println(kb2.length)
 
     // Strategy 1: divide term size and backtrack
-    generateComplete(kb2, kb2.random, 30)
+    println(generateComplete(kb2, kb2.random, 60))
+
+    System.exit(0)
 
     // Pick a fragment without references, close a hole
     var r = kb2.random
@@ -38,14 +94,14 @@ object MainBuilder {
       println(i)
 
       val resolve = Builder.buildToResolve(kb2, r)
-      if (resolve.isDefined) {
-        r = resolve.get
+      if (resolve.nonEmpty) {
+        r = resolve.random._8
         println(r)
       }
 
       val resolve2 = Builder.buildToClose(kb2, r)
-      if (resolve2.isDefined) {
-        r = resolve2.get
+      if (resolve2.nonEmpty) {
+        r = resolve2.random
         println(r)
       }
     }
@@ -74,52 +130,89 @@ object MainBuilder {
 
   // Generate a complete rule within a size limit
   def generateComplete(rules: List[Rule], rule: Rule, size: Int): Option[Rule] = {
+    // Check whether we can still close the fragment within the size limit using pre-computed bounds.
+    if (up(rule.sort) + rule.pattern.vars.map(hole => down.getOrElse(hole.sort, 0)).sum + rule.pattern.size + rule.pattern.vars.length > size) {
+      return None
+    }
+
+    // Only consider choices that add a "balanced" amount
+    for (hole <- rule.pattern.vars) {
+      if (down(hole.sort) > (size-rule.pattern.size)/rule.pattern.vars.length) {
+        return None
+      }
+    }
+
+    // Debugging
     println(rule)
 
-    // Eagerly solve references by merging (TODO: actually backtrack instead of random 0-10)
     var result = rule
-    breakable { for (i <- 0 to 10) {
-      if (!result.state.constraints.exists(_.isInstanceOf[Res])) {
-        break
-      } else {
-        val resolved = Builder.buildToResolve(rules, result)
 
-        if (resolved.isEmpty) {
-          break
-        } else {
-          if (resolved.get.state.pattern.size < size) {
-            val last = generateComplete(rules, resolved.get, size)
+    // First, eagerly solve random references by merging
+    if (rule.state.constraints.exists(_.isInstanceOf[Res])) {
+      val choices = Builder.buildToResolve(rules, rule)
 
-            if (last.isDefined) {
-              result = last.get
-            }
+      breakable {
+        for (choice <- Random.shuffle(choices).slice(0, 100)) {
+          val nested = generateComplete(rules, choice._8, size)
+
+          if (nested.isDefined) {
+            result = nested.get
+            break
           }
         }
+
+        // Cannot solve resolution within size limit; exit.
+        return None
       }
-    } }
+    }
 
-    // Eagerly close holes (TODO: actually backtrack instead of random 0-10)
-    for (i <- 0 to 10) {
-      if (result.state.pattern.vars.isEmpty) {
-        return Some(result)
-      } else {
-        val resolved = Builder.buildToClose(rules, result)
+    // Then, work directly towards the root (as indicated by "root")
+    // TODO: Do this a bit more inteliggent. We don't want to put expressions within expressions 100 times..
+    // TODO: e.g. compute possible paths from sort to root of bounded length
+    // TODO: e.g. ignore paths with sort-cycles (e.g. Exp within Exp), as they don't bring you closer to the root
+    // TODO: -> e.g. merge, but the result must have a different sort.
+    if (result.sort != SortAppl("Program")) {
+      val choices = Builder.buildToRoot(rules, result)
 
-        if (resolved.isDefined) {
-          if (resolved.get.state.pattern.size < size) {
-            val last = generateComplete(rules, resolved.get, size)
+      for (choice <- Random.shuffle(choices)) {
+        if (choice.sort == root(result.sort)) {
+          val last = generateComplete(rules, choice, size)
 
-            if (last.isDefined) {
-              return last
-            }
+          if (last.isDefined) {
+            return last
           }
-        } else {
-          return None
         }
       }
     }
 
-    None
+    // Then, eagerly close random holes
+    if (result.state.pattern.vars.nonEmpty) {
+      val choices = Builder.buildToClose(rules, result)
+
+      // Shuffle the choices and limit to 100
+      val limitedChoices = Random.shuffle(choices)
+
+      for (choice <- limitedChoices) {
+        // Only consider choices that add a "balanced" amount
+        if (choice.pattern.size-result.pattern.size < (size-result.pattern.size)/result.pattern.vars.length) {
+          // Only consider closed fragments
+          if (choice.pattern.vars.length < rule.pattern.vars.length) {
+            // Only consider fragments without resolution constraints
+            if (!choice.state.constraints.exists(_.isInstanceOf[Res])) {
+              val last = generateComplete(rules, choice, size)
+
+              if (last.isDefined) {
+                return last
+              }
+            }
+          }
+        }
+      }
+
+      None
+    } else {
+      Some(result)
+    }
   }
 
   // Generate rules by combining each rule with every other rule

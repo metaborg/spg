@@ -86,19 +86,34 @@ object Builder {
     None
   }
 
-  // Close a hole in rule
-  def buildToClose(rules: List[Rule], rule: Rule): Option[Rule] = {
-    for (hole <- rule.pattern.vars; other <- rules; if hole.sort.unify(other.sort).isDefined) {
-      val merged = rule
-        .merge(hole, other)
-        .substituteSort(hole.sort.unify(other.sort).get)
+  // Work towards the root
+  def buildToRoot(rules: List[Rule], rule: Rule): List[Rule] = {
+    val choices = for (other <- rules; hole <- other.pattern.vars; if hole.sort.unify(rule.sort).isDefined) yield {
+      val merged = other.merge(hole, rule)
 
       if (Consistency.check(merged.constraints)) {
-        return Some(merged)
+        Some(merged)
+      } else {
+        None
       }
     }
 
-    None
+    choices.flatten
+  }
+
+  // Close a hole in rule
+  def buildToClose(rules: List[Rule], rule: Rule): List[Rule] = {
+    val choices = for (hole <- rule.pattern.vars; other <- rules; if hole.sort.unify(other.sort).isDefined) yield {
+      val merged = rule.merge(hole, other)
+
+      if (Consistency.check(merged.constraints)) {
+        Some(merged)
+      } else {
+        None
+      }
+    }
+
+    choices.flatten
   }
 
   // Combine a rule with its resolution constraints (flattened)
@@ -201,8 +216,8 @@ object Builder {
   }
 
   // Build to resolve on a single rule
-  def buildToResolve(rules: List[Rule], rule: Rule): Option[Rule] = {
-    // TODO: We might be able to resolve a reference within the fragment itself; no need to merge (though we stil can)
+  def buildToResolve(rules: List[Rule], rule: Rule): List[(Rule, Res, Scope, (Pattern, Sort, List[Scope]), TermVar, Rule, Name, Rule)] = {
+    // TODO: Currently, we only resolve a reference by merging. We should also consider resolving a reference within the fragment itself.
 
     val ruleWithRess: List[(Rule, Res)] =
       withRess(rule)
@@ -222,6 +237,10 @@ object Builder {
     val ruleWithRefsWithScopesWithPointsWithRulesWithDecsWithResolved =
       ruleWithRefsWithScopesWithPointsWithRulesWithDecs.flatMap(withResolved)
 
+    // Return the choices
+    ruleWithRefsWithScopesWithPointsWithRulesWithDecsWithResolved
+
+    /*
     if (ruleWithRefsWithScopesWithPointsWithRulesWithDecsWithResolved.nonEmpty) {
       val (rule, res, _, _, mergeHole, other, dec, resolved) =
         ruleWithRefsWithScopesWithPointsWithRulesWithDecsWithResolved.random
@@ -230,14 +249,15 @@ object Builder {
     } else {
       None
     }
+    */
   }
 
   // Merge fragments in such a way that we close resolution constraints
   def buildToResolve(rules: List[Rule]): List[Rule] = {
     val generated = buildToResolve(rules, rulesWithRes(rules).random._1)
 
-    if (generated.isDefined) {
-      generated.get :: rules
+    if (generated.nonEmpty) {
+      generated.random._8 :: rules
     } else {
       rules
     }

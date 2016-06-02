@@ -671,7 +671,8 @@ object MiniJava {
     // Exp
     ruleNewObject,
     ruleSubscript,
-    ruleCall,
+    //Temporary disable calls, as they make generation complex (performance)
+    //ruleCall,
     ruleThis,
     ruleVar,
     ruleLength,

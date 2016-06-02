@@ -110,9 +110,9 @@ case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Co
       facts =
         facts ++ state.facts,
       typeEnv =
-        typeEnv ++ typeEnv,
+        typeEnv ++ state.typeEnv,
       nameConstraints =
-        nameConstraints ++ nameConstraints
+        nameConstraints ++ state.nameConstraints
     )
   }
 

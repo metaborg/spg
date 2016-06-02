@@ -7,6 +7,7 @@ case class Rule(sort: Sort, typ: Type, scopes: List[Scope], state: State) {
 
     val typeUnifier = hole.typ.unify(freshRule.typ).get
     val scopeUnifier = hole.scope.unify(freshRule.scopes).get
+    val sortUnifier = hole.sort.unify(freshRule.sort).get
 
     val merged = copy(
       state =
@@ -22,6 +23,7 @@ case class Rule(sort: Sort, typ: Type, scopes: List[Scope], state: State) {
       .substituteType(typeUnifier._1)
       .substituteName(typeUnifier._2)
       .substituteScope(scopeUnifier)
+      .substituteSort(sortUnifier)
     , nameBinding)
   }
 
@@ -30,6 +32,7 @@ case class Rule(sort: Sort, typ: Type, scopes: List[Scope], state: State) {
 
     val typeUnifier = hole.typ.unify(freshRule.typ).get
     val scopeUnifier = hole.scope.unify(freshRule.scopes).get
+    val sortUnifier = hole.sort.unify(freshRule.sort).get
 
     val merged = copy(
       state =
@@ -40,6 +43,7 @@ case class Rule(sort: Sort, typ: Type, scopes: List[Scope], state: State) {
       .substituteType(typeUnifier._1)
       .substituteName(typeUnifier._2)
       .substituteScope(scopeUnifier)
+      .substituteSort(sortUnifier)
   }
 
   def points: List[(Pattern, Sort, List[Scope])] =
