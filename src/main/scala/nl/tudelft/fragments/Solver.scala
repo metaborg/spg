@@ -3,6 +3,9 @@ package nl.tudelft.fragments
 import scala.util.Random
 import Graph._
 
+// TODO: Solver does not take stable graph into account!
+// TODO: Naming conditions should be first-class facts, and they should be conistent
+// TODO: A resolution constraint can currently be wrongly solved if there are no declarations that it may resolve to!!!
 object Solver {
   // Rewrite the given constraint in the given state to a list of new states
   def rewrite(c: Constraint, state: State): List[State] = c match {
@@ -10,13 +13,13 @@ object Solver {
       if (state.typeEnv.contains(n)) {
         state.addConstraint(TypeEquals(state.typeEnv(n), t))
       } else {
-        State(state.constraints, state.facts, state.typeEnv + (n -> t), state.nameConstraints)
+        state.copy(typeEnv = state.typeEnv + (n -> t))
       }
     case TypeOf(n@ConcreteName(_, _, _), t) =>
       if (state.typeEnv.contains(n)) {
         state.addConstraint(TypeEquals(state.typeEnv(n), t))
       } else {
-        State(state.constraints, state.facts, state.typeEnv + (n -> t), state.nameConstraints)
+        state.copy(typeEnv = state.typeEnv + (n -> t))
       }
     case TypeEquals(t1, t2) =>
       t1.unify(t2).map {
@@ -25,28 +28,17 @@ object Solver {
             .substituteType(typeBinding)
             .substituteName(nameBinding)
       }
-    // TODO: stable graph thingy
     case Res(n1@SymbolicName(_, _), n2@NameVar(_)) =>
-      // TODO: What if there are no resolvable declarations? Are we allowed to process the constraint?
-      // TODO: effect of resolution on incomplete scope graphs?
       for ((_, _, dec, cond) <- Random.shuffle(resolves(Nil, n1, state.facts, state.nameConstraints))) yield {
-        // TODO: conditions should be first-class constraints, and they should be conistent
-        State(
-          state.constraints.substituteName(Map(n2 -> dec)),
-          state.facts.substituteName(Map(n2 -> dec)),
-          state.typeEnv,
-          cond ++ state.nameConstraints
-        )
+        state
+          .substituteName(Map(n2 -> dec))
+          .copy(nameConstraints = cond ++ state.nameConstraints)
       }
-    // TODO: stable graph thingy
     case Res(n1@ConcreteName(_, _, _), n2@NameVar(_)) =>
       for ((_, _, dec, cond) <- Random.shuffle(resolves(Nil, n1, state.facts, state.nameConstraints))) yield {
-        State(
-          state.constraints.substituteName(Map[NameVar, Name](n2 -> dec)),
-          state.facts.substituteName(Map(n2 -> dec)),
-          state.typeEnv,
-          cond ++ state.nameConstraints
-        )
+        state
+          .substituteName(Map(n2 -> dec))
+          .copy(nameConstraints = cond ++ state.nameConstraints)
       }
     case AssocConstraint(n@SymbolicName(_, _), s@ScopeVar(_)) =>
       associated(n, state.facts).map(scope =>
@@ -57,12 +49,13 @@ object Solver {
   }
 
   // Solve constraints until no more constraints can be solved and return the resulting states
+  // TODO: we do not necessarily want to resolve resolutions during partial solving
   def solvePartial(state: State): List[State] = state match {
-    case State(Nil, all, ts, conditions) =>
+    case State(_, Nil, _, _, _) =>
       state
-    case State(remaining, all, ts, conditions) =>
+    case State(pattern, remaining, all, ts, conditions) =>
       for (c <- remaining) {
-        val result = rewrite(c, State(remaining - c, all, ts, conditions))
+        val result = rewrite(c, State(pattern, remaining - c, all, ts, conditions))
 
         // As soon as a rewrite works, stick to it.
         if (result.nonEmpty) {
@@ -75,9 +68,9 @@ object Solver {
 
   // Solve all constraints, but give TypeEquals(_, _) and TypeOf(SymbolicName(_), _) precedence
   def solve2(state: State): List[State] = state match {
-    case State(Nil, all, ts, conditions) =>
+    case State(_, Nil, _, _, _) =>
       state
-    case State(remaining, all, ts, conditions) =>
+    case State(_, remaining, all, ts, conditions) =>
       for (c <- remaining) {
         val result = rewrite(c, State(remaining - c, all, ts, conditions))
 
@@ -107,9 +100,11 @@ object Solver {
   * @param typeEnv          The typing environment
   * @param nameConstraints  The naming constraints
   */
-case class State(constraints: List[Constraint], facts: List[Constraint], typeEnv: TypeEnv, nameConstraints: List[Constraint]) {
-  def merge(state: State): State = {
+case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Constraint], typeEnv: TypeEnv, nameConstraints: List[Constraint]) {
+  def merge(hole: TermVar, state: State): State = {
     State(
+      pattern =
+        pattern.substituteTerm(Map(hole -> state.pattern)),
       constraints =
         constraints ++ state.constraints,
       facts =
@@ -122,23 +117,25 @@ case class State(constraints: List[Constraint], facts: List[Constraint], typeEnv
   }
 
   def addConstraint(constraint: Constraint): State =
-    copy(constraint :: constraints)
+    copy(constraints = constraint :: constraints)
 
   def substituteScope(binding: ScopeBinding): State =
-    copy(constraints.substituteScope(binding), facts.substituteScope(binding))
+    copy(pattern.substituteScope(binding), constraints.substituteScope(binding), facts.substituteScope(binding))
 
   def substituteType(binding: TypeBinding): State =
-    copy(constraints.substituteType(binding), facts.substituteType(binding), typeEnv.substituteType(binding))
+    copy(pattern.substituteType(binding), constraints.substituteType(binding), facts.substituteType(binding), typeEnv.substituteType(binding))
 
   def substituteName(binding: NameBinding): State =
-    copy(constraints.substituteName(binding), facts.substituteName(binding), typeEnv.substituteName(binding))
+    copy(pattern.substituteName(binding), constraints.substituteName(binding), facts.substituteName(binding), typeEnv.substituteName(binding))
 
   def freshen(nameBinding: Map[String, String]): (Map[String, String], State) =
-    constraints.freshen(nameBinding).map { case (nameBinding, constraints) =>
-      facts.freshen(nameBinding).map { case (nameBinding, all) =>
-        typeEnv.freshen(nameBinding).map { case (nameBinding, typeEnv) =>
-          nameConstraints.freshen(nameBinding).map { case (nameBinding, nameConstraints) =>
-            (nameBinding, copy(constraints, all, typeEnv, nameConstraints))
+    pattern.freshen(nameBinding).map { case (nameBinding, pattern) =>
+      constraints.freshen(nameBinding).map { case (nameBinding, constraints) =>
+        facts.freshen(nameBinding).map { case (nameBinding, all) =>
+          typeEnv.freshen(nameBinding).map { case (nameBinding, typeEnv) =>
+            nameConstraints.freshen(nameBinding).map { case (nameBinding, nameConstraints) =>
+              (nameBinding, copy(pattern, constraints, all, typeEnv, nameConstraints))
+            }
           }
         }
       }
@@ -146,7 +143,11 @@ case class State(constraints: List[Constraint], facts: List[Constraint], typeEnv
 }
 
 object State {
-  def apply(constraints: List[Constraint]) = {
+  def apply(constraints: List[Constraint], facts: List[Constraint], typeEnv: TypeEnv, nameConstraints: List[Constraint]): State = {
+    State(null, constraints, facts, typeEnv, nameConstraints)
+  }
+
+  def apply(constraints: List[Constraint]): State = {
     val (proper, facts) = constraints.partition(_.isProper)
 
     State(proper, facts, TypeEnv(), Nil)
@@ -198,4 +199,7 @@ case class TypeEnv(bindings: Map[Name, Type] = Map.empty) {
       (nameBinding, TypeEnv(bindings.toMap))
     }
   }
+
+  override def toString =
+    "TypeEnv(List(" + bindings.map { case (name, typ) => s"""Binding($name, $typ)""" }.mkString(", ") + "))"
 }

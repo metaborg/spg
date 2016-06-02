@@ -6,6 +6,7 @@ import nl.tudelft.fragments.spoofax.{Converter, Printer}
 
 import scala.collection.immutable.IndexedSeq
 import scala.util.Random
+import scala.util.control.Breaks._
 
 object MainBuilder {
   def main(args: Array[String]): Unit = {
@@ -20,14 +21,14 @@ object MainBuilder {
     // Start variable
     println("Start")
 
-    val rr = Rule(TermAppl("If", List(TermAppl("And", List(TermAppl("Lt", List(TermAppl("Call", List(TermAppl("NewObject", List(PatternNameAdapter(SymbolicName("Class", "n372933")))), PatternNameAdapter(SymbolicName("Method", "n372934")), TermAppl("Cons", List(TermAppl("NewObject", List(PatternNameAdapter(SymbolicName("Class", "n372935")))), TermVar("x372938", SortAppl("List", List(SortAppl("Exp", List()))), TypeVar("t372936"), List(ScopeVar("s372937"))))))), TermAppl("Call", List(TermVar("x67512", SortAppl("Exp", List()), TypeVar("t67511"), List(ScopeVar("s372937"))), PatternNameAdapter(SymbolicName("Method", "n67513")), TermVar("x67515", SortAppl("List", List(SortAppl("Exp", List()))), TypeVar("t67514"), List(ScopeVar("s372937"))))))), TermVar("x433", SortAppl("Exp", List()), TypeVar("t432"), List(ScopeVar("s372937"))))), TermVar("x2", SortAppl("Statement", List()), TypeVar("t2"), List(ScopeVar("s1"))), TermVar("x3", SortAppl("Statement", List()), TypeVar("t3"), List(ScopeVar("s2"))))), SortAppl("Statement", List()), TypeVar("t"), List(ScopeVar("s372937")), List(Ref(SymbolicName("Class", "n372935"),ScopeVar("s372937")), Res(SymbolicName("Class", "n372935"),NameVar("d372940")), TypeEquals(TypeVar("t372941"),TypeAppl("ClassType", List(TypeNameAdapter(NameVar("d372940"))))), TypeEquals(TypeVar("t372942"),TypeAppl("Cons", List(TypeVar("t372941"), TypeVar("t372936")))), Ref(SymbolicName("Class", "n372933"),ScopeVar("s372937")), Res(SymbolicName("Class", "n372933"),NameVar("d372943")), TypeEquals(TypeVar("t372944"),TypeAppl("ClassType", List(TypeNameAdapter(NameVar("d372943"))))), DirectImport(ScopeVar("s372945"),ScopeVar("s372946")), Ref(SymbolicName("Method", "n372934"),ScopeVar("s372945")), AssocConstraint(NameVar("d372947"),ScopeVar("s372946")), Res(SymbolicName("Method", "n372934"),NameVar("d372948")), TypeOf(NameVar("d372948"),TypeAppl("Pair", List(TypeVar("t372942"), TypeVar("t372939")))), TypeEquals(TypeVar("t372944"),TypeAppl("ClassType", List(TypeNameAdapter(NameVar("d372947"))))), DirectImport(ScopeVar("s67517"),ScopeVar("s67518")), Ref(SymbolicName("Method", "n67513"),ScopeVar("s67517")), AssocConstraint(NameVar("d67519"),ScopeVar("s67518")), Res(SymbolicName("Method", "n67513"),NameVar("d67520")), TypeOf(NameVar("d67520"),TypeAppl("Pair", List(TypeVar("t67514"), TypeVar("t67521")))), TypeEquals(TypeVar("t67511"),TypeAppl("ClassType", List(TypeNameAdapter(NameVar("d67519"))))), TypeEquals(TypeVar("t67516"),TypeAppl("Bool", List())), TypeEquals(TypeVar("t372939"),TypeAppl("Int", List())), TypeEquals(TypeVar("t67521"),TypeAppl("Int", List())), TypeEquals(TypeVar("t434"),TypeAppl("Bool", List())), TypeEquals(TypeVar("t67516"),TypeAppl("Bool", List())), TypeEquals(TypeVar("t432"),TypeAppl("Bool", List())), TypeEquals(TypeVar("t434"),TypeAppl("Bool", List())), Par(ScopeVar("s1"),ScopeVar("s372937")), Par(ScopeVar("s2"),ScopeVar("s372937"))))
-    println(Builder.buildToResolve(kb1, rr))
-
     // Resolve some refs
     val kb2 = repeat(Builder.buildToResolve, 100)(kb1)
 
     println(kb1.length)
     println(kb2.length)
+
+    // Strategy 1: divide term size and backtrack
+    generateComplete(kb2, kb2.random, 30)
 
     // Pick a fragment without references, close a hole
     var r = kb2.random
@@ -69,6 +70,56 @@ object MainBuilder {
 //        }
 //      }
 //    }
+  }
+
+  // Generate a complete rule within a size limit
+  def generateComplete(rules: List[Rule], rule: Rule, size: Int): Option[Rule] = {
+    println(rule)
+
+    // Eagerly solve references by merging (TODO: actually backtrack instead of random 0-10)
+    var result = rule
+    breakable { for (i <- 0 to 10) {
+      if (!result.state.constraints.exists(_.isInstanceOf[Res])) {
+        break
+      } else {
+        val resolved = Builder.buildToResolve(rules, result)
+
+        if (resolved.isEmpty) {
+          break
+        } else {
+          if (resolved.get.state.pattern.size < size) {
+            val last = generateComplete(rules, resolved.get, size)
+
+            if (last.isDefined) {
+              result = last.get
+            }
+          }
+        }
+      }
+    } }
+
+    // Eagerly close holes (TODO: actually backtrack instead of random 0-10)
+    for (i <- 0 to 10) {
+      if (result.state.pattern.vars.isEmpty) {
+        return Some(result)
+      } else {
+        val resolved = Builder.buildToClose(rules, result)
+
+        if (resolved.isDefined) {
+          if (resolved.get.state.pattern.size < size) {
+            val last = generateComplete(rules, resolved.get, size)
+
+            if (last.isDefined) {
+              return last
+            }
+          }
+        } else {
+          return None
+        }
+      }
+    }
+
+    None
   }
 
   // Generate rules by combining each rule with every other rule

@@ -31,12 +31,12 @@ object Main {
       // Reset name provider so equals paths in the generation graph are actually equal
       nameProvider.reset()
 
-      val r = Generator.generate(rules, new Rule(
+      val r = Generator.generate(rules, Rule(
         start,
         SortAppl("Program"),
         TypeVar("t"),
         List(ScopeVar("s")),
-        Nil
+        State(Nil)
       ), 25, graph, graph)
 
       if (r.isDefined) {
@@ -47,7 +47,7 @@ object Main {
 
 //          println(soln)
 
-          val concrete = Concretor.concretize(r.get._1, soln.random._4)
+          val concrete = Concretor.concretize(r.get._1, soln.random.constraints)
 //          println(concrete)
 
           val sterm = Converter.toTerm(concrete)
