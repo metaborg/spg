@@ -49,12 +49,16 @@ object Solver {
   }
 
   // Solve constraints until no more constraints can be solved and return the resulting states
-  // TODO: we do not necessarily want to resolve resolutions during partial solving
   def solvePartial(state: State): List[State] = state match {
     case State(_, Nil, _, _, _) =>
       state
     case State(pattern, remaining, all, ts, conditions) =>
-      for (c <- remaining) {
+      // Do not solve resolution constraints during solvePartial, because we do not want to make "new" decisions, only
+      // propagate "existing" knowledge. For example, we may be able to solve one resolution, but then fail on the
+      // second, since there is not yet a corresponding declaration.
+      val nonRes = remaining.filter(!_.isInstanceOf[Res])
+
+      for (c <- nonRes) {
         val result = rewrite(c, State(pattern, remaining - c, all, ts, conditions))
 
         // As soon as a rewrite works, stick to it.
