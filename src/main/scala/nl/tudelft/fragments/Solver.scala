@@ -32,13 +32,19 @@ object Solver {
       for ((_, _, dec, cond) <- Random.shuffle(resolves(Nil, n1, state.facts, state.nameConstraints))) yield {
         state
           .substituteName(Map(n2 -> dec))
-          .copy(nameConstraints = cond ++ state.nameConstraints)
+          .copy(
+            facts = Res(n1, dec) :: state.facts,
+            nameConstraints = cond ++ state.nameConstraints
+          )
       }
     case Res(n1@ConcreteName(_, _, _), n2@NameVar(_)) =>
       for ((_, _, dec, cond) <- Random.shuffle(resolves(Nil, n1, state.facts, state.nameConstraints))) yield {
         state
           .substituteName(Map(n2 -> dec))
-          .copy(nameConstraints = cond ++ state.nameConstraints)
+          .copy(
+            facts = Res(n1, dec) :: state.facts,
+            nameConstraints = cond ++ state.nameConstraints
+          )
       }
     case AssocConstraint(n@SymbolicName(_, _), s@ScopeVar(_)) =>
       associated(n, state.facts).map(scope =>
