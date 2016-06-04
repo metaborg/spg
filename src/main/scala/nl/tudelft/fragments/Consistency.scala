@@ -1,7 +1,5 @@
 package nl.tudelft.fragments
 
-import nl.tudelft.fragments.graph.DisjointSet
-
 object Consistency {
   // Check for consistency
   def check(C: List[Constraint]): Boolean = {
@@ -61,7 +59,9 @@ object Consistency {
 
     val (_, updatedDisEqs) = solveNaming(eqs, disEqs)
 
-    !detectCycle(updatedDisEqs)
+    !updatedDisEqs.exists {
+      case Diseq(n1, n2) => n1 == n2
+    }
   }
 
   // Eliminate naming equalities by substituting
@@ -71,25 +71,4 @@ object Consistency {
     case Nil =>
       (Nil, disEqs)
   }
-
-  // Detect cycle in the disequality constraints using disjoint set algorithm
-  def detectCycle(disEqs: List[Diseq]): Boolean = {
-    val disjointSet = DisjointSet(names(disEqs): _*)
-    
-    for (disEq <- disEqs) {
-      val p1 = disjointSet(disEq.n1)
-      val p2 = disjointSet(disEq.n2)
-
-      if (p1 == p2) {
-        return true
-      } else {
-        disjointSet.union(disEq.n1, disEq.n2)
-      }
-    }
-
-    false
-  }
-
-  def names(disEqs: List[Diseq]) =
-    disEqs.flatMap(d => List(d.n1, d.n2)).distinct
 }

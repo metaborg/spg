@@ -128,7 +128,7 @@ object Graph {
             visible(n :: seen, s, all, conditions, resolution)
               .filter(_._3.namespace == n.namespace)
               .filter { case (_, _, _, cs) =>
-                assert(Consistency.checkNamingConditions(cs ++ conditions))
+                assert(Consistency.checkNamingConditions(cs ++ conditions), s"Not consistent: ${cs ++ conditions}")
                 true
               }
               .map { case (seen, path, dec, cs) =>

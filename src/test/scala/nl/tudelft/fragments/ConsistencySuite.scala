@@ -43,24 +43,6 @@ class ConsistencySuite extends FunSuite {
     assert(!Consistency.check(constraints))
   }
 
-  test("no cycle in disequalities") {
-    val disEqs = List(
-      Diseq(SymbolicName("C", "n1"), SymbolicName("C", "n2"))
-    )
-
-    assert(!Consistency.detectCycle(disEqs))
-  }
-
-  test("cycle in disequalities") {
-    val disEqs = List(
-      Diseq(SymbolicName("C", "n1"), SymbolicName("C", "n2")),
-      Diseq(SymbolicName("C", "n2"), SymbolicName("C", "n3")),
-      Diseq(SymbolicName("C", "n3"), SymbolicName("C", "n1"))
-    )
-
-    assert(Consistency.detectCycle(disEqs))
-  }
-
   test("consistency of naming conditions") {
     val conditions = List(
       Diseq(SymbolicName("C", "n1"), SymbolicName("C", "n2")),
@@ -79,6 +61,20 @@ class ConsistencySuite extends FunSuite {
       Eq(SymbolicName("Class", "n2271"),SymbolicName("Class", "n")),
       Diseq(SymbolicName("Class", "n"),SymbolicName("Method", "n2157")),
       Diseq(SymbolicName("Class", "n"),ConcreteName("Implicit", "this", 1))
+    )
+
+    assert(Consistency.checkNamingConditions(conditions))
+  }
+
+  test("test 1") {
+    val conditions = List(
+      Eq(SymbolicName("Class", "n234824"),SymbolicName("Class", "n")),
+      Eq(SymbolicName("Variable", "n232952"),SymbolicName("Variable", "n8326")),
+      Diseq(SymbolicName("Variable", "n8326"),SymbolicName("Variable", "n234825")),
+      Diseq(SymbolicName("Class", "n"),SymbolicName("Variable", "n234825")),
+      Diseq(SymbolicName("Class", "n"),ConcreteName("Implicit", "this", 1)),
+      Diseq(SymbolicName("Class", "n"),SymbolicName("Variable", "n8326")),
+      Diseq(SymbolicName("Class", "n"),SymbolicName("Method", "n232944"))
     )
 
     assert(Consistency.checkNamingConditions(conditions))

@@ -49,6 +49,7 @@ object MainBuilder {
     SortAppl("Type") -> 1,
     SortAppl("List", List(SortAppl("Statement"))) -> 1,
     SortAppl("Statement") -> 2,
+    SortAppl("List", List(SortAppl("Exp", List()))) -> 1,
     SortAppl("Exp") -> 1
   )
 
@@ -66,6 +67,7 @@ object MainBuilder {
   def main(args: Array[String]): Unit = {
     val rules = MiniJava.rules
     val types = MiniJava.types
+    val printer = Printer.print("/Users/martijn/Documents/workspace/MiniJava")
 
     // Generation phase (TODO: the generated rules should not be "beyond repair", i.e. there must be reachable scopes to which we can add a declaration)
     //val kb = repeat(generateNaive, 10)(rules)
@@ -82,29 +84,36 @@ object MainBuilder {
     println(kb2.length)
 
     // Strategy 1: divide term size and backtrack
-    println(generateComplete(kb2, kb2.random, 60))
+    val complete = generateComplete(kb2, kb2.random, 60)
+    println(complete)
 
-    System.exit(0)
-
-    // Pick a fragment without references, close a hole
-    var r = kb2.random
-    println(r)
-
-    for (i <- 0 to 10) {
-      println(i)
-
-      val resolve = Builder.buildToResolve(kb2, r)
-      if (resolve.nonEmpty) {
-        r = resolve.random._8
-        println(r)
-      }
-
-      val resolve2 = Builder.buildToClose(kb2, r)
-      if (resolve2.nonEmpty) {
-        r = resolve2.random
-        println(r)
-      }
+    if (complete.isDefined) {
+      val concretePattern = Concretor.concretize(complete.get, complete.get.state.nameConstraints)
+      val strategoTerm = Converter.toTerm(concretePattern)
+      val text = printer(strategoTerm).stringValue()
+      println(text)
     }
+
+
+//    // Pick a fragment without references, close a hole
+//    var r = kb2.random
+//    println(r)
+//
+//    for (i <- 0 to 10) {
+//      println(i)
+//
+//      val resolve = Builder.buildToResolve(kb2, r)
+//      if (resolve.nonEmpty) {
+//        r = resolve.random._8
+//        println(r)
+//      }
+//
+//      val resolve2 = Builder.buildToClose(kb2, r)
+//      if (resolve2.nonEmpty) {
+//        r = resolve2.random
+//        println(r)
+//      }
+//    }
 
 //    for (i <- 1 to 10000) {
 ////      println(i)
