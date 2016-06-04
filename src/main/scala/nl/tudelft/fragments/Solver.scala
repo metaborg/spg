@@ -29,22 +29,30 @@ object Solver {
             .substituteName(nameBinding)
       }
     case Res(n1@SymbolicName(_, _), n2@NameVar(_)) =>
-      for ((_, _, dec, cond) <- Random.shuffle(resolves(Nil, n1, state.facts, state.nameConstraints))) yield {
-        state
-          .substituteName(Map(n2 -> dec))
-          .copy(
-            facts = Res(n1, dec) :: state.facts,
-            nameConstraints = cond ++ state.nameConstraints
-          )
+      if (state.resolution.contains(n1)) {
+        state.substituteName(Map(n2 -> state.resolution(n1)))
+      } else {
+        for ((seen, path, dec, cond) <- Random.shuffle(resolves(Nil, n1, state.facts, state.nameConstraints, state.resolution))) yield {
+          state
+            .substituteName(Map(n2 -> dec))
+            .copy(
+              resolution = state.resolution + (n1 -> dec),
+              nameConstraints = cond ++ state.nameConstraints
+            )
+        }
       }
     case Res(n1@ConcreteName(_, _, _), n2@NameVar(_)) =>
-      for ((_, _, dec, cond) <- Random.shuffle(resolves(Nil, n1, state.facts, state.nameConstraints))) yield {
-        state
-          .substituteName(Map(n2 -> dec))
-          .copy(
-            facts = Res(n1, dec) :: state.facts,
-            nameConstraints = cond ++ state.nameConstraints
-          )
+      if (state.resolution.contains(n1)) {
+        state.substituteName(Map(n2 -> state.resolution(n1)))
+      } else {
+        for ((seen, path, dec, cond) <- Random.shuffle(resolves(Nil, n1, state.facts, state.nameConstraints, state.resolution))) yield {
+          state
+            .substituteName(Map(n2 -> dec))
+            .copy(
+              resolution = state.resolution + (n1 -> dec),
+              nameConstraints = cond ++ state.nameConstraints
+            )
+        }
       }
     case AssocConstraint(n@SymbolicName(_, _), s@ScopeVar(_)) =>
       associated(n, state.facts).map(scope =>
@@ -56,16 +64,16 @@ object Solver {
 
   // Solve constraints until no more constraints can be solved and return the resulting states
   def solvePartial(state: State): List[State] = state match {
-    case State(_, Nil, _, _, _) =>
+    case State(_, Nil, _, _, _, _) =>
       state
-    case State(pattern, remaining, all, ts, conditions) =>
+    case State(pattern, remaining, all, ts, resolution, conditions) =>
       // Do not solve resolution constraints during solvePartial, because we do not want to make "new" decisions, only
       // propagate "existing" knowledge. For example, we may be able to solve one resolution, but then fail on the
       // second, since there is not yet a corresponding declaration.
       val nonRes = remaining.filter(!_.isInstanceOf[Res])
 
       for (c <- nonRes) {
-        val result = rewrite(c, State(pattern, remaining - c, all, ts, conditions))
+        val result = rewrite(c, State(pattern, remaining - c, all, ts, resolution, conditions))
 
         // As soon as a rewrite works, stick to it.
         if (result.nonEmpty) {
@@ -78,11 +86,11 @@ object Solver {
 
   // Solve all constraints, but give TypeEquals(_, _) and TypeOf(SymbolicName(_), _) precedence
   def solve2(state: State): List[State] = state match {
-    case State(_, Nil, _, _, _) =>
+    case State(_, Nil, _, _, _, _) =>
       state
-    case State(_, remaining, all, ts, conditions) =>
+    case State(_, remaining, all, ts, resolution, conditions) =>
       for (c <- remaining) {
-        val result = rewrite(c, State(remaining - c, all, ts, conditions))
+        val result = rewrite(c, State(remaining - c, all, ts, resolution, conditions))
 
         // As soon as a rewrite works, stick to it.
         if (result.nonEmpty) {
@@ -95,11 +103,11 @@ object Solver {
 
   // Solve all constraints with the given solver state
   def solve(constraints: List[Constraint], state: State): List[State] =
-    solve2(State(constraints.filter(_.isProper), constraints, state.typeEnv, constraints.filter(_.isInstanceOf[NamingConstraint])))
+    solve2(State(constraints.filter(_.isProper), constraints, state.typeEnv, state.resolution, constraints.filter(_.isInstanceOf[NamingConstraint])))
 
   // Solve all constraints with an empty solver state
   def solve(constraints: List[Constraint]): List[State] =
-    solve2(State(constraints.filter(_.isProper), constraints, TypeEnv(), constraints.filter(_.isInstanceOf[NamingConstraint])))
+    solve2(State(constraints.filter(_.isProper), constraints, TypeEnv(), Resolution(), constraints.filter(_.isInstanceOf[NamingConstraint])))
 }
 
 /**
@@ -110,7 +118,7 @@ object Solver {
   * @param typeEnv          The typing environment
   * @param nameConstraints  The naming constraints
   */
-case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Constraint], typeEnv: TypeEnv, nameConstraints: List[Constraint]) {
+case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Constraint], typeEnv: TypeEnv, resolution: Resolution, nameConstraints: List[Constraint]) {
   def merge(hole: TermVar, state: State): State = {
     State(
       pattern =
@@ -121,6 +129,8 @@ case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Co
         facts ++ state.facts,
       typeEnv =
         typeEnv ++ state.typeEnv,
+      resolution =
+        resolution ++ state.resolution,
       nameConstraints =
         nameConstraints ++ state.nameConstraints
     )
@@ -143,8 +153,10 @@ case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Co
       constraints.freshen(nameBinding).map { case (nameBinding, constraints) =>
         facts.freshen(nameBinding).map { case (nameBinding, all) =>
           typeEnv.freshen(nameBinding).map { case (nameBinding, typeEnv) =>
-            nameConstraints.freshen(nameBinding).map { case (nameBinding, nameConstraints) =>
-              (nameBinding, copy(pattern, constraints, all, typeEnv, nameConstraints))
+            resolution.freshen(nameBinding).map { case (nameBinding, resolution) =>
+              nameConstraints.freshen(nameBinding).map { case (nameBinding, nameConstraints) =>
+                (nameBinding, copy(pattern, constraints, all, typeEnv, resolution, nameConstraints))
+              }
             }
           }
         }
@@ -153,14 +165,14 @@ case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Co
 }
 
 object State {
-  def apply(constraints: List[Constraint], facts: List[Constraint], typeEnv: TypeEnv, nameConstraints: List[Constraint]): State = {
-    State(null, constraints, facts, typeEnv, nameConstraints)
+  def apply(constraints: List[Constraint], facts: List[Constraint], typeEnv: TypeEnv, resolution: Resolution, nameConstraints: List[Constraint]): State = {
+    State(null, constraints, facts, typeEnv, resolution, nameConstraints)
   }
 
   def apply(constraints: List[Constraint]): State = {
     val (proper, facts) = constraints.partition(_.isProper)
 
-    State(proper, facts, TypeEnv(), Nil)
+    State(proper, facts, TypeEnv(), Resolution(), Nil)
   }
 }
 
@@ -212,4 +224,39 @@ case class TypeEnv(bindings: Map[Name, Type] = Map.empty) {
 
   override def toString =
     "TypeEnv(List(" + bindings.map { case (name, typ) => s"""Binding($name, $typ)""" }.mkString(", ") + "))"
+}
+
+// TODO: Can we extend Map, instead of delegating? Repeating contains, apply, get, +, and ++ is awkard.. also for TypeEnv.
+case class Resolution(bindings: Map[Name, Name] = Map.empty) {
+  def contains(n: Name): Boolean =
+    bindings.contains(n)
+
+  def apply(n: Name) =
+    bindings(n)
+
+  def get(n: Name) =
+    bindings.get(n)
+
+  def +(e: (Name, Name)) =
+    Resolution(bindings + e)
+
+  def ++(resolution: Resolution) =
+    Resolution(bindings ++ resolution.bindings)
+
+  def freshen(nameBinding: Map[String, String]): (Map[String, String], Resolution) = {
+    val freshBindings = bindings.toList.mapFoldLeft(nameBinding) { case (nameBinding, (n1, n2)) =>
+      n1.freshen(nameBinding).map { case (nameBinding, n1) =>
+        n2.freshen(nameBinding).map { case (nameBinding, n2) =>
+          (nameBinding, n1 -> n2)
+        }
+      }
+    }
+
+    freshBindings.map { case (nameBinding, bindings) =>
+      (nameBinding, Resolution(bindings.toMap))
+    }
+  }
+
+  override def toString =
+    "Resolution(List(" + bindings.map { case (n1, n2) => s"""Binding($n1, $n2)""" }.mkString(", ") + "))"
 }

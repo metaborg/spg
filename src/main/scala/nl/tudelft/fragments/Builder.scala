@@ -128,7 +128,7 @@ object Builder {
   // Combine a (Rule, Res) with the scopes reachable from the reference in the resolution constraint (flattened)
   def withScopes(r: (Rule, Res)): List[(Rule, Res, Scope)] = {
     r match { case (rule, res@Res(ref, _)) =>
-      path(Nil, scope(ref, rule.state.facts).head, rule.state.facts, Nil).map(_._3).map(scope =>
+      path(Nil, scope(ref, rule.state.facts).head, rule.state.facts, Nil, rule.state.resolution).map(_._3).map(scope =>
         (rule, res, scope)
       )
     }
@@ -265,7 +265,7 @@ object Builder {
 
   // Get the declarations that are reachable from given scope (TODO: "visible from given scope" ignores that we are looking for resolutions of a name, which has a namespace. We don't need DisEq constraints if the namespaces don't match anyway.)
   def decls(rule: Rule, scope: Scope) =
-    visible(Nil, scope, rule.state.facts, Nil)
+    visible(Nil, scope, rule.state.facts, Nil, rule.state.resolution)
 
   // Get [Rule, [Res]]
   def rulesWithRes(rules: List[Rule]) = rules
@@ -284,7 +284,7 @@ object Builder {
   def resolve(rule: Rule, res: Res, dec: Name): Rule = res match {
     case Res(n, d@NameVar(_)) =>
       // All the names that we can resolve to from n
-      val names = resolves(Nil, n, rule.state.facts, Nil)
+      val names = resolves(Nil, n, rule.state.facts, Nil, rule.state.resolution)
 
       // But we want the specific name dec
       val name = names.filter(_._3 == dec).head
@@ -298,6 +298,7 @@ object Builder {
         constraints.substituteName(Map(d -> dec)),
         rule.state.facts.substituteName(Map(d -> dec)),
         rule.state.typeEnv,
+        rule.state.resolution + (n -> d),
         rule.state.nameConstraints ++ name._4
       )
 
@@ -313,7 +314,7 @@ object Builder {
   def resolve(rule: Rule, res: Res) = res match {
     case Res(n1, d@NameVar(_)) =>
       // All the names that we can resolve to
-      val names = resolves(Nil, n1, rule.state.facts, Nil)
+      val names = resolves(Nil, n1, rule.state.facts, Nil, rule.state.resolution)
 
       // All the names that we can resolve to and do not cause an inconsistency in a) the naming constraints and b) the whole constraint problem
       val consistentNames = names.flatMap { case (_, _, n, conditions) =>

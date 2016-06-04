@@ -31,7 +31,7 @@ class GraphSuite extends FunSuite {
       AssociatedImport(ScopeVar("s2"), SymbolicName("C", "n3"))
     )
 
-    assert(resolves(Nil, SymbolicName("C", "n3"), constraints, Nil) == List((
+    assert(resolves(Nil, SymbolicName("C", "n3"), constraints, Nil, Resolution()) == List((
       List(SymbolicName("C", "n3")),
       List(Parent()),
       SymbolicName("C", "n1"),
@@ -61,22 +61,56 @@ class GraphSuite extends FunSuite {
       AssociatedImport(ScopeVar("s3"), SymbolicName("C", "n5"))
     )
 
-    assert(resolves(Nil, SymbolicName("C", "n4"), constraints, Nil) == List((
+    assert(resolves(Nil, SymbolicName("C", "n4"), constraints, Nil, Resolution()) == List((
       List(SymbolicName("C", "n4")),
       List(),
       SymbolicName("C", "n1"),
       List(Eq(SymbolicName("C", "n4"),SymbolicName("C", "n1")))
-    ), (
+      ), (
       List(SymbolicName("C", "n4")),
       List(),
       SymbolicName("C", "n2"),
       List(Eq(SymbolicName("C", "n4"),SymbolicName("C", "n2")))
-    ), (
+      ), (
       List(SymbolicName("C", "n4")),
       List(),
       SymbolicName("C", "n3"),
       List(Eq(SymbolicName("C", "n4"),SymbolicName("C", "n3")))
-    )))
+      )))
+  }
+
+  test("dependent resolution") {
+    val constraints = List(
+      Ref(SymbolicName("C", "n0"), ScopeVar("s")),
+      Dec(ScopeVar("s"), SymbolicName("C", "n1")),
+      Dec(ScopeVar("s"), SymbolicName("C", "n2")),
+      AssocFact(SymbolicName("C", "n1"), ScopeVar("s2")),
+      AssocFact(SymbolicName("C", "n2"), ScopeVar("s3")),
+      Dec(ScopeVar("s2"), SymbolicName("V", "n3")),
+      Dec(ScopeVar("s3"), SymbolicName("V", "n4")),
+      Par(ScopeVar("s4"), ScopeVar("s")),
+      Ref(SymbolicName("V", "n5"), ScopeVar("s4")),
+      AssociatedImport(ScopeVar("s4"), SymbolicName("C", "n0"))
+    )
+
+    assert(resolves(Nil, SymbolicName("V", "n5"), constraints, Nil, Resolution()).length == 2)
+  }
+
+  test("dependent resolution with pre-defined resolution") {
+    val constraints = List(
+      Ref(SymbolicName("C", "n0"), ScopeVar("s")),
+      Dec(ScopeVar("s"), SymbolicName("C", "n1")),
+      Dec(ScopeVar("s"), SymbolicName("C", "n2")),
+      AssocFact(SymbolicName("C", "n1"), ScopeVar("s2")),
+      AssocFact(SymbolicName("C", "n2"), ScopeVar("s3")),
+      Dec(ScopeVar("s2"), SymbolicName("V", "n3")),
+      Dec(ScopeVar("s3"), SymbolicName("V", "n4")),
+      Par(ScopeVar("s4"), ScopeVar("s")),
+      Ref(SymbolicName("V", "n5"), ScopeVar("s4")),
+      AssociatedImport(ScopeVar("s4"), SymbolicName("C", "n0"))
+    )
+
+    assert(resolves(Nil, SymbolicName("V", "n5"), constraints, Nil, Resolution(Map(SymbolicName("C", "n0") -> SymbolicName("C", "n1")))).length == 1)
   }
 
 }

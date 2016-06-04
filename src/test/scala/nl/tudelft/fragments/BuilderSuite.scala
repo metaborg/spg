@@ -25,6 +25,7 @@ class BuilderSuite extends FunSuite {
           Ref(SymbolicName("Class", "n1"),ScopeVar("s"))
         ),
         TypeEnv(),
+        Resolution(),
         List(
           Eq(SymbolicName("Class", "n1"),SymbolicName("Class", "n2"))
         )
