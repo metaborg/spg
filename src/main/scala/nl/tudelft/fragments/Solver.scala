@@ -101,11 +101,11 @@ object Solver {
       Nil
   }
 
-  // Solve all constraints with the given solver state
-  def solve(constraints: List[Constraint], state: State): List[State] =
-    solve2(State(constraints.filter(_.isProper), constraints, state.typeEnv, state.resolution, constraints.filter(_.isInstanceOf[NamingConstraint])))
+  // Solve all constraints in the given state
+  def solve(state: State): List[State] =
+    solve2(state)
 
-  // Solve all constraints with an empty solver state
+  // Solve all constraints with an empty state (DEPRECATED)
   def solve(constraints: List[Constraint]): List[State] =
     solve2(State(constraints.filter(_.isProper), constraints, TypeEnv(), Resolution(), constraints.filter(_.isInstanceOf[NamingConstraint])))
 }

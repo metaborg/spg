@@ -180,6 +180,8 @@ object Builder {
                 ns == res.n1.namespace
               case (_, _, ConcreteName(ns, name, pos), _) =>
                 ns == res.n1.namespace && res.n1.isInstanceOf[ConcreteName] && res.n1.name == name // TODO: We should also be able to resolve symbolic names to concrete names..
+              case _ =>
+                throw new Exception("Not expected")
             }
         )
 
@@ -283,71 +285,14 @@ object Builder {
   // Resolve the reference in the given resolution constraint to the given declaration. Assumes the resolution is consistent.
   def resolve(rule: Rule, res: Res, dec: Name): Rule = res match {
     case Res(n, d@NameVar(_)) =>
-      // All the names that we can resolve to from n
-      val names = resolves(Nil, n, rule.state.facts, Nil, rule.state.resolution)
-
-      // But we want the specific name dec
-      val name = names.filter(_._3 == dec).head
-
-      // Remove the resolution constraint from the set of constraints
-      val constraints = rule.state.constraints - res
-
-      // Create new state
-      val state = State(
-        rule.state.pattern.substituteName(Map(d -> dec)),
-        constraints.substituteName(Map(d -> dec)),
-        rule.state.facts.substituteName(Map(d -> dec)),
-        rule.state.typeEnv,
-        rule.state.resolution + (n -> d),
-        rule.state.nameConstraints ++ name._4
-      )
-
-      // Try to solve additional constraints
-      val states = Solver.solvePartial(state)
-
-      // Create rule with new state
-      rule.copy(state = states.head)
-  }
-
-  // Try to solve the given resolution constraint and return a new rule with
-  // the resolution constraint replaced by naming constraints.
-  def resolve(rule: Rule, res: Res) = res match {
-    case Res(n1, d@NameVar(_)) =>
-      // All the names that we can resolve to
-      val names = resolves(Nil, n1, rule.state.facts, Nil, rule.state.resolution)
-
-      // All the names that we can resolve to and do not cause an inconsistency in a) the naming constraints and b) the whole constraint problem
-      val consistentNames = names.flatMap { case (_, _, n, conditions) =>
-        // Remove resolution constraint and substitute the unknown name by the resolved name
-        val resultingConstraints = (rule.constraints - res ++ conditions)
-          .substituteName(Map(d -> n))
-
-        // TODO: Solving might assign a concrete name to a name variable, but we do not propagate this to the pattern.. but is this a problem? The rule also contains a type variable, but we never give it a value, right? It's just a placeholder..
-        // TODO: We do not want to solve the fragment completely (e.g. we do not necessarily want to resolve references within the fragment?)
-        val resultingStates = Solver.solve(resultingConstraints, rule.state)
-        assert(resultingStates.length == 1)
-
-        if (Consistency.checkNamingConditions(resultingConstraints) && Consistency.check(resultingConstraints)) {
-          Some(resultingStates.head)
-        } else {
-          None
-        }
-      }
-
-      // TODO: after choosing a name, there must still be a way to complete the program (e.g. the other references)
-
-      if (consistentNames.nonEmpty) {
-        val resultingState = consistentNames.random
-
-        Some(
-          // TODO: besides settings the ref and dec name equal, we must also prevent the resolution from being altered
-
-          rule.copy(
-            state = resultingState
-          )
-        )
-      } else {
-        None
-      }
+      Solver
+        // Rewrite the resolution constraint
+        .rewrite(res, rule.state.copy(constraints = rule.state.constraints - res))
+        // Propagate changes to other constraints
+        .flatMap(Solver.solvePartial)
+        // Create new rule with new state
+        .map(state => rule.copy(state = state))
+        // Randomly pick one of the rules
+        .random
   }
 }
