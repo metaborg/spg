@@ -1,10 +1,8 @@
 package nl.tudelft.fragments
 
 import nl.tudelft.fragments.examples.MiniJava
-import nl.tudelft.fragments.memory.Node
 import nl.tudelft.fragments.spoofax.{Converter, Printer}
 
-import scala.collection.immutable.IndexedSeq
 import scala.util.Random
 import scala.util.control.Breaks._
 
@@ -55,6 +53,7 @@ object MainBuilder {
 
   // Sort needed to go to root quickest
   val root = Map[Sort, Sort](
+    SortAppl("MainClass") -> SortAppl("Program"),
     SortAppl("List", List(SortAppl("ClassDecl"))) -> SortAppl("Program"),
     SortAppl("ClassDecl") -> SortAppl("List", List(SortAppl("ClassDecl"))),
     SortAppl("List", List(SortAppl("MethodDecl"))) -> SortAppl("ClassDecl"),
@@ -84,57 +83,18 @@ object MainBuilder {
     println(kb2.length)
 
     // Strategy 1: divide term size and backtrack
-    val complete = generateComplete(kb2, kb2.random, 60)
-    println(complete)
+    for (i <- 0 to 1000) {
+      val complete = generateComplete(kb2, kb2.random, 60)
+      println(complete)
 
-    if (complete.isDefined) {
-      val concretePattern = Concretor.concretize(complete.get, complete.get.state.nameConstraints)
-      val strategoTerm = Converter.toTerm(concretePattern)
-      val text = printer(strategoTerm).stringValue()
-      println(text)
+      if (complete.isDefined) {
+        val concretePattern = Concretor.concretize(complete.get, complete.get.state.nameConstraints)
+        val strategoTerm = Converter.toTerm(concretePattern)
+        val text = printer(strategoTerm).stringValue()
+        println(text)
+        println("=====")
+      }
     }
-
-
-//    // Pick a fragment without references, close a hole
-//    var r = kb2.random
-//    println(r)
-//
-//    for (i <- 0 to 10) {
-//      println(i)
-//
-//      val resolve = Builder.buildToResolve(kb2, r)
-//      if (resolve.nonEmpty) {
-//        r = resolve.random._8
-//        println(r)
-//      }
-//
-//      val resolve2 = Builder.buildToClose(kb2, r)
-//      if (resolve2.nonEmpty) {
-//        r = resolve2.random
-//        println(r)
-//      }
-//    }
-
-//    for (i <- 1 to 10000) {
-////      println(i)
-//      val result = Builder.build(kb, kb.random, 40, up, down)
-////      println(result)
-//
-//      if (result.isDefined) {
-//        val substitution = Solver.solve(result.get.constraints)
-//
-//        if (substitution.isDefined) {
-////          println("WERKT!")
-//
-//          val concretePattern = Concretor.concretize(result.get, substitution.get)
-//          val strategoTerm = Converter.toTerm(concretePattern)
-//          val text = printer(strategoTerm).stringValue()
-//
-//          println(text)
-//          println("-----")
-//        }
-//      }
-//    }
   }
 
   // Generate a complete rule within a size limit
@@ -146,7 +106,7 @@ object MainBuilder {
 
     // Only consider choices that add a "balanced" amount
     for (hole <- rule.pattern.vars) {
-      if (down(hole.sort) > (size-rule.pattern.size)/rule.pattern.vars.length) {
+      if (down(hole.sort) > (size - rule.pattern.size) / rule.pattern.vars.length) {
         return None
       }
     }
@@ -163,7 +123,7 @@ object MainBuilder {
       breakable {
         for (choice <- Random.shuffle(choices).slice(0, 100)) {
           val nested = generateComplete(rules, choice._8, size)
-
+          
           if (nested.isDefined) {
             result = nested.get
             break
@@ -175,11 +135,7 @@ object MainBuilder {
       }
     }
 
-    // Then, work directly towards the root (as indicated by "root")
-    // TODO: Do this a bit more inteliggent. We don't want to put expressions within expressions 100 times..
-    // TODO: e.g. compute possible paths from sort to root of bounded length
-    // TODO: e.g. ignore paths with sort-cycles (e.g. Exp within Exp), as they don't bring you closer to the root
-    // TODO: -> e.g. merge, but the result must have a different sort.
+    // Then, work directly towards the root
     if (result.sort != SortAppl("Program")) {
       val choices = Builder.buildToRoot(rules, result)
 
@@ -203,7 +159,7 @@ object MainBuilder {
 
       for (choice <- limitedChoices) {
         // Only consider choices that add a "balanced" amount
-        if (choice.pattern.size-result.pattern.size < (size-result.pattern.size)/result.pattern.vars.length) {
+        if (choice.pattern.size - result.pattern.size < (size - result.pattern.size) / result.pattern.vars.length) {
           // Only consider closed fragments
           if (choice.pattern.vars.length < rule.pattern.vars.length) {
             // Only consider fragments without resolution constraints
@@ -268,42 +224,6 @@ object MainBuilder {
     }
 
     (rules, cache)
-
-    /*
-    // Old, inefficient code:
-
-    val rulesWithHole = rules.flatMap(rule =>
-      rule.pattern.vars.map(hole =>
-        (rule, hole)
-      )
-    )
-
-    val rulesWithHoleWithOther: List[(Rule, TermVar, Rule, Rule)] = rulesWithHole.flatMap { case (rule, hole) =>
-      rules.flatMap(otherRule =>
-        if (otherRule.sort.unify(hole.sort).isDefined) {
-          val merged = rule
-            .merge(hole, otherRule)
-            .substituteSort(hole.sort.unify(otherRule.sort).get)
-
-          if (Consistency.check(merged.constraints)) {
-            Some(rule, hole, otherRule, merged)
-          } else {
-            None
-          }
-        } else {
-          None
-        }
-      )
-    }
-
-    if (rulesWithHoleWithOther.nonEmpty) {
-      val (rule, hole, other, merged) = rulesWithHoleWithOther.random
-
-      merged :: rules
-    } else {
-      rules
-    }
-    */
   }
 
   // Generate rules naively
@@ -331,6 +251,6 @@ object MainBuilder {
   // Returns a function x => f(f(f(x))) with n times f
   def repeat[T](f: T => T, n: Int): T => T = n match {
     case 0 => (e: T) => e
-    case _ => (e: T) => repeat(f, n-1)(f(e))
+    case _ => (e: T) => repeat(f, n - 1)(f(e))
   }
 }

@@ -31,7 +31,7 @@ class GraphSuite extends FunSuite {
       AssociatedImport(ScopeVar("s2"), SymbolicName("C", "n3"))
     )
 
-    assert(resolves(Nil, SymbolicName("C", "n3"), constraints, Nil, Resolution()) == List((
+    assert(resolves(Nil, SymbolicName("C", "n3"), constraints, Nil) == List((
       List(SymbolicName("C", "n3")),
       List(Parent()),
       SymbolicName("C", "n1"),
@@ -61,7 +61,7 @@ class GraphSuite extends FunSuite {
       AssociatedImport(ScopeVar("s3"), SymbolicName("C", "n5"))
     )
 
-    assert(resolves(Nil, SymbolicName("C", "n4"), constraints, Nil, Resolution()) == List((
+    assert(resolves(Nil, SymbolicName("C", "n4"), constraints, Nil) == List((
       List(SymbolicName("C", "n4")),
       List(),
       SymbolicName("C", "n1"),
@@ -93,10 +93,10 @@ class GraphSuite extends FunSuite {
       AssociatedImport(ScopeVar("s4"), SymbolicName("C", "n0"))
     )
 
-    assert(resolves(Nil, SymbolicName("V", "n5"), constraints, Nil, Resolution()).length == 2)
+    assert(resolves(Nil, SymbolicName("V", "n5"), constraints, Nil).length == 2)
   }
 
-  test("dependent resolution with pre-defined resolution") {
+  test("dependent resolution with naming conditions") {
     val constraints = List(
       Ref(SymbolicName("C", "n0"), ScopeVar("s")),
       Dec(ScopeVar("s"), SymbolicName("C", "n1")),
@@ -110,7 +110,13 @@ class GraphSuite extends FunSuite {
       AssociatedImport(ScopeVar("s4"), SymbolicName("C", "n0"))
     )
 
-    assert(resolves(Nil, SymbolicName("V", "n5"), constraints, Nil, Resolution(Map(SymbolicName("C", "n0") -> SymbolicName("C", "n1")))).length == 1)
+    val conditions = List(
+      Eq(SymbolicName("C", "n0"), SymbolicName("C", "n1")),
+      Diseq(SymbolicName("C", "n0"), SymbolicName("C", "n2"))
+    )
+
+    println(resolves(Nil, SymbolicName("V", "n5"), constraints, conditions))
+    assert(resolves(Nil, SymbolicName("V", "n5"), constraints, conditions).length == 1)
   }
 
 }

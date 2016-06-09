@@ -1,14 +1,13 @@
 package nl.tudelft.fragments
 
-import scala.util.Random
-import Graph._
+import nl.tudelft.fragments.Graph._
 
 // TODO: Solver does not take stable graph into account!
 // TODO: Naming conditions should be first-class facts, and they should be conistent
 // TODO: A resolution constraint can currently be wrongly solved if there are no declarations that it may resolve to!!!
 object Solver {
   // Rewrite the given constraint in the given state to a list of new states
-  def rewrite(c: Constraint, state: State): List[State] = c match {
+  def rewrite(c: Constraint, state: State): Option[State] = c match {
     case TypeOf(n@SymbolicName(_, _), t) =>
       if (state.typeEnv.contains(n)) {
         state.addConstraint(TypeEquals(state.typeEnv(n), t))
@@ -30,40 +29,40 @@ object Solver {
       }
     case Res(n1@SymbolicName(_, _), n2@NameVar(_)) =>
       if (state.resolution.contains(n1)) {
-        state.substituteName(Map(n2 -> state.resolution(n1)))
+        state.substituteName(Map(n2 -> state.resolution(n1)._2))
       } else {
-        for ((seen, path, dec, cond) <- Random.shuffle(resolves(Nil, n1, state.facts, state.nameConstraints, state.resolution))) yield {
-          state
-            .substituteName(Map(n2 -> dec))
-            .copy(
-              resolution = state.resolution + (n1 -> dec),
-              nameConstraints = cond ++ state.nameConstraints
-            )
-        }
+        val (_, path, dec, cond) = resolves(Nil, n1, state.facts, state.nameConstraints).random
+
+        state
+          .substituteName(Map(n2 -> dec))
+          .copy(
+            resolution = state.resolution + (n1 ->(path, dec)),
+            nameConstraints = cond ++ state.nameConstraints
+          )
       }
     case Res(n1@ConcreteName(_, _, _), n2@NameVar(_)) =>
       if (state.resolution.contains(n1)) {
-        state.substituteName(Map(n2 -> state.resolution(n1)))
+        state.substituteName(Map(n2 -> state.resolution(n1)._2))
       } else {
-        for ((seen, path, dec, cond) <- Random.shuffle(resolves(Nil, n1, state.facts, state.nameConstraints, state.resolution))) yield {
-          state
-            .substituteName(Map(n2 -> dec))
-            .copy(
-              resolution = state.resolution + (n1 -> dec),
-              nameConstraints = cond ++ state.nameConstraints
-            )
-        }
+        val (_, path, dec, cond) = resolves(Nil, n1, state.facts, state.nameConstraints).random
+
+        state
+          .substituteName(Map(n2 -> dec))
+          .copy(
+            resolution = state.resolution + (n1 ->(path, dec)),
+            nameConstraints = cond ++ state.nameConstraints
+          )
       }
     case AssocConstraint(n@SymbolicName(_, _), s@ScopeVar(_)) =>
       associated(n, state.facts).map(scope =>
         state.substituteScope(Map(s -> scope))
       )
     case _ =>
-      Nil
+      None
   }
 
   // Solve constraints until no more constraints can be solved and return the resulting states
-  def solvePartial(state: State): List[State] = state match {
+  def solvePartial(state: State): Option[State] = state match {
     case State(_, Nil, _, _, _, _) =>
       state
     case State(pattern, remaining, all, ts, resolution, conditions) =>
@@ -76,7 +75,7 @@ object Solver {
         val result = rewrite(c, State(pattern, remaining - c, all, ts, resolution, conditions))
 
         // As soon as a rewrite works, stick to it.
-        if (result.nonEmpty) {
+        if (result.isDefined) {
           return result.flatMap(solvePartial)
         }
       }
@@ -85,7 +84,7 @@ object Solver {
   }
 
   // Solve all constraints, but give TypeEquals(_, _) and TypeOf(SymbolicName(_), _) precedence
-  def solve2(state: State): List[State] = state match {
+  def solve2(state: State): Option[State] = state match {
     case State(_, Nil, _, _, _, _) =>
       state
     case State(_, remaining, all, ts, resolution, conditions) =>
@@ -98,25 +97,25 @@ object Solver {
         }
       }
 
-      Nil
+      None
   }
 
   // Solve all constraints in the given state
-  def solve(state: State): List[State] =
+  def solve(state: State): Option[State] =
     solve2(state)
 
   // Solve all constraints with an empty state (DEPRECATED)
-  def solve(constraints: List[Constraint]): List[State] =
+  def solve(constraints: List[Constraint]): Option[State] =
     solve2(State(constraints.filter(_.isProper), constraints, TypeEnv(), Resolution(), constraints.filter(_.isInstanceOf[NamingConstraint])))
 }
 
 /**
   * Representation of the solver state
   *
-  * @param constraints      The (remaining) proper constraints
-  * @param facts            The known facts
-  * @param typeEnv          The typing environment
-  * @param nameConstraints  The naming constraints
+  * @param constraints     The (remaining) proper constraints
+  * @param facts           The known facts
+  * @param typeEnv         The typing environment
+  * @param nameConstraints The naming constraints
   */
 case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Constraint], typeEnv: TypeEnv, resolution: Resolution, nameConstraints: List[Constraint]) {
   def merge(hole: TermVar, state: State): State = {
@@ -226,8 +225,7 @@ case class TypeEnv(bindings: Map[Name, Type] = Map.empty) {
     "TypeEnv(List(" + bindings.map { case (name, typ) => s"""Binding($name, $typ)""" }.mkString(", ") + "))"
 }
 
-// TODO: Can we extend Map, instead of delegating? Repeating contains, apply, get, +, and ++ is awkard.. also for TypeEnv.
-case class Resolution(bindings: Map[Name, Name] = Map.empty) {
+case class Resolution(bindings: Map[Name, (Path, Name)] = Map.empty) {
   def contains(n: Name): Boolean =
     bindings.contains(n)
 
@@ -237,17 +235,17 @@ case class Resolution(bindings: Map[Name, Name] = Map.empty) {
   def get(n: Name) =
     bindings.get(n)
 
-  def +(e: (Name, Name)) =
+  def +(e: (Name, (Path, Name))) =
     Resolution(bindings + e)
 
   def ++(resolution: Resolution) =
     Resolution(bindings ++ resolution.bindings)
 
   def freshen(nameBinding: Map[String, String]): (Map[String, String], Resolution) = {
-    val freshBindings = bindings.toList.mapFoldLeft(nameBinding) { case (nameBinding, (n1, n2)) =>
+    val freshBindings = bindings.toList.mapFoldLeft(nameBinding) { case (nameBinding, (n1, (path, n2))) =>
       n1.freshen(nameBinding).map { case (nameBinding, n1) =>
         n2.freshen(nameBinding).map { case (nameBinding, n2) =>
-          (nameBinding, n1 -> n2)
+          (nameBinding, n1 ->(path, n2))
         }
       }
     }

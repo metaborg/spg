@@ -44,7 +44,7 @@ object MiniJava {
       TypeOf(SymbolicName("Class", "n"), TypeAppl("ClassType", List(TypeNameAdapter(SymbolicName("Class", "n"))))),
       Par(ScopeVar("s1"), ScopeVar("s")),
       Dec(ScopeVar("s1"), ConcreteName("Implicit", "this", 1)),
-      TypeOf(ConcreteName("Implicit", "this", 1), TypeNameAdapter(SymbolicName("Class", "n"))),
+      TypeOf(ConcreteName("Implicit", "this", 1), TypeAppl("ClassType", List(TypeNameAdapter(SymbolicName("Class", "n"))))),
       AssocFact(SymbolicName("Class", "n"), ScopeVar("s1"))
     ))
   )
@@ -289,8 +289,8 @@ object MiniJava {
     State(List(
       Ref(ConcreteName("Implicit", "this", 1), ScopeVar("s")),
       Res(ConcreteName("Implicit", "this", 1), NameVar("d")),
-      TypeOf(NameVar("d"), TypeAppl("ClassType", List(TypeNameAdapter(NameVar("d"))))),
-      TypeEquals(TypeVar("t"), TypeAppl("ClassType", List(TypeNameAdapter(NameVar("d")))))
+      TypeOf(NameVar("d"), TypeAppl("ClassType", List(TypeNameAdapter(NameVar("d2"))))),
+      TypeEquals(TypeVar("t"), TypeAppl("ClassType", List(TypeNameAdapter(NameVar("d2")))))
     ))
   )
 

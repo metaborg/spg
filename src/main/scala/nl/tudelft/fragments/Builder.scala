@@ -128,7 +128,7 @@ object Builder {
   // Combine a (Rule, Res) with the scopes reachable from the reference in the resolution constraint (flattened)
   def withScopes(r: (Rule, Res)): List[(Rule, Res, Scope)] = {
     r match { case (rule, res@Res(ref, _)) =>
-      path(Nil, scope(ref, rule.state.facts).head, rule.state.facts, Nil, rule.state.resolution).map(_._3).map(scope =>
+      path(Nil, scope(ref, rule.state.facts).head, rule.state.facts, Nil).map(_._3).map(scope =>
         (rule, res, scope)
       )
     }
@@ -241,25 +241,52 @@ object Builder {
 
     // Return the choices
     ruleWithRefsWithScopesWithPointsWithRulesWithDecsWithResolved
+  }
 
-    /*
-    if (ruleWithRefsWithScopesWithPointsWithRulesWithDecsWithResolved.nonEmpty) {
-      val (rule, res, _, _, mergeHole, other, dec, resolved) =
-        ruleWithRefsWithScopesWithPointsWithRulesWithDecsWithResolved.random
+  def withDecsInternal(r: (Rule, Res)): List[(Rule, Res, Name)] = r match {
+    case (rule, res@Res(ref, delta)) =>
+      Graph
+        .resolves(Nil, ref, rule.state.facts, rule.state.nameConstraints)
+        .map { case (_, _, dec, _) =>
+          (rule, res, dec)
+        }
+  }
 
-      Some(resolved)
-    } else {
-      None
-    }
-    */
+  def withResolvedInternal(r: (Rule, Res, Name)): List[(Rule, Res, Name, Rule)] = r match {
+    case (rule, res, dec) =>
+      val resolved = resolve(rule, res, dec)
+
+      if (Consistency.check(resolved.state.constraints)) {
+        List((rule, res, dec, resolved))
+      } else {
+        Nil
+      }
+  }
+
+  def buildToResolveInternal(rules: List[Rule], rule: Rule): List[(Rule, Res, Name, Rule)] = {
+    val ruleWithRess: List[(Rule, Res)] =
+      withRess(rule)
+
+    val ruleWithRessWithDec: List[(Rule, Res, Name)] =
+      ruleWithRess.flatMap(withDecsInternal)
+
+    val ruleWithRessWithDecWithResolved =
+      ruleWithRessWithDec.flatMap(withResolvedInternal)
+
+    ruleWithRessWithDecWithResolved
   }
 
   // Merge fragments in such a way that we close resolution constraints
   def buildToResolve(rules: List[Rule]): List[Rule] = {
-    val generated = buildToResolve(rules, rulesWithRes(rules).random._1)
+    val generated1 = buildToResolve(rules, rulesWithRes(rules).random._1)
+    val generated2 = buildToResolveInternal(rules, rulesWithRes(rules).random._1)
 
-    if (generated.nonEmpty) {
-      generated.random._8 :: rules
+    if (generated1.nonEmpty && generated2.nonEmpty) {
+      generated1.random._8 :: generated2.random._4 :: rules
+    } else if (generated1.nonEmpty) {
+      generated1.random._8 :: rules
+    } else if (generated2.nonEmpty) {
+      generated2.random._4 :: rules
     } else {
       rules
     }
@@ -267,7 +294,7 @@ object Builder {
 
   // Get the declarations that are reachable from given scope (TODO: "visible from given scope" ignores that we are looking for resolutions of a name, which has a namespace. We don't need DisEq constraints if the namespaces don't match anyway.)
   def decls(rule: Rule, scope: Scope) =
-    visible(Nil, scope, rule.state.facts, Nil, rule.state.resolution)
+    visible(Nil, scope, rule.state.facts, Nil)
 
   // Get [Rule, [Res]]
   def rulesWithRes(rules: List[Rule]) = rules
@@ -293,6 +320,6 @@ object Builder {
         // Create new rule with new state
         .map(state => rule.copy(state = state))
         // Randomly pick one of the rules
-        .random
+        .get
   }
 }

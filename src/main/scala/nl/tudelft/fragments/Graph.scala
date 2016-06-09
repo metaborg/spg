@@ -4,140 +4,136 @@ import scala.collection.immutable.Nil
 
 object Graph {
   // Parent scope
-  def parent(s: Scope, all: List[Constraint]): List[Scope] =
-    all.flatMap {
-      case Par(`s`, p) =>
-        Some(p)
-      case _ =>
-        None
-    }
+  def parent(s: Scope, all: List[Constraint]): List[Scope] = all.flatMap {
+    case Par(`s`, p) =>
+      Some(p)
+    case _ =>
+      None
+  }
 
   // Declarations
-  def declarations(s: Scope, all: List[Constraint]): List[Name] =
-    all.flatMap {
-      case Dec(`s`, n@SymbolicName(_, _)) =>
-        Some(n)
-      case Dec(`s`, n@ConcreteName(_, _, _)) =>
-        Some(n)
-      case _ =>
-        None
-    }
+  def declarations(s: Scope, all: List[Constraint]): List[Name] = all.flatMap {
+    case Dec(`s`, n@SymbolicName(_, _)) =>
+      Some(n)
+    case Dec(`s`, n@ConcreteName(_, _, _)) =>
+      Some(n)
+    case _ =>
+      None
+  }
 
   // Scope for reference
-  def scope(n: Name, all: List[Constraint]): List[Scope] =
-    all.flatMap {
-      case Ref(`n`, s) =>
-        Some(s)
-      case _ =>
-        None
-    }
+  def scope(n: Name, all: List[Constraint]): List[Scope] = all.flatMap {
+    case Ref(`n`, s) =>
+      Some(s)
+    case _ =>
+      None
+  }
 
   // Scope associated with a declaration
-  def associated(n: Name, all: List[Constraint]): Option[Scope] =
-    all.flatMap {
-      case AssocFact(`n`, s) =>
-        Some(s)
-      case _ =>
-        None
-    }.headOption
+  def associated(n: Name, all: List[Constraint]): Option[Scope] = all.flatMap {
+    case AssocFact(`n`, s) =>
+      Some(s)
+    case _ =>
+      None
+  }.headOption
 
   // Associated imports
-  def aimports(s: Scope, all: List[Constraint]): List[Name] =
-    all.flatMap {
-      case AssociatedImport(`s`, n) =>
-        Some(n)
-      case _ =>
-        None
-    }
+  def aimports(s: Scope, all: List[Constraint]): List[Name] = all.flatMap {
+    case AssociatedImport(`s`, n) =>
+      Some(n)
+    case _ =>
+      None
+  }
 
   // Direct imports
-  def dimports(s: Scope, all: List[Constraint]): List[Scope] =
-    all.flatMap {
-      case DirectImport(`s`, s2) =>
-        Some(s2)
-      case _ =>
-        None
-    }
+  def dimports(s: Scope, all: List[Constraint]): List[Scope] = all.flatMap {
+    case DirectImport(`s`, s2) =>
+      Some(s2)
+    case _ =>
+      None
+  }
 
   // Parent edge
-  def edgeParent(seen: Seen, s: Scope, all: List[Constraint], conditions: List[Constraint], resolution: Resolution): List[(Seen, Path, Scope, List[Constraint])] =
-    parent(s, all).flatMap(path(seen, _, all, conditions, resolution)).map { case (seen, path, scope, conditions) =>
-      (seen, Parent() :: path, scope, conditions)
+  def edgeParent(seen: Seen, s: Scope, all: List[Constraint], conditions: List[Constraint]): List[(Seen, Path, Scope, List[Constraint])] =
+    parent(s, all).flatMap(path(seen, _, all, conditions)).map {
+      case (seen, path, scope, conditions) =>
+        (seen, Parent() :: path, scope, conditions)
     }
 
   // Associated Import edge
-  def edgeAImport(seen: Seen, s: Scope, all: List[Constraint], conditions: List[Constraint], resolution: Resolution): List[(Seen, Path, Scope, List[Constraint])] =
+  def edgeAImport(seen: Seen, s: Scope, all: List[Constraint], conditions: List[Constraint]): List[(Seen, Path, Scope, List[Constraint])] =
     aimports(s, all)
       .filter(ref => !seen.contains(ref))
       .flatMap(ref =>
-        resolves(seen, ref, all, conditions, resolution).flatMap { case (seen, path, dec, conditions) =>
-          associated(dec, all).map(scope =>
-            (seen, List(AImport(ref, dec)), scope, conditions)
-          )
+        resolves(seen, ref, all, conditions).flatMap {
+          case (seen, path, dec, conditions) =>
+            associated(dec, all).map(scope =>
+              (seen, List(AImport(ref, dec)), scope, conditions)
+            )
         }
       )
 
   // Direct Import edge
-  def edgeDImport(seen: Seen, s: Scope, all: List[Constraint], conditions: List[Constraint], resolution: Resolution): List[(Seen, Path, Scope, List[Constraint])] =
-    dimports(s, all).flatMap(imports => path(seen, imports, all, conditions, resolution).map((imports, _))).map {
-      case (imports, (seen, path, scope, conditions)) =>
-        (seen, Import(imports) :: path, scope, conditions)
-    }
+  def edgeDImport(seen: Seen, s: Scope, all: List[Constraint], conditions: List[Constraint]): List[(Seen, Path, Scope, List[Constraint])] =
+    dimports(s, all).flatMap(imports =>
+      path(seen, imports, all, conditions).map((imports, _))).map {
+        case (imports, (seen, path, scope, conditions)) =>
+          (seen, Import(imports) :: path, scope, conditions)
+      }
 
   // Transitive reflexive closure of edge relation
-  def path(seen: Seen, s: Scope, all: List[Constraint], conditions: List[Constraint], resolution: Resolution): List[(Seen, Path, Scope, List[Constraint])] =
-    List((seen, Nil, s, Nil)) ++ edgeParent(seen, s, all, conditions, resolution) ++ edgeDImport(seen, s, all, conditions, resolution) ++ edgeAImport(seen, s, all, conditions, resolution)
+  def path(seen: Seen, s: Scope, all: List[Constraint], conditions: List[Constraint]): List[(Seen, Path, Scope, List[Constraint])] =
+    List((seen, Nil, s, conditions)) ++
+      edgeParent(seen, s, all, conditions) ++
+      edgeDImport(seen, s, all, conditions) ++
+      edgeAImport(seen, s, all, conditions)
 
   // Reachable declarations
-  def reachable(seen: Seen, s: Scope, all: List[Constraint], conditions: List[Constraint], resolution: Resolution): List[(Seen, Path, Name, List[Constraint])] =
-    path(seen, s, all, conditions, resolution).flatMap { case (seen, path, scope, conditions) =>
-      declarations(scope, all).map(dec => (seen, path, dec, conditions))
+  def reachable(seen: Seen, s: Scope, all: List[Constraint], conditions: List[Constraint]): List[(Seen, Path, Name, List[Constraint])] =
+    path(seen, s, all, conditions).flatMap {
+      case (seen, path, scope, conditions) =>
+        declarations(scope, all).map(dec => (seen, path, dec, conditions))
     }
 
   // Visible declarations
-  def visible(seen: Seen, s: Scope, all: List[Constraint], conditions: List[Constraint], resolution: Resolution): List[(Seen, Path, Name, List[Constraint])] = {
-    val reachableNames = reachable(seen, s, all, conditions, resolution)
+  def visible(seen: Seen, s: Scope, all: List[Constraint], conditions: List[Constraint]): List[(Seen, Path, Name, List[Constraint])] = {
+    val reachableNames = reachable(seen, s, all, conditions)
 
-    reachableNames.map { case (seen, path, name, conditions) =>
-      val condition = reachableNames
-        .filter(_._2.length < path.length)
-        .map { case (_, _, other, _) => Diseq(name, other) }
+    reachableNames.map {
+      case (seen, path, name, conditions) =>
+        val condition = reachableNames
+          .filter(_._2.length < path.length)
+          .map { case (_, _, other, _) =>
+            Diseq(name, other)
+          }
 
-      (seen, path, name, condition ++ conditions)
+        (seen, path, name, condition ++ conditions)
     }
   }
 
   // Resolution
-  def resolves(seen: Seen, n: Name, all: List[Constraint], conditions: List[Constraint], resolution: Resolution): List[(Seen, Path, Name, List[Constraint])] =
-    // TODO: When we get the resolution from R, we give it empty seen/path/constraint. Is this correct?
-    if (resolution.contains(n)) {
-      List((Nil, Nil, resolution(n), Nil))
-    } else {
-      val result = n match {
-        case ConcreteName(namespace, name, pos) =>
-          scope(n, all).flatMap(s =>
-            visible(n :: seen, s, all, conditions, resolution)
-              .filter(_._3.namespace == namespace)
-              .filter(_._3.name == name)
-              .filter { case (_, _, _, cs) =>
-                Consistency.checkNamingConditions(cs ++ conditions)
-              }
-          )
-        case SymbolicName(namespace, name) =>
-          scope(n, all).flatMap(s =>
-            visible(n :: seen, s, all, conditions, resolution)
-              .filter(_._3.namespace == n.namespace)
-              .filter { case (_, _, _, cs) =>
-                assert(Consistency.checkNamingConditions(cs ++ conditions), s"Not consistent: ${cs ++ conditions}")
-                true
-              }
-              .map { case (seen, path, dec, cs) =>
-                (seen, path, dec, Eq(n, dec) :: cs)
-              }
-          )
-      }
-
-      result
+  def resolves(seen: Seen, n: Name, all: List[Constraint], conditions: List[Constraint]): List[(Seen, Path, Name, List[Constraint])] =
+    n match {
+      case ConcreteName(namespace, name, pos) =>
+        scope(n, all).flatMap(s =>
+          visible(n :: seen, s, all, conditions)
+            .filter(_._3.namespace == namespace)
+            .filter(_._3.name == name)
+            .filter { case (_, _, dec, cs) =>
+              Consistency.checkNamingConditions(Eq(n, dec) :: cs ++ conditions)
+            }
+        )
+      case SymbolicName(namespace, name) =>
+        scope(n, all).flatMap(s =>
+          visible(n :: seen, s, all, conditions)
+            .filter(_._3.namespace == namespace)
+            .filter { case (_, _, dec, cs) =>
+              Consistency.checkNamingConditions(Eq(n, dec) :: cs ++ conditions)
+            }
+            .map { case (seen, path, dec, cs) =>
+              (seen, path, dec, Eq(n, dec) :: cs)
+            }
+        )
     }
 }
 

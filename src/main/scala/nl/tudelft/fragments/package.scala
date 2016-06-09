@@ -21,8 +21,8 @@ package object fragments {
     case Some(x) => List(x)
   }
 
-  // Implicitly convert State to List[State]. Allows returning a State when a List[State] is required.
-  implicit def stateToList(s: State): List[State] = List(s)
+  // Implicitly convert State to Option[State]. Allows returning a State when an Option[State] is required.
+  implicit def stateToOption(s: State): Option[State] = Some(s)
 
   implicit class RichList[T](list: List[T]) {
     // Fold until the accumulator becomes None

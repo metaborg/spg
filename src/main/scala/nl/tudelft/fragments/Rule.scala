@@ -9,41 +9,61 @@ case class Rule(sort: Sort, typ: Type, scopes: List[Scope], state: State) {
     val scopeUnifier = hole.scope.unify(freshRule.scopes).get
     val sortUnifier = hole.sort.unify(freshRule.sort).get
 
-    val merged = copy(
-      state =
-        state.merge(hole, freshRule.state)
-    )
-
-    // TODO: 1) The merge may allow us to solve constraints. E.g. merging something with type 't' with something with type 'Int' gives t = Int.
-    // TODO: Now we only substitute the type unifier, but we may propagate this info by solving as well?
-
-    // TODO: 2) Unify `mergex` and `merge` methods.. we don't want duplicate code!
-
-    (merged
+    val merged = copy(state = state.merge(hole, freshRule.state))
       .substituteType(typeUnifier._1)
       .substituteName(typeUnifier._2)
       .substituteScope(scopeUnifier)
       .substituteSort(sortUnifier)
-    , nameBinding)
+
+    val fixed = fix(merged)
+
+    (fixed, nameBinding)
   }
 
+  // Fix broken references by adding name disequalities
+  def fix(rule: Rule) = {
+    // The merge may have broken existing resolutions, fix this
+    val fixedRule = rule.state.resolution.bindings.foldLeft(rule) { case (rule, (ref, (path, dec))) =>
+      // Get the declarations that `ref` may resolve to and remove declarations longer than `dec` as they don't break the resolution
+      val newResolves = Graph
+        .resolves(Nil, ref, rule.state.facts, rule.state.nameConstraints)
+        .filter(_._2.length <= path.length)
+
+      if (newResolves.length != 1 || (newResolves.length == 1 && newResolves.head._3 != dec)) {
+        val newDisEqs = newResolves
+          .filter(_._3 != dec)
+          .map { case (_, _, newDec, _) => Diseq(dec, newDec) }
+
+        rule.copy(state =
+          rule.state.copy(nameConstraints =
+            newDisEqs ++ rule.state.nameConstraints
+          )
+        )
+      } else {
+        rule
+      }
+    }
+
+    // TODO) Sanity check: did we really restore the resolution? (Remove this code eventually)
+    for ((ref, (path, dec)) <- fixedRule.state.resolution.bindings) {
+      val newResolves = Graph
+        .resolves(Nil, ref, fixedRule.state.facts, fixedRule.state.nameConstraints)
+        .filter(_._2.length <= path.length)
+
+      if (newResolves.length != 1 || (newResolves.length == 1 && newResolves.head._3 != dec)) {
+        println(fixedRule)
+        println(newResolves)
+
+        assert(false, "Ook na fixen nog geshadowed?!")
+      }
+    }
+
+    fixedRule
+  }
+
+  // Backwards compatibility
   def merge(hole: TermVar, rule: Rule): Rule = {
-    val (_, freshRule) = rule.freshen()
-
-    val typeUnifier = hole.typ.unify(freshRule.typ).get
-    val scopeUnifier = hole.scope.unify(freshRule.scopes).get
-    val sortUnifier = hole.sort.unify(freshRule.sort).get
-
-    val merged = copy(
-      state =
-        state.merge(hole, freshRule.state)
-    )
-
-    merged
-      .substituteType(typeUnifier._1)
-      .substituteName(typeUnifier._2)
-      .substituteScope(scopeUnifier)
-      .substituteSort(sortUnifier)
+    mergex(hole, rule)._1
   }
 
   def points: List[(Pattern, Sort, List[Scope])] =

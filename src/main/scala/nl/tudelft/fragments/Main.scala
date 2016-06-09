@@ -47,7 +47,7 @@ object Main {
 
 //          println(soln)
 
-          val concrete = Concretor.concretize(r.get._1, soln.random.constraints)
+          val concrete = Concretor.concretize(r.get._1, soln.get.constraints)
 //          println(concrete)
 
           val sterm = Converter.toTerm(concrete)
