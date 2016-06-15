@@ -8,6 +8,8 @@ import nl.tudelft.fragments.Graph._
 object Solver {
   // Rewrite the given constraint in the given state to a list of new states
   def rewrite(c: Constraint, state: State): Option[State] = c match {
+    case True() =>
+      state
     case TypeOf(n@SymbolicName(_, _), t) =>
       if (state.typeEnv.contains(n)) {
         state.addConstraint(TypeEquals(state.typeEnv(n), t))
@@ -166,6 +168,12 @@ case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Co
 object State {
   def apply(constraints: List[Constraint], facts: List[Constraint], typeEnv: TypeEnv, resolution: Resolution, nameConstraints: List[Constraint]): State = {
     State(null, constraints, facts, typeEnv, resolution, nameConstraints)
+  }
+
+  def apply(pattern: Pattern, constraints: List[Constraint]): State = {
+    val (proper, facts) = constraints.partition(_.isProper)
+
+    State(pattern, proper, facts, TypeEnv(), Resolution(), Nil)
   }
 
   def apply(constraints: List[Constraint]): State = {

@@ -1,6 +1,8 @@
 package nl.tudelft.fragments
 
 object Consistency {
+  // TODO: Scope reachability checking!
+
   // Check for consistency
   def check(C: List[Constraint]): Boolean = {
     val result = checkTypeEquals(C).map { case (typeBinding, nameBinding) =>

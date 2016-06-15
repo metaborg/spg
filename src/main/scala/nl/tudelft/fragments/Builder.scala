@@ -40,13 +40,10 @@ object Builder {
 
         val merged = randomRule
           .merge(randomHole, current)
-          .substituteSort(randomHole.sort.unify(current.sort).get)
 
-        // Check consistency
-        if (Consistency.check(merged.constraints)) {
-          val result = build(rules, merged, size, up, down)
+        if (merged.isDefined) {
+          val result = build(rules, merged.get, size, up, down)
 
-          // Return if defined
           if (result.isDefined) {
             return result
           }
@@ -69,13 +66,10 @@ object Builder {
       for (randomRule <- applicable.randomSubset(20)) {
         val merged = current
           .merge(hole, randomRule)
-          .substituteSort(randomRule.sort.unify(hole.sort).get)
 
-        // Check consistency
-        if (Consistency.check(merged.constraints)) {
-          val result = build(rules, merged, size, up, down)
+        if (merged.isDefined) {
+          val result = build(rules, merged.get, size, up, down)
 
-          // Return if defined
           if (result.isDefined) {
             return result
           }
@@ -89,13 +83,16 @@ object Builder {
   // Work towards the root
   def buildToRoot(rules: List[Rule], rule: Rule): List[Rule] = {
     val choices = for (other <- rules; hole <- other.pattern.vars; if hole.sort.unify(rule.sort).isDefined) yield {
-      val merged = other.merge(hole, rule)
+      other.merge(hole, rule)
+    }
 
-      if (Consistency.check(merged.constraints)) {
-        Some(merged)
-      } else {
-        None
-      }
+    choices.flatten
+  }
+
+  // Close given hole in rule
+  def buildToClose(rules: List[Rule], rule: Rule, hole: TermVar): List[Rule] = {
+    val choices = for (other <- rules; if hole.sort.unify(other.sort).isDefined) yield {
+      rule.merge(hole, other)
     }
 
     choices.flatten
@@ -104,13 +101,7 @@ object Builder {
   // Close a hole in rule
   def buildToClose(rules: List[Rule], rule: Rule): List[Rule] = {
     val choices = for (hole <- rule.pattern.vars; other <- rules; if hole.sort.unify(other.sort).isDefined) yield {
-      val merged = rule.merge(hole, other)
-
-      if (Consistency.check(merged.constraints)) {
-        Some(merged)
-      } else {
-        None
-      }
+      rule.merge(hole, other)
     }
 
     choices.flatten
@@ -196,21 +187,27 @@ object Builder {
     r match {
       case (rule, res, scope, p, mergeHole, other, dec) =>
         // Merge in the correct order
-        val (merged, nameBinding) = if (p._1.isInstanceOf[TermVar]) {
+        val mergeResult = if (p._1.isInstanceOf[TermVar]) {
           rule.mergex(mergeHole, other)
         } else {
           other.mergex(mergeHole, rule)
         }
 
-        // The merge may have changed the name of the Res-constraint that we are trying to fix, so apply same name substitution
-        val newRes = res.substitute(nameBinding)
+        if (mergeResult.isDefined) {
+          val (merged, nameBinding) = mergeResult.get
 
-        // Resolve the reference to the declaration and solve additional constraints
-        val resolved = resolve(merged, newRes, dec)
+          // The merge may have changed the name of the Res-constraint that we are trying to fix, so apply same name substitution
+          val newRes = res.substitute(nameBinding)
 
-        // Check consistency of the result
-        if (Consistency.check(resolved.state.constraints)) {
-          List((rule, res, scope, p, mergeHole, other, dec, resolved))
+          // Resolve the reference to the declaration and solve additional constraints
+          val resolved = resolve(merged, newRes, dec)
+
+          // Check consistency of the result. E.g. we might have resolved a reference of type Int to a declaration of type Bool, which is inconsistent
+          if (Consistency.check(resolved.state.constraints)) {
+            List((rule, res, scope, p, mergeHole, other, dec, resolved))
+          } else {
+            Nil
+          }
         } else {
           Nil
         }

@@ -3,6 +3,62 @@ package nl.tudelft.fragments.examples
 import nl.tudelft.fragments._
 
 object MiniJava {
+  // Minimal size needed to root from given sort
+  val up = Map[Sort, Int](
+    SortAppl("Program") -> 0,
+    SortAppl("MainClass") -> 2,
+    SortAppl("List", List(SortAppl("ClassDecl"))) -> 6,
+    SortAppl("ClassDecl") -> 8,
+    SortAppl("ParentDecl") -> 12,
+    SortAppl("List", List(SortAppl("FieldDecl"))) -> 12,
+    SortAppl("FieldDecl") -> 14,
+    SortAppl("List", List(SortAppl("MethodDecl"))) -> 12,
+    SortAppl("MethodDecl") -> 14,
+    SortAppl("List", List(SortAppl("VarDecl"))) -> 20,
+    SortAppl("VarDecl") -> 22,
+    SortAppl("List", List(SortAppl("ParamDecl"))) -> 20,
+    SortAppl("ParamDecl") -> 22,
+    SortAppl("Type") -> 16,
+    SortAppl("List", List(SortAppl("Statement"))) -> 20,
+    SortAppl("Statement") -> 22,
+    SortAppl("List", List(SortAppl("Exp", List()))) -> 20,
+    SortAppl("Exp") -> 20
+  )
+
+  // Minimal size needed to bottom from given sort
+  val down = Map[Sort, Int](
+    SortAppl("Program") -> 7,
+    SortAppl("MainClass") -> 5,
+    SortAppl("List", List(SortAppl("ClassDecl"))) -> 1,
+    SortAppl("ClassDecl") -> 5,
+    SortAppl("ParentDecl") -> 1,
+    SortAppl("List", List(SortAppl("FieldDecl"))) -> 1,
+    SortAppl("FieldDecl") -> 3,
+    SortAppl("List", List(SortAppl("MethodDecl"))) -> 1,
+    SortAppl("MethodDecl") -> 7,
+    SortAppl("List", List(SortAppl("VarDecl"))) -> 1,
+    SortAppl("VarDecl") -> 3,
+    SortAppl("List", List(SortAppl("ParamDecl"))) -> 1,
+    SortAppl("ParamDecl") -> 3,
+    SortAppl("Type") -> 1,
+    SortAppl("List", List(SortAppl("Statement"))) -> 1,
+    SortAppl("Statement") -> 2,
+    SortAppl("List", List(SortAppl("Exp", List()))) -> 1,
+    SortAppl("Exp") -> 1
+  )
+
+  // Sort needed to go to root quickest
+  val root = Map[Sort, Sort](
+    SortAppl("MainClass") -> SortAppl("Program"),
+    SortAppl("List", List(SortAppl("ClassDecl"))) -> SortAppl("Program"),
+    SortAppl("ClassDecl") -> SortAppl("List", List(SortAppl("ClassDecl"))),
+    SortAppl("List", List(SortAppl("MethodDecl"))) -> SortAppl("ClassDecl"),
+    SortAppl("MethodDecl") -> SortAppl("List", List(SortAppl("MethodDecl"))),
+    SortAppl("Statement") -> SortAppl("MethodDecl"),
+    SortAppl("List", List(SortAppl("Exp", List()))) -> SortAppl("Exp"),
+    SortAppl("Exp") -> SortAppl("Statement")
+  )
+
   // Program : MainClass * List(ClassDecl) -> Program
   private val ruleProgram = Rule(
     TermAppl("Program", List(

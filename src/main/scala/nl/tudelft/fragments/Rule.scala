@@ -2,26 +2,43 @@ package nl.tudelft.fragments
 
 // Rule
 case class Rule(sort: Sort, typ: Type, scopes: List[Scope], state: State) {
-  def mergex(hole: TermVar, rule: Rule): (Rule, Map[String, String]) = {
+  def mergex(hole: TermVar, rule: Rule): Option[(Rule, Map[String, String])] = {
+    // Prevent naming conflicts by freshening the names in the other rule
     val (nameBinding, freshRule) = rule.freshen()
 
-    val typeUnifier = hole.typ.unify(freshRule.typ).get
-    val scopeUnifier = hole.scope.unify(freshRule.scopes).get
-    val sortUnifier = hole.sort.unify(freshRule.sort).get
+    // Unify sort, type, scope and merge the rules
+    val merged = for (
+      sortUnifier <- hole.sort.unify(freshRule.sort);
+      typeUnifier <- hole.typ.unify(freshRule.typ);
+      scopeUnifier <- hole.scope.unify(freshRule.scopes)
+    ) yield {
+      val merged = copy(state = state.merge(hole, freshRule.state))
+        .substituteSort(sortUnifier)
+        .substituteType(typeUnifier._1)
+        .substituteName(typeUnifier._2)
+        .substituteScope(scopeUnifier)
 
-    val merged = copy(state = state.merge(hole, freshRule.state))
-      .substituteType(typeUnifier._1)
-      .substituteName(typeUnifier._2)
-      .substituteScope(scopeUnifier)
-      .substituteSort(sortUnifier)
+      // The merge might have broken references. Restore these by adding name disequalities.
+      restoreResolution(merged)
+    }
 
-    val fixed = fix(merged)
+    // Check consistency. E.g. the merge might have unified t1 with t2, but if t1 = Int, t2 = Bool, it's inconsistent
+    merged.flatMap(rule =>
+      if (Consistency.check(merged.get.state.constraints)) {
+        Some((merged.get, nameBinding))
+      } else {
+        None
+      }
+    )
+  }
 
-    (fixed, nameBinding)
+  // Backwards compatibility
+  def merge(hole: TermVar, rule: Rule): Option[Rule] = {
+    mergex(hole, rule).map(_._1)
   }
 
   // Fix broken references by adding name disequalities
-  def fix(rule: Rule) = {
+  def restoreResolution(rule: Rule) = {
     // The merge may have broken existing resolutions, fix this
     val fixedRule = rule.state.resolution.bindings.foldLeft(rule) { case (rule, (ref, (path, dec))) =>
       // Get the declarations that `ref` may resolve to and remove declarations longer than `dec` as they don't break the resolution
@@ -59,11 +76,6 @@ case class Rule(sort: Sort, typ: Type, scopes: List[Scope], state: State) {
     }
 
     fixedRule
-  }
-
-  // Backwards compatibility
-  def merge(hole: TermVar, rule: Rule): Rule = {
-    mergex(hole, rule)._1
   }
 
   def points: List[(Pattern, Sort, List[Scope])] =
@@ -111,272 +123,6 @@ case class Rule(sort: Sort, typ: Type, scopes: List[Scope], state: State) {
 object Rule {
   def apply(pattern: Pattern, sort: Sort, typ: Type, scopes: List[Scope], state: State): Rule =
     Rule(sort, typ, scopes, state.copy(pattern = pattern))
-}
-
-// Constraint
-abstract class Constraint {
-  def substituteType(binding: TypeBinding): Constraint
-
-  def substituteScope(binding: ScopeBinding): Constraint
-
-  def substituteName(binding: NameBinding): Constraint
-
-  def substituteConcrete(binding: ConcreteBinding): Constraint
-
-  def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint)
-
-  def isProper: Boolean = false
-}
-
-// Facts
-case class Par(s1: Scope, s2: Scope) extends Constraint {
-  override def substituteType(binding: TypeBinding): Constraint =
-    this
-
-  override def substituteScope(binding: ScopeBinding): Constraint =
-    Par(s1.substituteScope(binding), s2.substituteScope(binding))
-
-  override def substituteName(binding: NameBinding): Constraint =
-    this
-
-  override def substituteConcrete(binding: ConcreteBinding): Constraint =
-    this
-
-  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
-    s1.freshen(nameBinding).map { case (nameBinding, s1) =>
-      s2.freshen(nameBinding).map { case (nameBinding, s2) =>
-        (nameBinding, Par(s1, s2))
-      }
-    }
-}
-
-case class Dec(s: Scope, n: Name) extends Constraint {
-  override def substituteType(binding: TypeBinding): Constraint =
-    this
-
-  override def substituteScope(binding: ScopeBinding): Constraint =
-    Dec(s.substituteScope(binding), n)
-
-  override def substituteName(binding: NameBinding): Constraint =
-    Dec(s, n.substituteName(binding))
-
-  override def substituteConcrete(binding: ConcreteBinding): Constraint =
-    Dec(s, n.substituteConcrete(binding))
-
-  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
-    s.freshen(nameBinding).map { case (nameBinding, s) =>
-      n.freshen(nameBinding).map { case (nameBinding, n) =>
-        (nameBinding, Dec(s, n))
-      }
-    }
-}
-
-case class Ref(n: Name, s: Scope) extends Constraint {
-  override def substituteType(binding: TypeBinding): Constraint =
-    this
-
-  override def substituteScope(binding: ScopeBinding): Constraint =
-    Ref(n, s.substituteScope(binding))
-
-  override def substituteName(binding: NameBinding): Constraint =
-    Ref(n.substituteName(binding), s)
-
-  override def substituteConcrete(binding: ConcreteBinding): Constraint =
-    Ref(n.substituteConcrete(binding), s)
-
-  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
-    n.freshen(nameBinding).map { case (nameBinding, n) =>
-      s.freshen(nameBinding).map { case (nameBinding, s) =>
-        (nameBinding, Ref(n, s))
-      }
-    }
-}
-
-case class DirectImport(s1: Scope, s2: Scope) extends Constraint {
-  override def substituteType(binding: TypeBinding): Constraint =
-    this
-
-  override def substituteScope(binding: ScopeBinding): Constraint =
-    DirectImport(s1.substituteScope(binding), s2.substituteScope(binding))
-
-  override def substituteName(binding: NameBinding): Constraint =
-    this
-
-  override def substituteConcrete(binding: ConcreteBinding): Constraint =
-    this
-
-  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
-    s1.freshen(nameBinding).map { case (nameBinding, s1) =>
-      s2.freshen(nameBinding).map { case (nameBinding, s2) =>
-        (nameBinding, DirectImport(s1, s2))
-      }
-    }
-}
-
-case class AssociatedImport(s: Scope, n: Name) extends Constraint {
-  override def substituteType(binding: TypeBinding): Constraint =
-    this
-
-  override def substituteName(binding: NameBinding): Constraint =
-    AssociatedImport(s, n.substituteName(binding))
-
-  override def substituteScope(binding: ScopeBinding): Constraint =
-    AssociatedImport(s.substituteScope(binding), n)
-
-  override def substituteConcrete(binding: ConcreteBinding): Constraint =
-    AssociatedImport(s, n.substituteConcrete(binding))
-
-  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
-    s.freshen(nameBinding).map { case (nameBinding, s) =>
-      n.freshen(nameBinding).map { case (nameBinding, n) =>
-        (nameBinding, AssociatedImport(s, n))
-      }
-    }
-}
-
-case class AssocFact(n: Name, s: Scope) extends Constraint {
-  override def substituteType(binding: TypeBinding): Constraint =
-    this
-
-  override def substituteScope(binding: ScopeBinding): Constraint =
-    AssocFact(n, s.substituteScope(binding))
-
-  override def substituteName(binding: NameBinding): Constraint =
-    AssocFact(n.substituteName(binding), s)
-
-  override def substituteConcrete(binding: ConcreteBinding): Constraint =
-    AssocFact(n.substituteConcrete(binding), s)
-
-  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
-    n.freshen(nameBinding).map { case (nameBinding, n) =>
-      s.freshen(nameBinding).map { case (nameBinding, s) =>
-        (nameBinding, AssocFact(n, s))
-      }
-    }
-}
-
-// Proper constraints
-case class AssocConstraint(n: Name, s: Scope) extends Constraint {
-  override def substituteType(binding: TypeBinding): Constraint =
-    this
-
-  override def substituteScope(binding: ScopeBinding): Constraint =
-    AssocConstraint(n, s.substituteScope(binding))
-
-  override def substituteName(binding: NameBinding): Constraint =
-    AssocConstraint(n.substituteName(binding), s)
-
-  override def substituteConcrete(binding: ConcreteBinding): Constraint =
-    AssocConstraint(n.substituteConcrete(binding), s)
-
-  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
-    n.freshen(nameBinding).map { case (nameBinding, n) =>
-      s.freshen(nameBinding).map { case (nameBinding, s) =>
-        (nameBinding, AssocConstraint(n, s))
-      }
-    }
-
-  override def isProper =
-    true
-}
-
-case class Res(n1: Name, n2: Name) extends Constraint {
-  def substitute(nameBinding: Map[String, String]) =
-    Res(n1.substitute(nameBinding), n2.substitute(nameBinding))
-
-  override def substituteType(binding: TypeBinding): Constraint =
-    this
-
-  override def substituteScope(binding: ScopeBinding): Constraint =
-    Res(n1, n2)
-
-  override def substituteName(binding: NameBinding): Constraint =
-    Res(n1.substituteName(binding), n2.substituteName(binding))
-
-  override def substituteConcrete(binding: ConcreteBinding): Constraint =
-    Res(n1.substituteConcrete(binding), n2.substituteConcrete(binding))
-
-  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Res) =
-    n1.freshen(nameBinding).map { case (nameBinding, n1) =>
-      n2.freshen(nameBinding).map { case (nameBinding, n2) =>
-        (nameBinding, Res(n1, n2))
-      }
-    }
-
-  override def isProper =
-    true
-}
-
-case class TypeOf(n: Name, t: Type) extends Constraint {
-  override def substituteType(binding: TypeBinding): Constraint =
-    TypeOf(n, t.substituteType(binding))
-
-  override def substituteScope(binding: ScopeBinding): Constraint =
-    this
-
-  override def substituteName(binding: NameBinding): Constraint =
-    TypeOf(n.substituteName(binding), t.substituteName(binding))
-
-  override def substituteConcrete(binding: ConcreteBinding): Constraint =
-    TypeOf(n.substituteConcrete(binding), t)
-
-  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
-    t.freshen(nameBinding).map { case (nameBinding, t) =>
-      n.freshen(nameBinding).map { case (nameBinding, n) =>
-        (nameBinding, TypeOf(n, t))
-      }
-    }
-
-  override def isProper =
-    true
-}
-
-case class TypeEquals(t1: Type, t2: Type) extends Constraint {
-  override def substituteType(binding: TypeBinding): Constraint =
-    TypeEquals(t1.substituteType(binding), t2.substituteType(binding))
-
-  override def substituteScope(binding: ScopeBinding): Constraint =
-    this
-
-  override def substituteName(binding: NameBinding): Constraint =
-    TypeEquals(t1.substituteName(binding), t2.substituteName(binding))
-
-  override def substituteConcrete(binding: ConcreteBinding): Constraint =
-    TypeEquals(t1.substituteConcrete(binding), t2.substituteConcrete(binding))
-
-  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
-    t1.freshen(nameBinding).map { case (nameBinding, t1) =>
-      t2.freshen(nameBinding).map { case (nameBinding, t2) =>
-        (nameBinding, TypeEquals(t1, t2))
-      }
-    }
-
-  override def isProper =
-    true
-}
-
-case class Subtype(t1: Type, t2: Type) extends Constraint {
-  override def substituteType(binding: TypeBinding): Constraint =
-    Subtype(t1.substituteType(binding), t2.substituteType(binding))
-
-  override def substituteScope(binding: ScopeBinding): Constraint =
-    this
-
-  override def substituteName(binding: NameBinding): Constraint =
-    Subtype(t1.substituteName(binding), t2.substituteName(binding))
-
-  override def substituteConcrete(binding: ConcreteBinding): Constraint =
-    Subtype(t1.substituteConcrete(binding), t2.substituteConcrete(binding))
-
-  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
-    t1.freshen(nameBinding).map { case (nameBinding, t1) =>
-      t2.freshen(nameBinding).map { case (nameBinding, t2) =>
-        (nameBinding, Subtype(t1, t2))
-      }
-    }
-
-  override def isProper =
-    true
 }
 
 // Sort
