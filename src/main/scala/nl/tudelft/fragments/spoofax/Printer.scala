@@ -9,18 +9,16 @@ object Printer {
   val s = MainBuilder.spoofax
 
   def printer(languagePath: String) = {
-    // TODO: languageLocation == projectLocation ?
     val languageLocation = s.resourceService.resolve(languagePath)
-    val projectLocation = s.resourceService.resolve(languagePath)
 
-    val languageComponents = s.discoverLanguages(projectLocation)
+    val languageComponents = s.discoverLanguages(languageLocation)
     val component = Iterables.get(languageComponents, 0)
     val languageImpl = Iterables.get(component.contributesTo(), 0)
 
     val projectService = s.injector.getInstance(classOf[SimpleProjectService])
-    projectService.create(projectLocation)
+    projectService.create(languageLocation)
 
-    val project = s.projectService.get(projectLocation)
+    val project = s.projectService.get(languageLocation)
     val context = s.contextService.get(languageLocation, project, languageImpl)
     val runtime = s.strategoRuntimeService.runtime(component, context, false)
 

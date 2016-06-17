@@ -120,12 +120,12 @@ object Solver {
   * @param nameConstraints The naming constraints
   */
 case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Constraint], typeEnv: TypeEnv, resolution: Resolution, nameConstraints: List[Constraint]) {
-  def merge(hole: TermVar, state: State): State = {
+  def merge(recurse: Recurse, state: State): State = {
     State(
       pattern =
-        pattern.substituteTerm(Map(hole -> state.pattern)),
+        pattern.substituteTerm(Map(recurse.pattern.asInstanceOf[TermVar] -> state.pattern)),
       constraints =
-        constraints ++ state.constraints,
+        constraints ++ state.constraints - recurse,
       facts =
         facts ++ state.facts,
       typeEnv =

@@ -7,6 +7,7 @@ import org.apache.commons.io.IOUtils
 import org.spoofax.interpreter.terms.{IStrategoList, IStrategoString, IStrategoTerm}
 import org.spoofax.terms.{StrategoAppl, StrategoList}
 
+// TODO: Handle injections. Now we have 'ResetSort' second sort in App constructor, but no constructors for ResetSort since it's an injection..
 object Specification {
   val s = MainBuilder.spoofax
 
@@ -28,82 +29,89 @@ object Specification {
     val rules = toRules(parseResult.ast().getSubterm(1).getSubterm(2))
 
     rules
-      // Inline Recurse constraints with the TermVars
       .map(inlineRecurse)
-      // Annotate TermVars with their sorts
-      .map { case r@Rule(_, _, _, state) =>
-        r.copy(state =
-          state.copy(pattern =
-            inlineSort(r.state.pattern)
-          )
-        )
-      }
-      // Inline names
-      .map(inlineNames)
   }
 
   /**
-    * Replace TermVar by PatternNameAdapter(SymbolicName(..)) if the sort is ID
+    * Add sort to the Recurse constraints based on the position
     */
-  def inlineNames(rule: Rule): Rule = {
-    val holes = rule.state.pattern.vars
-
-    holes.foldLeft(rule) { case (rule, hole) =>
-      if (hole.sort == SortAppl("ID")) {
-        rule.copy(state =
-          rule.state.copy(pattern =
-            rule.state.pattern.substituteTerm(
-              Map(hole -> PatternNameAdapter(SymbolicName("TODO", hole.name)))
-            )
-          )
+  def inlineRecurse(rule: Rule)(implicit signatures: List[Decl]) = {
+    rule.recurse.foldLeft(rule) { case (rule, r@Recurse(variable, scopes, typ, null)) =>
+      rule.copy(
+        state = rule.state.copy(
+          constraints = Recurse(variable, scopes, typ, getSort(rule.pattern, variable).get) :: rule.state.constraints - r
         )
-      } else {
-        rule
-      }
-    }
-  }
-
-  /**
-    * Inline the Recurse constraints with the corresonding TermVar
-    */
-  def inlineRecurse(rule: Rule) = {
-    val recurseConstraints = rule.constraints
-      .filter(_.isInstanceOf[Recurse])
-      .map(_.asInstanceOf[Recurse])
-
-    val inlinedRule = recurseConstraints.foldLeft(rule) { case (rule, Recurse(p@TermVar(name, _, _, _), scopes, typ)) =>
-      rule.copy(state = rule.state.copy(
-        pattern = rule.state.pattern.substituteTerm(
-          Map(p -> TermVar(name, null, typ, scopes))
-        )
-      ))
-    }
-
-    inlinedRule.copy(state =
-      inlinedRule.state.copy(constraints =
-        inlinedRule.state.constraints diff recurseConstraints
       )
-    )
+    }
   }
 
   /**
-    * Inline the sort for TermVars
+    * Get sort for pattern p2 in pattern p1
     */
-  def inlineSort(pattern: Pattern)(implicit signatures: List[Decl]): Pattern = pattern match {
-    case termAppl@TermAppl(cons, children) =>
-      val signature = getSignature(pattern).get
-      val childSorts = signature.typ match {
+  def getSort(p1: Pattern, p2: Pattern, sort: Option[fragments.Sort] = None)(implicit signatures: List[Decl]): Option[fragments.Sort] = (p1, p2) match {
+    case (_, _) if p1 == p2 =>
+      sort
+    case (termAppl@TermAppl(_, children), _) =>
+      val signature = getSignature(p1).get
+
+      val sorts = signature.typ match {
         case FunType(children, _) =>
           children
         case ConstType(_) =>
           Nil
       }
 
-      TermAppl(cons, (children, childSorts).zipped.map {
-        case (TermVar(name, _, typ, scope), ConstType(sort)) =>
-          TermVar(name, toSort(sort), typ, scope)
-      })
+      (children, sorts).zipped.foldLeft(Option.empty[fragments.Sort]) {
+        case (Some(x), _) =>
+          Some(x)
+        case (_, (child, sort)) =>
+          getSort(child, p2, Some(toSort(sort)))
+      }
+    case _ =>
+      None
   }
+
+//  /**
+//    * Inline the Recurse constraints with the corresonding TermVar
+//    */
+//  def inlineRecurse(rule: Rule) = {
+//    val recurseConstraints = rule.constraints
+//      .filter(_.isInstanceOf[Recurse])
+//      .map(_.asInstanceOf[Recurse])
+//
+//    val inlinedRule = recurseConstraints.foldLeft(rule) { case (rule, Recurse(p@TermVar(name, _), _, _, _)) =>
+//      rule.copy(state = rule.state.copy(
+//        pattern = rule.state.pattern.substituteTerm(
+//          Map(p -> TermVar(name, null))
+//        )
+//      ))
+//    }
+//
+//    inlinedRule.copy(state =
+//      inlinedRule.state.copy(constraints =
+//        inlinedRule.state.constraints diff recurseConstraints
+//      )
+//    )
+//  }
+//
+//  /**
+//    * Inline the sort for TermVars
+//    */
+//  def inlineSort(pattern: Pattern)(implicit signatures: List[Decl]): Pattern = pattern match {
+//    case termAppl@TermAppl(cons, children) =>
+//      val signature = getSignature(pattern).get
+//      val childSorts = signature.typ match {
+//        case FunType(children, _) =>
+//          children
+//        case ConstType(_) =>
+//          Nil
+//      }
+//
+//      TermAppl(cons, (children, childSorts).zipped.map {
+//        case (TermVar(name, null), ConstType(sort)) =>
+//          TermVar(name, toSort(sort))
+//      })
+//  }
 
   /**
     * Get signature for the given Pattern
@@ -164,12 +172,14 @@ object Specification {
   def toSort(pattern: Pattern)(implicit signatures: List[Decl]): fragments.Sort = {
     val sort = getSignature(pattern)
 
-    sort.get.typ match {
-      case FunType(children, ConstType(SortNoArgs(name))) =>
-        SortAppl(name)
-      case ConstType(SortNoArgs(name)) =>
-        SortAppl(name)
-    }
+    toSort(sort.get.typ)
+  }
+
+  def toSort(typ: Signatures.Type): fragments.Sort = typ match {
+    case FunType(children, ConstType(SortNoArgs(name))) =>
+      SortAppl(name)
+    case ConstType(SortNoArgs(name)) =>
+      SortAppl(name)
   }
 
   def toSort(sort: Sort): fragments.Sort = sort match {
@@ -184,9 +194,9 @@ object Specification {
     case appl: StrategoAppl if appl.getConstructor.getName == "Op" =>
       TermAppl(appl.getSubterm(0).asInstanceOf[IStrategoString].stringValue(), toPatternsList(appl.getSubterm(1)))
     case appl: StrategoAppl if appl.getConstructor.getName == "Var" =>
-      TermVar(appl.getSubterm(0).asInstanceOf[IStrategoString].stringValue(), null, null, null) // TODO: Inline recurse with TermVar?
+      TermVar(appl.getSubterm(0).asInstanceOf[IStrategoString].stringValue())
     case appl: StrategoAppl if appl.getConstructor.getName == "Wld" =>
-      TermVar(null, null, null, null) // TODO: Model wildcards explicitly or just invent random names?
+      TermVar(null) // TODO: Model wildcards explicitly or just invent random names?
   }
 
   def toPatternsList(term: IStrategoTerm): List[Pattern] = term match {
@@ -268,6 +278,6 @@ object Specification {
     case appl: StrategoAppl if appl.getConstructor.getName == "CEqual" =>
       TypeEquals(toType(appl.getSubterm(0)), toType(appl.getSubterm(1)))
     case appl: StrategoAppl if appl.getConstructor.getName == "CGenRecurse" =>
-      Recurse(toPattern(appl.getSubterm(1)), toScopes(appl.getSubterm(2)), toType(appl.getSubterm(3)))
+      Recurse(toPattern(appl.getSubterm(1)), toScopes(appl.getSubterm(2)), toType(appl.getSubterm(3)), null)
   }
 }

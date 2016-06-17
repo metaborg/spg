@@ -34,11 +34,7 @@ object MainBuilder {
 
     println(rules)
 
-//    val rules = MiniJava.rules
-//    val types = MiniJava.types
-//    val printer = Printer.print("/Users/martijn/Documents/workspace/MiniJava")
-
-    // Generation phase (TODO: the generated rules should not be "beyond repair", i.e. there must be reachable scopes to which we can add a declaration)
+    // Generation phase
     //val kb = repeat(generateNaive, 10)(rules)
     //val (kb, _) = repeat(Function.tupled(generateIntelligent _), 10)((rules, Map.empty))
     val kb1 = repeat(generateOutwards, 2)(rules)
@@ -94,7 +90,7 @@ object MainBuilder {
 
       breakable {
         for (choice <- Random.shuffle(choices).slice(0, 100)) {
-          val nested = generateComplete(rules, choice._8, size)
+          val nested = generateComplete(rules, choice._7, size)
 
           if (nested.isDefined) {
             result = nested.get
@@ -124,11 +120,11 @@ object MainBuilder {
     }
     */
 
-    // Then, eagerly close random holes
-    if (result.state.pattern.vars.nonEmpty) {
-      // For each hole
-      for (hole <- result.state.pattern.vars) {
-        val choices = Builder.buildToClose(rules, result, hole)
+    // Then, eagerly solve Recurse constraints
+    if (result.recurse.nonEmpty) {
+      // For each recurse constraint
+      for (recurse <- result.recurse) {
+        val choices = Builder.buildToClose(rules, result, recurse)
 
         // Shuffle the choices
         val limitedChoices = Random.shuffle(choices)
@@ -159,30 +155,30 @@ object MainBuilder {
 
   // Generate rules by combining each rule with every other rule
   def generateOutwards(rules: List[Rule]): List[Rule] = {
-    val compute = for (rule <- rules; hole <- rule.pattern.vars; other <- rules) yield
-      (rule, hole, other)
+    val compute = for (rule <- rules; recurse <- rule.recurse; other <- rules) yield
+      (rule, recurse, other)
 
-    val generated = compute.flatMap { case (rule, hole, other) =>
-      rule.merge(hole, other)
+    val generated = compute.flatMap { case (rule, recurse, other) =>
+      rule.merge(recurse, other)
     }
 
     generated ++ rules
   }
 
   // Generate rules by combining a random rule with another rule that matches the hole. OBSERVATION: misses crucial parts due to randomness..
-  def generateIntelligent(rules: List[Rule], cache: Map[(Rule, TermVar, Rule), Option[Rule]]): (List[Rule], Map[(Rule, TermVar, Rule), Option[Rule]]) = {
+  def generateIntelligent(rules: List[Rule], cache: Map[(Rule, Recurse, Rule), Option[Rule]]): (List[Rule], Map[(Rule, Recurse, Rule), Option[Rule]]) = {
     println("Generated now " + rules.length)
 
     // Compute what needs to be computed
-    val compute = for (r1 <- rules; hole <- r1.pattern.vars; r2 <- rules; if !cache.contains((r1, hole, r2)))
-      yield (r1, hole, r2)
+    val compute = for (r1 <- rules; recurse <- r1.recurse; r2 <- rules; if !cache.contains((r1, recurse, r2)))
+      yield (r1, recurse, r2)
 
-    for ((r1, hole, r2) <- Random.shuffle(compute)) {
-      if (r2.sort.unify(hole.sort).isDefined) {
-        val merged = r1.merge(hole, r2)
+    for ((r1, recurse, r2) <- Random.shuffle(compute)) {
+      if (r2.sort.unify(recurse.sort).isDefined) {
+        val merged = r1.merge(recurse, r2)
 
         if (merged.isDefined) {
-          return (merged.get :: rules, cache.updated((r1, hole, r2), merged))
+          return (merged.get :: rules, cache.updated((r1, recurse, r2), merged))
         }
       }
     }
@@ -195,9 +191,9 @@ object MainBuilder {
     val r1 = rules.random
     val r2 = rules.random
 
-    if (r1.pattern.vars.nonEmpty) {
-      val hole = r1.pattern.vars.random
-      val merged = r1.merge(hole, r2)
+    if (r1.recurse.nonEmpty) {
+      val recurse = r1.recurse.random
+      val merged = r1.merge(recurse, r2)
 
       if (merged.isDefined) {
         return merged.get :: rules

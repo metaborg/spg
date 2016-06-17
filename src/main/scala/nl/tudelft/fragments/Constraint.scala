@@ -31,6 +31,9 @@ case class True() extends Constraint {
 
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
     (nameBinding, this)
+
+  override def isProper: Boolean =
+    true
 }
 
 case class Par(s1: Scope, s2: Scope) extends Constraint {
@@ -283,21 +286,27 @@ case class Subtype(t1: Type, t2: Type) extends Constraint {
     true
 }
 
-case class Recurse(pattern: Pattern, scopes: List[Scope], typ: Type) extends Constraint {
+case class Recurse(pattern: Pattern, scopes: List[Scope], typ: Type, sort: Sort) extends Constraint {
   override def substituteType(binding: TypeBinding): Constraint =
-    ???
+    Recurse(pattern.substituteType(binding), scopes, typ.substituteType(binding), sort)
 
   override def substituteName(binding: NameBinding): Constraint =
-    ???
+    Recurse(pattern.substituteName(binding), scopes, typ.substituteName(binding), sort)
 
   override def substituteConcrete(binding: ConcreteBinding): Constraint =
-    ???
-
-  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
-    ???
+    Recurse(pattern.substituteConcrete(binding), scopes, typ.substituteConcrete(binding), sort)
 
   override def substituteScope(binding: ScopeBinding): Constraint =
-    ???
+    Recurse(pattern.substituteScope(binding), scopes.substituteScope(binding), typ, sort)
+
+  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
+    pattern.freshen(nameBinding).map { case (nameBinding, pattern) =>
+      scopes.freshen(nameBinding).map { case (nameBinding, scopes) =>
+        typ.freshen(nameBinding).map { case (nameBinding, typ) =>
+          (nameBinding, Recurse(pattern, scopes, typ, sort))
+        }
+      }
+    }
 
   override def isProper =
     true

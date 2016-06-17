@@ -2,17 +2,17 @@ package nl.tudelft.fragments
 
 // Rule
 case class Rule(sort: Sort, typ: Type, scopes: List[Scope], state: State) {
-  def mergex(hole: TermVar, rule: Rule): Option[(Rule, Map[String, String])] = {
+  def mergex(recurse: Recurse, rule: Rule): Option[(Rule, Map[String, String])] = {
     // Prevent naming conflicts by freshening the names in the other rule
     val (nameBinding, freshRule) = rule.freshen()
 
     // Unify sort, type, scope and merge the rules
     val merged = for (
-      sortUnifier <- hole.sort.unify(freshRule.sort);
-      typeUnifier <- hole.typ.unify(freshRule.typ);
-      scopeUnifier <- hole.scope.unify(freshRule.scopes)
+      sortUnifier <- recurse.sort.unify(freshRule.sort);
+      typeUnifier <- recurse.typ.unify(freshRule.typ);
+      scopeUnifier <- recurse.scopes.unify(freshRule.scopes)
     ) yield {
-      val merged = copy(state = state.merge(hole, freshRule.state))
+      val merged = copy(state = state.merge(recurse, freshRule.state))
         .substituteSort(sortUnifier)
         .substituteType(typeUnifier._1)
         .substituteName(typeUnifier._2)
@@ -33,8 +33,8 @@ case class Rule(sort: Sort, typ: Type, scopes: List[Scope], state: State) {
   }
 
   // Backwards compatibility
-  def merge(hole: TermVar, rule: Rule): Option[Rule] = {
-    mergex(hole, rule).map(_._1)
+  def merge(recurse: Recurse, rule: Rule): Option[Rule] = {
+    mergex(recurse, rule).map(_._1)
   }
 
   // Fix broken references by adding name disequalities
@@ -78,12 +78,19 @@ case class Rule(sort: Sort, typ: Type, scopes: List[Scope], state: State) {
     fixedRule
   }
 
+  def recurse: List[Recurse] =
+    state.constraints
+      .filter(_.isInstanceOf[Recurse])
+      .asInstanceOf[List[Recurse]]
+
   def points: List[(Pattern, Sort, List[Scope])] =
-    if (sort != SortAppl("ProgramDecl")) {
-      (pattern, sort, scopes) :: pattern.points
-    } else {
-      pattern.points
-    }
+    ???
+    // TODO: Make this langauge-dependent
+//    if (sort != SortAppl("ProgramDecl")) {
+//      (pattern, sort, scopes) :: recurse
+//    } else {
+//      recurse
+//    }
 
   // Backwards compatibility
   def constraints: List[Constraint] =
@@ -202,7 +209,7 @@ case class TermAppl(cons: String, children: List[Pattern] = Nil) extends Pattern
     children.flatMap(_.vars).distinct
 
   override def points: List[(Pattern, Sort, List[Scope])] =
-    vars.map(hole => (hole, hole.sort, hole.scope))
+    ??? // vars.map(hole => (hole, hole.sort, hole.scope))
 
   override def size: Int =
     1 + children.map(_.size).sum
@@ -237,7 +244,7 @@ case class TermAppl(cons: String, children: List[Pattern] = Nil) extends Pattern
     s"""TermAppl("$cons", $children)"""
 }
 
-case class TermVar(name: String, sort: Sort, typ: Type, scope: List[Scope]) extends Pattern {
+case class TermVar(name: String) extends Pattern {
   override def vars: List[TermVar] =
     List(this)
 
@@ -254,10 +261,10 @@ case class TermVar(name: String, sort: Sort, typ: Type, scope: List[Scope]) exte
     binding.getOrElse(this, this)
 
   override def substituteType(binding: TypeBinding): Pattern =
-    TermVar(name, sort, typ.substituteType(binding), scope)
+    TermVar(name)
 
   override def substituteScope(binding: ScopeBinding): Pattern =
-    TermVar(name, sort, typ, scope.substituteScope(binding))
+    TermVar(name)
 
   override def substituteName(binding: NameBinding): Pattern =
     this
@@ -266,22 +273,18 @@ case class TermVar(name: String, sort: Sort, typ: Type, scope: List[Scope]) exte
     this
 
   override def substituteSort(binding: SortBinding): Pattern =
-    TermVar(name, sort.substituteSort(binding), typ, scope)
+    TermVar(name)
 
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Pattern) =
-    typ.freshen(nameBinding).map { case (nameBinding, typ) =>
-      scope.freshen(nameBinding).map { case (nameBinding, scope) =>
-        if (nameBinding.contains(name)) {
-          (nameBinding, TermVar(nameBinding(name), sort, typ, scope))
-        } else {
-          val fresh = "x" + nameProvider.next
-          (nameBinding + (name -> fresh), TermVar(fresh, sort, typ, scope))
-        }
-      }
+    if (nameBinding.contains(name)) {
+      (nameBinding, TermVar(nameBinding(name)))
+    } else {
+      val fresh = "x" + nameProvider.next
+      (nameBinding + (name -> fresh), TermVar(fresh))
     }
 
   override def toString: String =
-    s"""TermVar("$name", $sort, $typ, $scope)"""
+    s"""TermVar("$name")"""
 }
 
 case class PatternNameAdapter(n: Name) extends Pattern {
