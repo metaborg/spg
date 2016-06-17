@@ -54,6 +54,16 @@ package object fragments {
     def random: T =
       list(Random.nextInt(list.length))
 
+    // Get random element from the list
+    def safeRandom: Option[T] = list match {
+      case Nil => None
+      case _ => Some(list(Random.nextInt(list.length)))
+    }
+
+    // Shuffle elements of the list
+    def shuffle: List[T] =
+      Random.shuffle(list)
+
     // Get a random subset of the list
     def randomSubset(n: Int): List[T] =
       Random.shuffle(list).take(n)

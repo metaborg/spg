@@ -2,14 +2,14 @@ package nl.tudelft.fragments.spoofax
 
 import nl.tudelft.fragments
 import nl.tudelft.fragments.spoofax.Signatures._
-import nl.tudelft.fragments.{Constraint, Dec, MainBuilder, Name, NameVar, Par, Pattern, PatternNameAdapter, Recurse, Ref, Res, Rule, Scope, ScopeVar, SortAppl, State, SymbolicName, TermAppl, TermVar, True, Type, TypeAppl, TypeEquals, TypeOf, TypeVar}
+import nl.tudelft.fragments.{Constraint, Dec, Strategy2, Name, NameVar, Par, Pattern, PatternNameAdapter, Recurse, Ref, Res, Rule, Scope, ScopeVar, SortAppl, State, SymbolicName, TermAppl, TermVar, True, Type, TypeAppl, TypeEquals, TypeOf, TypeVar}
 import org.apache.commons.io.IOUtils
 import org.spoofax.interpreter.terms.{IStrategoList, IStrategoString, IStrategoTerm}
 import org.spoofax.terms.{StrategoAppl, StrategoList}
 
 // TODO: Handle injections. Now we have 'ResetSort' second sort in App constructor, but no constructors for ResetSort since it's an injection..
 object Specification {
-  val s = MainBuilder.spoofax
+  val s = Strategy2.spoofax
 
   /**
     * Parse the specification (constraint generation function)

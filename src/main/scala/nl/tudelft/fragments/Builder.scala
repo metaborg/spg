@@ -174,14 +174,11 @@ object Builder {
           val newRes = res.substitute(nameBinding)
 
           // Resolve the reference to the declaration and solve additional constraints
-          val resolved = resolve(merged, newRes, dec)
+          val resolvedOpt = resolve(merged, newRes, dec)
 
-          // Check consistency of the result. E.g. we might have resolved a reference of type Int to a declaration of type Bool, which is inconsistent
-          if (Consistency.check(resolved.state.constraints)) {
-            List((rule, res, scope, recurse, other, dec, resolved))
-          } else {
-            Nil
-          }
+          resolvedOpt
+            .map(resolved => List((rule, res, scope, recurse, other, dec, resolved)))
+            .getOrElse(Nil)
         }.getOrElse(Nil)
     }
   }
@@ -224,13 +221,11 @@ object Builder {
 
   def withResolvedInternal(r: (Rule, Res, Name)): List[(Rule, Res, Name, Rule)] = r match {
     case (rule, res, dec) =>
-      val resolved = resolve(rule, res, dec)
+      val resolvedOpt = resolve(rule, res, dec)
 
-      if (Consistency.check(resolved.state.constraints)) {
-        List((rule, res, dec, resolved))
-      } else {
-        Nil
-      }
+      resolvedOpt
+        .map(resolved => List((rule, res, dec, resolved)))
+        .getOrElse(Nil)
   }
 
   def buildToResolveInternal(rules: List[Rule], rule: Rule): List[(Rule, Res, Name, Rule)] = {
@@ -279,8 +274,8 @@ object Builder {
       })
     )
 
-  // Resolve the reference in the given resolution constraint to the given declaration. Assumes the resolution is consistent.
-  def resolve(rule: Rule, res: Res, dec: Name): Rule = res match {
+  // Attempts to resolve the reference from the given resolution constraint
+  def resolve(rule: Rule, res: Res, dec: Name): Option[Rule] = res match {
     case Res(n, d@NameVar(_)) =>
       Solver
         // Rewrite the resolution constraint
@@ -289,8 +284,8 @@ object Builder {
         .flatMap(Solver.solvePartial)
         // Create new rule with new state
         .map(state => rule.copy(state = state))
-        // Randomly pick one of the rules
-        .get
+        // Filter on consistency
+        .filter(rule => Consistency.check(rule.state.constraints))
     case _ =>
       throw new Exception("Could not match " + res)
   }

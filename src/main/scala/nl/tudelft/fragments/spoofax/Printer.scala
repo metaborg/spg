@@ -1,12 +1,12 @@
 package nl.tudelft.fragments.spoofax
 
 import com.google.common.collect.Iterables
-import nl.tudelft.fragments.MainBuilder
+import nl.tudelft.fragments.Strategy2
 import org.metaborg.core.project.SimpleProjectService
 import org.spoofax.interpreter.terms.{IStrategoString, IStrategoTerm}
 
 object Printer {
-  val s = MainBuilder.spoofax
+  val s = Strategy2.spoofax
 
   def printer(languagePath: String) = {
     val languageLocation = s.resourceService.resolve(languagePath)

@@ -1,11 +1,11 @@
 package nl.tudelft.fragments.spoofax
 
-import nl.tudelft.fragments.MainBuilder
+import nl.tudelft.fragments.Strategy2
 import org.apache.commons.io.IOUtils
 import org.spoofax.interpreter.terms.{IStrategoAppl, IStrategoList, IStrategoString, IStrategoTerm}
 
 object Signatures {
-  val s = MainBuilder.spoofax
+  val s = Strategy2.spoofax
 
   /**
     * Parse the signatures

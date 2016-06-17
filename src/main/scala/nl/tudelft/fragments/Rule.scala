@@ -83,6 +83,11 @@ case class Rule(sort: Sort, typ: Type, scopes: List[Scope], state: State) {
       .filter(_.isInstanceOf[Recurse])
       .asInstanceOf[List[Recurse]]
 
+  def resolutionConstraints =
+    constraints
+      .filter(_.isInstanceOf[Res])
+      .asInstanceOf[List[Res]]
+
   def points: List[(Pattern, Sort, List[Scope])] =
     ???
     // TODO: Make this langauge-dependent

@@ -4,19 +4,11 @@ import nl.tudelft.fragments.Graph._
 
 // TODO: Solver does not take stable graph into account!
 // TODO: Naming conditions should be first-class facts, and they should be conistent
-// TODO: A resolution constraint can currently be wrongly solved if there are no declarations that it may resolve to!!!
 object Solver {
-  // Rewrite the given constraint in the given state to a list of new states
   def rewrite(c: Constraint, state: State): Option[State] = c match {
     case True() =>
       state
-    case TypeOf(n@SymbolicName(_, _), t) =>
-      if (state.typeEnv.contains(n)) {
-        state.addConstraint(TypeEquals(state.typeEnv(n), t))
-      } else {
-        state.copy(typeEnv = state.typeEnv + (n -> t))
-      }
-    case TypeOf(n@ConcreteName(_, _, _), t) =>
+    case TypeOf(n, t) =>
       if (state.typeEnv.contains(n)) {
         state.addConstraint(TypeEquals(state.typeEnv(n), t))
       } else {
@@ -29,7 +21,7 @@ object Solver {
             .substituteType(typeBinding)
             .substituteName(nameBinding)
       }
-    case Res(n1@SymbolicName(_, _), n2@NameVar(_)) =>
+    case Res(n1, n2@NameVar(_)) if resolves(Nil, n1, state.facts, state.nameConstraints).nonEmpty =>
       if (state.resolution.contains(n1)) {
         state.substituteName(Map(n2 -> state.resolution(n1)._2))
       } else {
@@ -42,20 +34,7 @@ object Solver {
             nameConstraints = cond ++ state.nameConstraints
           )
       }
-    case Res(n1@ConcreteName(_, _, _), n2@NameVar(_)) =>
-      if (state.resolution.contains(n1)) {
-        state.substituteName(Map(n2 -> state.resolution(n1)._2))
-      } else {
-        val (_, path, dec, cond) = resolves(Nil, n1, state.facts, state.nameConstraints).random
-
-        state
-          .substituteName(Map(n2 -> dec))
-          .copy(
-            resolution = state.resolution + (n1 ->(path, dec)),
-            nameConstraints = cond ++ state.nameConstraints
-          )
-      }
-    case AssocConstraint(n@SymbolicName(_, _), s@ScopeVar(_)) =>
+    case AssocConstraint(n@SymbolicName(_, _), s@ScopeVar(_)) if associated(n, state.facts).nonEmpty =>
       associated(n, state.facts).map(scope =>
         state.substituteScope(Map(s -> scope))
       )
