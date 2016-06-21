@@ -5,7 +5,7 @@ import nl.tudelft.fragments.Graph._
 // TODO: Solver does not take stable graph into account!
 // TODO: Naming conditions should be first-class facts, and they should be conistent
 object Solver {
-  def rewrite(c: Constraint, state: State): Option[State] = c match {
+  def rewrite(c: Constraint, state: State): List[State] = c match {
     case True() =>
       state
     case TypeOf(n, t) =>
@@ -25,14 +25,16 @@ object Solver {
       if (state.resolution.contains(n1)) {
         state.substituteName(Map(n2 -> state.resolution(n1)._2))
       } else {
-        val (_, path, dec, cond) = resolves(Nil, n1, state.facts, state.nameConstraints).random
+        val choices = resolves(Nil, n1, state.facts, state.nameConstraints)
 
-        state
-          .substituteName(Map(n2 -> dec))
-          .copy(
-            resolution = state.resolution + (n1 ->(path, dec)),
-            nameConstraints = cond ++ state.nameConstraints
-          )
+        choices.map { case (_, path, dec, cond) =>
+          state
+            .substituteName(Map(n2 -> dec))
+            .copy(
+              resolution = state.resolution + (n1 ->(path, dec)),
+              nameConstraints = cond ++ state.nameConstraints
+            )
+        }
       }
     case AssocConstraint(n@SymbolicName(_, _), s@ScopeVar(_)) if associated(n, state.facts).nonEmpty =>
       associated(n, state.facts).map(scope =>
@@ -43,7 +45,7 @@ object Solver {
   }
 
   // Solve constraints until no more constraints can be solved and return the resulting states
-  def solvePartial(state: State): Option[State] = state match {
+  def solvePartial(state: State): List[State] = state match {
     case State(_, Nil, _, _, _, _) =>
       state
     case State(pattern, remaining, all, ts, resolution, conditions) =>
@@ -56,7 +58,7 @@ object Solver {
         val result = rewrite(c, State(pattern, remaining - c, all, ts, resolution, conditions))
 
         // As soon as a rewrite works, stick to it.
-        if (result.isDefined) {
+        if (result.nonEmpty) {
           return result.flatMap(solvePartial)
         }
       }
@@ -65,7 +67,7 @@ object Solver {
   }
 
   // Solve all constraints, but give TypeEquals(_, _) and TypeOf(SymbolicName(_), _) precedence
-  def solve2(state: State): Option[State] = state match {
+  def solve2(state: State): List[State] = state match {
     case State(_, Nil, _, _, _, _) =>
       state
     case State(_, remaining, all, ts, resolution, conditions) =>
@@ -82,11 +84,11 @@ object Solver {
   }
 
   // Solve all constraints in the given state
-  def solve(state: State): Option[State] =
+  def solve(state: State): List[State] =
     solve2(state)
 
   // Solve all constraints with an empty state (DEPRECATED)
-  def solve(constraints: List[Constraint]): Option[State] =
+  def solve(constraints: List[Constraint]): List[State] =
     solve2(State(constraints.filter(_.isProper), constraints, TypeEnv(), Resolution(), constraints.filter(_.isInstanceOf[NamingConstraint])))
 }
 
@@ -104,7 +106,7 @@ case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Co
       pattern =
         pattern.substituteTerm(Map(recurse.pattern.asInstanceOf[TermVar] -> state.pattern)),
       constraints =
-        constraints ++ state.constraints - recurse,
+        (constraints ++ state.constraints) - recurse,
       facts =
         facts ++ state.facts,
       typeEnv =

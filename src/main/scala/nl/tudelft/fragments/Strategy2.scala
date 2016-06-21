@@ -2,6 +2,7 @@ package nl.tudelft.fragments
 
 import javax.inject.Singleton
 
+import nl.tudelft.fragments.spoofax.Signatures.Decl
 import nl.tudelft.fragments.spoofax.{Printer, Signatures, Specification}
 import org.metaborg.core.project.{IProjectService, SimpleProjectService}
 import org.metaborg.spoofax.core.{Spoofax, SpoofaxModule}
@@ -34,18 +35,18 @@ object Strategy2 {
     val kb = repeat(gen, 4000)(rules)
 
     val closedRules = kb.filter(_.recurse.isEmpty)
-    println(kb.filter(_.recurse.isEmpty))
+    println(closedRules)
 
     for (rule <- closedRules) {
-      val resolvedRule = rule.resolutionConstraints.foldLeft(Option[Rule](rule)) { case (rule, res@Res(n1, n2)) =>
-        rule.flatMap(Builder.resolve(_, res, null))
+      val resolvedRule = rule.resolutionConstraints.foldLeft(List(rule)) { case (rules, res@Res(n1, n2)) =>
+        rules.flatMap(Builder.resolve(_, res, null))
       }
 
       resolvedRule.map(println)
     }
   }
 
-  def gen(rules: List[Rule]): List[Rule] = {
+  def gen(rules: List[Rule])(implicit signatures: List[Decl]): List[Rule] = {
     // Pick a random rule
     val rule = rules.random
 

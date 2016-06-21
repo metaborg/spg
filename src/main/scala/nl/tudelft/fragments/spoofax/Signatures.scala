@@ -1,15 +1,13 @@
 package nl.tudelft.fragments.spoofax
 
-import nl.tudelft.fragments.Strategy2
+import nl.tudelft.fragments.{Sort, SortAppl, Strategy2}
 import org.apache.commons.io.IOUtils
 import org.spoofax.interpreter.terms.{IStrategoAppl, IStrategoList, IStrategoString, IStrategoTerm}
 
 object Signatures {
   val s = Strategy2.spoofax
 
-  /**
-    * Parse the signatures
-    */
+  // Parse the signatures
   def read(strategoPath: String, signaturePath: String) = {
     val nablImpl = Utils.loadLanguage(strategoPath)
 
@@ -63,6 +61,7 @@ object Signatures {
       }
   }
 
+  // Turn Stratego list of sorts into List[Sort]
   def toSorts(term: IStrategoTerm): List[Sort] = term match {
     case list: IStrategoList =>
       if (!list.isEmpty) {
@@ -72,19 +71,41 @@ object Signatures {
       }
   }
 
+  // Turn Stratego SortNoArgs or Sort into SortAppl
   def toSort(term: IStrategoTerm): Sort = term match {
     case appl: IStrategoAppl =>
       appl.getConstructor.getName match {
         case "SortNoArgs" =>
-          SortNoArgs(toString(appl.getSubterm(0)))
+          SortAppl(toString(appl.getSubterm(0)))
         case "Sort" =>
-          SortArgs(toString(appl.getSubterm(0)), toSorts(appl.getSubterm(1)))
+          SortAppl(toString(appl.getSubterm(0)), toSorts(appl.getSubterm(1)))
       }
   }
 
   def toString(term: IStrategoTerm): String = term match {
     case string: IStrategoString =>
       string.stringValue()
+  }
+
+  // Injections for given sort
+  def injections(sort: Sort)(implicit signatures: List[Decl]): Set[Sort] = {
+    signatures.flatMap {
+      case OpDeclInj(FunType(List(ConstType(x)), ConstType(`sort`))) =>
+        List(x)
+      case _ =>
+        Nil
+    }.toSet
+  }
+
+  // Reflexive, transitive closure of injections for given sort
+  def injectionsClosure(sorts: Set[Sort])(implicit signatures: List[Decl]): Set[Sort] = {
+    val newSorts = sorts.flatMap(injections) ++ sorts
+
+    if (newSorts == sorts) {
+      sorts
+    } else {
+      injectionsClosure(newSorts)
+    }
   }
 
   abstract class Decl
@@ -95,7 +116,7 @@ object Signatures {
   case class FunType(children: List[Type], result: Type) extends Type
   case class ConstType(sort: Sort) extends Type
 
-  abstract class Sort
-  case class SortNoArgs(name: String) extends Sort
-  case class SortArgs(name: String, sorts: List[Sort]) extends Sort
+//  abstract class Sort
+//  case class SortNoArgs(name: String) extends Sort
+//  case class SortArgs(name: String, sorts: List[Sort]) extends Sort
 }

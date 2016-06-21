@@ -1,14 +1,17 @@
 package nl.tudelft.fragments
 
+import nl.tudelft.fragments.spoofax.Signatures
+import nl.tudelft.fragments.spoofax.Signatures.Decl
+
 // Rule
 case class Rule(sort: Sort, typ: Type, scopes: List[Scope], state: State) {
-  def mergex(recurse: Recurse, rule: Rule): Option[(Rule, Map[String, String])] = {
+  def mergex(recurse: Recurse, rule: Rule)(implicit signatures: List[Decl]): Option[(Rule, Map[String, String])] = {
     // Prevent naming conflicts by freshening the names in the other rule
     val (nameBinding, freshRule) = rule.freshen()
 
     // Unify sort, type, scope and merge the rules
     val merged = for (
-      sortUnifier <- recurse.sort.unify(freshRule.sort);
+      sortUnifier <- mergeSorts(recurse.sort, freshRule.sort);
       typeUnifier <- recurse.typ.unify(freshRule.typ);
       scopeUnifier <- recurse.scopes.unify(freshRule.scopes)
     ) yield {
@@ -33,8 +36,17 @@ case class Rule(sort: Sort, typ: Type, scopes: List[Scope], state: State) {
   }
 
   // Backwards compatibility
-  def merge(recurse: Recurse, rule: Rule): Option[Rule] = {
+  def merge(recurse: Recurse, rule: Rule)(implicit signatures: List[Decl]): Option[Rule] = {
     mergex(recurse, rule).map(_._1)
+  }
+
+  // Merge sorts s1, s2 by unifying s2 with any of the sorts in the injection closure of s1
+  def mergeSorts(s1: Sort, s2: Sort)(implicit signatures: List[Decl]): Option[SortBinding] = {
+    val possibleSorts = Signatures.injectionsClosure(Set(s1))
+
+    possibleSorts.view
+      .flatMap(_.unify(s2))
+      .headOption
   }
 
   // Fix broken references by adding name disequalities
@@ -493,6 +505,9 @@ trait Type {
   def unify(t: Type, typeBinding: TypeBinding = Map.empty, nameBinding: NameBinding = Map.empty): Option[(TypeBinding, NameBinding)]
 
   def freshen(nameBinding: Map[String, String]): (Map[String, String], Type)
+
+  // Check if t occurs in this. In practice, this is not necessary, as fragments to be merged are always isolated.
+  def occurs(t: Type): Boolean
 }
 
 case class TypeAppl(name: String, children: List[Type] = Nil) extends Type {
@@ -524,6 +539,9 @@ case class TypeAppl(name: String, children: List[Type] = Nil) extends Type {
 
   override def toString: String =
     s"""TypeAppl("$name", $children)"""
+
+  override def occurs(t: Type): Boolean =
+    this == t || children.exists(_.occurs(t))
 }
 
 case class TypeVar(name: String) extends Type {
@@ -536,15 +554,24 @@ case class TypeVar(name: String) extends Type {
   override def substituteConcrete(binding: ConcreteBinding): Type =
     this
 
-  override def unify(typ: Type, typeBinding: TypeBinding, nameBinding: NameBinding): Option[(TypeBinding, NameBinding)] = typ match {
-    case t@TypeVar(_) if typeBinding.contains(t) =>
-      unify(typeBinding(t), typeBinding, nameBinding)
-    case _ =>
-      if (typeBinding.contains(this)) {
-        typeBinding(this).unify(typ, typeBinding, nameBinding)
-      } else {
-        Some((typeBinding + (this -> typ), nameBinding))
-      }
+  override def unify(typ: Type, typeBinding: TypeBinding, nameBinding: NameBinding): Option[(TypeBinding, NameBinding)] = {
+    // TODO: Debug StackOverflowError due to TypeVar occurring in the thing you're merging with..
+    if (this.occurs(typ)) {
+      println(this)
+      println(typ)
+      System.exit(1)
+    }
+
+    typ match {
+      case t@TypeVar(_) if typeBinding.contains(t) =>
+        unify(typeBinding(t), typeBinding, nameBinding)
+      case _ =>
+        if (typeBinding.contains(this)) {
+          typeBinding(this).unify(typ, typeBinding, nameBinding)
+        } else {
+          Some((typeBinding + (this -> typ), nameBinding))
+        }
+    }
   }
 
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Type) = {
@@ -558,6 +585,9 @@ case class TypeVar(name: String) extends Type {
 
   override def toString: String =
     s"""TypeVar("$name")"""
+
+  override def occurs(t: Type): Boolean =
+    this == t
 }
 
 case class TypeNameAdapter(n: Name) extends Type {
@@ -583,4 +613,7 @@ case class TypeNameAdapter(n: Name) extends Type {
     n.freshen(nameBinding).map { case (nameBinding, n) =>
       (nameBinding, TypeNameAdapter(n))
     }
+
+  override def occurs(t: Type): Boolean =
+    this == t
 }
