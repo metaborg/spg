@@ -286,15 +286,15 @@ case class Subtype(t1: Type, t2: Type) extends Constraint {
     true
 }
 
-case class Recurse(pattern: Pattern, scopes: List[Scope], typ: Type, sort: Sort) extends Constraint {
+case class Recurse(pattern: Pattern, scopes: List[Scope], typ: Option[Type], sort: Sort) extends Constraint {
   override def substituteType(binding: TypeBinding): Constraint =
-    Recurse(pattern.substituteType(binding), scopes, typ.substituteType(binding), sort)
+    Recurse(pattern.substituteType(binding), scopes, typ.map(_.substituteType(binding)), sort)
 
   override def substituteName(binding: NameBinding): Constraint =
-    Recurse(pattern.substituteName(binding), scopes, typ.substituteName(binding), sort)
+    Recurse(pattern.substituteName(binding), scopes, typ.map(_.substituteName(binding)), sort)
 
   override def substituteConcrete(binding: ConcreteBinding): Constraint =
-    Recurse(pattern.substituteConcrete(binding), scopes, typ.substituteConcrete(binding), sort)
+    Recurse(pattern.substituteConcrete(binding), scopes, typ.map(_.substituteConcrete(binding)), sort)
 
   override def substituteScope(binding: ScopeBinding): Constraint =
     Recurse(pattern.substituteScope(binding), scopes.substituteScope(binding), typ, sort)
@@ -302,9 +302,15 @@ case class Recurse(pattern: Pattern, scopes: List[Scope], typ: Type, sort: Sort)
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
     pattern.freshen(nameBinding).map { case (nameBinding, pattern) =>
       scopes.freshen(nameBinding).map { case (nameBinding, scopes) =>
-        typ.freshen(nameBinding).map { case (nameBinding, typ) =>
-          (nameBinding, Recurse(pattern, scopes, typ, sort))
-        }
+        val newTyp = typ.map(_.freshen(nameBinding))
+
+        newTyp
+          .map { case (nameBinding, typ) =>
+            (nameBinding, Recurse(pattern, scopes, Some(typ), sort))
+          }
+          .getOrElse(
+            (nameBinding, Recurse(pattern, scopes, None, sort))
+          )
       }
     }
 

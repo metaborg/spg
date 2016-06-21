@@ -4,7 +4,7 @@ import nl.tudelft.fragments.spoofax.Signatures
 import nl.tudelft.fragments.spoofax.Signatures.Decl
 
 // Rule
-case class Rule(sort: Sort, typ: Type, scopes: List[Scope], state: State) {
+case class Rule(sort: Sort, typ: Option[Type], scopes: List[Scope], state: State) {
   def mergex(recurse: Recurse, rule: Rule)(implicit signatures: List[Decl]): Option[(Rule, Map[String, String])] = {
     // Prevent naming conflicts by freshening the names in the other rule
     val (nameBinding, freshRule) = rule.freshen()
@@ -12,7 +12,7 @@ case class Rule(sort: Sort, typ: Type, scopes: List[Scope], state: State) {
     // Unify sort, type, scope and merge the rules
     val merged = for (
       sortUnifier <- mergeSorts(recurse.sort, freshRule.sort);
-      typeUnifier <- recurse.typ.unify(freshRule.typ);
+      typeUnifier <- mergeTypes(recurse.typ, freshRule.typ);
       scopeUnifier <- recurse.scopes.unify(freshRule.scopes)
     ) yield {
       val merged = copy(state = state.merge(recurse, freshRule.state))
@@ -47,6 +47,16 @@ case class Rule(sort: Sort, typ: Type, scopes: List[Scope], state: State) {
     possibleSorts.view
       .flatMap(_.unify(s2))
       .headOption
+  }
+
+  // Merge types
+  def mergeTypes(t1: Option[Type], t2: Option[Type]): Option[(TypeBinding, NameBinding)] = (t1, t2) match {
+    case (None, None) =>
+      Some((Map.empty[TypeVar, Type], Map.empty[NameVar, Name]))
+    case (Some(x), Some(y)) =>
+      x.unify(y)
+    case _ =>
+      None
   }
 
   // Fix broken references by adding name disequalities
@@ -118,10 +128,10 @@ case class Rule(sort: Sort, typ: Type, scopes: List[Scope], state: State) {
     state.pattern
 
   def substituteType(binding: TypeBinding): Rule =
-    Rule(sort, typ.substituteType(binding), scopes, state.substituteType(binding))
+    Rule(sort, typ.map(_.substituteType(binding)), scopes, state.substituteType(binding))
 
   def substituteName(binding: NameBinding): Rule =
-    Rule(sort, typ.substituteName(binding), scopes, state.substituteName(binding))
+    Rule(sort, typ.map(_.substituteName(binding)), scopes, state.substituteName(binding))
 
   def substituteScope(binding: ScopeBinding): Rule =
     Rule(sort, typ, scopes.substituteScope(binding), state.substituteScope(binding))
@@ -130,11 +140,17 @@ case class Rule(sort: Sort, typ: Type, scopes: List[Scope], state: State) {
     Rule(sort.substituteSort(binding), typ, scopes, state)
 
   def freshen(nameBinding: Map[String, String] = Map.empty): (Map[String, String], Rule) = {
-    typ.freshen(nameBinding).map { case (nameBinding, typ) =>
-      scopes.freshen(nameBinding).map { case (nameBinding, scope) =>
-        state.freshen(nameBinding).map { case (nameBinding, state) =>
-          (nameBinding, Rule(sort, typ, scope, state))
-        }
+    scopes.freshen(nameBinding).map { case (nameBinding, scopes) =>
+      state.freshen(nameBinding).map { case (nameBinding, state) =>
+        val newTyp = typ.map(_.freshen(nameBinding))
+
+        newTyp
+          .map { case (nameBinding, typ) =>
+            (nameBinding, Rule(sort, Some(typ), scopes, state))
+          }
+          .getOrElse(
+            (nameBinding, Rule(sort, typ, scopes, state))
+          )
       }
     }
   }
@@ -143,10 +159,10 @@ case class Rule(sort: Sort, typ: Type, scopes: List[Scope], state: State) {
     s"""Rule($sort, $typ, $scopes, $state)"""
 }
 
-// Backwards compatibility
+// TODO: Backwards compatibility
 object Rule {
   def apply(pattern: Pattern, sort: Sort, typ: Type, scopes: List[Scope], state: State): Rule =
-    Rule(sort, typ, scopes, state.copy(pattern = pattern))
+    Rule(sort, Some(typ), scopes, state.copy(pattern = pattern))
 }
 
 // Sort

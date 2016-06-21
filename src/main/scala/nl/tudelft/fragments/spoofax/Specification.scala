@@ -2,7 +2,7 @@ package nl.tudelft.fragments.spoofax
 
 import nl.tudelft.fragments
 import nl.tudelft.fragments.spoofax.Signatures._
-import nl.tudelft.fragments.{Constraint, Dec, Name, NameVar, Par, Pattern, Recurse, Ref, Res, Rule, Scope, ScopeVar, Sort, SortAppl, State, Strategy2, SymbolicName, TermAppl, TermVar, True, Type, TypeAppl, TypeEquals, TypeOf, TypeVar}
+import nl.tudelft.fragments.{AssocConstraint, AssocFact, Constraint, Dec, Name, NameVar, Par, Pattern, Recurse, Ref, Res, Rule, Scope, ScopeVar, Sort, SortAppl, State, Strategy2, SymbolicName, TermAppl, TermVar, True, Type, TypeAppl, TypeEquals, TypeOf, TypeVar}
 import org.apache.commons.io.IOUtils
 import org.spoofax.interpreter.terms.{IStrategoList, IStrategoString, IStrategoTerm}
 import org.spoofax.terms.{StrategoAppl, StrategoList}
@@ -110,7 +110,7 @@ object Specification {
 
       Rule(
         sort = toSort(pattern),
-        typ = toType(appl.getSubterm(0).getSubterm(3)),
+        typ = toTypeOption(appl.getSubterm(0).getSubterm(3)),
         scopes = toScopes(appl.getSubterm(0).getSubterm(2)),
         state = State(
           pattern = pattern,
@@ -150,15 +150,19 @@ object Specification {
       toPattern(list.head()) :: toPatternsList(list.tail())
   }
 
+  def toTypeOption(term: IStrategoTerm): Option[Type] = term match {
+    case appl: StrategoAppl if appl.getConstructor.getName == "NoType" =>
+      None
+    case typ =>
+      Some(toType(typ))
+  }
+
   // Turn a Stratego type into a Type
   def toType(term: IStrategoTerm): Type = term match {
     case appl: StrategoAppl if appl.getConstructor.getName == "Var" =>
       TypeVar(toString(appl.getSubterm(0)))
     case appl: StrategoAppl if appl.getConstructor.getName == "Op" =>
       TypeAppl(toString(appl.getSubterm(0)), appl.getSubterm(1).getAllSubterms.map(toType).toList)
-    case appl: StrategoAppl if appl.getConstructor.getName == "NoType" =>
-      // TODO: decided to turn NoType into a Wildcard type. But then we should invent new name for wilcard..
-      TypeVar(null)
   }
 
   // Turn a Stratego scope into a Scope
@@ -212,8 +216,12 @@ object Specification {
       Par(toScope(appl.getSubterm(0)), toScope(appl.getSubterm(2)))
     case appl: StrategoAppl if appl.getConstructor.getName == "CEqual" =>
       TypeEquals(toType(appl.getSubterm(0)), toType(appl.getSubterm(1)))
+    case appl: StrategoAppl if appl.getConstructor.getName == "CGAssoc" =>
+      AssocFact(toName(appl.getSubterm(0)), toScope(appl.getSubterm(2)))
+    case appl: StrategoAppl if appl.getConstructor.getName == "CAssoc" =>
+      AssocConstraint(toName(appl.getSubterm(0)), toScope(appl.getSubterm(2)))
     case appl: StrategoAppl if appl.getConstructor.getName == "CGenRecurse" =>
-      Recurse(toPattern(appl.getSubterm(1)), toScopes(appl.getSubterm(2)), toType(appl.getSubterm(3)), null)
+      Recurse(toPattern(appl.getSubterm(1)), toScopes(appl.getSubterm(2)), toTypeOption(appl.getSubterm(3)), null)
   }
 
   // Turn IStrategoString into String
