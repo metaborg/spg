@@ -127,10 +127,10 @@ object Specification {
   }
 
   def toSort(typ: Signatures.Type): fragments.Sort = typ match {
-    case FunType(children, ConstType(SortAppl(name, _))) =>
-      SortAppl(name)
-    case ConstType(SortAppl(name, _)) =>
-      SortAppl(name)
+    case FunType(_, ConstType(sort)) =>
+      sort
+    case ConstType(sort) =>
+      sort
   }
 
   // Turn a CGenMatch into a Pattern

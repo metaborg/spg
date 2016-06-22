@@ -1,6 +1,6 @@
 package nl.tudelft.fragments.spoofax
 
-import nl.tudelft.fragments.{Sort, SortAppl, Strategy2}
+import nl.tudelft.fragments.{Sort, SortAppl, SortVar, Strategy2}
 import org.apache.commons.io.IOUtils
 import org.spoofax.interpreter.terms.{IStrategoAppl, IStrategoList, IStrategoString, IStrategoTerm}
 
@@ -79,6 +79,8 @@ object Signatures {
           SortAppl(toString(appl.getSubterm(0)))
         case "Sort" =>
           SortAppl(toString(appl.getSubterm(0)), toSorts(appl.getSubterm(1)))
+        case "SortVar" =>
+          SortVar(toString(appl.getSubterm(0)))
       }
   }
 
