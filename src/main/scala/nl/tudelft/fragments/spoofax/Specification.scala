@@ -191,7 +191,15 @@ object Specification {
     case appl: StrategoAppl if appl.getConstructor.getName == "Var" =>
       NameVar(toString(appl.getSubterm(0)))
     case appl: StrategoAppl if appl.getConstructor.getName == "Occurrence" =>
-      SymbolicName(toString(appl.getSubterm(0).getSubterm(0)), toString(appl.getSubterm(1).getSubterm(0)))
+      SymbolicName(toNamespace(appl.getSubterm(0)), toString(appl.getSubterm(1).getSubterm(0)))
+  }
+
+  // Turn a Stratego namespace into a string. Use "Default" as a default namespace.
+  def toNamespace(term: IStrategoTerm): String = term match {
+    case appl: StrategoAppl if appl.getConstructor.getName == "Default" =>
+      "Default"
+    case appl =>
+      toString(appl.getSubterm(0))
   }
 
   // Turn a Stratego list of constraints into a List[Constraint]
