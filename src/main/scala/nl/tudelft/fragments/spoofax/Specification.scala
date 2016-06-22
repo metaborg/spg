@@ -2,7 +2,7 @@ package nl.tudelft.fragments.spoofax
 
 import nl.tudelft.fragments
 import nl.tudelft.fragments.spoofax.Signatures._
-import nl.tudelft.fragments.{AssocConstraint, AssocFact, Constraint, Dec, Name, NameVar, Par, Pattern, Recurse, Ref, Res, Rule, Scope, ScopeVar, Sort, SortAppl, State, Strategy2, SymbolicName, TermAppl, TermVar, True, Type, TypeAppl, TypeEquals, TypeOf, TypeVar}
+import nl.tudelft.fragments.{AssocConstraint, AssocFact, AssociatedImport, Constraint, Dec, Name, NameVar, Par, Pattern, Recurse, Ref, Res, Rule, Scope, ScopeVar, Sort, SortAppl, State, Strategy2, Subtype, SymbolicName, TermAppl, TermVar, True, Type, TypeAppl, TypeEquals, TypeNameAdapter, TypeOf, TypeVar}
 import org.apache.commons.io.IOUtils
 import org.spoofax.interpreter.terms.{IStrategoList, IStrategoString, IStrategoTerm}
 import org.spoofax.terms.{StrategoAppl, StrategoList}
@@ -163,6 +163,8 @@ object Specification {
       TypeVar(toString(appl.getSubterm(0)))
     case appl: StrategoAppl if appl.getConstructor.getName == "Op" =>
       TypeAppl(toString(appl.getSubterm(0)), appl.getSubterm(1).getAllSubterms.map(toType).toList)
+    case appl: StrategoAppl if appl.getConstructor.getName == "Occurrence" =>
+      TypeNameAdapter(toName(appl))
   }
 
   // Turn a Stratego scope into a Scope
@@ -220,6 +222,13 @@ object Specification {
       AssocFact(toName(appl.getSubterm(0)), toScope(appl.getSubterm(2)))
     case appl: StrategoAppl if appl.getConstructor.getName == "CAssoc" =>
       AssocConstraint(toName(appl.getSubterm(0)), toScope(appl.getSubterm(2)))
+    case appl: StrategoAppl if appl.getConstructor.getName == "CSubtype" =>
+      Subtype(toType(appl.getSubterm(0)), toType(appl.getSubterm(1)))
+    case appl: StrategoAppl if appl.getConstructor.getName == "FSubtype" =>
+      // TODO: We re-use Subtype instead of a separate FSubtype. Is a separte FSubtype necessary?
+      Subtype(toType(appl.getSubterm(0)), toType(appl.getSubterm(1)))
+    case appl: StrategoAppl if appl.getConstructor.getName == "CGNamedEdge" =>
+      AssociatedImport(toScope(appl.getSubterm(2)), toName(appl.getSubterm(0)))
     case appl: StrategoAppl if appl.getConstructor.getName == "CGenRecurse" =>
       Recurse(toPattern(appl.getSubterm(1)), toScopes(appl.getSubterm(2)), toTypeOption(appl.getSubterm(3)), null)
   }
