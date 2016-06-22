@@ -137,7 +137,7 @@ case class Rule(sort: Sort, typ: Option[Type], scopes: List[Scope], state: State
     Rule(sort, typ, scopes.substituteScope(binding), state.substituteScope(binding))
 
   def substituteSort(binding: SortBinding): Rule =
-    Rule(sort.substituteSort(binding), typ, scopes, state)
+    Rule(sort.substituteSort(binding), typ, scopes, state.substituteSort(binding))
 
   def freshen(nameBinding: Map[String, String] = Map.empty): (Map[String, String], Rule) = {
     scopes.freshen(nameBinding).map { case (nameBinding, scopes) =>

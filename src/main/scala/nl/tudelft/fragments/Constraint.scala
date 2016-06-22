@@ -10,6 +10,8 @@ abstract class Constraint {
 
   def substituteConcrete(binding: ConcreteBinding): Constraint
 
+  def substituteSort(binding: SortBinding): Constraint
+
   def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint)
 
   def isProper: Boolean = false
@@ -27,6 +29,9 @@ case class True() extends Constraint {
     this
 
   override def substituteConcrete(binding: ConcreteBinding): Constraint =
+    this
+
+  override def substituteSort(binding: SortBinding): Constraint =
     this
 
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
@@ -47,6 +52,9 @@ case class Par(s1: Scope, s2: Scope) extends Constraint {
     this
 
   override def substituteConcrete(binding: ConcreteBinding): Constraint =
+    this
+
+  override def substituteSort(binding: SortBinding): Constraint =
     this
 
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
@@ -70,6 +78,9 @@ case class Dec(s: Scope, n: Name) extends Constraint {
   override def substituteConcrete(binding: ConcreteBinding): Constraint =
     Dec(s, n.substituteConcrete(binding))
 
+  override def substituteSort(binding: SortBinding): Constraint =
+    this
+
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
     s.freshen(nameBinding).map { case (nameBinding, s) =>
       n.freshen(nameBinding).map { case (nameBinding, n) =>
@@ -90,6 +101,9 @@ case class Ref(n: Name, s: Scope) extends Constraint {
 
   override def substituteConcrete(binding: ConcreteBinding): Constraint =
     Ref(n.substituteConcrete(binding), s)
+
+  override def substituteSort(binding: SortBinding): Constraint =
+    this
 
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
     n.freshen(nameBinding).map { case (nameBinding, n) =>
@@ -112,6 +126,9 @@ case class DirectImport(s1: Scope, s2: Scope) extends Constraint {
   override def substituteConcrete(binding: ConcreteBinding): Constraint =
     this
 
+  override def substituteSort(binding: SortBinding): Constraint =
+    this
+
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
     s1.freshen(nameBinding).map { case (nameBinding, s1) =>
       s2.freshen(nameBinding).map { case (nameBinding, s2) =>
@@ -120,6 +137,7 @@ case class DirectImport(s1: Scope, s2: Scope) extends Constraint {
     }
 }
 
+// TODO: In the current version, this is "CGNamedEdge"
 case class AssociatedImport(s: Scope, n: Name) extends Constraint {
   override def substituteType(binding: TypeBinding): Constraint =
     this
@@ -132,6 +150,9 @@ case class AssociatedImport(s: Scope, n: Name) extends Constraint {
 
   override def substituteConcrete(binding: ConcreteBinding): Constraint =
     AssociatedImport(s, n.substituteConcrete(binding))
+
+  override def substituteSort(binding: SortBinding): Constraint =
+    this
 
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
     s.freshen(nameBinding).map { case (nameBinding, s) =>
@@ -154,6 +175,9 @@ case class AssocFact(n: Name, s: Scope) extends Constraint {
   override def substituteConcrete(binding: ConcreteBinding): Constraint =
     AssocFact(n.substituteConcrete(binding), s)
 
+  override def substituteSort(binding: SortBinding): Constraint =
+    this
+
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
     n.freshen(nameBinding).map { case (nameBinding, n) =>
       s.freshen(nameBinding).map { case (nameBinding, s) =>
@@ -175,6 +199,9 @@ case class AssocConstraint(n: Name, s: Scope) extends Constraint {
 
   override def substituteConcrete(binding: ConcreteBinding): Constraint =
     AssocConstraint(n.substituteConcrete(binding), s)
+
+  override def substituteSort(binding: SortBinding): Constraint =
+    this
 
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
     n.freshen(nameBinding).map { case (nameBinding, n) =>
@@ -203,6 +230,9 @@ case class Res(n1: Name, n2: Name) extends Constraint {
   override def substituteConcrete(binding: ConcreteBinding): Constraint =
     Res(n1.substituteConcrete(binding), n2.substituteConcrete(binding))
 
+  override def substituteSort(binding: SortBinding): Constraint =
+    this
+
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Res) =
     n1.freshen(nameBinding).map { case (nameBinding, n1) =>
       n2.freshen(nameBinding).map { case (nameBinding, n2) =>
@@ -226,6 +256,9 @@ case class TypeOf(n: Name, t: Type) extends Constraint {
 
   override def substituteConcrete(binding: ConcreteBinding): Constraint =
     TypeOf(n.substituteConcrete(binding), t)
+
+  override def substituteSort(binding: SortBinding): Constraint =
+    this
 
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
     t.freshen(nameBinding).map { case (nameBinding, t) =>
@@ -251,6 +284,9 @@ case class TypeEquals(t1: Type, t2: Type) extends Constraint {
   override def substituteConcrete(binding: ConcreteBinding): Constraint =
     TypeEquals(t1.substituteConcrete(binding), t2.substituteConcrete(binding))
 
+  override def substituteSort(binding: SortBinding): Constraint =
+    this
+
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
     t1.freshen(nameBinding).map { case (nameBinding, t1) =>
       t2.freshen(nameBinding).map { case (nameBinding, t2) =>
@@ -275,6 +311,9 @@ case class Subtype(t1: Type, t2: Type) extends Constraint {
   override def substituteConcrete(binding: ConcreteBinding): Constraint =
     Subtype(t1.substituteConcrete(binding), t2.substituteConcrete(binding))
 
+  override def substituteSort(binding: SortBinding): Constraint =
+    this
+
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
     t1.freshen(nameBinding).map { case (nameBinding, t1) =>
       t2.freshen(nameBinding).map { case (nameBinding, t2) =>
@@ -298,6 +337,9 @@ case class Recurse(pattern: Pattern, scopes: List[Scope], typ: Option[Type], sor
 
   override def substituteScope(binding: ScopeBinding): Constraint =
     Recurse(pattern.substituteScope(binding), scopes.substituteScope(binding), typ, sort)
+
+  override def substituteSort(binding: SortBinding): Constraint =
+    Recurse(pattern, scopes, typ, sort.substituteSort(binding))
 
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
     pattern.freshen(nameBinding).map { case (nameBinding, pattern) =>

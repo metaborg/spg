@@ -123,6 +123,9 @@ package object fragments {
         constraint.freshen(nameBinding)
       }
 
+    def substituteSort(binding: SortBinding): List[Constraint] =
+      list.map(_.substituteSort(binding))
+
     def substituteType(binding: TypeBinding): List[Constraint] =
       list.map(_.substituteType(binding))
 

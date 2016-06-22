@@ -130,6 +130,10 @@ case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Co
   def substituteName(binding: NameBinding): State =
     copy(pattern.substituteName(binding), constraints.substituteName(binding), facts.substituteName(binding), typeEnv.substituteName(binding))
 
+  def substituteSort(binding: SortBinding): State =
+    copy(constraints = constraints.substituteSort(binding), facts = facts.substituteSort(binding))
+
+
   def freshen(nameBinding: Map[String, String]): (Map[String, String], State) =
     pattern.freshen(nameBinding).map { case (nameBinding, pattern) =>
       constraints.freshen(nameBinding).map { case (nameBinding, constraints) =>
