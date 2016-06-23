@@ -298,6 +298,33 @@ case class TypeEquals(t1: Type, t2: Type) extends Constraint {
     true
 }
 
+case class Supertype(t1: Type, t2: Type) extends Constraint {
+  override def substituteType(binding: TypeBinding): Constraint =
+    Supertype(t1.substituteType(binding), t2.substituteType(binding))
+
+  override def substituteScope(binding: ScopeBinding): Constraint =
+    this
+
+  override def substituteName(binding: NameBinding): Constraint =
+    Supertype(t1.substituteName(binding), t2.substituteName(binding))
+
+  override def substituteConcrete(binding: ConcreteBinding): Constraint =
+    Supertype(t1.substituteConcrete(binding), t2.substituteConcrete(binding))
+
+  override def substituteSort(binding: SortBinding): Constraint =
+    this
+
+  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
+    t1.freshen(nameBinding).map { case (nameBinding, t1) =>
+      t2.freshen(nameBinding).map { case (nameBinding, t2) =>
+        (nameBinding, Supertype(t1, t2))
+      }
+    }
+
+  override def isProper =
+    true
+}
+
 case class Subtype(t1: Type, t2: Type) extends Constraint {
   override def substituteType(binding: TypeBinding): Constraint =
     Subtype(t1.substituteType(binding), t2.substituteType(binding))

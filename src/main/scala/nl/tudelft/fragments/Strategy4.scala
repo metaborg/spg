@@ -3,7 +3,7 @@ package nl.tudelft.fragments
 import javax.inject.Singleton
 
 import nl.tudelft.fragments.spoofax.Signatures.Decl
-import nl.tudelft.fragments.spoofax.{Printer, Signatures, Specification}
+import nl.tudelft.fragments.spoofax.{Converter, Printer, Signatures, Specification}
 import org.metaborg.core.project.{IProjectService, SimpleProjectService}
 import org.metaborg.spoofax.core.{Spoofax, SpoofaxModule}
 
@@ -18,24 +18,36 @@ object Strategy4 {
   def main(args: Array[String]): Unit = {
     implicit val signatures = Signatures.read(
       strategoPath = "zip:/Users/martijn/Projects/spoofax-releng/stratego/org.metaborg.meta.lang.stratego/target/org.metaborg.meta.lang.stratego-2.0.0-SNAPSHOT.spoofax-language!/",
-      signaturePath = "/Users/martijn/Projects/scopes-frames/L2/src-gen/signatures/L2-sig.str"
+      signaturePath = "/Users/martijn/Projects/scopes-frames/L3/src-gen/signatures/L3-sig.str"
     )
 
     implicit val rules = Specification.read(
       nablPath = "zip:/Users/martijn/Projects/nabl/org.metaborg.meta.nabl2.lang/target/org.metaborg.meta.nabl2.lang-2.0.0-SNAPSHOT.spoofax-language!/",
-      specPath = "/Users/martijn/Projects/scopes-frames/L2/trans/analysis/l2.nabl2"
+      specPath = "/Users/martijn/Projects/scopes-frames/L3/trans/analysis/l3.nabl2"
     )
 
-    val printer = Printer.printer(
-      languagePath = "/Users/martijn/Projects/scopes-frames/L2/"
+    val print = Printer.printer(
+      languagePath = "/Users/martijn/Projects/scopes-frames/L3/"
     )
 
-    val kb = repeat(gen, 1)(rules)
+    val kb = repeat(gen, 100)(rules)
 
     for (i <- 1 to 100) {
-      val rule = kb.filter(_.sort == SortAppl("Exp")).random
+      val rule = kb.filter(_.sort == SortAppl("Start")).random
 
-      println(complete(kb, rule))
+      val term = complete(kb, rule)
+
+      println(term)
+
+      /*
+      if (term.isDefined) {
+        val concrete = Concretor.concretize(term.get, term.get.state.facts)
+
+        val aterm = Converter.toTerm(concrete)
+
+        println(print(aterm))
+      }
+      */
     }
   }
 
@@ -101,8 +113,6 @@ object Strategy4 {
           }
         }
       }
-
-      None
     } else if (rule.recurse.nonEmpty) {
       for (recurse <- rule.recurse) {
         val choices = rules.flatMap(rule.merge(recurse, _))

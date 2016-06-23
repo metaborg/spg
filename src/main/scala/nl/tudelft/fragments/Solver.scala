@@ -40,22 +40,29 @@ object Solver {
       associated(n, state.facts).map(scope =>
         state.substituteScope(Map(s -> scope))
       )
+    case Supertype(t1, t2) if (t1.vars ++ t2.vars).isEmpty && !state.subtypeRelation.domain.contains(t1) && !state.subtypeRelation.isSupertype(t2, t1) =>
+      val closure = for (ty1 <- state.subtypeRelation.subtypeOf(t1); ty2 <- state.subtypeRelation.supertypeOf(t2))
+        yield (ty1, ty2)
+
+      state.copy(subtypeRelation = state.subtypeRelation ++ closure)
+    case Subtype(t1, t2) if (t1.vars ++ t2.vars).isEmpty && state.subtypeRelation.isSupertype(t1, t2) =>
+      state
     case _ =>
       None
   }
 
   // Solve constraints until no more constraints can be solved and return the resulting states
   def solvePartial(state: State): List[State] = state match {
-    case State(_, Nil, _, _, _, _) =>
+    case State(_, Nil, _, _, _, _, _) =>
       state
-    case State(pattern, remaining, all, ts, resolution, conditions) =>
+    case State(pattern, remaining, all, ts, resolution, subtype, conditions) =>
       // Do not solve resolution constraints during solvePartial, because we do not want to make "new" decisions, only
       // propagate "existing" knowledge. For example, we may be able to solve one resolution, but then fail on the
       // second, since there is not yet a corresponding declaration.
       val nonRes = remaining.filter(!_.isInstanceOf[Res])
 
       for (c <- nonRes) {
-        val result = rewrite(c, State(pattern, remaining - c, all, ts, resolution, conditions))
+        val result = rewrite(c, State(pattern, remaining - c, all, ts, resolution, subtype, conditions))
 
         // As soon as a rewrite works, stick to it.
         if (result.nonEmpty) {
@@ -68,11 +75,11 @@ object Solver {
 
   // Solve all constraints, but give TypeEquals(_, _) and TypeOf(SymbolicName(_), _) precedence
   def solve2(state: State): List[State] = state match {
-    case State(_, Nil, _, _, _, _) =>
+    case State(_, Nil, _, _, _, _, _) =>
       state
-    case State(_, remaining, all, ts, resolution, conditions) =>
+    case State(_, remaining, all, ts, resolution, subtype, conditions) =>
       for (c <- remaining) {
-        val result = rewrite(c, State(remaining - c, all, ts, resolution, conditions))
+        val result = rewrite(c, State(remaining - c, all, ts, resolution, subtype, conditions))
 
         // As soon as a rewrite works, stick to it.
         if (result.nonEmpty) {
@@ -89,7 +96,7 @@ object Solver {
 
   // Solve all constraints with an empty state (DEPRECATED)
   def solve(constraints: List[Constraint]): List[State] =
-    solve2(State(constraints.filter(_.isProper), constraints, TypeEnv(), Resolution(), constraints.filter(_.isInstanceOf[NamingConstraint])))
+    solve2(State(constraints.filter(_.isProper), constraints, TypeEnv(), Resolution(), SubtypeRelation(), constraints.filter(_.isInstanceOf[NamingConstraint])))
 }
 
 /**
@@ -100,7 +107,7 @@ object Solver {
   * @param typeEnv         The typing environment
   * @param nameConstraints The naming constraints
   */
-case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Constraint], typeEnv: TypeEnv, resolution: Resolution, nameConstraints: List[Constraint]) {
+case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Constraint], typeEnv: TypeEnv, resolution: Resolution, subtypeRelation: SubtypeRelation, nameConstraints: List[Constraint]) {
   def merge(recurse: Recurse, state: State): State = {
     State(
       pattern =
@@ -113,6 +120,8 @@ case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Co
         typeEnv ++ state.typeEnv,
       resolution =
         resolution ++ state.resolution,
+      subtypeRelation =
+        subtypeRelation ++ state.subtypeRelation,
       nameConstraints =
         nameConstraints ++ state.nameConstraints
     )
@@ -125,14 +134,13 @@ case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Co
     copy(pattern.substituteScope(binding), constraints.substituteScope(binding), facts.substituteScope(binding))
 
   def substituteType(binding: TypeBinding): State =
-    copy(pattern.substituteType(binding), constraints.substituteType(binding), facts.substituteType(binding), typeEnv.substituteType(binding))
+    copy(pattern.substituteType(binding), constraints.substituteType(binding), facts.substituteType(binding), typeEnv.substituteType(binding), subtypeRelation = subtypeRelation.substituteType(binding))
 
   def substituteName(binding: NameBinding): State =
-    copy(pattern.substituteName(binding), constraints.substituteName(binding), facts.substituteName(binding), typeEnv.substituteName(binding))
+    copy(pattern.substituteName(binding), constraints.substituteName(binding), facts.substituteName(binding), typeEnv.substituteName(binding), subtypeRelation = subtypeRelation.substituteName(binding))
 
   def substituteSort(binding: SortBinding): State =
     copy(constraints = constraints.substituteSort(binding), facts = facts.substituteSort(binding))
-
 
   def freshen(nameBinding: Map[String, String]): (Map[String, String], State) =
     pattern.freshen(nameBinding).map { case (nameBinding, pattern) =>
@@ -140,8 +148,10 @@ case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Co
         facts.freshen(nameBinding).map { case (nameBinding, all) =>
           typeEnv.freshen(nameBinding).map { case (nameBinding, typeEnv) =>
             resolution.freshen(nameBinding).map { case (nameBinding, resolution) =>
-              nameConstraints.freshen(nameBinding).map { case (nameBinding, nameConstraints) =>
-                (nameBinding, copy(pattern, constraints, all, typeEnv, resolution, nameConstraints))
+              subtypeRelation.freshen(nameBinding).map { case (nameBinding, subtypeRelation) =>
+                nameConstraints.freshen(nameBinding).map { case (nameBinding, nameConstraints) =>
+                  (nameBinding, copy(pattern, constraints, all, typeEnv, resolution, subtypeRelation, nameConstraints))
+                }
               }
             }
           }
@@ -151,20 +161,20 @@ case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Co
 }
 
 object State {
-  def apply(constraints: List[Constraint], facts: List[Constraint], typeEnv: TypeEnv, resolution: Resolution, nameConstraints: List[Constraint]): State = {
-    State(null, constraints, facts, typeEnv, resolution, nameConstraints)
+  def apply(constraints: List[Constraint], facts: List[Constraint], typeEnv: TypeEnv, resolution: Resolution, subtypeRelation: SubtypeRelation, nameConstraints: List[Constraint]): State = {
+    State(null, constraints, facts, typeEnv, resolution, subtypeRelation, nameConstraints)
   }
 
   def apply(pattern: Pattern, constraints: List[Constraint]): State = {
     val (proper, facts) = constraints.partition(_.isProper)
 
-    State(pattern, proper, facts, TypeEnv(), Resolution(), Nil)
+    State(pattern, proper, facts, TypeEnv(), Resolution(), SubtypeRelation(), Nil)
   }
 
   def apply(constraints: List[Constraint]): State = {
     val (proper, facts) = constraints.partition(_.isProper)
 
-    State(proper, facts, TypeEnv(), Resolution(), Nil)
+    State(proper, facts, TypeEnv(), Resolution(), SubtypeRelation(), Nil)
   }
 }
 
@@ -238,7 +248,7 @@ case class Resolution(bindings: Map[Name, (Path, Name)] = Map.empty) {
     val freshBindings = bindings.toList.mapFoldLeft(nameBinding) { case (nameBinding, (n1, (path, n2))) =>
       n1.freshen(nameBinding).map { case (nameBinding, n1) =>
         n2.freshen(nameBinding).map { case (nameBinding, n2) =>
-          (nameBinding, n1 ->(path, n2))
+          (nameBinding, n1 -> (path, n2))
         }
       }
     }
@@ -250,4 +260,64 @@ case class Resolution(bindings: Map[Name, (Path, Name)] = Map.empty) {
 
   override def toString =
     "Resolution(List(" + bindings.map { case (n1, n2) => s"""Binding($n1, $n2)""" }.mkString(", ") + "))"
+}
+
+case class SubtypeRelation(bindings: List[(Type, Type)] = Nil) {
+  def contains(n: Type): Boolean =
+    bindings.exists(_._1 == n)
+
+  def domain: List[Type] =
+    bindings.map(_._1)
+
+  def ++(subtypeRelation: SubtypeRelation) =
+    SubtypeRelation(bindings ++ subtypeRelation.bindings)
+
+  def ++(otherBindings: List[(Type, Type)]) =
+    SubtypeRelation(bindings ++ otherBindings)
+
+  // Returns all t2 such that t1 is a subtype of t2
+  def supertypeOf(t1: Type): List[Type] =
+    bindings.filter(_._1 == t1).map(_._2)
+
+  // Returns all t1 that are a subtype of t2
+  def subtypeOf(t2: Type): List[Type] =
+    bindings.filter(_._2 == t2).map(_._1)
+
+  // Checks whether t2 is the supertype of t1
+  def isSupertype(t1: Type, t2: Type) =
+    t1 == t2 || bindings.exists {
+      case (ty1, ty2) =>
+        ty1 == t1 && ty2 == t2
+    }
+
+  def substituteType(typeBinding: TypeBinding): SubtypeRelation =
+    SubtypeRelation(
+      bindings.map { case (t1, t2) =>
+        t1.substituteType(typeBinding) -> t2.substituteType(typeBinding)
+      }
+    )
+
+  def substituteName(nameBinding: NameBinding): SubtypeRelation =
+    SubtypeRelation(
+      bindings.map { case (t1, t2) =>
+        t1.substituteName(nameBinding) -> t2.substituteName(nameBinding)
+      }
+    )
+
+  def freshen(nameBinding: Map[String, String]): (Map[String, String], SubtypeRelation) = {
+    val freshBindings = bindings.mapFoldLeft(nameBinding) { case (nameBinding, (t1, t2)) =>
+      t1.freshen(nameBinding).map { case (nameBinding, t1) =>
+        t2.freshen(nameBinding).map { case (nameBinding, t2) =>
+          (nameBinding, t1 -> t2)
+        }
+      }
+    }
+
+    freshBindings.map { case (nameBinding, bindings) =>
+      (nameBinding, SubtypeRelation(bindings))
+    }
+  }
+
+  override def toString =
+    "SubtypeRelation(List(" + bindings.map { case (n1, n2) => s"""Binding($n1, $n2)""" }.mkString(", ") + "))"
 }

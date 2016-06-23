@@ -9,7 +9,19 @@ object Consistency {
       checkTypeOf(C, typeBinding, nameBinding)
     }
 
-    result.isDefined && result.get
+    result.isDefined && result.get && checkSubtyping(C)
+  }
+
+  // TODO: Check for cycles in the subtyping relation
+  def checkSubtyping(C: List[Constraint]): Boolean = {
+    val subtypingConstraints = C.flatMap {
+      case c: Subtype =>
+        Some(c)
+      case _ =>
+        None
+    }
+    
+    true
   }
 
   // Check if the TypeEquals unify

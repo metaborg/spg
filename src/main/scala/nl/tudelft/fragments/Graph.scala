@@ -163,6 +163,9 @@ case class Diseq(n1: Name, n2: Name) extends NamingConstraint {
   override def substituteScope(binding: ScopeBinding): NamingConstraint =
     this
 
+  override def substituteSort(binding: SortBinding): Constraint =
+    this
+
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], NamingConstraint) =
     n1.freshen(nameBinding).map { case (nameBinding, n1) =>
       n2.freshen(nameBinding).map { case (nameBinding, n2) =>
@@ -185,6 +188,9 @@ case class Eq(n1: Name, n2: Name) extends NamingConstraint {
     Eq(n1.substituteName(binding), n2.substituteName(binding))
 
   override def substituteScope(binding: ScopeBinding): NamingConstraint =
+    this
+
+  override def substituteSort(binding: SortBinding): Constraint =
     this
 
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], NamingConstraint) =
