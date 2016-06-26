@@ -41,12 +41,13 @@ case class True() extends Constraint {
     true
 }
 
-case class Par(s1: Scope, s2: Scope) extends Constraint {
+// TODO: DirectEdge should get a label
+case class DirectEdge(s1: Scope, s2: Scope) extends Constraint {
   override def substituteType(binding: TypeBinding): Constraint =
     this
 
   override def substituteScope(binding: ScopeBinding): Constraint =
-    Par(s1.substituteScope(binding), s2.substituteScope(binding))
+    DirectEdge(s1.substituteScope(binding), s2.substituteScope(binding))
 
   override def substituteName(binding: NameBinding): Constraint =
     this
@@ -60,7 +61,7 @@ case class Par(s1: Scope, s2: Scope) extends Constraint {
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
     s1.freshen(nameBinding).map { case (nameBinding, s1) =>
       s2.freshen(nameBinding).map { case (nameBinding, s2) =>
-        (nameBinding, Par(s1, s2))
+        (nameBinding, DirectEdge(s1, s2))
       }
     }
 }
@@ -113,6 +114,7 @@ case class Ref(n: Name, s: Scope) extends Constraint {
     }
 }
 
+// TODO: What is the difference between DirectEdge and DirectImport? I think DirectImport is superseded by DirectEdge with 'I' label..
 case class DirectImport(s1: Scope, s2: Scope) extends Constraint {
   override def substituteType(binding: TypeBinding): Constraint =
     this

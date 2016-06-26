@@ -30,7 +30,7 @@ object Strategy4 {
       languagePath = "/Users/martijn/Projects/scopes-frames/L3/"
     )
 
-    val kb = repeat(gen, 100)(rules)
+    val kb = repeat(gen, 200)(rules)
 
     for (i <- 1 to 100) {
       val rule = kb.filter(_.sort == SortAppl("Start")).random
@@ -76,7 +76,7 @@ object Strategy4 {
       // Pair each resolution constraint with the possible declarations
       val declarations = ress
         .flatMap(res =>
-          Graph.resolves(Nil, res.n1, merged.constraints, merged.state.nameConstraints).map(dec =>
+          Graph(merged.state.facts).resolves(Nil, res.n1, merged.state.nameConstraints).map(dec =>
             (res, dec)
           )
         )

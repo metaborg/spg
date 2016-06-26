@@ -10,7 +10,8 @@ package object fragments {
   type SortBinding = Map[SortVar, Sort]
   type ConcreteBinding = Map[SymbolicName, ConcreteName]
   type Path = List[PathElem]
-  type Seen = List[Name]
+  type SeenImport = List[Name]
+  type SeenScope = List[Scope]
 
   // An instance of the NameProvider made globally available
   val nameProvider = NameProvider(9)
@@ -137,6 +138,13 @@ package object fragments {
 
     def substituteConcrete(binding: ConcreteBinding): List[Constraint] =
       list.map(_.substituteConcrete(binding))
+  }
+
+  implicit class RichNamingConstraintList[T <: NamingConstraint](list: List[T]) extends RichList[T](list) {
+    def freshen(nameBinding: Map[String, String]): (Map[String, String], List[NamingConstraint]) =
+      this.mapFoldLeft(nameBinding) { case (nameBinding, constraint) =>
+        constraint.freshen(nameBinding)
+      }
   }
 
   implicit class RichEqList[T <: Eq](list: List[T]) extends RichList[T](list) {

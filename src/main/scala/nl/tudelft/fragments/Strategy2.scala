@@ -71,7 +71,7 @@ object Strategy2 {
       // Pair each resolution constraint with the possible declarations
       val declarations = ress
         .flatMap(res =>
-          Graph.resolves(Nil, res.n1, merged.constraints, merged.state.nameConstraints).map(dec =>
+          Graph(merged.state.facts).resolves(Nil, res.n1, merged.state.nameConstraints).map(dec =>
             (res, dec)
           )
         )

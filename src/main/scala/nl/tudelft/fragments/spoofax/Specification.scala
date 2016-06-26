@@ -2,13 +2,16 @@ package nl.tudelft.fragments.spoofax
 
 import nl.tudelft.fragments
 import nl.tudelft.fragments.spoofax.Signatures._
-import nl.tudelft.fragments.{AssocConstraint, AssocFact, AssociatedImport, Constraint, Dec, Name, NameVar, Par, Pattern, Recurse, Ref, Res, Rule, Scope, ScopeVar, Sort, SortAppl, State, Strategy2, Subtype, Supertype, SymbolicName, TermAppl, TermVar, True, Type, TypeAppl, TypeEquals, TypeNameAdapter, TypeOf, TypeVar}
+import nl.tudelft.fragments.{AssocConstraint, AssocFact, AssociatedImport, Constraint, Dec, Name, NameProvider, NameVar, DirectEdge, Pattern, Recurse, Ref, Res, Rule, Scope, ScopeVar, Sort, SortAppl, State, Strategy2, Subtype, Supertype, SymbolicName, TermAppl, TermVar, True, Type, TypeAppl, TypeEquals, TypeNameAdapter, TypeOf, TypeVar}
 import org.apache.commons.io.IOUtils
 import org.spoofax.interpreter.terms.{IStrategoList, IStrategoString, IStrategoTerm}
 import org.spoofax.terms.{StrategoAppl, StrategoList}
 
 object Specification {
   val s = Strategy2.spoofax
+
+  // Start at 9 so we do not clash with names in the rules
+  val nameProvider = NameProvider(9)
 
   // Parse the specification (constraint generation function)
   def read(nablPath: String, specPath: String)(implicit signatures: List[Decl]): List[Rule] = {
@@ -140,7 +143,7 @@ object Specification {
     case appl: StrategoAppl if appl.getConstructor.getName == "Var" =>
       TermVar(toString(appl.getSubterm(0)))
     case appl: StrategoAppl if appl.getConstructor.getName == "Wld" =>
-      TermVar(null) // TODO: Model wildcards explicitly (or just invent random names)
+      TermVar("x" + nameProvider.next)
   }
 
   def toPatternsList(term: IStrategoTerm): List[Pattern] = term match {
@@ -172,8 +175,7 @@ object Specification {
     case appl: StrategoAppl if appl.getConstructor.getName == "Var" =>
       ScopeVar(toString(appl.getSubterm(0)))
     case appl: StrategoAppl if appl.getConstructor.getName == "Wld" =>
-      // TODO: invent new name for wildcards?
-      ScopeVar(null)
+      ScopeVar("s" + nameProvider.next)
   }
 
   // Turn a list of Stratego scopes into a List[Scope]
@@ -222,8 +224,11 @@ object Specification {
       Res(toName(appl.getSubterm(0)), toName(appl.getSubterm(1)))
     case appl: StrategoAppl if appl.getConstructor.getName == "CTypeOf" =>
       TypeOf(toName(appl.getSubterm(0)), toType(appl.getSubterm(1)))
+    // TODO: We read DirectEdge, but the name resolution calculus + name resolution algorithm only handles Par (parent) edges..
+    // TODO: Also, the name resolution calculus only handles DirectImport imports, but we don't generate these.. (superseded by DirectEdge)
+    // TODO: And the name resolution algorithm does not even handle DirectImports..
     case appl: StrategoAppl if appl.getConstructor.getName == "CGDirectEdge" =>
-      Par(toScope(appl.getSubterm(0)), toScope(appl.getSubterm(2)))
+      DirectEdge(toScope(appl.getSubterm(0)), toScope(appl.getSubterm(2)))
     case appl: StrategoAppl if appl.getConstructor.getName == "CEqual" =>
       TypeEquals(toType(appl.getSubterm(0)), toType(appl.getSubterm(1)))
     case appl: StrategoAppl if appl.getConstructor.getName == "CGAssoc" =>

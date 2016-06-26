@@ -40,7 +40,7 @@ class ConsistencySuite extends FunSuite {
       TypeEquals(TypeVar("t1"), TypeAppl("Int"))
     )
 
-    assert(!Consistency.check(constraints))
+    assert(!Consistency.check(State(constraints = constraints)))
   }
 
   test("consistency of naming conditions") {
@@ -78,6 +78,29 @@ class ConsistencySuite extends FunSuite {
     )
 
     assert(Consistency.checkNamingConditions(conditions))
+  }
+
+  test("cyclic subtyping in constraints + subtyping relation") {
+    val constraints = List(
+      Supertype(TypeAppl("Numeric"), TypeAppl("Int"))
+    )
+
+    val subtypingRelation = SubtypeRelation(List(
+      (TypeAppl("Int"), TypeAppl("Numeric"))
+    ))
+
+    assert(!Consistency.checkSubtyping(State(constraints, Nil, TypeEnv(), Resolution(), subtypingRelation, Nil)))
+  }
+
+  test("cyclic subtyping in constraints") {
+    val constraints = List(
+      Supertype(TypeAppl("Numeric"), TypeAppl("Int")),
+      Supertype(TypeAppl("Int"), TypeAppl("Numeric"))
+    )
+
+    val subtypingRelation = SubtypeRelation()
+
+    assert(!Consistency.checkSubtyping(State(constraints, Nil, TypeEnv(), Resolution(), subtypingRelation, Nil)))
   }
 
 }

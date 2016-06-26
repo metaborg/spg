@@ -98,7 +98,7 @@ object MiniJava {
     State(List(
       Dec(ScopeVar("s"), SymbolicName("Class", "n")),
       TypeOf(SymbolicName("Class", "n"), TypeAppl("ClassType", List(TypeNameAdapter(SymbolicName("Class", "n"))))),
-      Par(ScopeVar("s1"), ScopeVar("s")),
+      DirectEdge(ScopeVar("s1"), ScopeVar("s")),
       Dec(ScopeVar("s1"), ConcreteName("Implicit", "this", 1)),
       TypeOf(ConcreteName("Implicit", "this", 1), TypeAppl("ClassType", List(TypeNameAdapter(SymbolicName("Class", "n"))))),
       AssocFact(SymbolicName("Class", "n"), ScopeVar("s1"))
@@ -144,7 +144,7 @@ object MiniJava {
     List(ScopeVar("s")),
     State(List(
       Dec(ScopeVar("s"), SymbolicName("Method", "n1")),
-      Par(ScopeVar("s1"), ScopeVar("s")),
+      DirectEdge(ScopeVar("s1"), ScopeVar("s")),
       AssocFact(SymbolicName("Method", "n1"), ScopeVar("s1")),
       TypeOf(SymbolicName("Method", "n1"), TypeAppl("Pair", List(TypeVar("t1"), TypeVar("t2"))))
     ))
@@ -234,8 +234,8 @@ object MiniJava {
     List(ScopeVar("s")),
     State(List(
       TypeEquals(TypeVar("t1"), TypeAppl("Bool")),
-      Par(ScopeVar("s1"), ScopeVar("s")),
-      Par(ScopeVar("s2"), ScopeVar("s"))
+      DirectEdge(ScopeVar("s1"), ScopeVar("s")),
+      DirectEdge(ScopeVar("s2"), ScopeVar("s"))
     ))
   )
 

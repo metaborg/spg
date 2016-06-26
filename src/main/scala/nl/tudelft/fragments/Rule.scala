@@ -27,7 +27,7 @@ case class Rule(sort: Sort, typ: Option[Type], scopes: List[Scope], state: State
 
     // Check consistency. E.g. the merge might have unified t1 with t2, but if t1 = Int, t2 = Bool, it's inconsistent
     merged.flatMap(rule =>
-      if (Consistency.check(merged.get.state.constraints)) {
+      if (Consistency.check(merged.get.state)) {
         Some((merged.get, nameBinding))
       } else {
         None
@@ -62,16 +62,16 @@ case class Rule(sort: Sort, typ: Option[Type], scopes: List[Scope], state: State
   // Fix broken references by adding name disequalities
   def restoreResolution(rule: Rule) = {
     // The merge may have broken existing resolutions, fix this
-    val fixedRule = rule.state.resolution.bindings.foldLeft(rule) { case (rule, (ref, (path, dec))) =>
+    val fixedRule = rule.state.resolution.bindings.foldLeft(rule) { case (rule, (ref, dec)) =>
       // Get the declarations that `ref` may resolve to and remove declarations longer than `dec` as they don't break the resolution
-      val newResolves = Graph
-        .resolves(Nil, ref, rule.state.facts, rule.state.nameConstraints)
-        .filter(_._2.length <= path.length)
+      val newResolves = Graph(rule.state.facts)
+        .res(rule.state.nameConstraints, ref)
 
-      if (newResolves.length != 1 || (newResolves.length == 1 && newResolves.head._3 != dec)) {
+      if (newResolves.length != 1 || (newResolves.length == 1 && newResolves.head._1 != dec)) {
+        // TODO: We can use the constraint from newResolves here, as that already contains the necessary condition for resolving to that single name
         val newDisEqs = newResolves
-          .filter(_._3 != dec)
-          .map { case (_, _, newDec, _) => Diseq(dec, newDec) }
+          .filter(_._1 != dec)
+          .map { case (newDec, _) => Diseq(dec, newDec) }
 
         rule.copy(state =
           rule.state.copy(nameConstraints =
@@ -84,12 +84,10 @@ case class Rule(sort: Sort, typ: Option[Type], scopes: List[Scope], state: State
     }
 
     // TODO) Sanity check: did we really restore the resolution? (Remove this code eventually)
-    for ((ref, (path, dec)) <- fixedRule.state.resolution.bindings) {
-      val newResolves = Graph
-        .resolves(Nil, ref, fixedRule.state.facts, fixedRule.state.nameConstraints)
-        .filter(_._2.length <= path.length)
+    for ((ref, dec) <- fixedRule.state.resolution.bindings) {
+      val newResolves = Graph(fixedRule.state.facts).res(fixedRule.state.nameConstraints, ref)
 
-      if (newResolves.length != 1 || (newResolves.length == 1 && newResolves.head._3 != dec)) {
+      if (newResolves.length != 1 || (newResolves.length == 1 && newResolves.head._1 != dec)) {
         println(ref)
         println(fixedRule)
         println(newResolves)
@@ -373,6 +371,8 @@ abstract class Name {
 
   def namespace: String
 
+  def vars: List[NameVar]
+
   def substituteName(binding: NameBinding): Name
 
   def substituteConcrete(binding: ConcreteBinding): Name
@@ -409,6 +409,9 @@ case class SymbolicName(namespace: String, name: String) extends Name {
       None
   }
 
+  override def vars: List[NameVar] =
+    Nil
+
   override def toString: String =
     s"""SymbolicName("$namespace", "$name")"""
 }
@@ -440,6 +443,9 @@ case class ConcreteName(namespace: String, name: String, pos: Int) extends Name 
       (nameBinding + (name + pos -> fresh.toString), ConcreteName(namespace, name, fresh))
     }
 
+  override def vars: List[NameVar] =
+    Nil
+
   override def toString: String =
     s"""ConcreteName("$namespace", "$name", $pos)"""
 }
@@ -470,6 +476,9 @@ case class NameVar(name: String) extends Name {
       val fresh = "d" + nameProvider.next
       (nameBinding + (name -> fresh), NameVar(fresh))
     }
+
+  override def vars: List[NameVar] =
+    List(this)
 
   override def toString: String =
     s"""NameVar("$name")"""

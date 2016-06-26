@@ -49,7 +49,7 @@ object Lambda {
     List(ScopeVar("s")),
     State(List(
       TypeEquals(TypeVar("t"), TypeAppl("Fun", List(TypeVar("t1"), TypeVar("t2")))),
-      Par(ScopeVar("s1"), ScopeVar("s")),
+      DirectEdge(ScopeVar("s1"), ScopeVar("s")),
       Dec(ScopeVar("s1"), SymbolicName("Variable", "n")),
       TypeOf(SymbolicName("Variable", "n"), TypeVar("t1"))
     ))

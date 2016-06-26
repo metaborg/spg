@@ -4,23 +4,40 @@ object Consistency {
   // TODO: Scope reachability checking!
 
   // Check for consistency
-  def check(C: List[Constraint]): Boolean = {
-    val result = checkTypeEquals(C).map { case (typeBinding, nameBinding) =>
-      checkTypeOf(C, typeBinding, nameBinding)
+  def check(state: State): Boolean = {
+    val result = checkTypeEquals(state.constraints).map { case (typeBinding, nameBinding) =>
+      checkTypeOf(state.constraints, typeBinding, nameBinding)
     }
 
-    result.isDefined && result.get && checkSubtyping(C)
+    result.isDefined && result.get && checkSubtyping(state)
   }
 
-  // TODO: Check for cycles in the subtyping relation
-  def checkSubtyping(C: List[Constraint]): Boolean = {
-    val subtypingConstraints = C.flatMap {
-      case c: Subtype =>
+  // Check for cycles in the combination of Supertype constraints and the built-up subtyping relation
+  def checkSubtyping(state: State): Boolean = {
+    val supertypeConstraints = state.constraints.flatMap {
+      case c: Supertype =>
         Some(c)
       case _ =>
         None
     }
-    
+
+    // Imaginary complete relation, if all supertype constraint would be added
+    val completeRelation = supertypeConstraints.foldLeft(state.subtypeRelation) {
+      case (subtypeRelation, Supertype(t1, t2)) =>
+        val closure = for (ty1 <- subtypeRelation.subtypeOf(t1); ty2 <- subtypeRelation.supertypeOf(t2))
+          yield (ty1, ty2)
+
+        subtypeRelation ++ closure
+    }
+
+    // Check for cyclic inheritance in the imaginary relation
+    for ((ty1, ty2) <- completeRelation.bindings) {
+      if (completeRelation.isSubtype(ty2, ty1)) {
+        assert(false, "Inconsistent subtyping relation in state = " + state)
+        return false
+      }
+    }
+
     true
   }
 
@@ -60,7 +77,7 @@ object Consistency {
 
   // Check if the naming conditions are consistent
   def checkNamingConditions(C: List[Constraint]): Boolean = {
-    // Remove duplicates (the algorithm fails on duplicate disequality constraints)
+    // Remove duplicates (the algorithm fails on duplicate disequality constraints) TODO: is this still the case? improve this!
     val unique = C.distinct
 
     val eqs: List[Eq] = unique

@@ -3,8 +3,6 @@ package nl.tudelft.fragments
 import nl.tudelft.fragments.spoofax.Signatures.Decl
 
 object Builder {
-  import Graph._
-
 //  type Point = (Pattern, Sort, List[Scope])
 //
 //  // Complete the given rule
@@ -115,11 +113,12 @@ object Builder {
 
   // Combine a (Rule, Res) with the scopes reachable from the reference in the resolution constraint
   def withScopes(r: (Rule, Res)): List[(Rule, Res, Scope)] = {
-    r match { case (rule, res@Res(ref, _)) =>
-      path(Nil, scope(ref, rule.state.facts).head, rule.state.facts, Nil).map(_._3).map(scope =>
+    r match { case (rule, res@Res(ref, _)) => {
+      println("compute path")
+      Graph(rule.state.facts).path(Nil, Graph(rule.state.facts).scope(ref).head, Nil).map(_._3).map(scope =>
         (rule, res, scope)
       )
-    }
+    }}
   }
 
   // Combine a (Rule, Res, Scope) with the extension points, i.e. holes
@@ -226,9 +225,9 @@ object Builder {
 
   def withDecsInternal(r: (Rule, Res)): List[(Rule, Res, Name)] = r match {
     case (rule, res@Res(ref, delta)) =>
-      Graph
-        .resolves(Nil, ref, rule.state.facts, rule.state.nameConstraints)
-        .map { case (_, _, dec, _) =>
+      Graph(rule.state.facts)
+        .res(rule.state.nameConstraints, ref)
+        .map { case (dec, _) =>
           (rule, res, dec)
         }
   }
@@ -271,8 +270,10 @@ object Builder {
   }
 
   // Get the declarations that are reachable from given scope (TODO: "visible from given scope" ignores that we are looking for resolutions of a name, which has a namespace. We don't need DisEq constraints if the namespaces don't match anyway.)
-  def decls(rule: Rule, scope: Scope) =
-    visible(Nil, scope, rule.state.facts, Nil)
+  def decls(rule: Rule, scope: Scope) = {
+    println("compute visible")
+    Graph(rule.state.facts).visible(Nil, scope, Nil)
+  }
 
   // Get [Rule, [Res]]
   def rulesWithRes(rules: List[Rule]) = rules
@@ -298,7 +299,7 @@ object Builder {
         // Create new rule for each state
         .map(state => rule.copy(state = state))
         // Filter on consistency
-        .filter(rule => Consistency.check(rule.state.constraints))
+        .filter(rule => Consistency.check(rule.state))
     case _ =>
       throw new Exception("Could not match " + res)
   }
