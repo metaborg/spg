@@ -226,7 +226,7 @@ object Specification {
       TypeOf(toName(appl.getSubterm(0)), toType(appl.getSubterm(1)))
     // TODO: We read DirectEdge, but the name resolution calculus + name resolution algorithm only handles Par (parent) edges..
     // TODO: Also, the name resolution calculus only handles DirectImport imports, but we don't generate these.. (superseded by DirectEdge)
-    // TODO: And the name resolution algorithm does not even handle DirectImports..
+    // TODO: And the name resolution algorithm does not handle DirectImport nor DirectEdge (the parent query is programmed to match DirectEdge, but we can have non-parent direct edges)..
     case appl: StrategoAppl if appl.getConstructor.getName == "CGDirectEdge" =>
       DirectEdge(toScope(appl.getSubterm(0)), toScope(appl.getSubterm(2)))
     case appl: StrategoAppl if appl.getConstructor.getName == "CEqual" =>

@@ -1,222 +1,96 @@
 package nl.tudelft.fragments
 
-// TODO: Resolution gives StackOverflow if there is a direct edge from the scope to itself. Use the algorithm from the paper or from Hendrik's thesis?
-case class Graph(all: List[Constraint]) {
-  // Parent scope
-  def parent(s: Scope): List[Scope] = all.flatMap {
-    case DirectEdge(`s`, p) =>
-      Some(p)
-    case _ =>
-      None
-  }
+import nl.tudelft.fragments.LabelImplicits._
 
-  // Declarations
-  def declarations(s: Scope): List[Name] = all.flatMap {
-    case Dec(`s`, n@SymbolicName(_, _)) =>
-      Some(n)
-    case Dec(`s`, n@ConcreteName(_, _, _)) =>
-      Some(n)
-    case _ =>
-      None
-  }
-
-  // Scope for reference
-  def scope(n: Name): List[Scope] = all.flatMap {
-    case Ref(`n`, s) =>
-      Some(s)
-    case _ =>
-      None
-  }
-
-  // Scope associated with a declaration
-  def associated(n: Name): Option[Scope] = all.flatMap {
-    case AssocFact(`n`, s) =>
-      Some(s)
-    case _ =>
-      None
-  }.headOption
-
-  // Associated imports
-  def aimports(s: Scope): List[Name] = all.flatMap {
-    case AssociatedImport(`s`, n) =>
-      Some(n)
-    case _ =>
-      None
-  }
-
-  // Direct imports
-  def dimports(s: Scope): List[Scope] = all.flatMap {
-    case DirectImport(`s`, s2) =>
-      Some(s2)
-    case _ =>
-      None
-  }
-
-  // Parent edge
-  def edgeParent(seen: SeenImport, s: Scope, conditions: List[Constraint]): List[(SeenImport, Path, Scope, List[Constraint])] =
-    parent(s).flatMap(path(seen, _, conditions)).map {
-      case (seen, path, scope, conditions) =>
-        (seen, Parent() :: path, scope, conditions)
+class Graph(val wellFormedness: Regex, val labels: List[Label], val labelOrdering: LabelOrdering, val facts: List[Constraint]) {
+  // Get scope for reference
+  def scope(n: Name) = facts
+    .find {
+      case Ref(`n`, s) => true
+      case _ => false
     }
+    .map(_.asInstanceOf[Ref].s)
 
-  // Associated Import edge
-  def edgeAImport(seen: SeenImport, s: Scope, conditions: List[Constraint]): List[(SeenImport, Path, Scope, List[Constraint])] =
-    aimports(s)
-      .filter(ref => !seen.contains(ref))
-      .flatMap(ref =>
-        resolves(seen, ref, conditions).flatMap {
-          case (seen, path, dec, conditions) =>
-            associated(dec).map(scope =>
-              (seen, List(AImport(ref, dec)), scope, conditions)
-            )
-        }
-      )
+  // Get declarations for scope
+  def declarations(s: Scope): List[Name] = facts.flatMap {
+    case Dec(`s`, n) => Some(n)
+    case _ => None
+  }
 
-  // Direct Import edge
-  def edgeDImport(seen: SeenImport, s: Scope, conditions: List[Constraint]): List[(SeenImport, Path, Scope, List[Constraint])] =
-    dimports(s).flatMap(imports =>
-      path(seen, imports, conditions).map((imports, _))).map {
-        case (imports, (seen, path, scope, conditions)) =>
-          (seen, Import(imports) :: path, scope, conditions)
-      }
-
-  // Transitive reflexive closure of edge relation
-  def path(seen: SeenImport, s: Scope, conditions: List[Constraint]): List[(SeenImport, Path, Scope, List[Constraint])] =
-    List((seen, Nil, s, conditions)) ++
-      edgeParent(seen, s, conditions) ++
-      edgeDImport(seen, s, conditions) ++
-      edgeAImport(seen, s, conditions)
-
-  // Reachable declarations
-  def reachable(seen: SeenImport, s: Scope, conditions: List[Constraint]): List[(SeenImport, Path, Name, List[Constraint])] =
-    path(seen, s, conditions).flatMap {
-      case (seen, path, scope, conditions) =>
-        declarations(scope).map(dec => (seen, path, dec, conditions))
+  // Get scope associated to name
+  def associated(n: Name) = facts
+    .find {
+      case AssocFact(`n`, s) => true
+      case _ => false
     }
+    .map(_.asInstanceOf[AssocFact].s)
 
-  // Visible declarations
-  def visible(seen: SeenImport, s: Scope, conditions: List[Constraint]): List[(SeenImport, Path, Name, List[Constraint])] = {
-    val reachableNames = reachable(seen, s, conditions)
+  // Get named imports for scope
+  def imports(s: Scope): List[Name] = facts.flatMap {
+    case AssociatedImport(`s`, n) => Some(n)
+    case _ => None
+  }
 
-    reachableNames.map {
-      case (seen, path, name, conditions) =>
-        val condition = reachableNames
-          .filter(_._2.length < path.length)
-          .map { case (_, _, other, _) =>
-            Diseq(name, other)
-          }
-
-        (seen, path, name, condition ++ conditions)
-    }
+  // Get endpoints of l-labeled edges for scope
+  def edges(l: Label, s: Scope): List[Scope] = facts.flatMap {
+    case DirectEdge(`s`, d) => Some(d)
+    case _ => None
   }
 
   // Resolution
-  def resolves(seen: SeenImport, n: Name, conditions: List[Constraint]): List[(SeenImport, Path, Name, List[Constraint])] = {
-    println("Compute resolution")
-    n match {
-      case ConcreteName(namespace, name, pos) =>
-        scope(n).flatMap(s =>
-          visible(n :: seen, s, conditions)
-            .filter(_._3.namespace == namespace)
-            .filter(_._3.name == name)
-            .filter { case (_, _, dec, cs) =>
-              Consistency.checkNamingConditions(Eq(n, dec) :: cs ++ conditions)
-            }
-        )
-      case SymbolicName(namespace, name) =>
-        scope(n).flatMap(s =>
-          visible(n :: seen, s, conditions)
-            .filter(_._3.namespace == namespace)
-            .filter { case (_, _, dec, cs) =>
-              Consistency.checkNamingConditions(Eq(n, dec) :: cs ++ conditions)
-            }
-            .map { case (seen, path, dec, cs) =>
-              (seen, path, dec, Eq(n, dec) :: cs)
-            }
-        )
+  def res(I: SeenImport, R: Resolution)(x: Name): List[(Name, List[NamingConstraint])] =
+    if (R.contains(x)) {
+      List((R(x), List.empty[NamingConstraint]))
+    } else {
+      val D = env(wellFormedness, x :: I, Nil, R)(scope(x).get)
+
+      D.declarations.map { case (y, c) =>
+        (y, Eq(x, y) :: c)
+      }
     }
+
+  // Environment
+  def env(re: Regex, I: SeenImport, S: SeenScope, R: Resolution)(s: Scope): Environment =
+    if (S.contains(s) || re == EmptySet) {
+      Environment()
+    } else {
+      envLs(re, 'D' :: labels, I, S, R)(s)
+    }
+
+  // Environment for labels
+  def envLs(re: Regex, L: List[Label], I: SeenImport, S: SeenScope, R: Resolution)(s: Scope): Environment = {
+    LabelOrdering.max(L, labelOrdering)
+      .map(l => envLs(re, LabelOrdering.lt(L, l, labelOrdering), I, S, R)(s) shadows envL(re, l, I, S, R)(s))
+      .fold(Environment())(_ union _)
   }
 
-
-  // ------------------------------ The real algorithm from "A Theory of Name Resolution" ------------------------------
-
-  def res(nc: List[NamingConstraint], name: Name): List[(Name, List[NamingConstraint])] =
-    res(Nil, nc, name)
-
-  def res(I: SeenImport, nc: List[NamingConstraint], ref: Name): List[(Name, List[NamingConstraint])] = {
-    val declarations = scope(ref)
-      .map(envV(ref :: I, Nil, nc, _))
-      .flatMap(_.declarations)
-      .filter { case (dec, _) => dec.namespace == ref.namespace }
-
-    declarations
-      .map { case x@(dec, c) => (dec, (Eq(ref, dec) :: unequal(ref, declarations - x) ++ c).distinct) }
-      .filter { case (_, c) => Consistency.checkNamingConditions(c) }
-  }
-
-  def unequal(ref: Name, declarations: List[(Name, List[NamingConstraint])]) =
-    declarations.map { case (name, _) => Diseq(ref, name) }
-
-  def envV(I: SeenImport, S: SeenScope, nc: List[NamingConstraint], scope: Scope): Env =
-    envL(I, S, nc, scope) shadows envP(I, S, nc, scope)
-
-  def envL(I: SeenImport, S: SeenScope, nc: List[NamingConstraint], scope: Scope): Env =
-    envD(I, S, nc, scope) shadows envI(I, S, nc, scope)
-
-  def envD(I: SeenImport, S: SeenScope, nc: List[NamingConstraint], scope: Scope): Env =
-    if (S.contains(scope)) {
-      Env()
+  // Environment for declarations
+  def envD(re: Regex, I: SeenImport, S: SeenScope, R: Resolution)(s: Scope): Environment =
+    if (!re.acceptsEmptyString) {
+      Environment()
     } else {
-      Env(declarations(scope).map((_, nc)))
-    }
-
-  def envI(I: SeenImport, S: SeenScope, nc: List[NamingConstraint], scope: Scope): Env =
-    if (S.contains(scope)) {
-      Env()
-    } else {
-      (aimports(scope) diff I)
-        .flatMap(res(I, nc, _))
-        .map { case (n, nc) => (associated(n), nc) }
-        .map { case (Some(s), nc) => envL(I, scope :: S, nc, s) }
-        .foldLeft(Env()) { _ union _ }
-    }
-
-  def envP(I: SeenImport, S: SeenScope, nc: List[NamingConstraint], scope: Scope): Env =
-    if (S.contains(scope)) {
-      Env()
-    } else {
-      parent(scope)
-        .map(s => envV(I, scope :: S, nc, s))
-        .foldLeft(Env()) { _ union _ }
-    }
-}
-
-// Environment of declarations
-case class Env(declarations: List[(Name, List[NamingConstraint])] = Nil) {
-  // This environment shadows given environment e
-  def shadows(e: Env) =
-    Env(declarations ++ e.declarations.map { case (x, c2) =>
-      (x, c2 ++ declarations
-        .filter { case (y, c1) =>
-          x.namespace == y.namespace
-        }
-        .map { case (y, c1) =>
-          Diseq(x, y)
-        }
+      val names = declarations(s).map(x =>
+        (x, (declarations(s) - x).map(y => Diseq(x, y)))
       )
-    })
 
-  // Union two environments
-  def union(e: Env) =
-    Env(declarations ++ e.declarations)
+      Environment(names)
+    }
+
+  // Environment for label
+  def envL(re: Regex, l: Label, I: SeenImport, S: SeenScope, R: Resolution)(s: Scope): Environment = {
+    val scopes = IS(l, I, R)(s) ++ edges(l, s).filter(_.vars.isEmpty)
+
+    scopes
+      .map(s2 => env(re.derive(l.name), I, s :: S, R)(s2))
+      .fold(Environment())(_ union _)
+  }
+
+  // Imported scopes
+  def IS(l: Label, I: SeenImport, R: Resolution)(s: Scope): List[Scope] =
+    (imports(s) diff I)
+      .flatMap(y => R.get(y))
+      .flatMap(associated(_))
 }
-
-// Paths
-abstract class PathElem
-case class Declaration(n: NameVar) extends PathElem
-case class Parent() extends PathElem
-case class Import(s: Scope) extends PathElem
-case class AImport(n1: Name, n2: Name) extends PathElem
 
 abstract class NamingConstraint extends Constraint {
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], NamingConstraint)

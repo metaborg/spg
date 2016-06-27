@@ -491,8 +491,11 @@ abstract class Scope {
   def substituteScope(binding: ScopeBinding): Scope
 
   def freshen(nameBinding: Map[String, String]): (Map[String, String], Scope)
+
+  def vars: List[ScopeVar]
 }
 
+// TODO: Create proper scope var's, because now everything is a scope var..
 case class ScopeVar(name: String) extends Scope {
   override def unify(scope: Scope, binding: ScopeBinding): Option[ScopeBinding] = scope match {
     case s@ScopeVar(_) if binding.contains(s) =>
@@ -515,6 +518,10 @@ case class ScopeVar(name: String) extends Scope {
       val fresh = "s" + nameProvider.next
       (nameBinding + (name -> fresh), ScopeVar(fresh))
     }
+
+  // TODO: Update this once we have proper scope vars
+  override def vars: List[ScopeVar] =
+    Nil
 
   override def toString: String =
     s"""ScopeVar("$name")"""
