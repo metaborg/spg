@@ -38,7 +38,7 @@ object Strategy2 {
     println(closedRules)
 
     for (rule <- closedRules) {
-      val resolvedRule = rule.resolutionConstraints.foldLeft(List(rule)) { case (rules, res@Res(n1, n2)) =>
+      val resolvedRule = rule.resolutionConstraints.foldLeft(List(rule)) { case (rules, res@CResolve(n1, n2)) =>
         rules.flatMap(Builder.resolve(_, res, null))
       }
 

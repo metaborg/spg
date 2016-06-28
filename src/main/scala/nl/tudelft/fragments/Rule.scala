@@ -5,7 +5,7 @@ import nl.tudelft.fragments.spoofax.Signatures.Decl
 
 // Rule
 case class Rule(sort: Sort, typ: Option[Type], scopes: List[Scope], state: State) {
-  def mergex(recurse: Recurse, rule: Rule)(implicit signatures: List[Decl]): Option[(Rule, Map[String, String])] = {
+  def mergex(recurse: CGenRecurse, rule: Rule)(implicit signatures: List[Decl]): Option[(Rule, Map[String, String])] = {
     // Prevent naming conflicts by freshening the names in the other rule
     val (nameBinding, freshRule) = rule.freshen()
 
@@ -36,7 +36,7 @@ case class Rule(sort: Sort, typ: Option[Type], scopes: List[Scope], state: State
   }
 
   // Backwards compatibility
-  def merge(recurse: Recurse, rule: Rule)(implicit signatures: List[Decl]): Option[Rule] = {
+  def merge(recurse: CGenRecurse, rule: Rule)(implicit signatures: List[Decl]): Option[Rule] = {
     mergex(recurse, rule).map(_._1)
   }
 
@@ -98,15 +98,15 @@ case class Rule(sort: Sort, typ: Option[Type], scopes: List[Scope], state: State
     fixedRule
   }
 
-  def recurse: List[Recurse] =
+  def recurse: List[CGenRecurse] =
     state.constraints
-      .filter(_.isInstanceOf[Recurse])
-      .asInstanceOf[List[Recurse]]
+      .filter(_.isInstanceOf[CGenRecurse])
+      .asInstanceOf[List[CGenRecurse]]
 
   def resolutionConstraints =
     constraints
-      .filter(_.isInstanceOf[Res])
-      .asInstanceOf[List[Res]]
+      .filter(_.isInstanceOf[CResolve])
+      .asInstanceOf[List[CResolve]]
 
   def points: List[(Pattern, Sort, List[Scope])] =
     ???

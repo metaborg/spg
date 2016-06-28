@@ -85,7 +85,7 @@ object Builder {
   }
 
   // Close given hole in rule
-  def buildToClose(rules: List[Rule], rule: Rule, recurse: Recurse)(implicit signatures: List[Decl]): List[Rule] = {
+  def buildToClose(rules: List[Rule], rule: Rule, recurse: CGenRecurse)(implicit signatures: List[Decl]): List[Rule] = {
     val choices = for (other <- rules) yield {
       rule.merge(recurse, other)
     }
@@ -103,7 +103,7 @@ object Builder {
   }
 
   // Combine a rule with its resolution constraints
-  def withRess(rule: Rule): List[(Rule, Res)] = {
+  def withRess(rule: Rule): List[(Rule, CResolve)] = {
     rulesWithRes(List(rule)).flatMap { case (rule, ress) =>
       ress.map(res =>
         (rule, res)
@@ -112,8 +112,8 @@ object Builder {
   }
 
   // Combine a (Rule, Res) with the scopes reachable from the reference in the resolution constraint
-  def withScopes(r: (Rule, Res)): List[(Rule, Res, Scope)] = {
-    r match { case (rule, res@Res(ref, _)) => {
+  def withScopes(r: (Rule, CResolve)): List[(Rule, CResolve, Scope)] = {
+    r match { case (rule, res@CResolve(ref, _)) => {
       println("compute path")
       Graph(rule.state.facts).path(Nil, Graph(rule.state.facts).scope(ref).head, Nil).map(_._3).map(scope =>
         (rule, res, scope)
@@ -123,7 +123,7 @@ object Builder {
 
   // Combine a (Rule, Res, Scope) with the extension points, i.e. holes
   // TODO: the situation is more complex with direct imports. E.g. n -> (s2) -> (s3), there is no hole with scope s3. There is one with s2,
-  def withPoints(r: (Rule, Res, Scope)): List[(Rule, Res, Scope, Recurse)] = {
+  def withPoints(r: (Rule, CResolve, Scope)): List[(Rule, CResolve, Scope, CGenRecurse)] = {
     r match { case (rule, res, scope) =>
       rule.recurse.filter(_.scopes.contains(scope)).map { point =>
         (rule, res, scope, point)
@@ -132,7 +132,7 @@ object Builder {
   }
 
   // Combine a (Rule, Res, Scope, Recurse) with another rule
-  def withOther(r: (Rule, Res, Scope, Recurse), rules: List[Rule]): List[(Rule, Res, Scope, Recurse, Rule)] = {
+  def withOther(r: (Rule, CResolve, Scope, CGenRecurse), rules: List[Rule]): List[(Rule, CResolve, Scope, CGenRecurse, Rule)] = {
     r match {
       case (rule, res, scope, recurse) =>
         rules.map(other =>
@@ -142,7 +142,7 @@ object Builder {
   }
 
   // Combine a (Rule, Res, Scope, Recurse, Rule) with reachable declarations in the last rule
-  def withDecs(r: (Rule, Res, Scope, Recurse, Rule)): List[(Rule, Res, Scope, Recurse, Rule, Name)] = {
+  def withDecs(r: (Rule, CResolve, Scope, CGenRecurse, Rule)): List[(Rule, CResolve, Scope, CGenRecurse, Rule, Name)] = {
     r match {
       case (rule, res, scope, recurse, other) =>
         val reachableDeclarations = other.scopes.flatMap(s =>
@@ -164,7 +164,7 @@ object Builder {
   }
 
   // Combine a (Rule, Res, Scope, Recurse, Rule, Name) with the solution after merging & resolving
-  def withResolved(r: (Rule, Res, Scope, Recurse, Rule, Name))(implicit signatures: List[Decl]): List[(Rule, Res, Scope, Recurse, Rule, Name, Rule)] = {
+  def withResolved(r: (Rule, CResolve, Scope, CGenRecurse, Rule, Name))(implicit signatures: List[Decl]): List[(Rule, CResolve, Scope, CGenRecurse, Rule, Name, Rule)] = {
     r match {
       case (rule, res, scope, recurse, other, dec) =>
         val mergeResult = rule.mergex(recurse, other)
@@ -183,14 +183,14 @@ object Builder {
   }
 
   // Build to resolve on a single rule
-  def buildToResolve(rules: List[Rule], rule: Rule)(implicit signatures: List[Decl]): List[(Rule, Res, Scope, Recurse, Rule, Name, Rule)] = {
+  def buildToResolve(rules: List[Rule], rule: Rule)(implicit signatures: List[Decl]): List[(Rule, CResolve, Scope, CGenRecurse, Rule, Name, Rule)] = {
     // TODO: Currently, we only resolve a reference by merging. We should also consider resolving a reference within the fragment itself.
     // TODO: Currently, we only close holes, and do not consider merging the root into another fragment
 
-    val ruleWithRess: List[(Rule, Res)] =
+    val ruleWithRess: List[(Rule, CResolve)] =
       withRess(rule)
 
-    val ruleWithRessWithScopes: List[(Rule, Res, Scope)] =
+    val ruleWithRessWithScopes: List[(Rule, CResolve, Scope)] =
       ruleWithRess.flatMap(withScopes)
 
     val ruleWithRefsWithScopesWithPoints =
@@ -223,8 +223,8 @@ object Builder {
     embedMerges.flatten ++ ruleWithRefsWithScopesWithPointsWithRulesWithDecsWithResolved
   }
 
-  def withDecsInternal(r: (Rule, Res)): List[(Rule, Res, Name)] = r match {
-    case (rule, res@Res(ref, delta)) =>
+  def withDecsInternal(r: (Rule, CResolve)): List[(Rule, CResolve, Name)] = r match {
+    case (rule, res@CResolve(ref, delta)) =>
       Graph(rule.state.facts)
         .res(rule.state.nameConstraints, ref)
         .map { case (dec, _) =>
@@ -232,7 +232,7 @@ object Builder {
         }
   }
 
-  def withResolvedInternal(r: (Rule, Res, Name)): List[(Rule, Res, Name, Rule)] = r match {
+  def withResolvedInternal(r: (Rule, CResolve, Name)): List[(Rule, CResolve, Name, Rule)] = r match {
     case (rule, res, dec) =>
       val resolvedList = resolve(rule, res, dec)
 
@@ -240,11 +240,11 @@ object Builder {
         .map(resolved => (rule, res, dec, resolved))
   }
 
-  def buildToResolveInternal(rules: List[Rule], rule: Rule): List[(Rule, Res, Name, Rule)] = {
-    val ruleWithRess: List[(Rule, Res)] =
+  def buildToResolveInternal(rules: List[Rule], rule: Rule): List[(Rule, CResolve, Name, Rule)] = {
+    val ruleWithRess: List[(Rule, CResolve)] =
       withRess(rule)
 
-    val ruleWithRessWithDec: List[(Rule, Res, Name)] =
+    val ruleWithRessWithDec: List[(Rule, CResolve, Name)] =
       ruleWithRess.flatMap(withDecsInternal)
 
     val ruleWithRessWithDecWithResolved =
@@ -278,19 +278,19 @@ object Builder {
   // Get [Rule, [Res]]
   def rulesWithRes(rules: List[Rule]) = rules
     .filter(_.constraints.exists {
-      case Res(n1, n2) => true
+      case CResolve(n1, n2) => true
       case _ => false
     })
     .map(rule =>
       (rule, rule.constraints.flatMap {
-        case res@Res(_, _) => Some(res)
+        case res@CResolve(_, _) => Some(res)
         case _ => None
       })
     )
 
   // Attempts to resolve the reference from the given resolution constraint
-  def resolve(rule: Rule, res: Res, dec: Name): List[Rule] = res match {
-    case Res(n, d@NameVar(_)) =>
+  def resolve(rule: Rule, res: CResolve, dec: Name): List[Rule] = res match {
+    case CResolve(n, d@NameVar(_)) =>
       Solver
         // Rewrite the resolution constraint
         .rewrite(res, rule.state.copy(constraints = rule.state.constraints - res))

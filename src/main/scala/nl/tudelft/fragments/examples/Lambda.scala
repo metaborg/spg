@@ -9,7 +9,7 @@ object Lambda {
     TypeVar("t"),
     List(ScopeVar("s")),
     State(List(
-      TypeEquals(TypeVar("t"), TypeAppl("Int"))
+      CEqual(TypeVar("t"), TypeAppl("Int"))
     ))
   )
 
@@ -19,7 +19,7 @@ object Lambda {
     TypeVar("t"),
     List(ScopeVar("s")),
     State(List(
-      TypeEquals(TypeVar("t"), TypeAppl("Int"))
+      CEqual(TypeVar("t"), TypeAppl("Int"))
     ))
   )
 
@@ -32,9 +32,9 @@ object Lambda {
     TypeVar("t"),
     List(ScopeVar("s")),
     State(List(
-      TypeEquals(TypeVar("t"), TypeAppl("Int")),
-      TypeEquals(TypeVar("t1"), TypeAppl("Int")),
-      TypeEquals(TypeVar("t2"), TypeAppl("Int"))
+      CEqual(TypeVar("t"), TypeAppl("Int")),
+      CEqual(TypeVar("t1"), TypeAppl("Int")),
+      CEqual(TypeVar("t2"), TypeAppl("Int"))
     ))
   )
 
@@ -48,10 +48,10 @@ object Lambda {
     TypeVar("t"),
     List(ScopeVar("s")),
     State(List(
-      TypeEquals(TypeVar("t"), TypeAppl("Fun", List(TypeVar("t1"), TypeVar("t2")))),
-      DirectEdge(ScopeVar("s1"), ScopeVar("s")),
-      Dec(ScopeVar("s1"), SymbolicName("Variable", "n")),
-      TypeOf(SymbolicName("Variable", "n"), TypeVar("t1"))
+      CEqual(TypeVar("t"), TypeAppl("Fun", List(TypeVar("t1"), TypeVar("t2")))),
+      CGDirectEdge(ScopeVar("s1"), ScopeVar("s")),
+      CGDecl(ScopeVar("s1"), SymbolicName("Variable", "n")),
+      CTypeOf(SymbolicName("Variable", "n"), TypeVar("t1"))
     ))
   )
 
@@ -64,7 +64,7 @@ object Lambda {
     TypeVar("t"),
     List(ScopeVar("s")),
     State(List(
-      TypeEquals(TypeVar("t1"), TypeAppl("Fun", List(TypeVar("t2"), TypeVar("t"))))
+      CEqual(TypeVar("t1"), TypeAppl("Fun", List(TypeVar("t2"), TypeVar("t"))))
     ))
   )
 
@@ -76,9 +76,9 @@ object Lambda {
     TypeVar("t"),
     List(ScopeVar("s")),
     State(List(
-      Ref(SymbolicName("Variable", "n"), ScopeVar("s")),
-      Res(SymbolicName("Variable", "n"), NameVar("d")),
-      TypeOf(NameVar("d"), TypeVar("t"))
+      CGRef(SymbolicName("Variable", "n"), ScopeVar("s")),
+      CResolve(SymbolicName("Variable", "n"), NameVar("d")),
+      CTypeOf(NameVar("d"), TypeVar("t"))
     ))
   )
 

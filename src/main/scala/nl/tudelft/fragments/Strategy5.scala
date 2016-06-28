@@ -30,7 +30,7 @@ object Strategy5 {
       languagePath = "/Users/martijn/Projects/scopes-frames/L3/"
     )
 
-    val kb = repeat(gen, 300)(rules)
+    val kb = repeat(gen, 500)(rules)
 
     for (i <- 1 to 100) {
       val rule = kb.filter(_.sort == SortAppl("Start")).random
@@ -101,10 +101,10 @@ object Strategy5 {
   }
 
   // Complete the given rule by solving resolution & recurse constraints
-  def complete(rules: List[Rule], rule: Rule)(implicit signatures: List[Decl]): Option[Rule] =
-    if (rule.recurse.isEmpty) {
+  def complete(rules: List[Rule], rule: Rule)(implicit signatures: List[Decl]): Option[Rule] = rule.recurse match {
+    case Nil =>
       Some(rule)
-    } else {
+    case _ =>
       for (recurse <- rule.recurse) {
         val choices = rules
           .flatMap(rule.merge(recurse, _))
@@ -124,7 +124,7 @@ object Strategy5 {
       }
 
       None
-    }
+  }
 
   // Returns a function x => f(f(f(x))) with n times f
   def repeat[T](f: T => T, n: Int): T => T = n match {

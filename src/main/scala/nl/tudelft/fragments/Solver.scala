@@ -2,22 +2,22 @@ package nl.tudelft.fragments
 
 object Solver {
   def rewrite(c: Constraint, state: State): List[State] = c match {
-    case True() =>
+    case CTrue() =>
       state
-    case TypeOf(n, t) if n.vars.isEmpty =>
+    case CTypeOf(n, t) if n.vars.isEmpty =>
       if (state.typeEnv.contains(n)) {
-        state.addConstraint(TypeEquals(state.typeEnv(n), t))
+        state.addConstraint(CEqual(state.typeEnv(n), t))
       } else {
         state.copy(typeEnv = state.typeEnv + (n -> t))
       }
-    case TypeEquals(t1, t2) =>
+    case CEqual(t1, t2) =>
       t1.unify(t2).map {
         case (typeBinding, nameBinding) =>
           state
             .substituteType(typeBinding)
             .substituteName(nameBinding)
       }
-    case Res(n1, n2@NameVar(_)) if Graph(state.facts).res(state.resolution)(n1).nonEmpty =>
+    case CResolve(n1, n2@NameVar(_)) if Graph(state.facts).res(state.resolution)(n1).nonEmpty =>
       if (state.resolution.contains(n1)) {
         state.substituteName(Map(n2 -> state.resolution(n1)))
       } else {
@@ -32,16 +32,16 @@ object Solver {
             )
         }
       }
-    case AssocConstraint(n@SymbolicName(_, _), s@ScopeVar(_)) if Graph(state.facts).associated(n).nonEmpty =>
+    case CAssoc(n@SymbolicName(_, _), s@ScopeVar(_)) if Graph(state.facts).associated(n).nonEmpty =>
       Graph(state.facts).associated(n).map(scope =>
         state.substituteScope(Map(s -> scope))
       )
-    case Supertype(t1, t2) if (t1.vars ++ t2.vars).isEmpty && !state.subtypeRelation.domain.contains(t1) && !state.subtypeRelation.isSubtype(t2, t1) =>
+    case FSubtype(t1, t2) if (t1.vars ++ t2.vars).isEmpty && !state.subtypeRelation.domain.contains(t1) && !state.subtypeRelation.isSubtype(t2, t1) =>
       val closure = for (ty1 <- state.subtypeRelation.subtypeOf(t1); ty2 <- state.subtypeRelation.supertypeOf(t2))
         yield (ty1, ty2)
 
       state.copy(subtypeRelation = state.subtypeRelation ++ closure)
-    case Subtype(t1, t2) if (t1.vars ++ t2.vars).isEmpty && state.subtypeRelation.isSubtype(t1, t2) =>
+    case CSubtype(t1, t2) if (t1.vars ++ t2.vars).isEmpty && state.subtypeRelation.isSubtype(t1, t2) =>
       state
     case _ =>
       None
@@ -55,7 +55,7 @@ object Solver {
       // Do not solve resolution constraints during solvePartial, because we do not want to make "new" decisions, only
       // propagate "existing" knowledge. For example, we may be able to solve one resolution, but then fail on the
       // second, since there is not yet a corresponding declaration.
-      val nonRes = remaining.filter(!_.isInstanceOf[Res])
+      val nonRes = remaining.filter(!_.isInstanceOf[CResolve])
 
       for (c <- nonRes) {
         val result = rewrite(c, State(pattern, remaining - c, all, ts, resolution, subtype, conditions))
@@ -121,7 +121,7 @@ object Solver {
   * @param nameConstraints The naming constraints
   */
 case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Constraint], typeEnv: TypeEnv, resolution: Resolution, subtypeRelation: SubtypeRelation, nameConstraints: List[NamingConstraint]) {
-  def merge(recurse: Recurse, state: State): State = {
+  def merge(recurse: CGenRecurse, state: State): State = {
     State(
       pattern =
         pattern.substituteTerm(Map(recurse.pattern.asInstanceOf[TermVar] -> state.pattern)),

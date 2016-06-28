@@ -19,34 +19,34 @@ case class Graph(/*wellFormedness: Regex, labels: List[Label], labelOrdering: La
   // Get scope for reference
   def scope(n: Name) = facts
     .find {
-      case Ref(`n`, s) => true
+      case CGRef(`n`, s) => true
       case _ => false
     }
-    .map(_.asInstanceOf[Ref].s)
+    .map(_.asInstanceOf[CGRef].s)
 
   // Get declarations for scope
   def declarations(s: Scope): List[Name] = facts.flatMap {
-    case Dec(`s`, n) => Some(n)
+    case CGDecl(`s`, n) => Some(n)
     case _ => None
   }
 
   // Get scope associated to name
   def associated(n: Name) = facts
     .find {
-      case AssocFact(`n`, s) => true
+      case CGAssoc(`n`, s) => true
       case _ => false
     }
-    .map(_.asInstanceOf[AssocFact].s)
+    .map(_.asInstanceOf[CGAssoc].s)
 
   // Get named imports for scope
   def imports(s: Scope): List[Name] = facts.flatMap {
-    case AssociatedImport(`s`, n) => Some(n)
+    case CGNamedEdge(`s`, n) => Some(n)
     case _ => None
   }
 
   // Get endpoints of l-labeled edges for scope
   def edges(l: Label, s: Scope): List[Scope] = facts.flatMap {
-    case DirectEdge(`s`, `l`, d) => Some(d)
+    case CGDirectEdge(`s`, `l`, d) => Some(d)
     case _ => None
   }
 

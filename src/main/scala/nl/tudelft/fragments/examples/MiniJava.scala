@@ -96,12 +96,12 @@ object MiniJava {
     TypeVar("t"),
     List(ScopeVar("s")),
     State(List(
-      Dec(ScopeVar("s"), SymbolicName("Class", "n")),
-      TypeOf(SymbolicName("Class", "n"), TypeAppl("ClassType", List(TypeNameAdapter(SymbolicName("Class", "n"))))),
-      DirectEdge(ScopeVar("s1"), ScopeVar("s")),
-      Dec(ScopeVar("s1"), ConcreteName("Implicit", "this", 1)),
-      TypeOf(ConcreteName("Implicit", "this", 1), TypeAppl("ClassType", List(TypeNameAdapter(SymbolicName("Class", "n"))))),
-      AssocFact(SymbolicName("Class", "n"), ScopeVar("s1"))
+      CGDecl(ScopeVar("s"), SymbolicName("Class", "n")),
+      CTypeOf(SymbolicName("Class", "n"), TypeAppl("ClassType", List(TypeNameAdapter(SymbolicName("Class", "n"))))),
+      CGDirectEdge(ScopeVar("s1"), ScopeVar("s")),
+      CGDecl(ScopeVar("s1"), ConcreteName("Implicit", "this", 1)),
+      CTypeOf(ConcreteName("Implicit", "this", 1), TypeAppl("ClassType", List(TypeNameAdapter(SymbolicName("Class", "n"))))),
+      CGAssoc(SymbolicName("Class", "n"), ScopeVar("s1"))
     ))
   )
 
@@ -114,9 +114,9 @@ object MiniJava {
     TypeVar("t"),
     List(ScopeVar("s1"), ScopeVar("s2")),
     State(List(
-      Ref(SymbolicName("Class", "n"), ScopeVar("s1")),
-      Res(SymbolicName("Class", "n"), NameVar("d")),
-      AssociatedImport(ScopeVar("s2"), SymbolicName("Class", "n"))
+      CGRef(SymbolicName("Class", "n"), ScopeVar("s1")),
+      CResolve(SymbolicName("Class", "n"), NameVar("d")),
+      CGNamedEdge(ScopeVar("s2"), SymbolicName("Class", "n"))
     ))
   )
 
@@ -143,10 +143,10 @@ object MiniJava {
     TypeVar("t"),
     List(ScopeVar("s")),
     State(List(
-      Dec(ScopeVar("s"), SymbolicName("Method", "n1")),
-      DirectEdge(ScopeVar("s1"), ScopeVar("s")),
-      AssocFact(SymbolicName("Method", "n1"), ScopeVar("s1")),
-      TypeOf(SymbolicName("Method", "n1"), TypeAppl("Pair", List(TypeVar("t1"), TypeVar("t2"))))
+      CGDecl(ScopeVar("s"), SymbolicName("Method", "n1")),
+      CGDirectEdge(ScopeVar("s1"), ScopeVar("s")),
+      CGAssoc(SymbolicName("Method", "n1"), ScopeVar("s1")),
+      CTypeOf(SymbolicName("Method", "n1"), TypeAppl("Pair", List(TypeVar("t1"), TypeVar("t2"))))
     ))
   )
 
@@ -160,8 +160,8 @@ object MiniJava {
     TypeVar("t"),
     List(ScopeVar("s")),
     State(List(
-      Dec(ScopeVar("s"), SymbolicName("Variable", "n")),
-      TypeOf(SymbolicName("Variable", "n"), TypeVar("t1"))
+      CGDecl(ScopeVar("s"), SymbolicName("Variable", "n")),
+      CTypeOf(SymbolicName("Variable", "n"), TypeVar("t1"))
     ))
   )
 
@@ -175,8 +175,8 @@ object MiniJava {
     TypeVar("t"),
     List(ScopeVar("s")),
     State(List(
-      Dec(ScopeVar("s"), SymbolicName("Variable", "n")),
-      TypeOf(SymbolicName("Variable", "n"), TypeVar("t1"))
+      CGDecl(ScopeVar("s"), SymbolicName("Variable", "n")),
+      CTypeOf(SymbolicName("Variable", "n"), TypeVar("t1"))
     ))
   )
 
@@ -190,8 +190,8 @@ object MiniJava {
     TypeVar("t"),
     List(ScopeVar("s")),
     State(List(
-      Dec(ScopeVar("s"), SymbolicName("Variable", "n")),
-      TypeOf(SymbolicName("Variable", "n"), TypeVar("t1"))
+      CGDecl(ScopeVar("s"), SymbolicName("Variable", "n")),
+      CTypeOf(SymbolicName("Variable", "n"), TypeVar("t1"))
     ))
   )
 
@@ -204,7 +204,7 @@ object MiniJava {
     TypeVar("t"),
     List(ScopeVar("s")),
     State(List(
-      TypeEquals(TypeVar("t1"), TypeAppl("Int"))
+      CEqual(TypeVar("t1"), TypeAppl("Int"))
     ))
   )
 
@@ -218,7 +218,7 @@ object MiniJava {
     TypeVar("t"),
     List(ScopeVar("s")),
     State(List(
-      TypeEquals(TypeVar("t1"), TypeAppl("Bool"))
+      CEqual(TypeVar("t1"), TypeAppl("Bool"))
     ))
   )
 
@@ -233,9 +233,9 @@ object MiniJava {
     TypeVar("t"),
     List(ScopeVar("s")),
     State(List(
-      TypeEquals(TypeVar("t1"), TypeAppl("Bool")),
-      DirectEdge(ScopeVar("s1"), ScopeVar("s")),
-      DirectEdge(ScopeVar("s2"), ScopeVar("s"))
+      CEqual(TypeVar("t1"), TypeAppl("Bool")),
+      CGDirectEdge(ScopeVar("s1"), ScopeVar("s")),
+      CGDirectEdge(ScopeVar("s2"), ScopeVar("s"))
     ))
   )
 
@@ -261,11 +261,11 @@ object MiniJava {
     TypeVar("t"),
     List(ScopeVar("s")),
     State(List(
-      Ref(SymbolicName("Variable", "n"), ScopeVar("s")),
-      Res(SymbolicName("Variable", "n"), NameVar("d")),
-      TypeOf(NameVar("d"), TypeAppl("IntArray")),
-      TypeEquals(TypeVar("t1"), TypeAppl("Int")),
-      TypeEquals(TypeVar("t2"), TypeAppl("Int"))
+      CGRef(SymbolicName("Variable", "n"), ScopeVar("s")),
+      CResolve(SymbolicName("Variable", "n"), NameVar("d")),
+      CTypeOf(NameVar("d"), TypeAppl("IntArray")),
+      CEqual(TypeVar("t1"), TypeAppl("Int")),
+      CEqual(TypeVar("t2"), TypeAppl("Int"))
     ))
   )
 
@@ -279,9 +279,9 @@ object MiniJava {
     TypeVar("t"),
     List(ScopeVar("s")),
     State(List(
-      Ref(SymbolicName("Variable", "n"), ScopeVar("s")),
-      Res(SymbolicName("Variable", "n"), NameVar("d")),
-      TypeOf(NameVar("d"), TypeVar("t1"))
+      CGRef(SymbolicName("Variable", "n"), ScopeVar("s")),
+      CResolve(SymbolicName("Variable", "n"), NameVar("d")),
+      CTypeOf(NameVar("d"), TypeVar("t1"))
     ))
   )
 
@@ -294,9 +294,9 @@ object MiniJava {
     TypeVar("t"),
     List(ScopeVar("s")),
     State(List(
-      Ref(SymbolicName("Class", "n"), ScopeVar("s")),
-      Res(SymbolicName("Class", "n"), NameVar("d")),
-      TypeEquals(TypeVar("t"), TypeAppl("ClassType", List(TypeNameAdapter(NameVar("d")))))
+      CGRef(SymbolicName("Class", "n"), ScopeVar("s")),
+      CResolve(SymbolicName("Class", "n"), NameVar("d")),
+      CEqual(TypeVar("t"), TypeAppl("ClassType", List(TypeNameAdapter(NameVar("d")))))
     ))
   )
 
@@ -310,9 +310,9 @@ object MiniJava {
     TypeVar("t"),
     List(ScopeVar("s")),
     State(List(
-      TypeEquals(TypeVar("t"), TypeAppl("Int")),
-      TypeEquals(TypeVar("t1"), TypeAppl("IntArray")),
-      TypeEquals(TypeVar("t1"), TypeAppl("Int"))
+      CEqual(TypeVar("t"), TypeAppl("Int")),
+      CEqual(TypeVar("t1"), TypeAppl("IntArray")),
+      CEqual(TypeVar("t1"), TypeAppl("Int"))
     ))
   )
 
@@ -327,12 +327,12 @@ object MiniJava {
     TypeVar("t"),
     List(ScopeVar("s")),
     State(List(
-      DirectImport(ScopeVar("s2"), ScopeVar("s3")),
-      Ref(SymbolicName("Method", "n"), ScopeVar("s2")),
-      AssocConstraint(NameVar("d1"), ScopeVar("s3")),
-      Res(SymbolicName("Method", "n"), NameVar("d2")),
-      TypeOf(NameVar("d2"), TypeAppl("Pair", List(TypeVar("t1"), TypeVar("t")))),
-      TypeEquals(TypeVar("t2"), TypeAppl("ClassType", List(TypeNameAdapter(NameVar("d1")))))
+      CGDirectEdge(ScopeVar("s2"), Label('I'), ScopeVar("s3")),
+      CGRef(SymbolicName("Method", "n"), ScopeVar("s2")),
+      CAssoc(NameVar("d1"), ScopeVar("s3")),
+      CResolve(SymbolicName("Method", "n"), NameVar("d2")),
+      CTypeOf(NameVar("d2"), TypeAppl("Pair", List(TypeVar("t1"), TypeVar("t")))),
+      CEqual(TypeVar("t2"), TypeAppl("ClassType", List(TypeNameAdapter(NameVar("d1")))))
     ))
   )
 
@@ -343,10 +343,10 @@ object MiniJava {
     TypeVar("t"),
     List(ScopeVar("s")),
     State(List(
-      Ref(ConcreteName("Implicit", "this", 1), ScopeVar("s")),
-      Res(ConcreteName("Implicit", "this", 1), NameVar("d")),
-      TypeOf(NameVar("d"), TypeAppl("ClassType", List(TypeNameAdapter(NameVar("d2"))))),
-      TypeEquals(TypeVar("t"), TypeAppl("ClassType", List(TypeNameAdapter(NameVar("d2")))))
+      CGRef(ConcreteName("Implicit", "this", 1), ScopeVar("s")),
+      CResolve(ConcreteName("Implicit", "this", 1), NameVar("d")),
+      CTypeOf(NameVar("d"), TypeAppl("ClassType", List(TypeNameAdapter(NameVar("d2"))))),
+      CEqual(TypeVar("t"), TypeAppl("ClassType", List(TypeNameAdapter(NameVar("d2")))))
     ))
   )
 
@@ -359,8 +359,8 @@ object MiniJava {
     TypeVar("t"),
     List(ScopeVar("s")),
     State(List(
-      TypeEquals(TypeVar("t1"), TypeAppl("IntArray")),
-      TypeEquals(TypeVar("t"), TypeAppl("Int"))
+      CEqual(TypeVar("t1"), TypeAppl("IntArray")),
+      CEqual(TypeVar("t"), TypeAppl("Int"))
     ))
   )
 
@@ -373,8 +373,8 @@ object MiniJava {
     TypeVar("t"),
     List(ScopeVar("s")),
     State(List(
-      TypeEquals(TypeVar("t1"), TypeAppl("Int")),
-      TypeEquals(TypeVar("t"), TypeAppl("IntArray"))
+      CEqual(TypeVar("t1"), TypeAppl("Int")),
+      CEqual(TypeVar("t"), TypeAppl("IntArray"))
     ))
   )
 
@@ -388,9 +388,9 @@ object MiniJava {
     TypeVar("t"),
     List(ScopeVar("s")),
     State(List(
-      TypeEquals(TypeVar("t"), TypeAppl("Bool")),
-      TypeEquals(TypeVar("t1"), TypeAppl("Bool")),
-      TypeEquals(TypeVar("t2"), TypeAppl("Bool"))
+      CEqual(TypeVar("t"), TypeAppl("Bool")),
+      CEqual(TypeVar("t1"), TypeAppl("Bool")),
+      CEqual(TypeVar("t2"), TypeAppl("Bool"))
     ))
   )
 
@@ -404,9 +404,9 @@ object MiniJava {
     TypeVar("t"),
     List(ScopeVar("s")),
     State(List(
-      TypeEquals(TypeVar("t"), TypeAppl("Bool")),
-      TypeEquals(TypeVar("t1"), TypeAppl("Int")),
-      TypeEquals(TypeVar("t2"), TypeAppl("Int"))
+      CEqual(TypeVar("t"), TypeAppl("Bool")),
+      CEqual(TypeVar("t1"), TypeAppl("Int")),
+      CEqual(TypeVar("t2"), TypeAppl("Int"))
     ))
   )
 
@@ -420,9 +420,9 @@ object MiniJava {
     TypeVar("t"),
     List(ScopeVar("s")),
     State(List(
-      TypeEquals(TypeVar("t"), TypeAppl("Int")),
-      TypeEquals(TypeVar("t1"), TypeAppl("Int")),
-      TypeEquals(TypeVar("t2"), TypeAppl("Int"))
+      CEqual(TypeVar("t"), TypeAppl("Int")),
+      CEqual(TypeVar("t1"), TypeAppl("Int")),
+      CEqual(TypeVar("t2"), TypeAppl("Int"))
     ))
   )
 
@@ -436,9 +436,9 @@ object MiniJava {
     TypeVar("t"),
     List(ScopeVar("s")),
     State(List(
-      TypeEquals(TypeVar("t"), TypeAppl("Int")),
-      TypeEquals(TypeVar("t1"), TypeAppl("Int")),
-      TypeEquals(TypeVar("t2"), TypeAppl("Int"))
+      CEqual(TypeVar("t"), TypeAppl("Int")),
+      CEqual(TypeVar("t1"), TypeAppl("Int")),
+      CEqual(TypeVar("t2"), TypeAppl("Int"))
     ))
   )
 
@@ -452,9 +452,9 @@ object MiniJava {
     TypeVar("t"),
     List(ScopeVar("s")),
     State(List(
-      TypeEquals(TypeVar("t"), TypeAppl("Int")),
-      TypeEquals(TypeVar("t1"), TypeAppl("Int")),
-      TypeEquals(TypeVar("t2"), TypeAppl("Int"))
+      CEqual(TypeVar("t"), TypeAppl("Int")),
+      CEqual(TypeVar("t1"), TypeAppl("Int")),
+      CEqual(TypeVar("t2"), TypeAppl("Int"))
     ))
   )
 
@@ -467,8 +467,8 @@ object MiniJava {
     TypeVar("t"),
     List(ScopeVar("s")),
     State(List(
-      TypeEquals(TypeVar("t"), TypeAppl("Bool")),
-      TypeEquals(TypeVar("t1"), TypeAppl("Bool"))
+      CEqual(TypeVar("t"), TypeAppl("Bool")),
+      CEqual(TypeVar("t1"), TypeAppl("Bool"))
     ))
   )
 
@@ -481,9 +481,9 @@ object MiniJava {
     TypeVar("t"),
     List(ScopeVar("s")),
     State(List(
-      Ref(SymbolicName("Variable", "n"), ScopeVar("s")),
-      Res(SymbolicName("Variable", "n"), NameVar("d")),
-      TypeOf(NameVar("d"), TypeVar("t"))
+      CGRef(SymbolicName("Variable", "n"), ScopeVar("s")),
+      CResolve(SymbolicName("Variable", "n"), NameVar("d")),
+      CTypeOf(NameVar("d"), TypeVar("t"))
     ))
   )
 
@@ -496,9 +496,9 @@ object MiniJava {
     TypeVar("t"),
     List(ScopeVar("s")),
     State(List(
-      Ref(SymbolicName("Class", "n"), ScopeVar("s")),
-      Res(SymbolicName("Class", "n"), NameVar("d")),
-      TypeOf(NameVar("d"), TypeVar("t"))
+      CGRef(SymbolicName("Class", "n"), ScopeVar("s")),
+      CResolve(SymbolicName("Class", "n"), NameVar("d")),
+      CTypeOf(NameVar("d"), TypeVar("t"))
     ))
   )
 
@@ -508,7 +508,7 @@ object MiniJava {
     TypeVar("t"),
     List(ScopeVar("s")),
     State(List(
-      TypeEquals(TypeVar("t"), TypeAppl("IntArray"))
+      CEqual(TypeVar("t"), TypeAppl("IntArray"))
     ))
   )
 
@@ -518,7 +518,7 @@ object MiniJava {
     TypeVar("t"),
     List(ScopeVar("s")),
     State(List(
-      TypeEquals(TypeVar("t"), TypeAppl("Int"))
+      CEqual(TypeVar("t"), TypeAppl("Int"))
     ))
   )
 
@@ -528,7 +528,7 @@ object MiniJava {
     TypeVar("t"),
     List(ScopeVar("s")),
     State(List(
-      TypeEquals(TypeVar("t"), TypeAppl("Bool"))
+      CEqual(TypeVar("t"), TypeAppl("Bool"))
     ))
   )
 
@@ -538,7 +538,7 @@ object MiniJava {
     TypeVar("t"),
     List(ScopeVar("s")),
     State(List(
-      TypeEquals(TypeVar("t"), TypeAppl("Int"))
+      CEqual(TypeVar("t"), TypeAppl("Int"))
     ))
   )
 
@@ -548,7 +548,7 @@ object MiniJava {
     TypeVar("t"),
     List(ScopeVar("s")),
     State(List(
-      TypeEquals(TypeVar("t"), TypeAppl("Bool"))
+      CEqual(TypeVar("t"), TypeAppl("Bool"))
     ))
   )
 
@@ -558,7 +558,7 @@ object MiniJava {
     TypeVar("t"),
     List(ScopeVar("s")),
     State(List(
-      TypeEquals(TypeVar("t"), TypeAppl("Bool"))
+      CEqual(TypeVar("t"), TypeAppl("Bool"))
     ))
   )
 
@@ -625,7 +625,7 @@ object MiniJava {
     TypeVar("t"),
     List(ScopeVar("s")),
     State(List(
-      TypeEquals(TypeVar("t"), TypeAppl("Nil"))
+      CEqual(TypeVar("t"), TypeAppl("Nil"))
     ))
   )
 
@@ -638,7 +638,7 @@ object MiniJava {
     TypeVar("t"),
     List(ScopeVar("s")),
     State(List(
-      TypeEquals(TypeVar("t"), TypeAppl("Cons", List(TypeVar("t1"), TypeVar("t2"))))
+      CEqual(TypeVar("t"), TypeAppl("Cons", List(TypeVar("t1"), TypeVar("t2"))))
     ))
   )
 
@@ -686,7 +686,7 @@ object MiniJava {
     TypeVar("t"),
     List(ScopeVar("s")),
     State(List(
-      TypeEquals(TypeVar("t"), TypeAppl("Nil"))
+      CEqual(TypeVar("t"), TypeAppl("Nil"))
     ))
   )
 
@@ -699,7 +699,7 @@ object MiniJava {
     TypeVar("t"),
     List(ScopeVar("s")),
     State(List(
-      TypeEquals(TypeVar("t"), TypeAppl("Cons", List(TypeVar("t1"), TypeVar("t2"))))
+      CEqual(TypeVar("t"), TypeAppl("Cons", List(TypeVar("t1"), TypeVar("t2"))))
     ))
   )
 

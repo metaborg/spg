@@ -2,7 +2,7 @@ package nl.tudelft.fragments.spoofax
 
 import nl.tudelft.fragments
 import nl.tudelft.fragments.spoofax.Signatures._
-import nl.tudelft.fragments.{AssocConstraint, AssocFact, AssociatedImport, Constraint, Dec, DirectEdge, Label, Main, Name, NameProvider, NameVar, Pattern, Recurse, Ref, Res, Rule, Scope, ScopeVar, State, Subtype, Supertype, SymbolicName, TermAppl, TermVar, True, Type, TypeAppl, TypeEquals, TypeNameAdapter, TypeOf, TypeVar}
+import nl.tudelft.fragments.{CAssoc, CGAssoc, CGNamedEdge, Constraint, CGDecl, CGDirectEdge, Label, Main, Name, NameProvider, NameVar, Pattern, CGenRecurse, CGRef, CResolve, Rule, Scope, ScopeVar, State, CSubtype, FSubtype, SymbolicName, TermAppl, TermVar, CTrue, Type, TypeAppl, CEqual, TypeNameAdapter, CTypeOf, TypeVar}
 import org.apache.commons.io.IOUtils
 import org.spoofax.interpreter.terms.{IStrategoAppl, IStrategoList, IStrategoString, IStrategoTerm}
 import org.spoofax.terms.{StrategoAppl, StrategoList}
@@ -34,10 +34,10 @@ object Specification {
     * Add sort to the Recurse constraints based on the position
     */
   def inlineRecurse(rule: Rule)(implicit signatures: List[Decl]) = {
-    rule.recurse.foldLeft(rule) { case (rule, r@Recurse(variable, scopes, typ, null)) =>
+    rule.recurse.foldLeft(rule) { case (rule, r@CGenRecurse(variable, scopes, typ, null)) =>
       rule.copy(
         state = rule.state.copy(
-          constraints = Recurse(variable, scopes, typ, getSort(rule.pattern, variable).get) :: rule.state.constraints - r
+          constraints = CGenRecurse(variable, scopes, typ, getSort(rule.pattern, variable).get) :: rule.state.constraints - r
         )
       )
     }
@@ -215,32 +215,32 @@ object Specification {
   // Turn a constraint into a Constarint
   def toConstraint(constraint: IStrategoTerm): Constraint = constraint match {
     case appl: StrategoAppl if appl.getConstructor.getName == "CTrue" =>
-      True()
+      CTrue()
     case appl: StrategoAppl if appl.getConstructor.getName == "CGRef" =>
-      Ref(toName(appl.getSubterm(0)), toScope(appl.getSubterm(1)))
+      CGRef(toName(appl.getSubterm(0)), toScope(appl.getSubterm(1)))
     case appl: StrategoAppl if appl.getConstructor.getName == "CGDecl" =>
-      Dec(toScope(appl.getSubterm(1)), toName(appl.getSubterm(0)))
+      CGDecl(toScope(appl.getSubterm(1)), toName(appl.getSubterm(0)))
     case appl: StrategoAppl if appl.getConstructor.getName == "CResolve" =>
-      Res(toName(appl.getSubterm(0)), toName(appl.getSubterm(1)))
+      CResolve(toName(appl.getSubterm(0)), toName(appl.getSubterm(1)))
     case appl: StrategoAppl if appl.getConstructor.getName == "CTypeOf" =>
-      TypeOf(toName(appl.getSubterm(0)), toType(appl.getSubterm(1)))
+      CTypeOf(toName(appl.getSubterm(0)), toType(appl.getSubterm(1)))
     case appl: StrategoAppl if appl.getConstructor.getName == "CGDirectEdge" =>
-      DirectEdge(toScope(appl.getSubterm(0)), toLabel(appl.getSubterm(1)), toScope(appl.getSubterm(2)))
+      CGDirectEdge(toScope(appl.getSubterm(0)), toLabel(appl.getSubterm(1)), toScope(appl.getSubterm(2)))
     case appl: StrategoAppl if appl.getConstructor.getName == "CEqual" =>
-      TypeEquals(toType(appl.getSubterm(0)), toType(appl.getSubterm(1)))
+      CEqual(toType(appl.getSubterm(0)), toType(appl.getSubterm(1)))
     case appl: StrategoAppl if appl.getConstructor.getName == "CGAssoc" =>
-      AssocFact(toName(appl.getSubterm(0)), toScope(appl.getSubterm(2)))
+      CGAssoc(toName(appl.getSubterm(0)), toScope(appl.getSubterm(2)))
     case appl: StrategoAppl if appl.getConstructor.getName == "CAssoc" =>
-      AssocConstraint(toName(appl.getSubterm(0)), toScope(appl.getSubterm(2)))
+      CAssoc(toName(appl.getSubterm(0)), toScope(appl.getSubterm(2)))
     case appl: StrategoAppl if appl.getConstructor.getName == "CSubtype" =>
-      Subtype(toType(appl.getSubterm(0)), toType(appl.getSubterm(1)))
+      CSubtype(toType(appl.getSubterm(0)), toType(appl.getSubterm(1)))
     case appl: StrategoAppl if appl.getConstructor.getName == "FSubtype" =>
-      Supertype(toType(appl.getSubterm(0)), toType(appl.getSubterm(1)))
+      FSubtype(toType(appl.getSubterm(0)), toType(appl.getSubterm(1)))
     case appl: StrategoAppl if appl.getConstructor.getName == "CGNamedEdge" =>
       // TODO: AssociatedImports have a label as well
-      AssociatedImport(toScope(appl.getSubterm(2)), toName(appl.getSubterm(0)))
+      CGNamedEdge(toScope(appl.getSubterm(2)), toName(appl.getSubterm(0)))
     case appl: StrategoAppl if appl.getConstructor.getName == "CGenRecurse" =>
-      Recurse(toPattern(appl.getSubterm(1)), toScopes(appl.getSubterm(2)), toTypeOption(appl.getSubterm(3)), null)
+      CGenRecurse(toPattern(appl.getSubterm(1)), toScopes(appl.getSubterm(2)), toTypeOption(appl.getSubterm(3)), null)
   }
 
   // Turn a Stratego term into Label

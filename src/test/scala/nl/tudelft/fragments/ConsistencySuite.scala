@@ -6,8 +6,8 @@ class ConsistencySuite extends FunSuite {
 
   test("type of") {
     val constraints = List(
-      TypeOf(NameVar("n1"), TypeVar("t1")),
-      TypeOf(NameVar("n1"), TypeAppl("Bool"))
+      CTypeOf(NameVar("n1"), TypeVar("t1")),
+      CTypeOf(NameVar("n1"), TypeAppl("Bool"))
     )
 
     assert(Consistency.checkTypeOf(constraints))
@@ -15,11 +15,11 @@ class ConsistencySuite extends FunSuite {
 
   test("complicated type of") {
     val constraints = List(
-      TypeOf(SymbolicName("Variable", "n2201"),TypeVar("t2721")),
-      TypeOf(SymbolicName("Variable", "n2201"),TypeVar("t2721")),
-      TypeOf(SymbolicName("Variable", "n2201"),TypeVar("t2198")),
-      TypeOf(SymbolicName("Variable", "n2201"),TypeVar("t176")),
-      TypeOf(SymbolicName("Method", "n1"),TypeAppl("Pair", List(TypeVar("t1"), TypeVar("t176"))))
+      CTypeOf(SymbolicName("Variable", "n2201"),TypeVar("t2721")),
+      CTypeOf(SymbolicName("Variable", "n2201"),TypeVar("t2721")),
+      CTypeOf(SymbolicName("Variable", "n2201"),TypeVar("t2198")),
+      CTypeOf(SymbolicName("Variable", "n2201"),TypeVar("t176")),
+      CTypeOf(SymbolicName("Method", "n1"),TypeAppl("Pair", List(TypeVar("t1"), TypeVar("t176"))))
     )
 
     assert(Consistency.checkTypeOf(constraints))
@@ -27,7 +27,7 @@ class ConsistencySuite extends FunSuite {
 
   test("type equals") {
     val constraints = List(
-      TypeEquals(TypeVar("t1"), TypeAppl("Int"))
+      CEqual(TypeVar("t1"), TypeAppl("Int"))
     )
 
     assert(Consistency.checkTypeEquals(constraints).nonEmpty)
@@ -35,9 +35,9 @@ class ConsistencySuite extends FunSuite {
 
   test("type of and type equals") {
     val constraints = List(
-      TypeOf(NameVar("n1"), TypeVar("t1")),
-      TypeOf(NameVar("n1"), TypeAppl("Bool")),
-      TypeEquals(TypeVar("t1"), TypeAppl("Int"))
+      CTypeOf(NameVar("n1"), TypeVar("t1")),
+      CTypeOf(NameVar("n1"), TypeAppl("Bool")),
+      CEqual(TypeVar("t1"), TypeAppl("Int"))
     )
 
     assert(!Consistency.check(State(constraints = constraints)))
@@ -82,7 +82,7 @@ class ConsistencySuite extends FunSuite {
 
   test("cyclic subtyping in constraints + subtyping relation") {
     val constraints = List(
-      Supertype(TypeAppl("Numeric"), TypeAppl("Int"))
+      FSubtype(TypeAppl("Numeric"), TypeAppl("Int"))
     )
 
     val subtypingRelation = SubtypeRelation(List(
@@ -94,8 +94,8 @@ class ConsistencySuite extends FunSuite {
 
   test("cyclic subtyping in constraints") {
     val constraints = List(
-      Supertype(TypeAppl("Numeric"), TypeAppl("Int")),
-      Supertype(TypeAppl("Int"), TypeAppl("Numeric"))
+      FSubtype(TypeAppl("Numeric"), TypeAppl("Int")),
+      FSubtype(TypeAppl("Int"), TypeAppl("Numeric"))
     )
 
     val subtypingRelation = SubtypeRelation()
