@@ -6,7 +6,7 @@ class SolverSuite extends FunSuite {
 
   test("single declaration") {
     val constraints = List(
-      DirectEdge(ScopeVar("s1"),ScopeVar("s2")),
+      DirectEdge(ScopeVar("s1"),Label('P'),ScopeVar("s2")),
       Dec(ScopeVar("s1"),SymbolicName("", "n3")),
       Ref(SymbolicName("", "n1"),ScopeVar("s1")),
       Res(SymbolicName("", "n1"),NameVar("n2")),
@@ -20,7 +20,7 @@ class SolverSuite extends FunSuite {
 
   test("impossible") {
     val constraints = List(
-      DirectEdge(ScopeVar("s2"), ScopeVar("s1")),
+      DirectEdge(ScopeVar("s2"),Label('P'), ScopeVar("s1")),
       Dec(ScopeVar("s1"), NameVar("n1")),
       AssocFact(NameVar("n1"), ScopeVar("s2")),
       Ref(NameVar("n2"), ScopeVar("s3")),
@@ -36,7 +36,7 @@ class SolverSuite extends FunSuite {
   test("incomplete but still consistent") {
     val constraints = List(
       Dec(ScopeVar("s1"),NameVar("n1")),
-      DirectEdge(ScopeVar("s2"),ScopeVar("s1")),
+      DirectEdge(ScopeVar("s2"),Label('P'),ScopeVar("s1")),
       Ref(NameVar("n2"),ScopeVar("s3")),
       Res(NameVar("n2"),NameVar("n3")),
       AssocFact(NameVar("n1"),ScopeVar("s2")),
@@ -60,7 +60,7 @@ class SolverSuite extends FunSuite {
       Ref(NameVar("n2"),ScopeVar("s2")),
       DirectImport(ScopeVar("s2"),ScopeVar("s4")),
       Dec(ScopeVar("s3"),NameVar("n3")),
-      DirectEdge(ScopeVar("s1"),ScopeVar("s3")),
+      DirectEdge(ScopeVar("s1"),Label('P'),ScopeVar("s3")),
       AssocFact(NameVar("n3"),ScopeVar("s1"))
     )
 
@@ -70,8 +70,8 @@ class SolverSuite extends FunSuite {
   test("concrete names") {
     val constraints = List(
       Ref(ConcreteName("Implicit", "this", 4), ScopeVar("s3")),
-      DirectEdge(ScopeVar("s3"), ScopeVar("s2")),
-      DirectEdge(ScopeVar("s2"), ScopeVar("s1")),
+      DirectEdge(ScopeVar("s3"),Label('P'), ScopeVar("s2")),
+      DirectEdge(ScopeVar("s2"),Label('P'), ScopeVar("s1")),
       Dec(ScopeVar("s1"), SymbolicName("Class", "n1")),
       Dec(ScopeVar("s2"), SymbolicName("Method", "n3")),
       Dec(ScopeVar("s2"), ConcreteName("Implicit", "this", 2)),
@@ -91,11 +91,11 @@ class SolverSuite extends FunSuite {
       TypeEquals(TypeVar("t1999"),TypeAppl("Int", List())),
       TypeEquals(TypeVar("t1995"),TypeAppl("Nil", List())),
       Dec(ScopeVar("s2030"),SymbolicName("Method", "n1961")),
-      DirectEdge(ScopeVar("s2028"),ScopeVar("s2030")), AssocFact(SymbolicName("Method", "n1961"),ScopeVar("s2028")),
+      DirectEdge(ScopeVar("s2028"),Label('P'),ScopeVar("s2030")), AssocFact(SymbolicName("Method", "n1961"),ScopeVar("s2028")),
       TypeOf(SymbolicName("Method", "n1961"),TypeAppl("Pair", List(TypeVar("t1995"), TypeVar("t2013")))),
       Dec(ScopeVar("s2032"),SymbolicName("Class", "n1951")),
       TypeOf(SymbolicName("Class", "n1951"),TypeAppl("ClassType", List(TypeNameAdapter(SymbolicName("Class", "n1951"))))),
-      DirectEdge(ScopeVar("s2030"),ScopeVar("s2032")),
+      DirectEdge(ScopeVar("s2030"),Label('P'),ScopeVar("s2032")),
       Dec(ScopeVar("s2030"),ConcreteName("Implicit", "this", 1)),
       TypeOf(ConcreteName("Implicit", "this", 1),TypeAppl("ClassType", List(TypeNameAdapter(SymbolicName("Class", "n1951"))))),
       AssocFact(NameVar("n1951"),ScopeVar("s2030"))
@@ -126,9 +126,9 @@ class SolverSuite extends FunSuite {
 
   test("does it work?") {
     val constraints = List(
-      DirectEdge(ScopeVar("s714996"),ScopeVar("s714990")),
-      DirectEdge(ScopeVar("s714990"),ScopeVar("s715011")),
-      DirectEdge(ScopeVar("s715004"),ScopeVar("s715011")),
+      DirectEdge(ScopeVar("s714996"),Label('P'),ScopeVar("s714990")),
+      DirectEdge(ScopeVar("s714990"),Label('P'),ScopeVar("s715011")),
+      DirectEdge(ScopeVar("s715004"),Label('P'),ScopeVar("s715011")),
 
       Dec(ScopeVar("s714990"),SymbolicName("Method", "n714947")),
       Dec(ScopeVar("s715011"),SymbolicName("Class", "n714940")),
@@ -160,9 +160,9 @@ class SolverSuite extends FunSuite {
 
   test("chained associated import") {
     val constraints = List(
-      DirectEdge(ScopeVar("s1"), ScopeVar("s")),
-      DirectEdge(ScopeVar("s2"), ScopeVar("s")),
-      DirectEdge(ScopeVar("s3"), ScopeVar("s")),
+      DirectEdge(ScopeVar("s1"),Label('P'), ScopeVar("s")),
+      DirectEdge(ScopeVar("s2"),Label('P'), ScopeVar("s")),
+      DirectEdge(ScopeVar("s3"),Label('P'), ScopeVar("s")),
       Dec(ScopeVar("s"), SymbolicName("C", "n1")),
       Dec(ScopeVar("s"), SymbolicName("C", "n2")),
       Dec(ScopeVar("s"), SymbolicName("C", "n3")),
@@ -194,9 +194,9 @@ class SolverSuite extends FunSuite {
 
   test("associated import with symbolic names") {
     val constraints = List(
-      DirectEdge(ScopeVar("s1"), ScopeVar("s")),
-      DirectEdge(ScopeVar("s2"), ScopeVar("s")),
-      DirectEdge(ScopeVar("s"), ScopeVar("s3")),
+      DirectEdge(ScopeVar("s1"),Label('P'), ScopeVar("s")),
+      DirectEdge(ScopeVar("s2"),Label('P'), ScopeVar("s")),
+      DirectEdge(ScopeVar("s"),Label('P'), ScopeVar("s3")),
       Dec(ScopeVar("s3"), SymbolicName("C", "n6")),
       Dec(ScopeVar("s2"), SymbolicName("V", "n3")),
       Dec(ScopeVar("s"), SymbolicName("C", "n1")),
@@ -232,7 +232,7 @@ class SolverSuite extends FunSuite {
   }
 
   test("rule that leads to a direct edge to the same scope (after resolving the reference to the only declaration) and hence a stackoverflow exception") {
-    val r = Rule(SortAppl("Declaration", List()), None, List(ScopeVar("s")), State(TermAppl("Class", List(TermVar("x"), TermAppl("Parent", List(TermVar("x_parent"))), TermAppl("Nil", List()))),List(TypeOf(SymbolicName("Class", "x"),TypeAppl("TClassDef", List(TypeNameAdapter(SymbolicName("Class", "x"))))), Res(SymbolicName("Class", "x_parent"),NameVar("d_parent")), AssocConstraint(NameVar("d_parent"),ScopeVar("s''")), TypeOf(NameVar("d_parent"),TypeAppl("TClassDef", List(TypeVar("d_parent")))), Supertype(TypeAppl("TClass", List(TypeVar("x"))),TypeAppl("TClass", List(TypeVar("d_parent")))), True()),List(Dec(ScopeVar("s"),SymbolicName("Class", "x")), AssocFact(SymbolicName("Class", "x"),ScopeVar("s201")), Ref(SymbolicName("Class", "x_parent"),ScopeVar("s")), DirectEdge(ScopeVar("s201"),ScopeVar("s''")), DirectEdge(ScopeVar("s201"),ScopeVar("s"))),TypeEnv(),Resolution(),SubtypeRelation(List()),List()))
+    val r = Rule(SortAppl("Declaration", List()), None, List(ScopeVar("s")), State(TermAppl("Class", List(TermVar("x"), TermAppl("Parent", List(TermVar("x_parent"))), TermAppl("Nil", List()))),List(TypeOf(SymbolicName("Class", "x"),TypeAppl("TClassDef", List(TypeNameAdapter(SymbolicName("Class", "x"))))), Res(SymbolicName("Class", "x_parent"),NameVar("d_parent")), AssocConstraint(NameVar("d_parent"),ScopeVar("s''")), TypeOf(NameVar("d_parent"),TypeAppl("TClassDef", List(TypeVar("d_parent")))), Supertype(TypeAppl("TClass", List(TypeVar("x"))),TypeAppl("TClass", List(TypeVar("d_parent")))), True()),List(Dec(ScopeVar("s"),SymbolicName("Class", "x")), AssocFact(SymbolicName("Class", "x"),ScopeVar("s201")), Ref(SymbolicName("Class", "x_parent"),ScopeVar("s")), DirectEdge(ScopeVar("s201"),Label('P'),ScopeVar("s''")), DirectEdge(ScopeVar("s201"),Label('P'),ScopeVar("s"))),TypeEnv(),Resolution(),SubtypeRelation(List()),List()))
 
     assert(Solver.solveAny(r.state).nonEmpty)
   }

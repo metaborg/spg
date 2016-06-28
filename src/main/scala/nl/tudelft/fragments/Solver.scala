@@ -1,7 +1,5 @@
 package nl.tudelft.fragments
 
-// TODO: Solver does not take stable graph into account!
-// TODO: Naming conditions should be first-class facts, and they should be conistent
 object Solver {
   def rewrite(c: Constraint, state: State): List[State] = c match {
     case True() =>
@@ -19,11 +17,11 @@ object Solver {
             .substituteType(typeBinding)
             .substituteName(nameBinding)
       }
-    case Res(n1, n2@NameVar(_)) if Graph(state.facts).res(state.nameConstraints, n1).nonEmpty =>
+    case Res(n1, n2@NameVar(_)) if Graph(state.facts).res(state.resolution)(n1).nonEmpty =>
       if (state.resolution.contains(n1)) {
         state.substituteName(Map(n2 -> state.resolution(n1)))
       } else {
-        val choices = Graph(state.facts).res(state.nameConstraints, n1)
+        val choices = Graph(state.facts).res(state.resolution)(n1)
 
         choices.map { case (dec, cond) =>
           state

@@ -1,5 +1,7 @@
 package nl.tudelft.fragments
 
+// TODO: Adopt names that Hendrik used
+
 // Constraint
 abstract class Constraint {
   def substituteType(binding: TypeBinding): Constraint
@@ -41,13 +43,12 @@ case class True() extends Constraint {
     true
 }
 
-// TODO: DirectEdge should get a label
-case class DirectEdge(s1: Scope, s2: Scope) extends Constraint {
+case class DirectEdge(s1: Scope, l: Label, s2: Scope) extends Constraint {
   override def substituteType(binding: TypeBinding): Constraint =
     this
 
   override def substituteScope(binding: ScopeBinding): Constraint =
-    DirectEdge(s1.substituteScope(binding), s2.substituteScope(binding))
+    DirectEdge(s1.substituteScope(binding), l, s2.substituteScope(binding))
 
   override def substituteName(binding: NameBinding): Constraint =
     this
@@ -61,7 +62,7 @@ case class DirectEdge(s1: Scope, s2: Scope) extends Constraint {
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
     s1.freshen(nameBinding).map { case (nameBinding, s1) =>
       s2.freshen(nameBinding).map { case (nameBinding, s2) =>
-        (nameBinding, DirectEdge(s1, s2))
+        (nameBinding, DirectEdge(s1, l, s2))
       }
     }
 }

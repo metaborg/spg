@@ -1,11 +1,11 @@
 package nl.tudelft.fragments.spoofax
 
 import com.google.common.collect.Iterables
-import nl.tudelft.fragments.Strategy2
+import nl.tudelft.fragments.Main
 import org.metaborg.core.language.ILanguageImpl
 
 object Utils {
-  val s = Strategy2.spoofax
+  val s = Main.spoofax
 
   /**
     * Load the language implementation

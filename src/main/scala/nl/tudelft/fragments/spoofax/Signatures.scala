@@ -1,11 +1,11 @@
 package nl.tudelft.fragments.spoofax
 
-import nl.tudelft.fragments.{Sort, SortAppl, SortVar, Strategy2}
+import nl.tudelft.fragments.{Main, Sort, SortAppl, SortVar}
 import org.apache.commons.io.IOUtils
 import org.spoofax.interpreter.terms.{IStrategoAppl, IStrategoList, IStrategoString, IStrategoTerm}
 
 object Signatures {
-  val s = Strategy2.spoofax
+  val s = Main.spoofax
 
   // Parse the signatures
   def read(strategoPath: String, signaturePath: String) = {
@@ -117,8 +117,4 @@ object Signatures {
   abstract class Type
   case class FunType(children: List[Type], result: Type) extends Type
   case class ConstType(sort: Sort) extends Type
-
-//  abstract class Sort
-//  case class SortNoArgs(name: String) extends Sort
-//  case class SortArgs(name: String, sorts: List[Sort]) extends Sort
 }

@@ -1,10 +1,18 @@
 package nl.tudelft.fragments
 
-import nl.tudelft.fragments.examples.{Lambda, MiniJava, Simple}
-import nl.tudelft.fragments.memory.Node
-import nl.tudelft.fragments.spoofax.{Converter, Printer}
-import org.spoofax.interpreter.terms.{IStrategoString, IStrategoTerm}
-import org.spoofax.terms.StrategoString
+import javax.inject.Singleton
+
+import org.metaborg.core.project.{IProjectService, SimpleProjectService}
+import org.metaborg.spoofax.core.{Spoofax, SpoofaxModule}
+
+object Main {
+  val spoofax = new Spoofax(new SpoofaxModule() {
+    override def bindProject() {
+      bind(classOf[SimpleProjectService]).in(classOf[Singleton])
+      bind(classOf[IProjectService]).to(classOf[SimpleProjectService])
+    }
+  })
+}
 
 //object Main {
 //  def main(args: Array[String]): Unit = {

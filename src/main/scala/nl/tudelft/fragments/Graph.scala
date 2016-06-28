@@ -2,7 +2,20 @@ package nl.tudelft.fragments
 
 import nl.tudelft.fragments.LabelImplicits._
 
-class Graph(val wellFormedness: Regex, val labels: List[Label], val labelOrdering: LabelOrdering, val facts: List[Constraint]) {
+case class Graph(/*wellFormedness: Regex, labels: List[Label], labelOrdering: LabelOrdering,*/ facts: List[Constraint]) {
+  val labels =
+    List(Label('P'), Label('I'))
+
+  val wellFormedness =
+    (Character('P') *) ~ (Character('I') *)
+
+  val labelOrdering =
+    LabelOrdering(
+      (Label('D'), Label('P')),
+      (Label('D'), Label('I')),
+      (Label('I'), Label('P'))
+    )
+
   // Get scope for reference
   def scope(n: Name) = facts
     .find {
@@ -33,9 +46,13 @@ class Graph(val wellFormedness: Regex, val labels: List[Label], val labelOrderin
 
   // Get endpoints of l-labeled edges for scope
   def edges(l: Label, s: Scope): List[Scope] = facts.flatMap {
-    case DirectEdge(`s`, d) => Some(d)
+    case DirectEdge(`s`, `l`, d) => Some(d)
     case _ => None
   }
+
+  // Resolution
+  def res(R: Resolution)(x: Name): List[(Name, List[NamingConstraint])] =
+    res(Nil, R)(x)
 
   // Resolution
   def res(I: SeenImport, R: Resolution)(x: Name): List[(Name, List[NamingConstraint])] =
@@ -44,9 +61,13 @@ class Graph(val wellFormedness: Regex, val labels: List[Label], val labelOrderin
     } else {
       val D = env(wellFormedness, x :: I, Nil, R)(scope(x).get)
 
-      D.declarations.map { case (y, c) =>
-        (y, Eq(x, y) :: c)
-      }
+      D.declarations
+        .filter { case (y, _) =>
+          x.namespace == y.namespace
+        }
+        .map { case (y, c) =>
+          (y, Eq(x, y) :: c)
+        }
     }
 
   // Environment
@@ -54,18 +75,26 @@ class Graph(val wellFormedness: Regex, val labels: List[Label], val labelOrderin
     if (S.contains(s) || re == EmptySet) {
       Environment()
     } else {
-      envLs(re, 'D' :: labels, I, S, R)(s)
+      envLabels(re, 'D' :: labels, I, S, R)(s)
     }
 
   // Environment for labels
-  def envLs(re: Regex, L: List[Label], I: SeenImport, S: SeenScope, R: Resolution)(s: Scope): Environment = {
+  def envLabels(re: Regex, L: List[Label], I: SeenImport, S: SeenScope, R: Resolution)(s: Scope): Environment = {
     LabelOrdering.max(L, labelOrdering)
-      .map(l => envLs(re, LabelOrdering.lt(L, l, labelOrdering), I, S, R)(s) shadows envL(re, l, I, S, R)(s))
+      .map(l => envLabels(re, LabelOrdering.lt(L, l, labelOrdering), I, S, R)(s) shadows envL(re, l, I, S, R)(s))
       .fold(Environment())(_ union _)
   }
 
+  // Multiplex based on label
+  def envL(re: Regex, l: Label, I: SeenImport, S: SeenScope, R: Resolution)(s: Scope): Environment = l match {
+    case Label('D') =>
+      envDec(re, I, S, R)(s)
+    case _ =>
+      envOther(re, l, I, S, R)(s)
+  }
+
   // Environment for declarations
-  def envD(re: Regex, I: SeenImport, S: SeenScope, R: Resolution)(s: Scope): Environment =
+  def envDec(re: Regex, I: SeenImport, S: SeenScope, R: Resolution)(s: Scope): Environment =
     if (!re.acceptsEmptyString) {
       Environment()
     } else {
@@ -77,7 +106,7 @@ class Graph(val wellFormedness: Regex, val labels: List[Label], val labelOrderin
     }
 
   // Environment for label
-  def envL(re: Regex, l: Label, I: SeenImport, S: SeenScope, R: Resolution)(s: Scope): Environment = {
+  def envOther(re: Regex, l: Label, I: SeenImport, S: SeenScope, R: Resolution)(s: Scope): Environment = {
     val scopes = IS(l, I, R)(s) ++ edges(l, s).filter(_.vars.isEmpty)
 
     scopes

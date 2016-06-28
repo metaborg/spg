@@ -2,13 +2,13 @@ package nl.tudelft.fragments.spoofax
 
 import nl.tudelft.fragments
 import nl.tudelft.fragments.spoofax.Signatures._
-import nl.tudelft.fragments.{AssocConstraint, AssocFact, AssociatedImport, Constraint, Dec, Name, NameProvider, NameVar, DirectEdge, Pattern, Recurse, Ref, Res, Rule, Scope, ScopeVar, Sort, SortAppl, State, Strategy2, Subtype, Supertype, SymbolicName, TermAppl, TermVar, True, Type, TypeAppl, TypeEquals, TypeNameAdapter, TypeOf, TypeVar}
+import nl.tudelft.fragments.{AssocConstraint, AssocFact, AssociatedImport, Constraint, Dec, DirectEdge, Label, Main, Name, NameProvider, NameVar, Pattern, Recurse, Ref, Res, Rule, Scope, ScopeVar, State, Subtype, Supertype, SymbolicName, TermAppl, TermVar, True, Type, TypeAppl, TypeEquals, TypeNameAdapter, TypeOf, TypeVar}
 import org.apache.commons.io.IOUtils
-import org.spoofax.interpreter.terms.{IStrategoList, IStrategoString, IStrategoTerm}
+import org.spoofax.interpreter.terms.{IStrategoAppl, IStrategoList, IStrategoString, IStrategoTerm}
 import org.spoofax.terms.{StrategoAppl, StrategoList}
 
 object Specification {
-  val s = Strategy2.spoofax
+  val s = Main.spoofax
 
   // Start at 9 so we do not clash with names in the rules
   val nameProvider = NameProvider(9)
@@ -224,11 +224,8 @@ object Specification {
       Res(toName(appl.getSubterm(0)), toName(appl.getSubterm(1)))
     case appl: StrategoAppl if appl.getConstructor.getName == "CTypeOf" =>
       TypeOf(toName(appl.getSubterm(0)), toType(appl.getSubterm(1)))
-    // TODO: We read DirectEdge, but the name resolution calculus + name resolution algorithm only handles Par (parent) edges..
-    // TODO: Also, the name resolution calculus only handles DirectImport imports, but we don't generate these.. (superseded by DirectEdge)
-    // TODO: And the name resolution algorithm does not handle DirectImport nor DirectEdge (the parent query is programmed to match DirectEdge, but we can have non-parent direct edges)..
     case appl: StrategoAppl if appl.getConstructor.getName == "CGDirectEdge" =>
-      DirectEdge(toScope(appl.getSubterm(0)), toScope(appl.getSubterm(2)))
+      DirectEdge(toScope(appl.getSubterm(0)), toLabel(appl.getSubterm(1)), toScope(appl.getSubterm(2)))
     case appl: StrategoAppl if appl.getConstructor.getName == "CEqual" =>
       TypeEquals(toType(appl.getSubterm(0)), toType(appl.getSubterm(1)))
     case appl: StrategoAppl if appl.getConstructor.getName == "CGAssoc" =>
@@ -240,9 +237,21 @@ object Specification {
     case appl: StrategoAppl if appl.getConstructor.getName == "FSubtype" =>
       Supertype(toType(appl.getSubterm(0)), toType(appl.getSubterm(1)))
     case appl: StrategoAppl if appl.getConstructor.getName == "CGNamedEdge" =>
+      // TODO: AssociatedImports have a label as well
       AssociatedImport(toScope(appl.getSubterm(2)), toName(appl.getSubterm(0)))
     case appl: StrategoAppl if appl.getConstructor.getName == "CGenRecurse" =>
       Recurse(toPattern(appl.getSubterm(1)), toScopes(appl.getSubterm(2)), toTypeOption(appl.getSubterm(3)), null)
+  }
+
+  // Turn a Stratego term into Label
+  def toLabel(term: IStrategoTerm): Label = term match {
+    case appl: IStrategoAppl if appl.getConstructor.getName == "P" =>
+      Label('P')
+    case appl: IStrategoAppl if appl.getConstructor.getName == "I" =>
+      Label('I')
+    case appl: IStrategoAppl if appl.getConstructor.getName == "Label" =>
+      // TODO: Labels should be strings instead of chars, and regex's should cope with strings as unit element
+      Label(toString(appl).head)
   }
 
   // Turn IStrategoString into String

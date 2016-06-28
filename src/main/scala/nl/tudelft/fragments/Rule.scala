@@ -64,8 +64,7 @@ case class Rule(sort: Sort, typ: Option[Type], scopes: List[Scope], state: State
     // The merge may have broken existing resolutions, fix this
     val fixedRule = rule.state.resolution.bindings.foldLeft(rule) { case (rule, (ref, dec)) =>
       // Get the declarations that `ref` may resolve to and remove declarations longer than `dec` as they don't break the resolution
-      val newResolves = Graph(rule.state.facts)
-        .res(rule.state.nameConstraints, ref)
+      val newResolves = Graph(rule.state.facts).res(rule.state.resolution)(ref)
 
       if (newResolves.length != 1 || (newResolves.length == 1 && newResolves.head._1 != dec)) {
         // TODO: We can use the constraint from newResolves here, as that already contains the necessary condition for resolving to that single name
@@ -85,7 +84,7 @@ case class Rule(sort: Sort, typ: Option[Type], scopes: List[Scope], state: State
 
     // TODO) Sanity check: did we really restore the resolution? (Remove this code eventually)
     for ((ref, dec) <- fixedRule.state.resolution.bindings) {
-      val newResolves = Graph(fixedRule.state.facts).res(fixedRule.state.nameConstraints, ref)
+      val newResolves = Graph(fixedRule.state.facts).res(fixedRule.state.resolution)(ref)
 
       if (newResolves.length != 1 || (newResolves.length == 1 && newResolves.head._1 != dec)) {
         println(ref)
