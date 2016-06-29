@@ -2,7 +2,7 @@ package nl.tudelft.fragments.spoofax
 
 import nl.tudelft.fragments
 import nl.tudelft.fragments.spoofax.Signatures._
-import nl.tudelft.fragments.{CAssoc, CGAssoc, CGNamedEdge, Constraint, CGDecl, CGDirectEdge, Label, Main, Name, NameProvider, NameVar, Pattern, CGenRecurse, CGRef, CResolve, Rule, Scope, ScopeVar, State, CSubtype, FSubtype, SymbolicName, TermAppl, TermVar, CTrue, Type, TypeAppl, CEqual, TypeNameAdapter, CTypeOf, TypeVar}
+import nl.tudelft.fragments.{CAssoc, CEqual, CGAssoc, CGDecl, CGDirectEdge, CGNamedEdge, CGRef, CGenRecurse, CResolve, CSubtype, CTrue, CTypeOf, Constraint, FSubtype, Label, Main, Name, NameProvider, NameVar, Pattern, Rule, Scope, ScopeAppl, ScopeVar, State, SymbolicName, TermAppl, TermVar, Type, TypeAppl, TypeNameAdapter, TypeVar}
 import org.apache.commons.io.IOUtils
 import org.spoofax.interpreter.terms.{IStrategoAppl, IStrategoList, IStrategoString, IStrategoTerm}
 import org.spoofax.terms.{StrategoAppl, StrategoList}
@@ -110,11 +110,15 @@ object Specification {
   def toRule(rule: IStrategoTerm)(implicit signatures: List[Decl]): Rule = rule match {
     case appl: StrategoAppl =>
       val pattern = toPattern(appl.getSubterm(0).getSubterm(1))
+      val scopes = toScopes(appl.getSubterm(0).getSubterm(2))(Nil)
+
+      // Scopes marked as 'new ...' and passed in scopes are concrete
+      implicit val concrete = toNewList(appl.getSubterm(2)) ++ scopes.map(_.name)
 
       Rule(
         sort = toSort(pattern),
         typ = toTypeOption(appl.getSubterm(0).getSubterm(3)),
-        scopes = toScopes(appl.getSubterm(0).getSubterm(2)),
+        scopes = scopes,
         state = State(
           pattern = pattern,
           constraints = toConstraints(appl.getSubterm(1))
@@ -171,15 +175,19 @@ object Specification {
   }
 
   // Turn a Stratego scope into a Scope
-  def toScope(term: IStrategoTerm): Scope = term match {
+  def toScope(term: IStrategoTerm)(implicit concrete: List[String]): Scope = term match {
     case appl: StrategoAppl if appl.getConstructor.getName == "Var" =>
-      ScopeVar(toString(appl.getSubterm(0)))
+      if (concrete.contains(toString(appl.getSubterm(0)))) {
+        ScopeAppl(toString(appl.getSubterm(0)))
+      } else {
+        ScopeVar(toString(appl.getSubterm(0)))
+      }
     case appl: StrategoAppl if appl.getConstructor.getName == "Wld" =>
       ScopeVar("s" + nameProvider.next)
   }
 
   // Turn a list of Stratego scopes into a List[Scope]
-  def toScopes(term: IStrategoTerm): List[Scope] = term match {
+  def toScopes(term: IStrategoTerm)(implicit concrete: List[String]): List[Scope] = term match {
     case appl: StrategoAppl if appl.getConstructor.getName == "List" =>
       toScopes(appl.getSubterm(0))
     case appl: IStrategoList if appl.isEmpty =>
@@ -205,15 +213,33 @@ object Specification {
   }
 
   // Turn a Stratego list of constraints into a List[Constraint]
-  def toConstraints(constraint: IStrategoTerm): List[Constraint] = constraint match {
+  def toConstraints(constraint: IStrategoTerm)(implicit vars: List[String]): List[Constraint] = constraint match {
     case appl: StrategoAppl if appl.getConstructor.getName == "CConj" =>
       toConstraint(appl.getSubterm(0)) :: toConstraints(appl.getSubterm(1))
     case appl: StrategoAppl =>
       List(toConstraint(appl))
   }
 
+  // Turn a Stratego term into list of ScopeVars
+  def toNewList(term: IStrategoTerm): List[String] = term match {
+    case appl: StrategoAppl if appl.getConstructor.getName == "NoNew" =>
+      Nil
+    case appl: StrategoAppl if appl.getConstructor.getName == "New" =>
+      toNewList(appl.getSubterm(0))
+    case appl: StrategoList if appl.isEmpty =>
+      Nil
+    case list: IStrategoList =>
+      toNew(list.head()) :: toNewList(list.tail())
+  }
+
+  // Turn a Stratego Var into a String
+  def toNew(term: IStrategoTerm): String = term match {
+    case appl: StrategoAppl if appl.getConstructor.getName == "Var" =>
+      toString(appl.getSubterm(0))
+  }
+
   // Turn a constraint into a Constarint
-  def toConstraint(constraint: IStrategoTerm): Constraint = constraint match {
+  def toConstraint(constraint: IStrategoTerm)(implicit vars: List[String]): Constraint = constraint match {
     case appl: StrategoAppl if appl.getConstructor.getName == "CTrue" =>
       CTrue()
     case appl: StrategoAppl if appl.getConstructor.getName == "CGRef" =>

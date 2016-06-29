@@ -485,6 +485,8 @@ case class NameVar(name: String) extends Name {
 
 // Scope
 abstract class Scope {
+  def name: String
+
   def unify(t: Scope, binding: ScopeBinding = Map.empty): Option[ScopeBinding]
 
   def substituteScope(binding: ScopeBinding): Scope
@@ -494,7 +496,34 @@ abstract class Scope {
   def vars: List[ScopeVar]
 }
 
-// TODO: Create proper scope var's, because now everything is a scope var..
+case class ScopeAppl(name: String) extends Scope {
+  override def unify(scope: Scope, binding: ScopeBinding): Option[ScopeBinding] = scope match {
+    case c@ScopeAppl(`name`) =>
+      Some(binding)
+    case ScopeVar(_) =>
+      scope.unify(this, binding)
+    case _ =>
+      None
+  }
+
+  override def substituteScope(binding: ScopeBinding): Scope =
+    this
+
+  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Scope) =
+    if (nameBinding.contains(name)) {
+      (nameBinding, ScopeAppl(nameBinding(name)))
+    } else {
+      val fresh = "s" + nameProvider.next
+      (nameBinding + (name -> fresh), ScopeAppl(fresh))
+    }
+
+  override def vars: List[ScopeVar] =
+    Nil
+
+  override def toString: String =
+    s"""ScopeAppl("$name")"""
+}
+
 case class ScopeVar(name: String) extends Scope {
   override def unify(scope: Scope, binding: ScopeBinding): Option[ScopeBinding] = scope match {
     case s@ScopeVar(_) if binding.contains(s) =>
@@ -518,9 +547,8 @@ case class ScopeVar(name: String) extends Scope {
       (nameBinding + (name -> fresh), ScopeVar(fresh))
     }
 
-  // TODO: Update this once we have proper scope vars
   override def vars: List[ScopeVar] =
-    Nil
+    List(this)
 
   override def toString: String =
     s"""ScopeVar("$name")"""

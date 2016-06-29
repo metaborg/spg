@@ -161,7 +161,6 @@ case class CGAssoc(n: Name, s: Scope) extends Constraint {
     }
 }
 
-// Proper constraints
 case class CAssoc(n: Name, s: Scope) extends Constraint {
   override def substituteType(binding: TypeBinding): Constraint =
     this
