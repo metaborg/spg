@@ -12,6 +12,43 @@ object Consistency {
     result.isDefined && result.get && checkSubtyping(state)
   }
 
+  // Check if there is still a way for the resolve constraints to be satisfied
+  def checkResolutions(state: State): Boolean = {
+    val noDec = (resolveConstraint: CResolve) => {
+      Solver
+        .rewrite(resolveConstraint, state.copy(constraints = state.constraints - resolveConstraint))
+        .exists(Consistency.check)
+    }
+
+    val noRecurse = (resolveConstraint: CResolve) => {
+      val scope = Graph(state.facts).scope(resolveConstraint.n1)
+      val reachable = Graph(state.facts).reachableScopes(state.resolution)(scope.get)
+
+      !state.constraints
+        .filter(_.isInstanceOf[CGenRecurse])
+        .map(_.asInstanceOf[CGenRecurse])
+        .exists(_.scopes.exists(reachable.contains(_)))
+    }
+
+    val noEdge = (resolveConstraint: CResolve) => {
+      val scope = Graph(state.facts).scope(resolveConstraint.n1)
+      val reachable = Graph(state.facts).reachableScopes(state.resolution)(scope.get)
+
+      !state.constraints
+        .filter(_.isInstanceOf[CGDirectEdge])
+        .map(_.asInstanceOf[CGDirectEdge])
+        .exists(_.s2.isInstanceOf[ScopeVar]) // TODO: Currently, all scopes are "unknown" (i.e. ScopeVar). This needs fixing!
+    }
+
+    val resolveConstraints = state.constraints
+      .filter(_.isInstanceOf[CResolve])
+      .asInstanceOf[List[CResolve]]
+
+    !resolveConstraints.exists(resolveConstraint =>
+      noDec(resolveConstraint) && noRecurse(resolveConstraint) && noEdge(resolveConstraint)
+    )
+  }
+
   // Check for cycles in the combination of Supertype constraints and the built-up subtyping relation
   def checkSubtyping(state: State): Boolean = {
     val supertypeConstraints = state.constraints.flatMap {

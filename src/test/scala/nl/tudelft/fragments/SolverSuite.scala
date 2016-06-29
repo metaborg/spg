@@ -171,8 +171,8 @@ class SolverSuite extends FunSuite {
       CGAssoc(SymbolicName("C", "n3"), ScopeVar("s3")),
       CGRef(SymbolicName("C", "n4"), ScopeVar("s")),
       CGRef(SymbolicName("C", "n5"), ScopeVar("s")),
-      CGNamedEdge(ScopeVar("s1"), SymbolicName("C", "n4")),
-      CGNamedEdge(ScopeVar("s3"), SymbolicName("C", "n5")),
+      CGNamedEdge(ScopeVar("s1"), Label('P'), SymbolicName("C", "n4")),
+      CGNamedEdge(ScopeVar("s3"), Label('P'), SymbolicName("C", "n5")),
       CResolve(SymbolicName("C", "n4"), NameVar("d1")),
       CResolve(SymbolicName("C", "n5"), NameVar("d2"))
     )
@@ -203,7 +203,7 @@ class SolverSuite extends FunSuite {
       CGDecl(ScopeVar("s"), SymbolicName("C", "n2")),
       CGAssoc(SymbolicName("C", "n1"), ScopeVar("s1")),
       CGAssoc(SymbolicName("C", "n2"), ScopeVar("s2")),
-      CGNamedEdge(ScopeVar("s1"), SymbolicName("C", "n4")),
+      CGNamedEdge(ScopeVar("s1"), Label('P'), SymbolicName("C", "n4")),
       CGRef(SymbolicName("C", "n4"), ScopeVar("s")),
       CResolve(SymbolicName("C", "n4"), NameVar("d1")),
       CGRef(SymbolicName("V", "n5"), ScopeVar("s1")),

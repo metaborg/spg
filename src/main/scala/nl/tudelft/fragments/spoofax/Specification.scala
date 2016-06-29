@@ -237,8 +237,7 @@ object Specification {
     case appl: StrategoAppl if appl.getConstructor.getName == "FSubtype" =>
       FSubtype(toType(appl.getSubterm(0)), toType(appl.getSubterm(1)))
     case appl: StrategoAppl if appl.getConstructor.getName == "CGNamedEdge" =>
-      // TODO: AssociatedImports have a label as well
-      CGNamedEdge(toScope(appl.getSubterm(2)), toName(appl.getSubterm(0)))
+      CGNamedEdge(toScope(appl.getSubterm(2)), toLabel(appl.getSubterm(1)), toName(appl.getSubterm(0)))
     case appl: StrategoAppl if appl.getConstructor.getName == "CGenRecurse" =>
       CGenRecurse(toPattern(appl.getSubterm(1)), toScopes(appl.getSubterm(2)), toTypeOption(appl.getSubterm(3)), null)
   }

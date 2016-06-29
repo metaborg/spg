@@ -113,18 +113,18 @@ case class CGRef(n: Name, s: Scope) extends Constraint {
     }
 }
 
-case class CGNamedEdge(s: Scope, n: Name) extends Constraint {
+case class CGNamedEdge(s: Scope, l: Label, n: Name) extends Constraint {
   override def substituteType(binding: TypeBinding): Constraint =
     this
 
   override def substituteName(binding: NameBinding): Constraint =
-    CGNamedEdge(s, n.substituteName(binding))
+    CGNamedEdge(s, l, n.substituteName(binding))
 
   override def substituteScope(binding: ScopeBinding): Constraint =
-    CGNamedEdge(s.substituteScope(binding), n)
+    CGNamedEdge(s.substituteScope(binding), l, n)
 
   override def substituteConcrete(binding: ConcreteBinding): Constraint =
-    CGNamedEdge(s, n.substituteConcrete(binding))
+    CGNamedEdge(s, l, n.substituteConcrete(binding))
 
   override def substituteSort(binding: SortBinding): Constraint =
     this
@@ -132,7 +132,7 @@ case class CGNamedEdge(s: Scope, n: Name) extends Constraint {
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
     s.freshen(nameBinding).map { case (nameBinding, s) =>
       n.freshen(nameBinding).map { case (nameBinding, n) =>
-        (nameBinding, CGNamedEdge(s, n))
+        (nameBinding, CGNamedEdge(s, l, n))
       }
     }
 }
