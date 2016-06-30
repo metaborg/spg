@@ -5,11 +5,10 @@ import scala.util.Random
 package object fragments {
   type TermBinding = Map[TermVar, Pattern]
   type TypeBinding = Map[TypeVar, Type]
-  type ScopeBinding = Map[ScopeVar, Scope]
+  type ScopeBinding = Map[Scope, Scope]
   type NameBinding = Map[NameVar, Name]
   type SortBinding = Map[SortVar, Sort]
   type ConcreteBinding = Map[SymbolicName, ConcreteName]
-  type Path = List[PathElem]
   type SeenImport = List[Name]
   type SeenScope = List[Scope]
 
@@ -77,7 +76,7 @@ package object fragments {
   implicit class RichScopeList[T <: Scope](list: List[T]) extends RichList[T](list) {
     def unify(scopes: List[Scope]): Option[ScopeBinding] =
       if (list.length == scopes.length) {
-        list.zip(scopes).foldLeftWhile(Map.empty[ScopeVar, Scope]) {
+        list.zip(scopes).foldLeftWhile(Map.empty[Scope, Scope]) {
           case (scopeBinding, (s1, s2)) =>
             s1.unify(s2, scopeBinding)
         }

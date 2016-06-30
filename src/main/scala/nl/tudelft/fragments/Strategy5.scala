@@ -90,7 +90,7 @@ object Strategy5 {
 
     // Check the new rules for consistency
     val validNewRules = newRules.map(rules =>
-      rules.filter(rule => Consistency.check(rule.state))
+      rules.filter(rule => Consistency.check(rule))
     )
 
     val result = validNewRules

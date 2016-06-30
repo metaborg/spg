@@ -110,7 +110,7 @@ object Specification {
   def toRule(rule: IStrategoTerm)(implicit signatures: List[Decl]): Rule = rule match {
     case appl: StrategoAppl =>
       val pattern = toPattern(appl.getSubterm(0).getSubterm(1))
-      val scopes = toScopes(appl.getSubterm(0).getSubterm(2))(Nil)
+      val scopes = toScopeAppls(appl.getSubterm(0).getSubterm(2))
 
       // Scopes marked as 'new ...' and passed in scopes are concrete
       implicit val concrete = toNewList(appl.getSubterm(2)) ++ scopes.map(_.name)
@@ -174,6 +174,14 @@ object Specification {
       TypeNameAdapter(toName(appl))
   }
 
+  // Turn a Stratego scope into a ScopeAppl
+  def toScopeAppl(term: IStrategoTerm): ScopeAppl = term match {
+    case appl: StrategoAppl if appl.getConstructor.getName == "Var" =>
+      ScopeAppl(toString(appl.getSubterm(0)))
+    case appl: StrategoAppl if appl.getConstructor.getName == "Wld" =>
+      ScopeAppl("s" + nameProvider.next)
+  }
+
   // Turn a Stratego scope into a Scope
   def toScope(term: IStrategoTerm)(implicit concrete: List[String]): Scope = term match {
     case appl: StrategoAppl if appl.getConstructor.getName == "Var" =>
@@ -194,6 +202,16 @@ object Specification {
       Nil
     case appl: IStrategoList =>
       toScope(appl.head()) :: toScopes(appl.tail())
+  }
+
+  // Turn a list of Stratego scopes into a List[ScopeAppl]
+  def toScopeAppls(term: IStrategoTerm): List[ScopeAppl] = term match {
+    case appl: StrategoAppl if appl.getConstructor.getName == "List" =>
+      toScopeAppls(appl.getSubterm(0))
+    case appl: IStrategoList if appl.isEmpty =>
+      Nil
+    case appl: IStrategoList =>
+      toScopeAppl(appl.head()) :: toScopeAppls(appl.tail())
   }
 
   // Turn a Stratego name into a Name
@@ -265,7 +283,7 @@ object Specification {
     case appl: StrategoAppl if appl.getConstructor.getName == "CGNamedEdge" =>
       CGNamedEdge(toScope(appl.getSubterm(2)), toLabel(appl.getSubterm(1)), toName(appl.getSubterm(0)))
     case appl: StrategoAppl if appl.getConstructor.getName == "CGenRecurse" =>
-      CGenRecurse(toPattern(appl.getSubterm(1)), toScopes(appl.getSubterm(2)), toTypeOption(appl.getSubterm(3)), null)
+      CGenRecurse(toPattern(appl.getSubterm(1)), toScopeAppls(appl.getSubterm(2)), toTypeOption(appl.getSubterm(3)), null)
   }
 
   // Turn a Stratego term into Label

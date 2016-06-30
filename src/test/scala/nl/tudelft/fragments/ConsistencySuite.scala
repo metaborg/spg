@@ -40,7 +40,7 @@ class ConsistencySuite extends FunSuite {
       CEqual(TypeVar("t1"), TypeAppl("Int"))
     )
 
-    assert(!Consistency.check(State(constraints = constraints)))
+    assert(!Consistency.checkTypeOf(constraints) || Consistency.checkTypeEquals(constraints).isEmpty)
   }
 
   test("consistency of naming conditions") {

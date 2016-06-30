@@ -1,52 +1,74 @@
 package nl.tudelft.fragments
 
 object Consistency {
-  // TODO: Scope reachability checking!
-
   // Check for consistency
-  def check(state: State): Boolean = {
-    val result = checkTypeEquals(state.constraints).map { case (typeBinding, nameBinding) =>
-      checkTypeOf(state.constraints, typeBinding, nameBinding)
+  def check(rule: Rule): Boolean = {
+    val result = checkTypeEquals(rule.state.constraints).map { case (typeBinding, nameBinding) =>
+      checkTypeOf(rule.state.constraints, typeBinding, nameBinding)
     }
 
-    result.isDefined && result.get && checkSubtyping(state)
+    result.isDefined && result.get && checkSubtyping(rule.state) && checkResolve(rule)
   }
 
-  // Check if there is still a way for the resolve constraints to be satisfied
-  def checkResolutions(state: State): Boolean = {
+  // Consistency of resolve constraints
+  def checkResolve(rule: Rule): Boolean = {
     val noDec = (resolveConstraint: CResolve) => {
-      Solver
-        .rewrite(resolveConstraint, state.copy(constraints = state.constraints - resolveConstraint))
+      !Solver
+        .rewrite(resolveConstraint, rule.state.copy(constraints = rule.state.constraints - resolveConstraint))
+        .map(state => rule.copy(state = state))
         .exists(Consistency.check)
     }
 
     val noRecurse = (resolveConstraint: CResolve) => {
-      val scope = Graph(state.facts).scope(resolveConstraint.n1)
-      val reachable = Graph(state.facts).reachableScopes(state.resolution)(scope.get)
+      val scope = Graph(rule.state.facts).scope(resolveConstraint.n1)
+      val reachable = Graph(rule.state.facts).reachableScopes(rule.state.resolution)(scope.get)
 
-      !state.constraints
+      !rule.state.constraints
         .filter(_.isInstanceOf[CGenRecurse])
         .map(_.asInstanceOf[CGenRecurse])
         .exists(_.scopes.exists(reachable.contains(_)))
     }
 
-    val noEdge = (resolveConstraint: CResolve) => {
-      val scope = Graph(state.facts).scope(resolveConstraint.n1)
-      val reachable = Graph(state.facts).reachableScopes(state.resolution)(scope.get)
+    val noRoot = (resolveConstraint: CResolve) => {
+      // TODO: This is a hack that only works for L3
+      if (rule.state.pattern.asInstanceOf[TermAppl].cons == "Program") {
+        true
+      } else {
+        val scope = Graph(rule.state.facts).scope(resolveConstraint.n1)
+        val reachable = Graph(rule.state.facts).reachableScopes(rule.state.resolution)(scope.get)
 
-      !state.constraints
-        .filter(_.isInstanceOf[CGDirectEdge])
-        .map(_.asInstanceOf[CGDirectEdge])
-        .exists(_.s2.isInstanceOf[ScopeVar]) // TODO: Currently, all scopes are "unknown" (i.e. ScopeVar). This needs fixing!
+        !rule.scopes.exists(reachable.contains(_))
+      }
     }
 
-    val resolveConstraints = state.constraints
+    val noEdge = (resolveConstraint: CResolve) => {
+      val scope = Graph(rule.state.facts).scope(resolveConstraint.n1)
+      val reachable = Graph(rule.state.facts).reachableScopes(rule.state.resolution)(scope.get)
+
+      !reachable.exists(scope =>
+        Graph(rule.state.facts).edges(scope).exists {
+          case (_, _: ScopeVar) =>
+            true
+          case _ =>
+            false
+        }
+      )
+    }
+
+    val resolveConstraints = rule.state.constraints
       .filter(_.isInstanceOf[CResolve])
       .asInstanceOf[List[CResolve]]
 
-    !resolveConstraints.exists(resolveConstraint =>
-      noDec(resolveConstraint) && noRecurse(resolveConstraint) && noEdge(resolveConstraint)
-    )
+    val check = resolveConstraints.forall(resolveConstraint => {
+      val a = noDec(resolveConstraint)
+      val b = noRecurse(resolveConstraint)
+      val c = noRoot(resolveConstraint)
+      val d = noEdge(resolveConstraint)
+
+      !(a && b && c && d)
+    })
+
+    check
   }
 
   // Check for cycles in the combination of Supertype constraints and the built-up subtyping relation

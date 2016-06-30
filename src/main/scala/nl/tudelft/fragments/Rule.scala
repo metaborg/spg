@@ -27,7 +27,7 @@ case class Rule(sort: Sort, typ: Option[Type], scopes: List[Scope], state: State
 
     // Check consistency. E.g. the merge might have unified t1 with t2, but if t1 = Int, t2 = Bool, it's inconsistent
     merged.flatMap(rule =>
-      if (Consistency.check(merged.get.state)) {
+      if (Consistency.check(merged.get)) {
         Some((merged.get, nameBinding))
       } else {
         None
@@ -107,15 +107,6 @@ case class Rule(sort: Sort, typ: Option[Type], scopes: List[Scope], state: State
     constraints
       .filter(_.isInstanceOf[CResolve])
       .asInstanceOf[List[CResolve]]
-
-  def points: List[(Pattern, Sort, List[Scope])] =
-    ???
-    // TODO: Make this langauge-dependent
-//    if (sort != SortAppl("ProgramDecl")) {
-//      (pattern, sort, scopes) :: recurse
-//    } else {
-//      recurse
-//    }
 
   // Backwards compatibility
   def constraints: List[Constraint] =
@@ -213,8 +204,6 @@ case class SortVar(name: String) extends Sort {
 abstract class Pattern {
   def vars: List[TermVar]
 
-  def points: List[(Pattern, Sort, List[Scope])]
-
   // Number of terms in the pattern, TermVars excluded
   def size: Int
 
@@ -238,9 +227,6 @@ abstract class Pattern {
 case class TermAppl(cons: String, children: List[Pattern] = Nil) extends Pattern {
   override def vars: List[TermVar] =
     children.flatMap(_.vars).distinct
-
-  override def points: List[(Pattern, Sort, List[Scope])] =
-    ??? // vars.map(hole => (hole, hole.sort, hole.scope))
 
   override def size: Int =
     1 + children.map(_.size).sum
@@ -278,9 +264,6 @@ case class TermAppl(cons: String, children: List[Pattern] = Nil) extends Pattern
 case class TermVar(name: String) extends Pattern {
   override def vars: List[TermVar] =
     List(this)
-
-  override def points =
-    ???
 
   override def size: Int =
     0
@@ -321,9 +304,6 @@ case class TermVar(name: String) extends Pattern {
 case class PatternNameAdapter(n: Name) extends Pattern {
   override def vars: List[TermVar] =
     Nil
-
-  override def points =
-    ???
 
   override def size: Int =
     1
@@ -498,8 +478,8 @@ abstract class Scope {
 
 case class ScopeAppl(name: String) extends Scope {
   override def unify(scope: Scope, binding: ScopeBinding): Option[ScopeBinding] = scope match {
-    case c@ScopeAppl(`name`) =>
-      Some(binding)
+    case ScopeAppl(n) =>
+      Some(binding + (this -> scope))
     case ScopeVar(_) =>
       scope.unify(this, binding)
     case _ =>
@@ -507,7 +487,7 @@ case class ScopeAppl(name: String) extends Scope {
   }
 
   override def substituteScope(binding: ScopeBinding): Scope =
-    this
+    binding.getOrElse(this, this)
 
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Scope) =
     if (nameBinding.contains(name)) {

@@ -1,6 +1,6 @@
 package nl.tudelft.fragments
 
-import nl.tudelft.fragments.spoofax.Signatures.{ConstType, FunType, OpDecl, OpDeclInj}
+import nl.tudelft.fragments.spoofax.Signatures._
 import org.scalatest.FunSuite
 
 class RuleSuite extends FunSuite {
@@ -23,5 +23,22 @@ class RuleSuite extends FunSuite {
     val merged = rule.merge(recurse, other)
 
     println(merged)
+  }
+
+  test("merge with scopes") {
+    implicit val signatures = Nil
+
+    val r1 = Rule(SortAppl("Start", List()), None, List(ScopeAppl("s")), State(TermAppl("Program", List(TermVar("dd"), TermVar("e"))),List(CGenRecurse(TermVar("e"),List(ScopeAppl("s")),Some(TypeVar("t")),SortAppl("Exp", List())), CGenRecurse(TermVar("dd"),List(ScopeAppl("s")),None,SortAppl("List", List(SortAppl("Declaration", List()))))),List(),TypeEnv(),Resolution(),SubtypeRelation(List()),List()))
+    val r2 = Rule(SortAppl("Exp", List()), Some(TypeAppl("TInt", List())), List(ScopeAppl("s11")), State(TermAppl("IntValue", List(TermVar("x10"))),List(CTrue()),List(),TypeEnv(),Resolution(),SubtypeRelation(List()),List()))
+    val recurse = CGenRecurse(TermVar("e"),List(ScopeAppl("s")),Some(TypeVar("t")),SortAppl("Exp", List()))
+
+    assert(r1.merge(recurse, r2).isDefined)
+  }
+
+  test("unify concrete scopes") {
+    val s1 = ScopeAppl("s1")
+    val s2 = ScopeAppl("s2")
+
+    assert(s1.unify(s2) == Some(Map(s1 -> s2)))
   }
 }
