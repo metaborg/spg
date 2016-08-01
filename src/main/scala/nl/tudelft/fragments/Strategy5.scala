@@ -7,6 +7,8 @@ import nl.tudelft.fragments.spoofax.{Printer, Signatures, Specification}
 import org.metaborg.core.project.{IProjectService, SimpleProjectService}
 import org.metaborg.spoofax.core.{Spoofax, SpoofaxModule}
 
+import scala.annotation.tailrec
+
 object Strategy5 {
   val spoofax = new Spoofax(new SpoofaxModule() {
     override def bindProject() {
@@ -30,7 +32,7 @@ object Strategy5 {
       languagePath = "/Users/martijn/Projects/scopes-frames/L3/"
     )
 
-    val kb = repeat(gen, 500)(rules)
+    val kb = repeat(gen, 1000)(rules)
 
     for (i <- 1 to 100) {
       val rule = kb.filter(_.sort == SortAppl("Start")).random
@@ -101,37 +103,45 @@ object Strategy5 {
   }
 
   // Complete the given rule by solving resolution & recurse constraints
-  def complete(rules: List[Rule], rule: Rule)(implicit signatures: List[Decl]): Option[Rule] = rule.recurse match {
-    case Nil =>
-      Some(rule)
-    case _ =>
-      for (recurse <- rule.recurse) {
-        val choices = rules
-          .flatMap(rule.merge(recurse, _))
-          .filter(choice => choice.pattern.size + choice.recurse.size <= 20)
+  def complete(rules: List[Rule], rule: Rule, limit: Int = 10)(implicit signatures: List[Decl]): Option[Rule] =
+    if (limit == 0) {
+      None
+    } else {
+      println(rule)
 
-        if (choices.isEmpty) {
-          return None
-        } else {
-          for (choice <- choices) {
-            val deeper = complete(rules, choice)
+      rule.recurse match {
+        case Nil =>
+          Some(rule)
+        case _ =>
+          for (recurse <- rule.recurse) {
+            val choices = rules
+              .flatMap(rule.merge(recurse, _))
+              .filter(choice => choice.pattern.size + choice.recurse.size <= 20)
 
-            if (deeper.isDefined) {
-              return deeper
+            if (choices.isEmpty) {
+              return None
+            } else {
+              for (choice <- choices) {
+                val deeper = complete(rules, choice, limit-1)
+
+                if (deeper.isDefined) {
+                  return deeper
+                }
+              }
             }
           }
-        }
-      }
 
-      None
-  }
+          None
+      }
+    }
 
   // Returns a function x => f(f(f(x))) with n times f
-  def repeat[T](f: T => T, n: Int): T => T = n match {
-    case 0 => (e: T) => e
-    case _ => (e: T) => {
-      println(n);
-      repeat(f, n - 1)(f(e))
+  def repeat[T](f: T => T, n: Int): T => T = {
+    @tailrec def repeatAcc(acc: T, n: Int): T = n match {
+      case 0 => acc
+      case _ => println(n); repeatAcc(f(acc), n - 1)
     }
+
+    (t: T) => repeatAcc(t, n)
   }
 }

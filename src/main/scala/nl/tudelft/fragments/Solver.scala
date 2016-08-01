@@ -1,5 +1,7 @@
 package nl.tudelft.fragments
 
+import scala.annotation.tailrec
+
 object Solver {
   def rewrite(c: Constraint, state: State): List[State] = c match {
     case CTrue() =>
