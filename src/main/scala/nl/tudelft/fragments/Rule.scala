@@ -112,6 +112,11 @@ case class Rule(sort: Sort, typ: Option[Type], scopes: List[Scope], state: State
   def constraints: List[Constraint] =
     state.constraints
 
+  def recurseConstraints: List[CGenRecurse] =
+    state.constraints
+      .filter(_.isInstanceOf[CGenRecurse])
+      .asInstanceOf[List[CGenRecurse]]
+
   // Backwards compatibility
   def pattern: Pattern =
     state.pattern
