@@ -13,8 +13,8 @@ object Simple {
 
   private val ruleCons = Rule(
     TermAppl("Cons", List(
-      TermVar("e1", SortAppl("Exp"), TypeVar("t1"), List(ScopeVar("s"))),
-      TermVar("e2", SortAppl("List"), TypeVar("t2"), List(ScopeVar("s")))
+      Var("e1", SortAppl("Exp"), TypeVar("t1"), List(ScopeVar("s"))),
+      Var("e2", SortAppl("List"), TypeVar("t2"), List(ScopeVar("s")))
     )),
     SortAppl("List"),
     TypeVar("t"),

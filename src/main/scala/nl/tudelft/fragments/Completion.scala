@@ -7,25 +7,25 @@ import scala.collection.mutable
 
 object Completion {
   implicit val rules = List(
-    Rule(SortAppl("List", List(SortVar("a"))), None, List(ScopeAppl("s")), State(TermAppl("Cons", List(TermVar("x"), TermVar("xs"))),List(CGenRecurse(TermVar("xs"),List(ScopeAppl("s")),None,SortAppl("List", List(SortVar("a")))), CGenRecurse(TermVar("x"),List(ScopeAppl("s")),None,SortVar("a"))),List(),TypeEnv(),Resolution(),SubtypeRelation(List()),List())),
+    Rule(SortAppl("List", List(SortVar("a"))), None, List(ScopeAppl("s")), State(TermAppl("Cons", List(Var("x"), Var("xs"))),List(CGenRecurse(Var("xs"),List(ScopeAppl("s")),None,SortAppl("List", List(SortVar("a")))), CGenRecurse(Var("x"),List(ScopeAppl("s")),None,SortVar("a"))),List(),TypeEnv(),Resolution(),SubtypeRelation(List()),List())),
     Rule(SortAppl("List", List(SortVar("a"))), None, List(ScopeAppl("s")), State(TermAppl("Nil", List()),List(CTrue()),List(),TypeEnv(),Resolution(),SubtypeRelation(List()),List())),
-    Rule(SortAppl("Start", List()), None, List(ScopeAppl("s")), State(TermAppl("Program", List(TermVar("dd"), TermVar("e"))),List(CGenRecurse(TermVar("e"),List(ScopeAppl("s")),Some(TypeVar("t")),SortAppl("Exp", List())), CGenRecurse(TermVar("dd"),List(ScopeAppl("s")),None,SortAppl("List", List(SortAppl("Declaration", List()))))),List(),TypeEnv(),Resolution(),SubtypeRelation(List()),List())),
-    Rule(SortAppl("Exp", List()), Some(TypeAppl("TInt", List())), List(ScopeAppl("s11")), State(TermAppl("IntValue", List(TermVar("x10"))),List(CTrue()),List(),TypeEnv(),Resolution(),SubtypeRelation(List()),List())),
-    Rule(SortAppl("Lhs", List()), Some(TypeVar("t")), List(ScopeAppl("s")), State(TermAppl("Var", List(TermVar("x"))),List(CResolve(SymbolicName("Var", "x"),NameVar("d")), CTypeOf(NameVar("d"),TypeVar("t"))),List(CGRef(SymbolicName("Var", "x"),ScopeAppl("s"))),TypeEnv(),Resolution(),SubtypeRelation(List()),List())),
-    Rule(SortAppl("Exp", List()), Some(TypeAppl("TInt", List())), List(ScopeAppl("s")), State(TermAppl("Add", List(TermVar("e1"), TermVar("e2"))),List(CGenRecurse(TermVar("e2"),List(ScopeAppl("s")),Some(TypeAppl("TInt", List())),SortAppl("Exp", List())), CGenRecurse(TermVar("e1"),List(ScopeAppl("s")),Some(TypeAppl("TInt", List())),SortAppl("Exp", List()))),List(),TypeEnv(),Resolution(),SubtypeRelation(List()),List())),
-    Rule(SortAppl("Exp", List()), Some(TypeAppl("TFun", List(TypeVar("t1"), TypeVar("t2")))), List(ScopeAppl("s")), State(TermAppl("Fun", List(TermVar("x"), TermVar("t"), TermVar("e"))),List(CGenRecurse(TermVar("e"),List(ScopeAppl("s'")),Some(TypeVar("t2")),SortAppl("Exp", List())), CGenRecurse(TermVar("t"),List(ScopeAppl("s")),Some(TypeVar("t1")),SortAppl("Type", List())), CTypeOf(SymbolicName("Var", "x"),TypeVar("t1"))),List(CGDecl(ScopeAppl("s'"),SymbolicName("Var", "x")), CGDirectEdge(ScopeAppl("s'"),Label('P'),ScopeAppl("s"))),TypeEnv(),Resolution(),SubtypeRelation(List()),List())),
-    Rule(SortAppl("Exp", List()), Some(TypeVar("t2")), List(ScopeAppl("s")), State(TermAppl("App", List(TermVar("e1"), TermVar("e2"))),List(CGenRecurse(TermVar("e2"),List(ScopeAppl("s")),Some(TypeVar("t1'")),SortAppl("ResetExp", List())), CGenRecurse(TermVar("e1"),List(ScopeAppl("s")),Some(TypeAppl("TFun", List(TypeVar("t1"), TypeVar("t2")))),SortAppl("Exp", List())), CSubtype(TypeVar("t1'"),TypeVar("t1"))),List(),TypeEnv(),Resolution(),SubtypeRelation(List()),List())),
-    Rule(SortAppl("Exp", List()), Some(TypeAppl("TClass", List(TypeVar("d")))), List(ScopeAppl("s")), State(TermAppl("NewObject", List(TermVar("x"))),List(CResolve(SymbolicName("Class", "x"),NameVar("d"))),List(CGRef(SymbolicName("Class", "x"),ScopeAppl("s"))),TypeEnv(),Resolution(),SubtypeRelation(List()),List())),
-    Rule(SortAppl("Exp", List()), Some(TypeVar("ty2")), List(ScopeAppl("s")), State(TermAppl("Seq", List(TermVar("e1"), TermVar("e2"))),List(CGenRecurse(TermVar("e2"),List(ScopeAppl("s")),Some(TypeVar("ty2")),SortAppl("Exp", List())), CGenRecurse(TermVar("e1"),List(ScopeAppl("s")),Some(TypeVar("ty1")),SortAppl("Exp", List()))),List(),TypeEnv(),Resolution(),SubtypeRelation(List()),List())),
-    Rule(SortAppl("Declaration", List()), None, List(ScopeAppl("s")), State(TermAppl("Class", List(TermVar("x"), TermAppl("None", List()), TermVar("ff"))),List(CGenRecurse(TermVar("ff"),List(ScopeAppl("s'")),None,SortAppl("List", List(SortAppl("Field", List())))), CTypeOf(SymbolicName("Class", "x"),TypeAppl("TClassDef", List(TypeNameAdapter(SymbolicName("Class", "x")))))),List(CGDecl(ScopeAppl("s"),SymbolicName("Class", "x")), CGAssoc(SymbolicName("Class", "x"),ScopeAppl("s'")), CGDirectEdge(ScopeAppl("s'"),Label('P'),ScopeAppl("s"))),TypeEnv(),Resolution(),SubtypeRelation(List()),List())),
-    Rule(SortAppl("Field", List()), None, List(ScopeAppl("s")), State(TermAppl("Field", List(TermVar("x"), TermVar("t"), TermVar("e"))),List(CGenRecurse(TermVar("e"),List(ScopeAppl("s")),Some(TypeVar("ty'")),SortAppl("Exp", List())), CGenRecurse(TermVar("t"),List(ScopeAppl("s")),Some(TypeVar("ty")),SortAppl("Type", List())), CTypeOf(SymbolicName("Var", "x"),TypeVar("ty")), CSubtype(TypeVar("ty'"),TypeVar("ty"))),List(CGDecl(ScopeAppl("s"),SymbolicName("Var", "x"))),TypeEnv(),Resolution(),SubtypeRelation(List()),List())),
-    Rule(SortAppl("Field", List()), None, List(ScopeAppl("s")), State(TermAppl("FieldOverride", List(TermVar("x"), TermVar("e"))),List(CGenRecurse(TermVar("e"),List(ScopeAppl("s")),Some(TypeVar("ty'")),SortAppl("Exp", List())), CResolve(SymbolicName("Var", "x"),NameVar("d")), CTypeOf(NameVar("d"),TypeVar("ty")), CSubtype(TypeVar("ty'"),TypeVar("ty"))),List(CGRef(SymbolicName("Var", "x"),ScopeAppl("s"))),TypeEnv(),Resolution(),SubtypeRelation(List()),List())),
-    Rule(SortAppl("Exp", List()), Some(TypeVar("t")), List(ScopeAppl("s")), State(TermAppl("Assign", List(TermVar("lhs"), TermVar("e"))),List(CGenRecurse(TermVar("e"),List(ScopeAppl("s")),Some(TypeVar("t'")),SortAppl("Exp", List())), CGenRecurse(TermVar("lhs"),List(ScopeAppl("s")),Some(TypeVar("t")),SortAppl("Lhs", List())), CSubtype(TypeVar("t'"),TypeVar("t"))),List(),TypeEnv(),Resolution(),SubtypeRelation(List()),List())),
-    Rule(SortAppl("Lhs", List()), Some(TypeVar("ty")), List(ScopeAppl("s")), State(TermAppl("QVar", List(TermVar("e"), TermVar("x"))),List(CGenRecurse(TermVar("e"),List(ScopeAppl("s")),Some(TypeAppl("TClass", List(TypeVar("d_class")))),SortAppl("Exp", List())), CAssoc(NameVar("d_class"),ScopeVar("cs")), CResolve(SymbolicName("Var", "x"),NameVar("d")), CTypeOf(NameVar("d"),TypeVar("ty"))),List(CGDirectEdge(ScopeAppl("s'"),Label('I'),ScopeVar("cs")), CGRef(SymbolicName("Var", "x"),ScopeAppl("s'"))),TypeEnv(),Resolution(),SubtypeRelation(List()),List())),
-    Rule(SortAppl("Type", List()), Some(TypeAppl("TInt", List())), List(ScopeAppl("s")), State(TermAppl("IntType", List()),List(CTrue()),List(),TypeEnv(),Resolution(),SubtypeRelation(List()),List())),
-    Rule(SortAppl("Type", List()), Some(TypeAppl("TFun", List(TypeVar("t1'"), TypeVar("t2'")))), List(ScopeAppl("s")), State(TermAppl("FunType", List(TermVar("t1"), TermVar("t2"))),List(CGenRecurse(TermVar("t2"),List(ScopeAppl("s")),Some(TypeVar("t2'")),SortAppl("Type", List())), CGenRecurse(TermVar("t1"),List(ScopeAppl("s")),Some(TypeVar("t1'")),SortAppl("Type", List()))),List(),TypeEnv(),Resolution(),SubtypeRelation(List()),List())),
-    Rule(SortAppl("Type", List()), Some(TypeAppl("TClass", List(TypeVar("d")))), List(ScopeAppl("s")), State(TermAppl("ClassType", List(TermVar("x"))),List(CResolve(SymbolicName("Class", "x"),NameVar("d"))),List(CGRef(SymbolicName("Class", "x"),ScopeAppl("s"))),TypeEnv(),Resolution(),SubtypeRelation(List()),List())),
-    Rule(SortAppl("Type", List()), Some(TypeAppl("TClassDef", List(TypeVar("d")))), List(ScopeAppl("s")), State(TermAppl("ClassDefType", List(TermVar("x"))),List(CResolve(SymbolicName("Class", "x"),NameVar("d"))),List(CGRef(SymbolicName("Class", "x"),ScopeAppl("s"))),TypeEnv(),Resolution(),SubtypeRelation(List()),List()))
+    Rule(SortAppl("Start", List()), None, List(ScopeAppl("s")), State(TermAppl("Program", List(Var("dd"), Var("e"))),List(CGenRecurse(Var("e"),List(ScopeAppl("s")),Some(Var("t")),SortAppl("Exp", List())), CGenRecurse(Var("dd"),List(ScopeAppl("s")),None,SortAppl("List", List(SortAppl("Declaration", List()))))),List(),TypeEnv(),Resolution(),SubtypeRelation(List()),List())),
+    Rule(SortAppl("Exp", List()), Some(TermAppl("TInt", List())), List(ScopeAppl("s11")), State(TermAppl("IntValue", List(Var("x10"))),List(CTrue()),List(),TypeEnv(),Resolution(),SubtypeRelation(List()),List())),
+    Rule(SortAppl("Lhs", List()), Some(Var("t")), List(ScopeAppl("s")), State(TermAppl("Var", List(Var("x"))),List(CResolve(SymbolicName("Var", "x"),NameVar("d")), CTypeOf(NameVar("d"),Var("t"))),List(CGRef(SymbolicName("Var", "x"),ScopeAppl("s"))),TypeEnv(),Resolution(),SubtypeRelation(List()),List())),
+    Rule(SortAppl("Exp", List()), Some(TermAppl("TInt", List())), List(ScopeAppl("s")), State(TermAppl("Add", List(Var("e1"), Var("e2"))),List(CGenRecurse(Var("e2"),List(ScopeAppl("s")),Some(TermAppl("TInt", List())),SortAppl("Exp", List())), CGenRecurse(Var("e1"),List(ScopeAppl("s")),Some(TermAppl("TInt", List())),SortAppl("Exp", List()))),List(),TypeEnv(),Resolution(),SubtypeRelation(List()),List())),
+    Rule(SortAppl("Exp", List()), Some(TermAppl("TFun", List(Var("t1"), Var("t2")))), List(ScopeAppl("s")), State(TermAppl("Fun", List(Var("x"), Var("t"), Var("e"))),List(CGenRecurse(Var("e"),List(ScopeAppl("s'")),Some(Var("t2")),SortAppl("Exp", List())), CGenRecurse(Var("t"),List(ScopeAppl("s")),Some(Var("t1")),SortAppl("Type", List())), CTypeOf(SymbolicName("Var", "x"),Var("t1"))),List(CGDecl(ScopeAppl("s'"),SymbolicName("Var", "x")), CGDirectEdge(ScopeAppl("s'"),Label('P'),ScopeAppl("s"))),TypeEnv(),Resolution(),SubtypeRelation(List()),List())),
+    Rule(SortAppl("Exp", List()), Some(Var("t2")), List(ScopeAppl("s")), State(TermAppl("App", List(Var("e1"), Var("e2"))),List(CGenRecurse(Var("e2"),List(ScopeAppl("s")),Some(Var("t1'")),SortAppl("ResetExp", List())), CGenRecurse(Var("e1"),List(ScopeAppl("s")),Some(TermAppl("TFun", List(Var("t1"), Var("t2")))),SortAppl("Exp", List())), CSubtype(Var("t1'"),Var("t1"))),List(),TypeEnv(),Resolution(),SubtypeRelation(List()),List())),
+    Rule(SortAppl("Exp", List()), Some(TermAppl("TClass", List(Var("d")))), List(ScopeAppl("s")), State(TermAppl("NewObject", List(Var("x"))),List(CResolve(SymbolicName("Class", "x"),NameVar("d"))),List(CGRef(SymbolicName("Class", "x"),ScopeAppl("s"))),TypeEnv(),Resolution(),SubtypeRelation(List()),List())),
+    Rule(SortAppl("Exp", List()), Some(Var("ty2")), List(ScopeAppl("s")), State(TermAppl("Seq", List(Var("e1"), Var("e2"))),List(CGenRecurse(Var("e2"),List(ScopeAppl("s")),Some(Var("ty2")),SortAppl("Exp", List())), CGenRecurse(Var("e1"),List(ScopeAppl("s")),Some(Var("ty1")),SortAppl("Exp", List()))),List(),TypeEnv(),Resolution(),SubtypeRelation(List()),List())),
+    Rule(SortAppl("Declaration", List()), None, List(ScopeAppl("s")), State(TermAppl("Class", List(Var("x"), TermAppl("None", List()), Var("ff"))),List(CGenRecurse(Var("ff"),List(ScopeAppl("s'")),None,SortAppl("List", List(SortAppl("Field", List())))), CTypeOf(SymbolicName("Class", "x"),TermAppl("TClassDef", List(SymbolicName("Class", "x"))))),List(CGDecl(ScopeAppl("s"),SymbolicName("Class", "x")), CGAssoc(SymbolicName("Class", "x"),ScopeAppl("s'")), CGDirectEdge(ScopeAppl("s'"),Label('P'),ScopeAppl("s"))),TypeEnv(),Resolution(),SubtypeRelation(List()),List())),
+    Rule(SortAppl("Field", List()), None, List(ScopeAppl("s")), State(TermAppl("Field", List(Var("x"), Var("t"), Var("e"))),List(CGenRecurse(Var("e"),List(ScopeAppl("s")),Some(Var("ty'")),SortAppl("Exp", List())), CGenRecurse(Var("t"),List(ScopeAppl("s")),Some(Var("ty")),SortAppl("Type", List())), CTypeOf(SymbolicName("Var", "x"),Var("ty")), CSubtype(Var("ty'"),Var("ty"))),List(CGDecl(ScopeAppl("s"),SymbolicName("Var", "x"))),TypeEnv(),Resolution(),SubtypeRelation(List()),List())),
+    Rule(SortAppl("Field", List()), None, List(ScopeAppl("s")), State(TermAppl("FieldOverride", List(Var("x"), Var("e"))),List(CGenRecurse(Var("e"),List(ScopeAppl("s")),Some(Var("ty'")),SortAppl("Exp", List())), CResolve(SymbolicName("Var", "x"),NameVar("d")), CTypeOf(NameVar("d"),Var("ty")), CSubtype(Var("ty'"),Var("ty"))),List(CGRef(SymbolicName("Var", "x"),ScopeAppl("s"))),TypeEnv(),Resolution(),SubtypeRelation(List()),List())),
+    Rule(SortAppl("Exp", List()), Some(Var("t")), List(ScopeAppl("s")), State(TermAppl("Assign", List(Var("lhs"), Var("e"))),List(CGenRecurse(Var("e"),List(ScopeAppl("s")),Some(Var("t'")),SortAppl("Exp", List())), CGenRecurse(Var("lhs"),List(ScopeAppl("s")),Some(Var("t")),SortAppl("Lhs", List())), CSubtype(Var("t'"),Var("t"))),List(),TypeEnv(),Resolution(),SubtypeRelation(List()),List())),
+    Rule(SortAppl("Lhs", List()), Some(Var("ty")), List(ScopeAppl("s")), State(TermAppl("QVar", List(Var("e"), Var("x"))),List(CGenRecurse(Var("e"),List(ScopeAppl("s")),Some(TermAppl("TClass", List(Var("d_class")))),SortAppl("Exp", List())), CAssoc(NameVar("d_class"),ScopeVar("cs")), CResolve(SymbolicName("Var", "x"),NameVar("d")), CTypeOf(NameVar("d"),Var("ty"))),List(CGDirectEdge(ScopeAppl("s'"),Label('I'),ScopeVar("cs")), CGRef(SymbolicName("Var", "x"),ScopeAppl("s'"))),TypeEnv(),Resolution(),SubtypeRelation(List()),List())),
+    Rule(SortAppl("Type", List()), Some(TermAppl("TInt", List())), List(ScopeAppl("s")), State(TermAppl("IntType", List()),List(CTrue()),List(),TypeEnv(),Resolution(),SubtypeRelation(List()),List())),
+    Rule(SortAppl("Type", List()), Some(TermAppl("TFun", List(Var("t1'"), Var("t2'")))), List(ScopeAppl("s")), State(TermAppl("FunType", List(Var("t1"), Var("t2"))),List(CGenRecurse(Var("t2"),List(ScopeAppl("s")),Some(Var("t2'")),SortAppl("Type", List())), CGenRecurse(Var("t1"),List(ScopeAppl("s")),Some(Var("t1'")),SortAppl("Type", List()))),List(),TypeEnv(),Resolution(),SubtypeRelation(List()),List())),
+    Rule(SortAppl("Type", List()), Some(TermAppl("TClass", List(Var("d")))), List(ScopeAppl("s")), State(TermAppl("ClassType", List(Var("x"))),List(CResolve(SymbolicName("Class", "x"),NameVar("d"))),List(CGRef(SymbolicName("Class", "x"),ScopeAppl("s"))),TypeEnv(),Resolution(),SubtypeRelation(List()),List())),
+    Rule(SortAppl("Type", List()), Some(TermAppl("TClassDef", List(Var("d")))), List(ScopeAppl("s")), State(TermAppl("ClassDefType", List(Var("x"))),List(CResolve(SymbolicName("Class", "x"),NameVar("d"))),List(CGRef(SymbolicName("Class", "x"),ScopeAppl("s"))),TypeEnv(),Resolution(),SubtypeRelation(List()),List()))
   )
 
   implicit val signatures = Signatures.read(
@@ -40,18 +40,18 @@ object Completion {
       scopes = List(ScopeAppl("s1")),
       state = State(
         pattern = TermAppl("Program", List(
-          TermVar("x1"),
+          Var("x1"),
           TermAppl("QVar", List(
-            TermVar("x2"),
-            PatternNameAdapter(SymbolicName("Field", "n3"))
+            Var("x2"),
+            SymbolicName("Field", "n3")
           ))
         )),
         constraints = List(
           CGDirectEdge(ScopeAppl("s3"), Label('I'), ScopeVar("s4")),
           CGRef(SymbolicName("Var", "n3"), ScopeAppl("s3")),
           CResolve(SymbolicName("Var", "n3"), NameVar("d2")),
-          CGenRecurse(TermVar("x1"), List(ScopeAppl("s1")), None, SortAppl("List", List(SortAppl("Declaration")))),
-          CGenRecurse(TermVar("x2"), List(ScopeAppl("s1")), Some(TypeAppl("TClass", List(TypeNameAdapter(NameVar("d_class"))))), SortAppl("Exp"))
+          CGenRecurse(Var("x1"), List(ScopeAppl("s1")), None, SortAppl("List", List(SortAppl("Declaration")))),
+          CGenRecurse(Var("x2"), List(ScopeAppl("s1")), Some(TermAppl("TClass", List(NameVar("d_class")))), SortAppl("Exp"))
         )
       )
     )
@@ -104,7 +104,7 @@ object Completion {
   }
 
   // Compute the sort for the placeholder in the tree according to the signatures
-  def sort(tree: Pattern, plhdr: TermVar): List[Sort] = tree match {
+  def sort(tree: Pattern, plhdr: Var): List[Sort] = tree match {
     case termAppl@TermAppl(cons, children) =>
       val sig = signature(termAppl.cons)
 
@@ -121,7 +121,7 @@ object Completion {
       Nil
   }
 
-  def sort(tree: Pattern, ss: Sort, plhdr: TermVar): List[Sort] = tree match {
+  def sort(tree: Pattern, ss: Sort, plhdr: Var): List[Sort] = tree match {
     case termAppl@TermAppl(cons, children) =>
       val sig = signature(termAppl.cons)
 

@@ -18,7 +18,7 @@ case class Graph(/*wellFormedness: Regex, labels: List[Label], labelOrdering: La
     )
 
   // Get scope for reference
-  def scope(n: Name) = facts
+  def scope(n: Pattern) = facts
     .find {
       case CGRef(`n`, s) => true
       case _ => false
@@ -26,13 +26,13 @@ case class Graph(/*wellFormedness: Regex, labels: List[Label], labelOrdering: La
     .map(_.asInstanceOf[CGRef].s)
 
   // Get declarations for scope
-  def declarations(s: Scope): List[Name] = facts.flatMap {
+  def declarations(s: Scope): List[Pattern] = facts.flatMap {
     case CGDecl(`s`, n) => Some(n)
     case _ => None
   }
 
   // Get scope associated to name
-  def associated(n: Name) = facts
+  def associated(n: Pattern) = facts
     .find {
       case CGAssoc(`n`, s) => true
       case _ => false
@@ -40,13 +40,13 @@ case class Graph(/*wellFormedness: Regex, labels: List[Label], labelOrdering: La
     .map(_.asInstanceOf[CGAssoc].s)
 
   // Get named imports for scope s
-  def imports(s: Scope): List[(Label, Name)] = facts.flatMap {
+  def imports(s: Scope): List[(Label, Pattern)] = facts.flatMap {
     case CGNamedEdge(`s`, l, n) => Some((l, n))
     case _ => None
   }
 
   // Get l-labeled named imports for scope s
-  def imports(l: Label, s: Scope): List[Name] = facts.flatMap {
+  def imports(l: Label, s: Scope): List[Pattern] = facts.flatMap {
     case CGNamedEdge(`s`, `l`, n) => Some(n)
     case _ => None
   }
@@ -64,11 +64,11 @@ case class Graph(/*wellFormedness: Regex, labels: List[Label], labelOrdering: La
   }
 
   // Set of declarations to which the reference can resolve
-  def res(R: Resolution)(x: Name): List[(Name, List[NamingConstraint])] =
+  def res(R: Resolution)(x: Pattern): List[(Pattern, List[NamingConstraint])] =
     res(Nil, R)(x)
 
   // Set of declarations to which the reference can resolve
-  def res(I: SeenImport, R: Resolution)(x: Name): List[(Name, List[NamingConstraint])] =
+  def res(I: SeenImport, R: Resolution)(x: Pattern): List[(Pattern, List[NamingConstraint])] =
     if (R.contains(x)) {
       List((R(x), List.empty[NamingConstraint]))
     } else {
@@ -76,7 +76,7 @@ case class Graph(/*wellFormedness: Regex, labels: List[Label], labelOrdering: La
 
       D.declarations
         .filter { case (y, _) =>
-          x.namespace == y.namespace
+          x.isInstanceOf[Name] && y.isInstanceOf[Name] && x.asInstanceOf[Name].namespace == y.asInstanceOf[Name].namespace
         }
         .map { case (y, c) =>
           (y, Eq(x, y) :: c)
@@ -130,7 +130,7 @@ case class Graph(/*wellFormedness: Regex, labels: List[Label], labelOrdering: La
   // Scopes that are accessible through a nominal l-labeled edge
   def IS(l: Label, I: SeenImport, R: Resolution)(s: Scope): List[Scope] =
     (imports(l, s) diff I)
-      .flatMap(y => R.get(y))
+      .flatMap(R.get)
       .flatMap(associated(_))
 
   // Scopes that are accessible through a nominal edge
@@ -166,18 +166,9 @@ abstract class NamingConstraint extends Constraint {
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], NamingConstraint)
 }
 
-case class Diseq(n1: Name, n2: Name) extends NamingConstraint {
-  def substitute(on1: Name, on2: Name) =
-    Diseq(n1.substitute(on1, on2), n2.substitute(on1, on2))
-
-  override def substituteConcrete(binding: ConcreteBinding) =
-    Diseq(n1.substituteConcrete(binding), n2.substituteConcrete(binding))
-
-  override def substituteType(binding: TypeBinding): NamingConstraint =
-    this
-
-  override def substituteName(binding: NameBinding): NamingConstraint =
-    Diseq(n1.substituteName(binding), n2.substituteName(binding))
+case class Diseq(n1: Pattern, n2: Pattern) extends NamingConstraint {
+  override def substitute(binding: TermBinding): NamingConstraint =
+    Diseq(n1.substitute(binding), n2.substitute(binding))
 
   override def substituteScope(binding: ScopeBinding): NamingConstraint =
     this
@@ -193,18 +184,9 @@ case class Diseq(n1: Name, n2: Name) extends NamingConstraint {
     }
 }
 
-case class Eq(n1: Name, n2: Name) extends NamingConstraint {
-  def substitute(on1: Name, on2: Name) =
-    Eq(n1.substitute(on1, on2), n2.substitute(on1, on2))
-
-  def substituteConcrete(binding: ConcreteBinding) =
-    Eq(n1.substituteConcrete(binding), n2.substituteConcrete(binding))
-
-  override def substituteType(binding: TypeBinding): NamingConstraint =
-    this
-
-  override def substituteName(binding: NameBinding): NamingConstraint =
-    Eq(n1.substituteName(binding), n2.substituteName(binding))
+case class Eq(n1: Pattern, n2: Pattern) extends NamingConstraint {
+  override def substitute(binding: TermBinding): NamingConstraint =
+    Eq(n1.substitute(binding), n2.substitute(binding))
 
   override def substituteScope(binding: ScopeBinding): NamingConstraint =
     this

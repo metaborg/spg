@@ -1,7 +1,5 @@
 package nl.tudelft.fragments
 
-import scala.annotation.tailrec
-
 object Solver {
   def rewrite(c: Constraint, state: State): List[State] = c match {
     case CTrue() =>
@@ -14,20 +12,18 @@ object Solver {
       }
     case CEqual(t1, t2) =>
       t1.unify(t2).map {
-        case (typeBinding, nameBinding) =>
-          state
-            .substituteType(typeBinding)
-            .substituteName(nameBinding)
+        case (typeBinding) =>
+          state.substitute(typeBinding)
       }
-    case CResolve(n1, n2@NameVar(_)) if Graph(state.facts).res(state.resolution)(n1).nonEmpty =>
+    case CResolve(n1, n2@Var(_)) if Graph(state.facts).res(state.resolution)(n1).nonEmpty =>
       if (state.resolution.contains(n1)) {
-        state.substituteName(Map(n2 -> state.resolution(n1)))
+        state.substitute(Map(n2 -> state.resolution(n1)))
       } else {
         val choices = Graph(state.facts).res(state.resolution)(n1)
 
         choices.map { case (dec, cond) =>
           state
-            .substituteName(Map(n2 -> dec))
+            .substitute(Map(n2 -> dec))
             .copy(
               resolution = state.resolution + (n1 -> dec),
               nameConstraints = cond ++ state.nameConstraints
@@ -126,7 +122,7 @@ case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Co
   def merge(recurse: CGenRecurse, state: State): State = {
     State(
       pattern =
-        pattern.substituteTerm(Map(recurse.pattern.asInstanceOf[TermVar] -> state.pattern)),
+        pattern.substitute(Map(recurse.pattern.asInstanceOf[Var] -> state.pattern)),
       constraints =
         (constraints ++ state.constraints) - recurse,
       facts =
@@ -145,14 +141,11 @@ case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Co
   def addConstraint(constraint: Constraint): State =
     copy(constraints = constraint :: constraints)
 
+  def substitute(binding: TermBinding): State =
+    copy(pattern.substitute(binding), constraints.substitute(binding), facts.substitute(binding), typeEnv.substitute(binding), resolution.substitute(binding), subtypeRelation.substitute(binding))
+
   def substituteScope(binding: ScopeBinding): State =
     copy(pattern.substituteScope(binding), constraints.substituteScope(binding), facts.substituteScope(binding))
-
-  def substituteType(binding: TypeBinding): State =
-    copy(pattern.substituteType(binding), constraints.substituteType(binding), facts.substituteType(binding), typeEnv.substituteType(binding), subtypeRelation = subtypeRelation.substituteType(binding))
-
-  def substituteName(binding: NameBinding): State =
-    copy(pattern.substituteName(binding), constraints.substituteName(binding), facts.substituteName(binding), typeEnv.substituteName(binding), subtypeRelation = subtypeRelation.substituteName(binding))
 
   def substituteSort(binding: SortBinding): State =
     copy(constraints = constraints.substituteSort(binding), facts = facts.substituteSort(binding))
@@ -198,30 +191,23 @@ object State {
   *
   * @param bindings Bindings from names to types
   */
-case class TypeEnv(bindings: Map[Name, Type] = Map.empty) {
-  def contains(n: Name): Boolean =
+case class TypeEnv(bindings: Map[Pattern, Pattern] = Map.empty) {
+  def contains(n: Pattern): Boolean =
     bindings.contains(n)
 
-  def apply(n: Name) =
+  def apply(n: Pattern) =
     bindings(n)
 
-  def +(e: (Name, Type)) =
+  def +(e: (Pattern, Pattern)) =
     TypeEnv(bindings + e)
 
   def ++(typeEnv: TypeEnv) =
     TypeEnv(bindings ++ typeEnv.bindings)
 
-  def substituteType(typeBinding: TypeBinding): TypeEnv =
+  def substitute(termBinding: TermBinding): TypeEnv =
     TypeEnv(
       bindings.map { case (name, typ) =>
-        name -> typ.substituteType(typeBinding)
-      }
-    )
-
-  def substituteName(nameBinding: NameBinding): TypeEnv =
-    TypeEnv(
-      bindings.map { case (name, typ) =>
-        name -> typ.substituteName(nameBinding)
+        name -> typ.substitute(termBinding)
       }
     )
 
@@ -243,21 +229,28 @@ case class TypeEnv(bindings: Map[Name, Type] = Map.empty) {
     "TypeEnv(List(" + bindings.map { case (name, typ) => s"""Binding($name, $typ)""" }.mkString(", ") + "))"
 }
 
-case class Resolution(bindings: Map[Name, Name] = Map.empty) {
-  def contains(n: Name): Boolean =
+case class Resolution(bindings: Map[Pattern, Pattern] = Map.empty) {
+  def contains(n: Pattern): Boolean =
     bindings.contains(n)
 
-  def apply(n: Name) =
+  def apply(n: Pattern) =
     bindings(n)
 
-  def get(n: Name) =
+  def get(n: Pattern) =
     bindings.get(n)
 
-  def +(e: (Name, Name)) =
+  def +(e: (Pattern, Pattern)) =
     Resolution(bindings + e)
 
   def ++(resolution: Resolution) =
     Resolution(bindings ++ resolution.bindings)
+
+  def substitute(binding: TermBinding): Resolution =
+    Resolution(
+      bindings.map { case (t1, t2) =>
+        t1.substitute(binding) -> t2.substitute(binding)
+      }
+    )
 
   def freshen(nameBinding: Map[String, String]): (Map[String, String], Resolution) = {
     val freshBindings = bindings.toList.mapFoldLeft(nameBinding) { case (nameBinding, (n1, n2)) =>
@@ -277,49 +270,42 @@ case class Resolution(bindings: Map[Name, Name] = Map.empty) {
     "Resolution(List(" + bindings.map { case (n1, n2) => s"""Binding($n1, $n2)""" }.mkString(", ") + "))"
 }
 
-case class SubtypeRelation(bindings: List[(Type, Type)] = Nil) {
-  def contains(n: Type): Boolean =
+case class SubtypeRelation(bindings: List[(Pattern, Pattern)] = Nil) {
+  def contains(n: Pattern): Boolean =
     bindings.exists(_._1 == n)
 
-  def domain: List[Type] =
+  def domain: List[Pattern] =
     bindings.map(_._1)
 
   def ++(subtypeRelation: SubtypeRelation) =
     SubtypeRelation(bindings ++ subtypeRelation.bindings)
 
-  def ++(otherBindings: List[(Type, Type)]) =
+  def ++(otherBindings: List[(Pattern, Pattern)]) =
     SubtypeRelation(bindings ++ otherBindings)
 
-  def +(pair: (Type, Type)) =
+  def +(pair: (Pattern, Pattern)) =
     SubtypeRelation(pair :: bindings)
 
   // Returns all t2 such that t1 <= t2
-  def supertypeOf(t1: Type): List[Type] =
+  def supertypeOf(t1: Pattern): List[Pattern] =
     t1 :: bindings.filter(_._1 == t1).map(_._2)
 
   // Returns all t1 such that t1 <= t2
-  def subtypeOf(t2: Type): List[Type] =
+  def subtypeOf(t2: Pattern): List[Pattern] =
     t2 :: bindings.filter(_._2 == t2).map(_._1)
 
   // Get all t2 such that t1 <: t2
-  def get(ty: Type): List[Type] =
+  def get(ty: Pattern): List[Pattern] =
     bindings.filter(_._1 == ty).map(_._2)
 
   // Checks whether t1 <= t2
-  def isSubtype(ty1: Type, ty2: Type): Boolean =
+  def isSubtype(ty1: Pattern, ty2: Pattern): Boolean =
     ty1 == ty2 || get(ty1).contains(ty2)
 
-  def substituteType(typeBinding: TypeBinding): SubtypeRelation =
+  def substitute(termBinding: TermBinding): SubtypeRelation =
     SubtypeRelation(
       bindings.map { case (t1, t2) =>
-        t1.substituteType(typeBinding) -> t2.substituteType(typeBinding)
-      }
-    )
-
-  def substituteName(nameBinding: NameBinding): SubtypeRelation =
-    SubtypeRelation(
-      bindings.map { case (t1, t2) =>
-        t1.substituteName(nameBinding) -> t2.substituteName(nameBinding)
+        t1.substitute(termBinding) -> t2.substitute(termBinding)
       }
     )
 

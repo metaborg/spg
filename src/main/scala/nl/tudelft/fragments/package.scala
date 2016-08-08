@@ -3,13 +3,10 @@ package nl.tudelft
 import scala.util.Random
 
 package object fragments {
-  type TermBinding = Map[TermVar, Pattern]
-  type TypeBinding = Map[TypeVar, Type]
+  type TermBinding = Map[Var, Pattern]
   type ScopeBinding = Map[Scope, Scope]
-  type NameBinding = Map[NameVar, Name]
   type SortBinding = Map[SortVar, Sort]
-  type ConcreteBinding = Map[SymbolicName, ConcreteName]
-  type SeenImport = List[Name]
+  type SeenImport = List[Pattern]
   type SeenScope = List[Scope]
 
   // An instance of the NameProvider made globally available
@@ -98,19 +95,12 @@ package object fragments {
       this.mapFoldLeft(nameBinding) { case (nameBinding, pattern) =>
         pattern.freshen(nameBinding)
       }
-  }
 
-  implicit class RichTypeList[T <: Type](list: List[T]) extends RichList[T](list) {
-    def freshen(nameBinding: Map[String, String]): (Map[String, String], List[Type]) =
-      this.mapFoldLeft(nameBinding) { case (nameBinding, typ) =>
-        typ.freshen(nameBinding)
-      }
-
-    def unify(types: List[Type]): Option[(TypeBinding, NameBinding)] =
+    def unify(types: List[Pattern]): Option[TermBinding] =
       if (list.length == types.length) {
-        list.zip(types).foldLeftWhile(Map.empty[TypeVar, Type], Map.empty[NameVar, Name]) {
-          case ((typeBinding, nameBinding), (t1, t2)) =>
-            t1.unify(t2, typeBinding, nameBinding)
+        list.zip(types).foldLeftWhile(Map.empty[Var, Pattern]) {
+          case (termBinding, (t1, t2)) =>
+            t1.unify(t2, termBinding)
         }
       } else {
         None
@@ -123,20 +113,14 @@ package object fragments {
         constraint.freshen(nameBinding)
       }
 
+    def substitute(binding: TermBinding): List[Constraint] =
+      list.map(_.substitute(binding))
+
     def substituteSort(binding: SortBinding): List[Constraint] =
       list.map(_.substituteSort(binding))
 
-    def substituteType(binding: TypeBinding): List[Constraint] =
-      list.map(_.substituteType(binding))
-
     def substituteScope(binding: ScopeBinding): List[Constraint] =
       list.map(_.substituteScope(binding))
-
-    def substituteName(binding: NameBinding): List[Constraint] =
-      list.map(_.substituteName(binding))
-
-    def substituteConcrete(binding: ConcreteBinding): List[Constraint] =
-      list.map(_.substituteConcrete(binding))
   }
 
   implicit class RichNamingConstraintList[T <: NamingConstraint](list: List[T]) extends RichList[T](list) {
@@ -146,15 +130,15 @@ package object fragments {
       }
   }
 
-  implicit class RichEqList[T <: Eq](list: List[T]) extends RichList[T](list) {
-    def substituteConcrete(binding: ConcreteBinding): List[Eq] =
-      list.map(_.substituteConcrete(binding))
-  }
-
-  implicit class RichDiseqList[T <: Diseq](list: List[T]) extends RichList[T](list) {
-    def substituteConcrete(binding: ConcreteBinding): List[Diseq] =
-      list.map(_.substituteConcrete(binding))
-  }
+//  implicit class RichEqList[T <: Eq](list: List[T]) extends RichList[T](list) {
+//    def substituteConcrete(binding: ConcreteBinding): List[Eq] =
+//      list.map(_.substituteConcrete(binding))
+//  }
+//
+//  implicit class RichDiseqList[T <: Diseq](list: List[T]) extends RichList[T](list) {
+//    def substituteConcrete(binding: ConcreteBinding): List[Diseq] =
+//      list.map(_.substituteConcrete(binding))
+//  }
 
   // CPS for Tuple2
   implicit class RichTuple2[T1, T2](tuple2: Tuple2[T1, T2]) {

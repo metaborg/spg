@@ -3,8 +3,8 @@ package nl.tudelft.fragments
 object Consistency {
   // Check for consistency
   def check(rule: Rule): Boolean = {
-    val result = checkTypeEquals(rule.state.constraints).map { case (typeBinding, nameBinding) =>
-      checkTypeOf(rule.state.constraints, typeBinding, nameBinding)
+    val result = checkTypeEquals(rule.state.constraints).map { case (termBinding) =>
+      checkTypeOf(rule.state.constraints, termBinding)
     }
 
     result.isDefined && result.get && checkSubtyping(rule.state) && checkResolve(rule)
@@ -101,7 +101,7 @@ object Consistency {
   }
 
   // Check if the TypeEquals unify
-  def checkTypeEquals(C: List[Constraint]): Option[(TypeBinding, NameBinding)] = {
+  def checkTypeEquals(C: List[Constraint]): Option[TermBinding] = {
     val typeEquals = C.flatMap {
       case c: CEqual =>
         Some(c)
@@ -109,14 +109,14 @@ object Consistency {
         None
     }
 
-    typeEquals.foldLeftWhile((Map.empty[TypeVar, Type], Map.empty[NameVar, Name])) {
-      case ((typeBinding, nameBinding), CEqual(t1, t2)) =>
-        t1.unify(t2, typeBinding, nameBinding)
+    typeEquals.foldLeftWhile(Map.empty[Var, Pattern]) {
+      case (termBinding, CEqual(t1, t2)) =>
+        t1.unify(t2, termBinding)
     }
   }
 
   // Check if the TypeOf for same name unify
-  def checkTypeOf(C: List[Constraint], typeBinding: TypeBinding = Map.empty, nameBinding: NameBinding = Map.empty): Boolean = {
+  def checkTypeOf(C: List[Constraint], termBinding: TermBinding = Map.empty): Boolean = {
     val typeOf = C.flatMap {
       case c: CTypeOf =>
         Some(c)
@@ -127,9 +127,9 @@ object Consistency {
     val uniqueTypeOf = typeOf.distinct
 
     uniqueTypeOf.groupBy(_.n).values.forall(typeOfs =>
-      typeOfs.map(_.t).pairs.foldLeftWhile((typeBinding, nameBinding)) {
-        case ((typeBinding, nameBinding), (t1, t2)) =>
-          t1.unify(t2, typeBinding, nameBinding)
+      typeOfs.map(_.t).pairs.foldLeftWhile(termBinding) {
+        case (termBinding, (t1, t2)) =>
+          t1.unify(t2, termBinding)
       }.isDefined
     )
   }
@@ -156,8 +156,8 @@ object Consistency {
 
   // Eliminate naming equalities by substituting
   def solveNaming(eqs: List[Eq], disEqs: List[Diseq]): (List[Eq], List[Diseq]) = eqs match {
-    case Eq(n1, n2) :: xs =>
-      solveNaming(xs.map(_.substitute(n1, n2)), disEqs.map(_.substitute(n1, n2)))
+    //case Eq(n1, n2) :: xs =>
+    //  solveNaming(xs.map(_.substitute(Map(n1 -> n2))), disEqs.map(_.substitute(Map(n1 -> n2))))
     case Nil =>
       (Nil, disEqs)
   }

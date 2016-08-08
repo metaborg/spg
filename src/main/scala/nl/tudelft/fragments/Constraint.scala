@@ -2,13 +2,9 @@ package nl.tudelft.fragments
 
 // Constraint
 abstract class Constraint {
-  def substituteType(binding: TypeBinding): Constraint
+  def substitute(binding: TermBinding): Constraint
 
   def substituteScope(binding: ScopeBinding): Constraint
-
-  def substituteName(binding: NameBinding): Constraint
-
-  def substituteConcrete(binding: ConcreteBinding): Constraint
 
   def substituteSort(binding: SortBinding): Constraint
 
@@ -19,16 +15,10 @@ abstract class Constraint {
 
 // Facts
 case class CTrue() extends Constraint {
-  override def substituteType(binding: TypeBinding): Constraint =
-    this
-
-  override def substituteName(binding: NameBinding): Constraint =
+  override def substitute(binding: TermBinding): Constraint =
     this
 
   override def substituteScope(binding: ScopeBinding): Constraint =
-    this
-
-  override def substituteConcrete(binding: ConcreteBinding): Constraint =
     this
 
   override def substituteSort(binding: SortBinding): Constraint =
@@ -42,17 +32,11 @@ case class CTrue() extends Constraint {
 }
 
 case class CGDirectEdge(s1: Scope, l: Label, s2: Scope) extends Constraint {
-  override def substituteType(binding: TypeBinding): Constraint =
+  override def substitute(binding: TermBinding): Constraint =
     this
 
   override def substituteScope(binding: ScopeBinding): Constraint =
     CGDirectEdge(s1.substituteScope(binding), l, s2.substituteScope(binding))
-
-  override def substituteName(binding: NameBinding): Constraint =
-    this
-
-  override def substituteConcrete(binding: ConcreteBinding): Constraint =
-    this
 
   override def substituteSort(binding: SortBinding): Constraint =
     this
@@ -65,18 +49,12 @@ case class CGDirectEdge(s1: Scope, l: Label, s2: Scope) extends Constraint {
     }
 }
 
-case class CGDecl(s: Scope, n: Name) extends Constraint {
-  override def substituteType(binding: TypeBinding): Constraint =
-    this
+case class CGDecl(s: Scope, n: Pattern) extends Constraint {
+  override def substitute(binding: TermBinding): Constraint =
+    CGDecl(s, n.substitute(binding))
 
   override def substituteScope(binding: ScopeBinding): Constraint =
     CGDecl(s.substituteScope(binding), n)
-
-  override def substituteName(binding: NameBinding): Constraint =
-    CGDecl(s, n.substituteName(binding))
-
-  override def substituteConcrete(binding: ConcreteBinding): Constraint =
-    CGDecl(s, n.substituteConcrete(binding))
 
   override def substituteSort(binding: SortBinding): Constraint =
     this
@@ -89,18 +67,12 @@ case class CGDecl(s: Scope, n: Name) extends Constraint {
     }
 }
 
-case class CGRef(n: Name, s: Scope) extends Constraint {
-  override def substituteType(binding: TypeBinding): Constraint =
-    this
+case class CGRef(n: Pattern, s: Scope) extends Constraint {
+  override def substitute(binding: TermBinding): Constraint =
+    CGRef(n.substitute(binding), s)
 
   override def substituteScope(binding: ScopeBinding): Constraint =
     CGRef(n, s.substituteScope(binding))
-
-  override def substituteName(binding: NameBinding): Constraint =
-    CGRef(n.substituteName(binding), s)
-
-  override def substituteConcrete(binding: ConcreteBinding): Constraint =
-    CGRef(n.substituteConcrete(binding), s)
 
   override def substituteSort(binding: SortBinding): Constraint =
     this
@@ -113,18 +85,12 @@ case class CGRef(n: Name, s: Scope) extends Constraint {
     }
 }
 
-case class CGNamedEdge(s: Scope, l: Label, n: Name) extends Constraint {
-  override def substituteType(binding: TypeBinding): Constraint =
-    this
-
-  override def substituteName(binding: NameBinding): Constraint =
-    CGNamedEdge(s, l, n.substituteName(binding))
+case class CGNamedEdge(s: Scope, l: Label, n: Pattern) extends Constraint {
+  override def substitute(binding: TermBinding): Constraint =
+    CGNamedEdge(s, l, n.substitute(binding))
 
   override def substituteScope(binding: ScopeBinding): Constraint =
     CGNamedEdge(s.substituteScope(binding), l, n)
-
-  override def substituteConcrete(binding: ConcreteBinding): Constraint =
-    CGNamedEdge(s, l, n.substituteConcrete(binding))
 
   override def substituteSort(binding: SortBinding): Constraint =
     this
@@ -137,18 +103,12 @@ case class CGNamedEdge(s: Scope, l: Label, n: Name) extends Constraint {
     }
 }
 
-case class CGAssoc(n: Name, s: Scope) extends Constraint {
-  override def substituteType(binding: TypeBinding): Constraint =
-    this
+case class CGAssoc(n: Pattern, s: Scope) extends Constraint {
+  override def substitute(binding: TermBinding): Constraint =
+    CGAssoc(n.substitute(binding), s)
 
   override def substituteScope(binding: ScopeBinding): Constraint =
     CGAssoc(n, s.substituteScope(binding))
-
-  override def substituteName(binding: NameBinding): Constraint =
-    CGAssoc(n.substituteName(binding), s)
-
-  override def substituteConcrete(binding: ConcreteBinding): Constraint =
-    CGAssoc(n.substituteConcrete(binding), s)
 
   override def substituteSort(binding: SortBinding): Constraint =
     this
@@ -161,18 +121,12 @@ case class CGAssoc(n: Name, s: Scope) extends Constraint {
     }
 }
 
-case class CAssoc(n: Name, s: Scope) extends Constraint {
-  override def substituteType(binding: TypeBinding): Constraint =
-    this
+case class CAssoc(n: Pattern, s: Scope) extends Constraint {
+  override def substitute(binding: TermBinding): Constraint =
+    CAssoc(n.substitute(binding), s)
 
   override def substituteScope(binding: ScopeBinding): Constraint =
     CAssoc(n, s.substituteScope(binding))
-
-  override def substituteName(binding: NameBinding): Constraint =
-    CAssoc(n.substituteName(binding), s)
-
-  override def substituteConcrete(binding: ConcreteBinding): Constraint =
-    CAssoc(n.substituteConcrete(binding), s)
 
   override def substituteSort(binding: SortBinding): Constraint =
     this
@@ -188,21 +142,12 @@ case class CAssoc(n: Name, s: Scope) extends Constraint {
     true
 }
 
-case class CResolve(n1: Name, n2: Name) extends Constraint {
-  def substitute(nameBinding: Map[String, String]) =
-    CResolve(n1.substitute(nameBinding), n2.substitute(nameBinding))
-
-  override def substituteType(binding: TypeBinding): Constraint =
-    this
+case class CResolve(n1: Pattern, n2: Pattern) extends Constraint {
+  override def substitute(binding: TermBinding): Constraint =
+    CResolve(n1.substitute(binding), n2.substitute(binding))
 
   override def substituteScope(binding: ScopeBinding): Constraint =
     CResolve(n1, n2)
-
-  override def substituteName(binding: NameBinding): Constraint =
-    CResolve(n1.substituteName(binding), n2.substituteName(binding))
-
-  override def substituteConcrete(binding: ConcreteBinding): Constraint =
-    CResolve(n1.substituteConcrete(binding), n2.substituteConcrete(binding))
 
   override def substituteSort(binding: SortBinding): Constraint =
     this
@@ -218,18 +163,12 @@ case class CResolve(n1: Name, n2: Name) extends Constraint {
     true
 }
 
-case class CTypeOf(n: Name, t: Type) extends Constraint {
-  override def substituteType(binding: TypeBinding): Constraint =
-    CTypeOf(n, t.substituteType(binding))
+case class CTypeOf(n: Pattern, t: Pattern) extends Constraint {
+  override def substitute(binding: TermBinding): Constraint =
+    CTypeOf(n.substitute(binding), t.substitute(binding))
 
   override def substituteScope(binding: ScopeBinding): Constraint =
     this
-
-  override def substituteName(binding: NameBinding): Constraint =
-    CTypeOf(n.substituteName(binding), t.substituteName(binding))
-
-  override def substituteConcrete(binding: ConcreteBinding): Constraint =
-    CTypeOf(n.substituteConcrete(binding), t)
 
   override def substituteSort(binding: SortBinding): Constraint =
     this
@@ -245,18 +184,12 @@ case class CTypeOf(n: Name, t: Type) extends Constraint {
     true
 }
 
-case class CEqual(t1: Type, t2: Type) extends Constraint {
-  override def substituteType(binding: TypeBinding): Constraint =
-    CEqual(t1.substituteType(binding), t2.substituteType(binding))
+case class CEqual(t1: Pattern, t2: Pattern) extends Constraint {
+  override def substitute(binding: TermBinding): Constraint =
+    CEqual(t1.substitute(binding), t2.substitute(binding))
 
   override def substituteScope(binding: ScopeBinding): Constraint =
     this
-
-  override def substituteName(binding: NameBinding): Constraint =
-    CEqual(t1.substituteName(binding), t2.substituteName(binding))
-
-  override def substituteConcrete(binding: ConcreteBinding): Constraint =
-    CEqual(t1.substituteConcrete(binding), t2.substituteConcrete(binding))
 
   override def substituteSort(binding: SortBinding): Constraint =
     this
@@ -272,18 +205,12 @@ case class CEqual(t1: Type, t2: Type) extends Constraint {
     true
 }
 
-case class FSubtype(t1: Type, t2: Type) extends Constraint {
-  override def substituteType(binding: TypeBinding): Constraint =
-    FSubtype(t1.substituteType(binding), t2.substituteType(binding))
+case class FSubtype(t1: Pattern, t2: Pattern) extends Constraint {
+  override def substitute(binding: TermBinding): Constraint =
+    FSubtype(t1.substitute(binding), t2.substitute(binding))
 
   override def substituteScope(binding: ScopeBinding): Constraint =
     this
-
-  override def substituteName(binding: NameBinding): Constraint =
-    FSubtype(t1.substituteName(binding), t2.substituteName(binding))
-
-  override def substituteConcrete(binding: ConcreteBinding): Constraint =
-    FSubtype(t1.substituteConcrete(binding), t2.substituteConcrete(binding))
 
   override def substituteSort(binding: SortBinding): Constraint =
     this
@@ -299,18 +226,12 @@ case class FSubtype(t1: Type, t2: Type) extends Constraint {
     true
 }
 
-case class CSubtype(t1: Type, t2: Type) extends Constraint {
-  override def substituteType(binding: TypeBinding): Constraint =
-    CSubtype(t1.substituteType(binding), t2.substituteType(binding))
+case class CSubtype(t1: Pattern, t2: Pattern) extends Constraint {
+  override def substitute(binding: TermBinding): Constraint =
+    CSubtype(t1.substitute(binding), t2.substitute(binding))
 
   override def substituteScope(binding: ScopeBinding): Constraint =
     this
-
-  override def substituteName(binding: NameBinding): Constraint =
-    CSubtype(t1.substituteName(binding), t2.substituteName(binding))
-
-  override def substituteConcrete(binding: ConcreteBinding): Constraint =
-    CSubtype(t1.substituteConcrete(binding), t2.substituteConcrete(binding))
 
   override def substituteSort(binding: SortBinding): Constraint =
     this
@@ -326,15 +247,9 @@ case class CSubtype(t1: Type, t2: Type) extends Constraint {
     true
 }
 
-case class CGenRecurse(pattern: Pattern, scopes: List[Scope], typ: Option[Type], sort: Sort) extends Constraint {
-  override def substituteType(binding: TypeBinding): Constraint =
-    CGenRecurse(pattern.substituteType(binding), scopes, typ.map(_.substituteType(binding)), sort)
-
-  override def substituteName(binding: NameBinding): Constraint =
-    CGenRecurse(pattern.substituteName(binding), scopes, typ.map(_.substituteName(binding)), sort)
-
-  override def substituteConcrete(binding: ConcreteBinding): Constraint =
-    CGenRecurse(pattern.substituteConcrete(binding), scopes, typ.map(_.substituteConcrete(binding)), sort)
+case class CGenRecurse(pattern: Pattern, scopes: List[Scope], typ: Option[Pattern], sort: Sort) extends Constraint {
+  override def substitute(binding: TermBinding): Constraint =
+    CGenRecurse(pattern.substitute(binding), scopes, typ.map(_.substitute(binding)), sort)
 
   override def substituteScope(binding: ScopeBinding): Constraint =
     CGenRecurse(pattern.substituteScope(binding), scopes.substituteScope(binding), typ, sort)

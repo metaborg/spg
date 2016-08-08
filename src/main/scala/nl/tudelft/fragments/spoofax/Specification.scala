@@ -2,7 +2,7 @@ package nl.tudelft.fragments.spoofax
 
 import nl.tudelft.fragments
 import nl.tudelft.fragments.spoofax.Signatures._
-import nl.tudelft.fragments.{CAssoc, CEqual, CGAssoc, CGDecl, CGDirectEdge, CGNamedEdge, CGRef, CGenRecurse, CResolve, CSubtype, CTrue, CTypeOf, Constraint, FSubtype, Label, Main, Name, NameProvider, NameVar, Pattern, Rule, Scope, ScopeAppl, ScopeVar, State, SymbolicName, TermAppl, TermVar, Type, TypeAppl, TypeNameAdapter, TypeVar}
+import nl.tudelft.fragments.{CAssoc, CEqual, CGAssoc, CGDecl, CGDirectEdge, CGNamedEdge, CGRef, CGenRecurse, CResolve, CSubtype, CTrue, CTypeOf, Constraint, FSubtype, Label, Main, NameProvider, Pattern, Rule, Scope, ScopeAppl, ScopeVar, State, SymbolicName, TermAppl, Var}
 import org.apache.commons.io.IOUtils
 import org.spoofax.interpreter.terms.{IStrategoAppl, IStrategoList, IStrategoString, IStrategoTerm}
 import org.spoofax.terms.{StrategoAppl, StrategoList}
@@ -145,9 +145,9 @@ object Specification {
     case appl: StrategoAppl if appl.getConstructor.getName == "Op" =>
       TermAppl(toString(appl.getSubterm(0)), toPatternsList(appl.getSubterm(1)))
     case appl: StrategoAppl if appl.getConstructor.getName == "Var" =>
-      TermVar(toString(appl.getSubterm(0)))
+      Var(toString(appl.getSubterm(0)))
     case appl: StrategoAppl if appl.getConstructor.getName == "Wld" =>
-      TermVar("x" + nameProvider.next)
+      Var("x" + nameProvider.next)
   }
 
   def toPatternsList(term: IStrategoTerm): List[Pattern] = term match {
@@ -157,21 +157,21 @@ object Specification {
       toPattern(list.head()) :: toPatternsList(list.tail())
   }
 
-  def toTypeOption(term: IStrategoTerm): Option[Type] = term match {
+  def toTypeOption(term: IStrategoTerm): Option[Pattern] = term match {
     case appl: StrategoAppl if appl.getConstructor.getName == "NoType" =>
       None
     case typ =>
       Some(toType(typ))
   }
 
-  // Turn a Stratego type into a Type
-  def toType(term: IStrategoTerm): Type = term match {
+  // Turn a Stratego type into a Type (represented as Pattern)
+  def toType(term: IStrategoTerm): Pattern = term match {
     case appl: StrategoAppl if appl.getConstructor.getName == "Var" =>
-      TypeVar(toString(appl.getSubterm(0)))
+      Var(toString(appl.getSubterm(0)))
     case appl: StrategoAppl if appl.getConstructor.getName == "Op" =>
-      TypeAppl(toString(appl.getSubterm(0)), appl.getSubterm(1).getAllSubterms.map(toType).toList)
+      TermAppl(toString(appl.getSubterm(0)), appl.getSubterm(1).getAllSubterms.map(toType).toList)
     case appl: StrategoAppl if appl.getConstructor.getName == "Occurrence" =>
-      TypeNameAdapter(toName(appl))
+      toName(appl)
   }
 
   // Turn a Stratego scope into a ScopeAppl
@@ -215,9 +215,9 @@ object Specification {
   }
 
   // Turn a Stratego name into a Name
-  def toName(term: IStrategoTerm): Name = term match {
+  def toName(term: IStrategoTerm): Pattern = term match {
     case appl: StrategoAppl if appl.getConstructor.getName == "Var" =>
-      NameVar(toString(appl.getSubterm(0)))
+      Var(toString(appl.getSubterm(0)))
     case appl: StrategoAppl if appl.getConstructor.getName == "Occurrence" =>
       SymbolicName(toNamespace(appl.getSubterm(0)), toString(appl.getSubterm(1).getSubterm(0)))
   }

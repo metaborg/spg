@@ -4,7 +4,7 @@ import org.scalatest.FunSuite
 
 class BuilderSuite extends FunSuite {
   test("resolve a reference") {
-    val rule = Rule(TermVar("x", SortAppl("x"), TypeVar("x"), Nil), SortAppl("x"), TypeVar("x"), Nil, State(List(
+    val rule = Rule(Var("x", SortAppl("x"), TypeVar("x"), Nil), SortAppl("x"), TypeVar("x"), Nil, State(List(
       CGDecl(ScopeVar("s"), SymbolicName("Class", "n2")),
       CGRef(SymbolicName("Class", "n1"), ScopeVar("s")),
       CResolve(SymbolicName("Class", "n1"), NameVar("n3"))
@@ -13,7 +13,7 @@ class BuilderSuite extends FunSuite {
     val res = CResolve(SymbolicName("Class", "n1"), NameVar("n3"))
 
     assert(Builder.resolve(rule, res, SymbolicName("Class", "n2")) == Rule(
-      TermVar("x", SortAppl("x", List()), TypeVar("x"), List()),
+      Var("x", SortAppl("x", List()), TypeVar("x"), List()),
       SortAppl("x", List()),
       TypeVar("x"),
       List(),
