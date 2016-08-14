@@ -10,12 +10,12 @@ class CompletionSuite extends FunSuite {
       scopes = List(ScopeAppl("s1")),
       state = State(
         pattern = TermAppl("Program", List(
-          TermAppl("Cons", List(Var("x1"), TermAppl("Nil"))),
-          TermAppl("NewObject", List(Var("x2")))
+          TermAppl("Cons", List(TermVar("x1"), TermAppl("Nil"))),
+          TermAppl("NewObject", List(TermVar("x2")))
         )),
         constraints = List(
           CGRef(SymbolicName("Class", "x2"), ScopeAppl("s1")),
-          CGenRecurse(Var("x1"), List(ScopeAppl("s1")), None, SortAppl("Declaration", List()))
+          CGenRecurse(TermVar("x1"), List(ScopeAppl("s1")), None, SortAppl("Declaration", List()))
         )
       )
     )
@@ -37,7 +37,7 @@ class CompletionSuite extends FunSuite {
               PatternNameAdapter(SymbolicName("Class", "n1")),
               TermAppl("None"),
               TermAppl("Cons", List(
-                Var("x1"),
+                TermVar("x1"),
                 TermAppl("None")
               ))
             )),
@@ -62,7 +62,7 @@ class CompletionSuite extends FunSuite {
           CGRef(SymbolicName("Var", "n3"), ScopeAppl("s3")),
           CGDirectEdge(ScopeAppl("s3"), Label('I'), ScopeVar("s4")),
           CResolve(SymbolicName("Var", "n3"), NameVar("d2")),
-          CGenRecurse(Var("x1"), List(ScopeAppl("s2")), None, SortAppl("Field"))
+          CGenRecurse(TermVar("x1"), List(ScopeAppl("s2")), None, SortAppl("Field"))
         )
       )
     )
@@ -83,7 +83,7 @@ class CompletionSuite extends FunSuite {
             TermAppl("Class", List(
               PatternNameAdapter(SymbolicName("Class", "n1")),
               TermAppl("None"),
-              Var("x1")
+              TermVar("x1")
             )),
             TermAppl("Nil")
           )),
@@ -106,7 +106,7 @@ class CompletionSuite extends FunSuite {
           CGRef(SymbolicName("Var", "n3"), ScopeAppl("s3")),
           CGDirectEdge(ScopeAppl("s3"), Label('I'), ScopeVar("s4")),
           CResolve(SymbolicName("Var", "n3"), NameVar("d2")),
-          CGenRecurse(Var("x1"), List(ScopeAppl("s2")), None, SortAppl("List", List(SortAppl("Field"))))
+          CGenRecurse(TermVar("x1"), List(ScopeAppl("s2")), None, SortAppl("List", List(SortAppl("Field"))))
         )
       )
     )

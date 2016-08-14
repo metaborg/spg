@@ -15,7 +15,7 @@ object Solver {
         case (typeBinding) =>
           state.substitute(typeBinding)
       }
-    case CResolve(n1, n2@Var(_)) if Graph(state.facts).res(state.resolution)(n1).nonEmpty =>
+    case CResolve(n1, n2@TermVar(_)) if Graph(state.facts).res(state.resolution)(n1).nonEmpty =>
       if (state.resolution.contains(n1)) {
         state.substitute(Map(n2 -> state.resolution(n1)))
       } else {
@@ -118,11 +118,13 @@ object Solver {
   * @param typeEnv         The typing environment
   * @param nameConstraints The naming constraints
   */
+
+// TODO: Facts vs. constraints goes wrong. We never upgrade a constraint to a fact once we've solved it?!
 case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Constraint], typeEnv: TypeEnv, resolution: Resolution, subtypeRelation: SubtypeRelation, nameConstraints: List[NamingConstraint]) {
   def merge(recurse: CGenRecurse, state: State): State = {
     State(
       pattern =
-        pattern.substitute(Map(recurse.pattern.asInstanceOf[Var] -> state.pattern)),
+        pattern.substitute(Map(recurse.pattern.asInstanceOf[TermVar] -> state.pattern)),
       constraints =
         (constraints ++ state.constraints) - recurse,
       facts =

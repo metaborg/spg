@@ -2,6 +2,7 @@ package nl.tudelft.fragments
 
 import javax.inject.Singleton
 
+import org.metaborg.core.editor.{IEditorRegistry, NullEditorRegistry}
 import org.metaborg.core.project.{IProjectService, SimpleProjectService}
 import org.metaborg.spoofax.core.{Spoofax, SpoofaxModule}
 
@@ -10,6 +11,10 @@ object Main {
     override def bindProject() {
       bind(classOf[SimpleProjectService]).in(classOf[Singleton])
       bind(classOf[IProjectService]).to(classOf[SimpleProjectService])
+    }
+
+    override def bindEditor() {
+      bind(classOf[IEditorRegistry]).to(classOf[NullEditorRegistry]).in(classOf[Singleton])
     }
   })
 }

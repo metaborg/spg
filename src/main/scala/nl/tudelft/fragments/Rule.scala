@@ -5,7 +5,7 @@ import nl.tudelft.fragments.spoofax.Signatures.Decl
 
 // Rule
 case class Rule(sort: Sort, typ: Option[Pattern], scopes: List[Scope], state: State) {
-  def mergex(recurse: CGenRecurse, rule: Rule)(implicit signatures: List[Decl]): Option[(Rule, Map[String, String])] = {
+  def mergex(recurse: CGenRecurse, rule: Rule, checkConsistency: Boolean = true)(implicit signatures: List[Decl]): Option[(Rule, Map[String, String], SortBinding, TermBinding, ScopeBinding)] = {
     // Prevent naming conflicts by freshening the names in the other rule
     val (nameBinding, freshRule) = rule.freshen()
 
@@ -21,20 +21,24 @@ case class Rule(sort: Sort, typ: Option[Pattern], scopes: List[Scope], state: St
         .substituteScope(scopeUnifier)
 
       // The merge might have broken references. Restore these by adding name disequalities.
-      restoreResolution(merged)
+      val restored = restoreResolution(merged)
+
+      // Check consistency. E.g. the merge might have unified t1 with t2, but if t1 = Int, t2 = Bool, it's inconsistent
+      if (checkConsistency) {
+        if (Consistency.check(restored)) {
+          Some((restored, nameBinding, sortUnifier, typeUnifier, scopeUnifier))
+        } else {
+          None
+        }
+      } else {
+        Some((restored, nameBinding, sortUnifier, typeUnifier, scopeUnifier))
+      }
     }
 
-    // Check consistency. E.g. the merge might have unified t1 with t2, but if t1 = Int, t2 = Bool, it's inconsistent
-    merged.flatMap(rule =>
-      if (Consistency.check(merged.get)) {
-        Some((merged.get, nameBinding))
-      } else {
-        None
-      }
-    )
+    merged.flatten
   }
 
-  // Backwards compatibility
+  // Shortcut when only the merged rule should be returned
   def merge(recurse: CGenRecurse, rule: Rule)(implicit signatures: List[Decl]): Option[Rule] = {
     mergex(recurse, rule).map(_._1)
   }
@@ -51,7 +55,7 @@ case class Rule(sort: Sort, typ: Option[Pattern], scopes: List[Scope], state: St
   // Merge types
   def mergeTypes(t1: Option[Pattern], t2: Option[Pattern]): Option[TermBinding] = (t1, t2) match {
     case (None, None) =>
-      Some(Map.empty[Var, Pattern])
+      Some(Map.empty[TermVar, Pattern])
     case (Some(x), Some(y)) =>
       x.unify(y)
     case _ =>

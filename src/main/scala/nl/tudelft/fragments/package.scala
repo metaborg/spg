@@ -3,7 +3,7 @@ package nl.tudelft
 import scala.util.Random
 
 package object fragments {
-  type TermBinding = Map[Var, Pattern]
+  type TermBinding = Map[TermVar, Pattern]
   type ScopeBinding = Map[Scope, Scope]
   type SortBinding = Map[SortVar, Sort]
   type SeenImport = List[Pattern]
@@ -98,7 +98,7 @@ package object fragments {
 
     def unify(types: List[Pattern]): Option[TermBinding] =
       if (list.length == types.length) {
-        list.zip(types).foldLeftWhile(Map.empty[Var, Pattern]) {
+        list.zip(types).foldLeftWhile(Map.empty[TermVar, Pattern]) {
           case (termBinding, (t1, t2)) =>
             t1.unify(t2, termBinding)
         }
