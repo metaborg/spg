@@ -139,6 +139,24 @@ class ConsistencySuite extends FunSuite {
 
   }
 
+  test("can we add a declaration for the reference in complicated program") {
+    implicit val signatures = Signatures.read(
+      strategoPath = "zip:/Users/martijn/Projects/spoofax-releng/stratego/org.metaborg.meta.lang.stratego/target/org.metaborg.meta.lang.stratego-2.0.0-SNAPSHOT.spoofax-language!/",
+      signaturePath = "/Users/martijn/Projects/scopes-frames/L3/src-gen/signatures/L3-sig.str"
+    )
+
+    implicit val specification = Specification.read(
+      nablPath = "zip:/Users/martijn/Projects/nabl/org.metaborg.meta.nabl2.lang/target/org.metaborg.meta.nabl2.lang-2.1.0-SNAPSHOT.spoofax-language!/",
+      specPath = "/Users/martijn/Projects/scopes-frames/L3/trans/analysis/l3.nabl2"
+    )
+
+    implicit val rules: List[Rule] = specification.rules
+
+    val rule = Rule(SortAppl("Start", List()), None, List(ScopeAppl("s42393")), State(TermAppl("Program", List(TermAppl("Cons", List(TermAppl("Class", List(TermVar("x28129"), TermAppl("Parent", List(TermVar("x28130"))), TermAppl("Nil", List()))), TermAppl("Nil", List()))), TermAppl("Fun", List(TermVar("x11033"), TermAppl("FunType", List(TermAppl("FunType", List(TermAppl("FunType", List(TermVar("x41984"), TermAppl("FunType", List(TermVar("x42394"), TermVar("x42395"))))), TermAppl("FunType", List(TermAppl("ClassType", List(TermVar("x39241"))), TermAppl("IntType", List()))))), TermAppl("ClassDefType", List(TermVar("x29497"))))), TermAppl("App", List(TermAppl("Var", List(TermVar("x30393"))), TermAppl("Assign", List(TermAppl("Var", List(TermVar("x12960"))), TermAppl("Add", List(TermAppl("IntValue", List(TermVar("x11037"))), TermAppl("Seq", List(TermAppl("Fun", List(TermVar("x12540"), TermAppl("FunType", List(TermAppl("ClassDefType", List(TermVar("x29251"))), TermAppl("ClassType", List(TermVar("x29723"))))), TermAppl("IntValue", List(TermVar("x13343"))))), TermAppl("QVar", List(TermAppl("Var", List(TermVar("x22290"))), TermVar("x13030"))))))))))))))),List(CTypeOf(SymbolicName("Var", "x11033"),TermAppl("TFun", List(TermAppl("TFun", List(TermAppl("TFun", List(TermVar("x41987"), TermAppl("TFun", List(TermVar("x42397"), TermVar("x42396"))))), TermAppl("TFun", List(TermAppl("TClass", List(TermVar("x39242"))), TermAppl("TInt", List()))))), TermAppl("TClassDef", List(TermVar("x29498")))))), CSubtype(TermVar("x12962"),TermVar("x11041")), CSubtype(TermAppl("TInt", List()),TermVar("x12962")), CTrue(), CTypeOf(SymbolicName("Var", "x12540"),TermAppl("TFun", List(TermAppl("TClassDef", List(TermVar("x29252"))), TermAppl("TClass", List(TermVar("x29724")))))), CResolve(SymbolicName("Var", "x12960"),TermVar("x12961")), CTypeOf(TermVar("x12961"),TermVar("x12962")), CAssoc(TermVar("x13031"),ScopeVar("s13032")), CResolve(SymbolicName("Var", "x13030"),TermVar("x13033")), CTypeOf(TermVar("x13033"),TermAppl("TInt", List())), CTrue(), CResolve(SymbolicName("Var", "x22290"),TermVar("x22291")), CTypeOf(TermVar("x22291"),TermAppl("TClass", List(TermVar("x13031")))), CTrue(), CTypeOf(SymbolicName("Class", "x28129"),TermAppl("TClassDef", List(SymbolicName("Class", "x28129")))), CResolve(SymbolicName("Class", "x28130"),TermVar("x28133")), CAssoc(TermVar("x28133"),ScopeVar("s28134")), CTypeOf(TermVar("x28133"),TermAppl("TClassDef", List(TermVar("x28133")))), FSubtype(TermAppl("TClass", List(SymbolicName("Class", "x28129"))),TermAppl("TClass", List(TermVar("x28133")))), CTrue(), CResolve(SymbolicName("Class", "x29251"),TermVar("x29252")), CResolve(SymbolicName("Class", "x29497"),TermVar("x29498")), CResolve(SymbolicName("Class", "x29723"),TermVar("x29724")), CResolve(SymbolicName("Var", "x30393"),TermVar("x30394")), CTypeOf(TermVar("x30394"),TermAppl("TFun", List(TermVar("x11041"), TermVar("x11042")))), CTrue(), CResolve(SymbolicName("Class", "x39241"),TermVar("x39242")), CGenRecurse(TermVar("x41984"),List(ScopeAppl("s42393")),Some(TermVar("x41987")),SortAppl("Type", List())), CGenRecurse(TermVar("x42395"),List(ScopeAppl("s42393")),Some(TermVar("x42396")),SortAppl("Type", List())), CGenRecurse(TermVar("x42394"),List(ScopeAppl("s42393")),Some(TermVar("x42397")),SortAppl("Type", List()))),List(CGDecl(ScopeAppl("s30392"),SymbolicName("Var", "x11033")), CGDirectEdge(ScopeAppl("s30392"),Label('P'),ScopeAppl("s42393")), CGDecl(ScopeAppl("s13342"),SymbolicName("Var", "x12540")), CGDirectEdge(ScopeAppl("s13342"),Label('P'),ScopeAppl("s30392")), CGRef(SymbolicName("Var", "x12960"),ScopeAppl("s30392")), CGDirectEdge(ScopeAppl("s13035"),Label('I'),ScopeVar("s13032")), CGRef(SymbolicName("Var", "x13030"),ScopeAppl("s13035")), CGRef(SymbolicName("Var", "x22290"),ScopeAppl("s30392")), CGDecl(ScopeAppl("s42393"),SymbolicName("Class", "x28129")), CGAssoc(SymbolicName("Class", "x28129"),ScopeAppl("s28762")), CGRef(SymbolicName("Class", "x28130"),ScopeAppl("s42393")), CGDirectEdge(ScopeAppl("s28762"),Label('I'),ScopeVar("s28134")), CGDirectEdge(ScopeAppl("s28762"),Label('P'),ScopeAppl("s42393")), CGRef(SymbolicName("Class", "x29251"),ScopeAppl("s30392")), CGRef(SymbolicName("Class", "x29497"),ScopeAppl("s42393")), CGRef(SymbolicName("Class", "x29723"),ScopeAppl("s30392")), CGRef(SymbolicName("Var", "x30393"),ScopeAppl("s30392")), CGRef(SymbolicName("Class", "x39241"),ScopeAppl("s42393"))),TypeEnv(),Resolution(),SubtypeRelation(List()),List()))
+
+    assert(!Consistency.canAddDeclaration(Nil, rule, ScopeAppl("s30392"), "Var", rules))
+  }
+
   test("can we add a declaration for the reference in Program(Cons(Class, Nil), QVar(New('n1'), 'n2'))") {
     implicit val signatures = Signatures.read(
       strategoPath = "zip:/Users/martijn/Projects/spoofax-releng/stratego/org.metaborg.meta.lang.stratego/target/org.metaborg.meta.lang.stratego-2.0.0-SNAPSHOT.spoofax-language!/",
@@ -244,7 +262,7 @@ class ConsistencySuite extends FunSuite {
     assert(Consistency.canAddDeclaration(Nil, rule, ScopeAppl("s1"), "Class", rules))
   }
 
-  test("can we continue with Program(Nil, QVar(x, 'n1'))") {
+  test("can we satisfy the type in a recurse in Program(Nil, QVar(x, 'n1'))") {
     implicit val signatures = Signatures.read(
       strategoPath = "zip:/Users/martijn/Projects/spoofax-releng/stratego/org.metaborg.meta.lang.stratego/target/org.metaborg.meta.lang.stratego-2.0.0-SNAPSHOT.spoofax-language!/",
       signaturePath = "/Users/martijn/Projects/scopes-frames/L3/src-gen/signatures/L3-sig.str"
@@ -280,7 +298,26 @@ class ConsistencySuite extends FunSuite {
       SubtypeRelation(List()),List()
     ))
 
-    assert(Consistency.canAddDeclaration(Nil, rule, ScopeAppl("s1"), "Class", rules))
+    // TODO
+    //assert(Consistency.canSatisfyType(Nil, rule, ScopeAppl("s1"), "Class", rules))
+  }
+
+  test("resolution consistent") {
+    implicit val signatures = Signatures.read(
+      strategoPath = "zip:/Users/martijn/Projects/spoofax-releng/stratego/org.metaborg.meta.lang.stratego/target/org.metaborg.meta.lang.stratego-2.0.0-SNAPSHOT.spoofax-language!/",
+      signaturePath = "/Users/martijn/Projects/scopes-frames/L3/src-gen/signatures/L3-sig.str"
+    )
+
+    implicit val specification = Specification.read(
+      nablPath = "zip:/Users/martijn/Projects/nabl/org.metaborg.meta.nabl2.lang/target/org.metaborg.meta.nabl2.lang-2.1.0-SNAPSHOT.spoofax-language!/",
+      specPath = "/Users/martijn/Projects/scopes-frames/L3/trans/analysis/l3.nabl2"
+    )
+
+    implicit val rules: List[Rule] = specification.rules
+
+    val rule = Rule(SortAppl("Start", List()), None, List(ScopeAppl("s183889")), State(TermAppl("Program", List(TermAppl("Cons", List(TermAppl("Class", List(TermVar("x182328"), TermAppl("None", List()), TermAppl("Nil", List()))), TermAppl("Nil", List()))), TermAppl("NewObject", List(TermVar("x183890"))))),List(CTrue(), CTypeOf(SymbolicName("Class", "x182328"),TermAppl("TClassDef", List(SymbolicName("Class", "x182328")))), CTrue(), CResolve(SymbolicName("Class", "x183890"),TermVar("x183891"))),List(CGDecl(ScopeAppl("s183889"),SymbolicName("Class", "x182328")), CGAssoc(SymbolicName("Class", "x182328"),ScopeAppl("s183069")), CGDirectEdge(ScopeAppl("s183069"),Label('P'),ScopeAppl("s183889")), CGRef(SymbolicName("Class", "x183890"),ScopeAppl("s183889"))),TypeEnv(),Resolution(),SubtypeRelation(List()),List()))
+
+    assert(Consistency.decidedDeclarationsConsistency(rule))
   }
 
 }

@@ -13,26 +13,69 @@ object Consistency {
       checkTypeOf(rule.state.constraints, termBinding)
     }
 
-    val resolveCheck = rule.resolutionConstraints.forall(resolve => {
-      val graph = Graph(rule.state.facts)
+    typeEqualsCheck.isDefined && typeEqualsCheck.get && checkSubtyping(rule.state) && checkResolve(rule) && decidedDeclarationsConsistency(rule) && canSatisfyType(rule)
+  }
 
-      // TODO: This is not correct for e.g. Program(_, QVar(_, x)). x cannot be resolved, and we cannot add a declaration for x, but x leads to an import, so we cannot reason about this!
-      !(
-        // No reachable declarations
-        graph.res(rule.state.resolution)(resolve.n1).isEmpty &&
-        // Cannot add a reachable declaration
-        !canAddDeclaration(Nil, rule, graph.scope(resolve.n1).get, resolve.n1.asInstanceOf[Name].namespace, rules) &&
-        // TODO: Cannot add a reachable ScopeVar -- in this case, we don't know whether the fragment is consistent
-        !canReachScopeVar(rule, graph.scope(resolve.n1).get)
-      )
-    })
+  // For references for which we cannot add new declarations, we can compute consistency relative to the possible resolutions
+  def decidedDeclarationsConsistency(rule: Rule): Boolean =
+    rule.resolve.forall {
+      case c@CResolve(n1, n2: TermVar) =>
+        val g = Graph(rule.state.facts)
+        val s = g.scope(n1).get
 
-    typeEqualsCheck.isDefined && typeEqualsCheck.get && checkSubtyping(rule.state) && checkResolve(rule) && resolveCheck
+        if (!canAddDeclaration(Nil, rule, s, n1.asInstanceOf[Name].namespace, rules) && !canReachScopeVar(rule, s)) {
+          val declarations = g.res(rule.state.resolution)(n1)
+
+          // There must exist a declaration that, if n1 resolves to it, yields a consistent fragment
+          val consistent = declarations.exists { case (dec, cond) =>
+            // Resolve n1 to dec by substituting n2 by dec
+            val newRule = rule.copy(
+              state = rule.state.copy(
+                constraints = rule.state.constraints - c
+              )
+            ).substitute(Map(n2 -> dec))
+
+            val newRule2 = newRule.copy(state =
+              newRule.state.copy(
+                resolution = newRule.state.resolution + (n1 -> dec),
+                nameConstraints = cond ++ newRule.state.nameConstraints
+              )
+            )
+
+            // Check consistency of the resulting rule
+            Consistency.check(newRule2)
+          }
+
+          consistent
+        } else {
+          true
+        }
+      case _ =>
+        println(rule)
+        assert(false)
+        false
+  }
+
+  // TODO. Now a dummy implementation to see effect.
+  def canSatisfyType(rule: Rule): Boolean = {
+    rule.pattern match {
+      case TermAppl("Program", List(TermAppl("Nil", Nil), x)) =>
+        val qvar = rule.pattern.find {
+          case TermAppl("QVar", _) => true
+          case _ => false
+        }
+
+        qvar match {
+          case Some(_) => false
+          case _ => true
+        }
+      case _ =>
+        true
+    }
   }
 
   /**
-    * Check if we can reach a ScopeVar from the scope. TODO: Note that this
-    * ignores well-formedness..
+    * Check if we can reach a ScopeVar from the scope. TODO: Note that this ignores well-formedness..
     *
     * @param rule
     * @return
