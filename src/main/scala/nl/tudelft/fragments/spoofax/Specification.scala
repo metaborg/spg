@@ -2,19 +2,28 @@ package nl.tudelft.fragments.spoofax
 
 import nl.tudelft.fragments
 import nl.tudelft.fragments.spoofax.Signatures._
-import nl.tudelft.fragments.{CAssoc, CEqual, CGAssoc, CGDecl, CGDirectEdge, CGNamedEdge, CGRef, CGenRecurse, CResolve, CSubtype, CTrue, CTypeOf, Constraint, FSubtype, Label, Main, NameProvider, Pattern, Rule, Scope, ScopeAppl, ScopeVar, State, SymbolicName, TermAppl, TermVar}
+import nl.tudelft.fragments.spoofax.SpoofaxScala._
+import nl.tudelft.fragments.{CAssoc, CEqual, CGAssoc, CGDecl, CGDirectEdge, CGNamedEdge, CGRef, CGenRecurse, CResolve, CSubtype, CTrue, CTypeOf, Character, Concatenation, Constraint, EmptySet, Epsilon, FSubtype, Intersection, Label, LabelOrdering, Main, NameProvider, Pattern, Regex, Resolution, Rule, Scope, ScopeAppl, ScopeVar, Star, State, SymbolicName, TermAppl, TermVar, Union}
 import org.apache.commons.io.IOUtils
 import org.spoofax.interpreter.terms.{IStrategoAppl, IStrategoList, IStrategoString, IStrategoTerm}
 import org.spoofax.terms.{StrategoAppl, StrategoList}
 
+// Representation of an NaBL2 specification
+class Specification(val params: ResolutionParams, val rules: List[Rule])
+
+// Representation of NaBL2 resolution parameters
+class ResolutionParams(val labels: List[Label], val order: PartialOrdering[Label], val wf: Regex)
+
+// Companion object
 object Specification {
+  // TODO: Can we make Main.spoofax globally available or something? Or use DI, since it is just a dependency?
   val s = Main.spoofax
 
   // Start at 9 so we do not clash with names in the rules
   val nameProvider = NameProvider(9)
 
-  // Parse the specification (constraint generation function)
-  def read(nablPath: String, specPath: String)(implicit signatures: List[Decl]): List[Rule] = {
+  // Parse an NaBL2 specification file
+  def read(nablPath: String, specPath: String)(implicit signatures: List[Decl]): Specification = {
     val nablImpl = Utils.loadLanguage(nablPath)
 
     // Get content to parse and build inputUnit
@@ -24,10 +33,17 @@ object Specification {
 
     // Parse
     val parseResult = s.syntaxService.parse(inputUnit)
+    val ast = parseResult.ast()
 
     // Translate ATerms to Scala DSL
-    toRules(parseResult.ast().getSubterm(1).getSubterm(2))
-      .map(inlineRecurse)
+    val labels = toLabels(ast)
+    val ordering = toOrdering(ast)
+    val wf = toWF(ast)
+    val params = new ResolutionParams(labels, ordering, wf)
+    val rules = toRules(ast.getSubterm(1)).map(inlineRecurse)
+    val specification = new Specification(params, rules)
+
+    specification
   }
 
   /**
@@ -83,11 +99,119 @@ object Specification {
   }
 
   /**
-    * Convert the constraint generation rules (ATerm) to our Scala DSL
+    * Convert the labels and augment with default labels
+    */
+  def toLabels(term: IStrategoTerm): List[Label] = {
+    val customLabels = term
+      .collectAll {
+        case appl: StrategoAppl if appl.getConstructor.getName == "Label" =>
+          true
+        case x =>
+          false
+      }
+      .distinct
+      .map {
+        case appl: StrategoAppl =>
+          Label(toString(appl.getSubterm(0)).head)
+      }
+
+      Label('D') :: Label('I') :: Label('P') :: customLabels
+  }
+
+  // Turn a Stratego term into Label. TODO: Labels should be strings instead of chars, and Regex should use Labels as primitive unit
+  def toLabel(term: IStrategoTerm): Label = term match {
+    case appl: StrategoAppl if appl.getConstructor.getName == "Label" =>
+      Label(toString(appl.getSubterm(0)).head)
+    case appl: StrategoAppl if appl.getConstructor.getName == "D" =>
+      Label('D')
+    case appl: StrategoAppl if appl.getConstructor.getName == "P" =>
+      Label('P')
+    case appl: StrategoAppl if appl.getConstructor.getName == "I" =>
+      Label('I')
+  }
+
+  /**
+    * Convert the label ordering and augment with default ordering
+    */
+  def toOrdering(term: IStrategoTerm): LabelOrdering = {
+    val pairs = term
+      .collectAll {
+        case appl: StrategoAppl if appl.getConstructor.getName == "Lt" =>
+          true
+        case x =>
+          false
+      }
+      .map(term =>
+        toLabel(term.getSubterm(0)) -> toLabel(term.getSubterm(1))
+      )
+
+    val defaultOrdering = List(
+      Label('D') -> Label('P'),
+      Label('D') -> Label('I'),
+      Label('I') -> Label('P')
+    )
+
+    LabelOrdering(pairs ++ defaultOrdering: _*)
+  }
+
+  /**
+    * Convert the WF or fall back to default WF
+    */
+  def toWF(term: IStrategoTerm): Regex = {
+    val customWf = term
+      .collect {
+        case appl: StrategoAppl if appl.getConstructor.getName == "WF" =>
+          true
+        case x =>
+          false
+      }
+      .map(term =>
+        toRegex(term.getSubterm(0))
+      )
+
+    customWf match {
+      case None =>
+        (Character('P') *) ~ (Character('I') *)
+      case Some(wf) =>
+        wf
+    }
+  }
+
+  /**
+    * Convert the regex to our Scala DSL
+    */
+  def toRegex(term: IStrategoTerm): Regex = term match {
+    case appl: StrategoAppl if appl.getConstructor.getName == "Concat" =>
+      Concatenation(toRegex(appl.getSubterm(0)), toRegex(appl.getSubterm(1)))
+    case appl: StrategoAppl if appl.getConstructor.getName == "Or" =>
+      Union(toRegex(appl.getSubterm(0)), toRegex(appl.getSubterm(1)))
+    case appl: StrategoAppl if appl.getConstructor.getName == "And" =>
+      Intersection(toRegex(appl.getSubterm(0)), toRegex(appl.getSubterm(1)))
+    case appl: StrategoAppl if appl.getConstructor.getName == "Closure" =>
+      Star(toRegex(appl.getSubterm(0)))
+    case appl: StrategoAppl if appl.getConstructor.getName == "Epsilon" =>
+      Epsilon
+    case appl: StrategoAppl if appl.getConstructor.getName == "Empty" =>
+      EmptySet
+    case appl: StrategoAppl if appl.getConstructor.getName == "Label" =>
+      Character(toString(appl.getSubterm(0)).head)
+    case appl: StrategoAppl if appl.getConstructor.getName == "P" =>
+      Character('P')
+    case appl: StrategoAppl if appl.getConstructor.getName == "I" =>
+      Character('I')
+  }
+
+  /**
+    * Convert the constraint generation rules (CGenRules) to our Scala DSL
     */
   def toRules(term: IStrategoTerm)(implicit signatures: List[Decl]): List[Rule] = term match {
-    case appl: StrategoAppl if appl.getConstructor.getName == "CGenRules" =>
-      toRulesList(appl.getSubterm(0))
+    case list: StrategoList =>
+      list.getAllSubterms.toList.flatMap {
+        case appl: IStrategoAppl if appl.getConstructor.getName == "CGenRules" =>
+          toRulesList(appl.getSubterm(0))
+        case _ =>
+          Nil
+      }
   }
 
   /**
@@ -286,17 +410,6 @@ object Specification {
       CGNamedEdge(toScope(appl.getSubterm(2)), toLabel(appl.getSubterm(1)), toName(appl.getSubterm(0)))
     case appl: StrategoAppl if appl.getConstructor.getName == "CGenRecurse" =>
       CGenRecurse(toPattern(appl.getSubterm(1)), toScopeAppls(appl.getSubterm(2)), toTypeOption(appl.getSubterm(3)), null)
-  }
-
-  // Turn a Stratego term into Label
-  def toLabel(term: IStrategoTerm): Label = term match {
-    case appl: IStrategoAppl if appl.getConstructor.getName == "P" =>
-      Label('P')
-    case appl: IStrategoAppl if appl.getConstructor.getName == "I" =>
-      Label('I')
-    case appl: IStrategoAppl if appl.getConstructor.getName == "Label" =>
-      // TODO: Labels should be strings instead of chars, and regex's should cope with strings as unit element
-      Label(toString(appl).head)
   }
 
   // Turn IStrategoString into String

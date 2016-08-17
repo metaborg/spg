@@ -102,6 +102,32 @@ case class TermVar(name: String) extends Pattern {
     s"""TermVar("$name")"""
 }
 
+case class TermString(name: String) extends Pattern {
+  override def vars: List[TermVar] =
+    Nil
+
+  override def names: List[SymbolicName] =
+    Nil
+
+  override def size: Int =
+    1
+
+  override def unify(t: Pattern, termBinding: TermBinding): Option[TermBinding] =
+    ???
+
+  override def substitute(binding: Map[TermVar, Pattern]): Pattern =
+    this
+
+  override def substituteSort(binding: SortBinding): Pattern =
+    ???
+
+  override def substituteScope(binding: ScopeBinding): Pattern =
+    ???
+
+  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Pattern) =
+    ???
+}
+
 abstract class Name extends Pattern {
   def namespace: String
 }

@@ -1,5 +1,6 @@
 package nl.tudelft
 
+import scala.annotation.tailrec
 import scala.util.Random
 
 package object fragments {
@@ -150,6 +151,16 @@ package object fragments {
   object ~ {
     def unapply[T](xs: List[T]): Some[T] =
       Some(xs.random)
+  }
+
+  // Returns a function x => f(f(f(x))) with n times f
+  def repeat[T](f: T => T, n: Int): T => T = {
+    @tailrec def repeatAcc(acc: T, n: Int): T = n match {
+      case 0 => acc
+      case _ => repeatAcc(f(acc), n - 1)
+    }
+
+    (t: T) => repeatAcc(t, n)
   }
 
 }

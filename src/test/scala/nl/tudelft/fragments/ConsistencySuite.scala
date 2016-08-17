@@ -112,10 +112,12 @@ class ConsistencySuite extends FunSuite {
       signaturePath = "/Users/martijn/Projects/scopes-frames/L3/src-gen/signatures/L3-sig.str"
     )
 
-    implicit val rules = Specification.read(
+    implicit val specification = Specification.read(
       nablPath = "zip:/Users/martijn/Projects/nabl/org.metaborg.meta.nabl2.lang/target/org.metaborg.meta.nabl2.lang-2.1.0-SNAPSHOT.spoofax-language!/",
       specPath = "/Users/martijn/Projects/scopes-frames/L3/trans/analysis/l3.nabl2"
     )
+
+    implicit val rules: List[Rule] = specification.rules
 
     val rule = Rule(SortAppl("Start", List()), None, List(ScopeAppl("s1")), State(
       TermAppl("Program", List(
@@ -135,7 +137,6 @@ class ConsistencySuite extends FunSuite {
       SubtypeRelation(List()),List()
     ))
 
-    assert(!Consistency.canAddDeclaration(Nil, rule, ScopeAppl("s1"), "Var", rules))
   }
 
   test("can we add a declaration for the reference in Program(Cons(Class, Nil), QVar(New('n1'), 'n2'))") {
@@ -144,10 +145,12 @@ class ConsistencySuite extends FunSuite {
       signaturePath = "/Users/martijn/Projects/scopes-frames/L3/src-gen/signatures/L3-sig.str"
     )
 
-    implicit val rules = Specification.read(
+    implicit val specification = Specification.read(
       nablPath = "zip:/Users/martijn/Projects/nabl/org.metaborg.meta.nabl2.lang/target/org.metaborg.meta.nabl2.lang-2.1.0-SNAPSHOT.spoofax-language!/",
       specPath = "/Users/martijn/Projects/scopes-frames/L3/trans/analysis/l3.nabl2"
     )
+
+    implicit val rules: List[Rule] = specification.rules
 
     val rule = Rule(SortAppl("Start", List()), None, List(ScopeAppl("s1")), State(
       TermAppl("Program", List(
@@ -194,10 +197,12 @@ class ConsistencySuite extends FunSuite {
       signaturePath = "/Users/martijn/Projects/scopes-frames/L3/src-gen/signatures/L3-sig.str"
     )
 
-    implicit val rules = Specification.read(
+    implicit val specification = Specification.read(
       nablPath = "zip:/Users/martijn/Projects/nabl/org.metaborg.meta.nabl2.lang/target/org.metaborg.meta.nabl2.lang-2.1.0-SNAPSHOT.spoofax-language!/",
       specPath = "/Users/martijn/Projects/scopes-frames/L3/trans/analysis/l3.nabl2"
     )
+
+    implicit val rules: List[Rule] = specification.rules
 
     val rule = Rule(SortAppl("Start", List()), None, List(ScopeAppl("s1")), State(
       TermAppl("Program", List(
@@ -230,6 +235,45 @@ class ConsistencySuite extends FunSuite {
         CGAssoc(SymbolicName("Class", "x1"), ScopeAppl("s2")),
         CGRef(SymbolicName("Class", "x2"), ScopeAppl("s1")),
         CGRef(SymbolicName("Class", "x3"), ScopeAppl("s3"))
+      ),
+      TypeEnv(),
+      Resolution(),
+      SubtypeRelation(List()),List()
+    ))
+
+    assert(Consistency.canAddDeclaration(Nil, rule, ScopeAppl("s1"), "Class", rules))
+  }
+
+  test("can we continue with Program(Nil, QVar(x, 'n1'))") {
+    implicit val signatures = Signatures.read(
+      strategoPath = "zip:/Users/martijn/Projects/spoofax-releng/stratego/org.metaborg.meta.lang.stratego/target/org.metaborg.meta.lang.stratego-2.0.0-SNAPSHOT.spoofax-language!/",
+      signaturePath = "/Users/martijn/Projects/scopes-frames/L3/src-gen/signatures/L3-sig.str"
+    )
+
+    implicit val specification = Specification.read(
+      nablPath = "zip:/Users/martijn/Projects/nabl/org.metaborg.meta.nabl2.lang/target/org.metaborg.meta.nabl2.lang-2.1.0-SNAPSHOT.spoofax-language!/",
+      specPath = "/Users/martijn/Projects/scopes-frames/L3/trans/analysis/l3.nabl2"
+    )
+
+    implicit val rules: List[Rule] = specification.rules
+
+    val rule = Rule(SortAppl("Start", List()), None, List(ScopeAppl("s1")), State(
+      TermAppl("Program", List(
+        TermAppl("Nil"),
+        TermAppl("QVar", List(
+          TermVar("x1"),
+          TermVar("x2")
+        ))
+      )),
+      List(
+        CGenRecurse(TermVar("x1"), List(ScopeAppl("s1")), Some(TermAppl("t1")), SortAppl("Exp")),
+        CEqual(TermAppl("t1"), TermAppl("ClassType", List(TermVar("d1")))),
+        CResolve(SymbolicName("Var", "x2"), TermVar("d2")),
+        CAssoc(TermVar("d1"), ScopeVar("s3"))
+      ),
+      List(
+        CGRef(SymbolicName("Var", "x2"), ScopeAppl("s2")),
+        CGDirectEdge(ScopeAppl("s2"), Label('I'), ScopeVar("s3"))
       ),
       TypeEnv(),
       Resolution(),

@@ -17,21 +17,19 @@ object Strategy3 {
     }
   })
 
+  implicit val signatures = Signatures.read(
+    strategoPath = "zip:/Users/martijn/Projects/spoofax-releng/stratego/org.metaborg.meta.lang.stratego/target/org.metaborg.meta.lang.stratego-2.0.0-SNAPSHOT.spoofax-language!/",
+    signaturePath = "/Users/martijn/Projects/scopes-frames/L1/src-gen/signatures/L1-sig.str"
+  )
+
+  implicit val specification = Specification.read(
+    nablPath = "zip:/Users/martijn/Projects/nabl/org.metaborg.meta.nabl2.lang/target/org.metaborg.meta.nabl2.lang-2.0.0-SNAPSHOT.spoofax-language!/",
+    specPath = "/Users/martijn/Projects/scopes-frames/L1/trans/analysis/l1.nabl2"
+  )
+
+  implicit val rules: List[Rule] = specification.rules
+
   def main(args: Array[String]): Unit = {
-    implicit val signatures = Signatures.read(
-      strategoPath = "zip:/Users/martijn/Projects/spoofax-releng/stratego/org.metaborg.meta.lang.stratego/target/org.metaborg.meta.lang.stratego-2.0.0-SNAPSHOT.spoofax-language!/",
-      signaturePath = "/Users/martijn/Projects/scopes-frames/L1/src-gen/signatures/L1-sig.str"
-    )
-
-    implicit val rules = Specification.read(
-      nablPath = "zip:/Users/martijn/Projects/nabl/org.metaborg.meta.nabl2.lang/target/org.metaborg.meta.nabl2.lang-2.0.0-SNAPSHOT.spoofax-language!/",
-      specPath = "/Users/martijn/Projects/scopes-frames/L1/trans/analysis/l1.nabl2"
-    )
-
-    val printer = Printer.printer(
-      languagePath = "/Users/martijn/Projects/scopes-frames/L1/"
-    )
-
     for (i <- 1 to 100) {
       println(gen(rules.random))
     }

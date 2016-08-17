@@ -169,13 +169,4 @@ object Strategy4 {
       randomRules.flatMap(rule.merge(rec, _))
     )
   }
-
-  // Returns a function x => f(f(f(x))) with n times f
-  def repeat[T](f: T => T, n: Int): T => T = n match {
-    case 0 => (e: T) => e
-    case _ => (e: T) => {
-      println(n);
-      repeat(f, n - 1)(f(e))
-    }
-  }
 }

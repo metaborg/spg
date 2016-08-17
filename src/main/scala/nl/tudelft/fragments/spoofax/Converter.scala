@@ -4,7 +4,7 @@ import nl.tudelft.fragments._
 import org.spoofax.interpreter.terms.{IStrategoConstructor, IStrategoList, IStrategoString, IStrategoTerm}
 import org.spoofax.terms.{StrategoConstructor, StrategoList, StrategoString, TermFactory}
 
-// Convert Term to IStrategoTerm
+// Convert Pattern to IStrategoTerm
 object Converter {
   val termFactory = new TermFactory
 
@@ -23,10 +23,12 @@ object Converter {
             listToList(children)
           )
       }
-    case PatternNameAdapter(ConcreteName(namespace, name, pos)) =>
+    case TermString(name) =>
       toString(name)
-    // TODO: We should not have symbolic names during conversion, but these are not yet all replaced by concrete ones
-    case PatternNameAdapter(SymbolicName(namespace, name)) =>
+//    case ConcreteName(namespace, name, pos) =>
+//      toString(name)
+    // TODO: Symbolic names should be replaced before conversion, but this does not always happen yet (bug)
+    case SymbolicName(namespace, name) =>
       toString(name)
   }
 

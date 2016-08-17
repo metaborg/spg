@@ -16,21 +16,19 @@ object Strategy7 {
     }
   })
 
+  implicit val signatures = Signatures.read(
+    strategoPath = "zip:/Users/martijn/Projects/spoofax-releng/stratego/org.metaborg.meta.lang.stratego/target/org.metaborg.meta.lang.stratego-2.0.0-SNAPSHOT.spoofax-language!/",
+    signaturePath = "/Users/martijn/Projects/scopes-frames/L3/src-gen/signatures/L3-sig.str"
+  )
+
+  implicit val specification = Specification.read(
+    nablPath = "zip:/Users/martijn/Projects/nabl/org.metaborg.meta.nabl2.lang/target/org.metaborg.meta.nabl2.lang-2.1.0-SNAPSHOT.spoofax-language!/",
+    specPath = "/Users/martijn/Projects/scopes-frames/L3/trans/analysis/l3.nabl2"
+  )
+
+  implicit val rules: List[Rule] = specification.rules
+
   def main(args: Array[String]): Unit = {
-    implicit val signatures = Signatures.read(
-      strategoPath = "zip:/Users/martijn/Projects/spoofax-releng/stratego/org.metaborg.meta.lang.stratego/target/org.metaborg.meta.lang.stratego-2.0.0-SNAPSHOT.spoofax-language!/",
-      signaturePath = "/Users/martijn/Projects/scopes-frames/L3/src-gen/signatures/L3-sig.str"
-    )
-
-    implicit val rules = Specification.read(
-      nablPath = "zip:/Users/martijn/Projects/nabl/org.metaborg.meta.nabl2.lang/target/org.metaborg.meta.nabl2.lang-2.1.0-SNAPSHOT.spoofax-language!/",
-      specPath = "/Users/martijn/Projects/scopes-frames/L3/trans/analysis/l3.nabl2"
-    )
-
-    val print = Printer.printer(
-      languagePath = "/Users/martijn/Projects/scopes-frames/L3/"
-    )
-
     val startRules = rules.filter(_.sort == SortAppl("Start"))
 
     //println(repeat((x: List[Rule]) => build(x.random), 10)(startRules))
@@ -59,15 +57,5 @@ object Strategy7 {
 
       return None
     }
-  }
-
-  // Returns a function x => f(f(f(x))) with n times f
-  def repeat[T](f: T => T, n: Int): T => T = {
-    @tailrec def repeatAcc(acc: T, n: Int): T = n match {
-      case 0 => acc
-      case _ => println(n); repeatAcc(f(acc), n - 1)
-    }
-
-    (t: T) => repeatAcc(t, n)
   }
 }

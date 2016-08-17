@@ -88,12 +88,4 @@ object Strategy2 {
         .getOrElse(merged :: rules)
     }).getOrElse(rules)
   }
-
-  // Returns a function x => f(f(f(x))) with n times f
-  def repeat[T](f: T => T, n: Int): T => T = n match {
-    case 0 => (e: T) => e
-    case _ => (e: T) => {
-      println(n); repeat(f, n - 1)(f(e))
-    }
-  }
 }
