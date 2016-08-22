@@ -19,7 +19,7 @@ object Signatures {
     // Parse
     val parseResult = s.syntaxService.parse(inputUnit)
 
-    // Translate ATerms to Scala DSL
+    // Translate ATerms to Scala DSL (TODO: Make more fault-tolerant. If we don't have imports, then it may not be ast[1].tail.head[0])
     toConstructors(parseResult.ast().getSubterm(1).asInstanceOf[IStrategoList].tail().head().getSubterm(0).asInstanceOf[IStrategoList].head().getSubterm(0))
   }
 

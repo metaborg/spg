@@ -25,4 +25,7 @@ object SpoofaxScala {
         }
       }
   }
+
+  // A strategy is a function that either succeeds with a term or fails
+  //abstract class Strategy extends (IStrategoTerm => Option[IStrategoTerm])
 }
