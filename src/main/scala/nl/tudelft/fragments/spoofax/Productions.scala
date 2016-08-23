@@ -35,12 +35,11 @@ object Productions {
     productionTerms.map(toProduction)
   }
 
-  // SdfProduction(SortDef("Integernumber"), Rhs([Sort("Digitsequence")]), _)
   def toProduction(term: IStrategoTerm): Production = term match {
     case appl: IStrategoAppl if appl.getConstructor.getName == "SdfProduction" =>
       Production(toSort(appl.getSubterm(0)), toRhs(appl.getSubterm(1)))
   }
-  
+
   def toSort(term: IStrategoTerm): Sort = term match {
     case appl: IStrategoAppl if appl.getConstructor.getName == "SortDef" || appl.getConstructor.getName == "Sort" =>
       Sort(toString(term.getSubterm(0)))
@@ -57,7 +56,7 @@ object Productions {
     case appl: IStrategoAppl if appl.getConstructor.getName == "Sort" =>
       toSort(term)
     case appl: IStrategoAppl if appl.getConstructor.getName == "Lit" =>
-      Lit(toString(appl.getSubterm(0)))
+      Lit(toString(appl.getSubterm(0)).tail.init)
     case appl: IStrategoAppl if appl.getConstructor.getName == "Opt" =>
       Opt(toSymbol(appl.getSubterm(0)))
     case appl: IStrategoAppl if appl.getConstructor.getName == "Iter" =>
