@@ -1,8 +1,13 @@
 package nl.tudelft.fragments
 
+import nl.tudelft.fragments.lexical.LexicalGenerator
+import nl.tudelft.fragments.spoofax.Signatures.Decl
+import nl.tudelft.fragments.spoofax.Specification
+import nl.tudelft.fragments.spoofax.models.Production
+
 object Concretor {
   // Replace TermVars in pattern by concrete names satisfying the solution
-  def concretize(rule: Rule, solution: State): Pattern = {
+  def concretize(rule: Rule, solution: State)(implicit signatures: List[Decl], productions: List[Production]): Pattern = {
     // Use a new name provider to keep the numbers low
     val nameProvider = NameProvider(0)
 
@@ -27,12 +32,27 @@ object Concretor {
     // TODO: We just assume TermVars to be names, but is this correct?
     // TODO: We just assign increasing names, but we can re-use names (and other strategies)
 
-    // Convert remaining TermVars to Strings
-    partially
-      .substitute(
-        partially.vars.map(v => v -> TermString("n" + nameProvider.next)).toMap
-      )
+    // Create lexical generator
+    val generator = new LexicalGenerator(productions)
+
+    // Convert remaining TermVars based on their sort
+    partially.substitute(
+      partially.vars.map(v => {
+        val sort = getSort(partially, v)
+        val value = sort.map {
+          case SortAppl(cons, Nil) =>
+            // TODO: Parametric sorts fail. If sort is SortAppl(cons, ...) then we lose the parameter.. and we don't have the implicit production for lists/options
+            generator.generate(nl.tudelft.fragments.spoofax.models.Sort(cons))
+        }
+
+        v -> TermString(value.getOrElse(throw new RuntimeException("Could not determine Sort for TermVar")))
+      }).toMap
+    )
   }
+
+  // Get sort for given TermVar in given pattern (TODO: This is proxied to Specification class, do this nicer?)
+  def getSort(pattern: Pattern, termVar: TermVar)(implicit signatures: List[Decl]): Option[Sort] =
+    Specification.getSort(pattern, termVar)
 
   // Generate a binding from SymbolicNames to String satisfying the equality constraints
   def nameEq(eqs: List[Eq], binding: Map[String, String], nameProvider: NameProvider): Map[String, String] = eqs match {
@@ -79,21 +99,11 @@ object Concretor {
 
   // Get the equality conditions
   def filterEqs(substitution: List[Constraint]) =
-    substitution.flatMap {
-      case x: Eq =>
-        Some(x)
-      case _ =>
-        None
-    }
+    substitution.collect { case x: Eq => x }
 
   // Get the disequality conditions
   def filterDiseqs(substitution: List[Constraint]) =
-    substitution.flatMap {
-      case x: Diseq =>
-        Some(x)
-      case _ =>
-        None
-    }
+    substitution.collect { case x: Diseq => x }
 
   // Get the symbolic names in the disequality conditions
   def diseqsToNames(diseqs: List[Diseq]): List[SymbolicName] =
