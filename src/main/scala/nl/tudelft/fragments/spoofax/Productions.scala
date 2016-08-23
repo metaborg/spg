@@ -26,8 +26,8 @@ object Productions {
 
   def toProductions(term: IStrategoTerm): List[Production] = {
     val productionTerms = term.collectAll {
-      case appl: IStrategoAppl if appl.getConstructor.getName == "SdfProduction" =>
-        true
+      case appl: IStrategoAppl =>
+        appl.getConstructor.getName == "SdfProduction" || appl.getConstructor.getName == "SdfProductionWithCons"
       case _ =>
         false
     }
@@ -38,13 +38,22 @@ object Productions {
   def toProduction(term: IStrategoTerm): Production = term match {
     case appl: IStrategoAppl if appl.getConstructor.getName == "SdfProduction" =>
       Production(toSort(appl.getSubterm(0)), toRhs(appl.getSubterm(1)))
+    case appl: IStrategoAppl if appl.getConstructor.getName == "SdfProductionWithCons" =>
+      Production(toSort(appl.getSubterm(0).getSubterm(0)), toRhs(appl.getSubterm(1)), Some(toConstructor(appl.getSubterm(0).getSubterm(1))))
+    case appl: IStrategoAppl if appl.getConstructor.getName == "TemplateProductionWithCons" =>
+      ???
+  }
+
+  def toConstructor(term: IStrategoTerm): String = term match {
+    case appl: IStrategoAppl if appl.getConstructor.getName == "Constructor" =>
+      toString(term.getSubterm(0))
   }
 
   def toSort(term: IStrategoTerm): Sort = term match {
     case appl: IStrategoAppl if appl.getConstructor.getName == "SortDef" || appl.getConstructor.getName == "Sort" =>
-      Sort(toString(term.getSubterm(0)))
+      SortAppl(toString(term.getSubterm(0)))
     case appl: IStrategoAppl if appl.getConstructor.getName == "Layout" =>
-      Sort("LAYOUT")
+      SortAppl("LAYOUT")
   }
 
   def toRhs(term: IStrategoTerm): List[Symbol] = term match {
