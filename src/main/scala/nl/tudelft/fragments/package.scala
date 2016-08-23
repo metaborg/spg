@@ -13,14 +13,27 @@ package object fragments {
   // An instance of the NameProvider made globally available
   val nameProvider = NameProvider(9)
 
-  // Implicitly convert Option[T] to List[T]. Allows returning an option when a list is required.
-  implicit def optionToList[T](o: Option[T]): List[T] = o match {
+  // Implicitly convert Option[State] to List[State]
+  implicit def optionToList(o: Option[State]): List[State] = o match {
     case None => Nil
     case Some(x) => List(x)
   }
 
   // Implicitly convert State to List[State]. Allows returning a State when an List[State] is required.
   implicit def stateToList(s: State): List[State] = List(s)
+
+  // Implicitly define methods on any sequence
+  implicit class RichSeq[T](seq: Seq[T]) {
+    // Get random element from the sequence
+    def random: T =
+      seq(Random.nextInt(seq.length))
+
+    // Get random element from the sequence
+    def randomOption: Option[T] = seq match {
+      case Nil => None
+      case _ => Some(seq(Random.nextInt(seq.length)))
+    }
+  }
 
   implicit class RichList[T](list: List[T]) {
     // Fold until the accumulator becomes None
@@ -46,16 +59,6 @@ package object fragments {
     def pairs: List[(T, T)] = list match {
       case x1 :: x2 :: xs => (x1, x2) :: (x2 :: xs).pairs
       case _ => Nil
-    }
-
-    // Get random element from the list
-    def random: T =
-      list(Random.nextInt(list.length))
-
-    // Get random element from the list
-    def safeRandom: Option[T] = list match {
-      case Nil => None
-      case _ => Some(list(Random.nextInt(list.length)))
     }
 
     // Shuffle elements of the list
