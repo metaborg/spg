@@ -1,38 +1,20 @@
 package nl.tudelft.fragments
 
-import javax.inject.Singleton
-
-import nl.tudelft.fragments.spoofax.{Printer, Signatures, Specification, Converter}
-import org.metaborg.core.project.{IProjectService, SimpleProjectService}
-import org.metaborg.spoofax.core.{Spoofax, SpoofaxModule}
-
-import scala.annotation.tailrec
+import nl.tudelft.fragments.spoofax._
+import nl.tudelft.fragments.spoofax.models._
 
 object Strategy8 {
-  val spoofax = new Spoofax(new SpoofaxModule() {
-    override def bindProject() {
-      bind(classOf[SimpleProjectService]).in(classOf[Singleton])
-      bind(classOf[IProjectService]).to(classOf[SimpleProjectService])
-    }
-  })
+  val language = Language.load()
 
-  implicit val signatures = Signatures.read(
-    strategoPath = "zip:/Users/martijn/Projects/spoofax-releng/stratego/org.metaborg.meta.lang.stratego/target/org.metaborg.meta.lang.stratego-2.0.0-SNAPSHOT.spoofax-language!/",
-    signaturePath = "/Users/martijn/Projects/scopes-frames/L3/src-gen/signatures/L3-sig.str"
-  )
-
-  implicit val specification = Specification.read(
-    nablPath = "zip:/Users/martijn/Projects/nabl/org.metaborg.meta.nabl2.lang/target/org.metaborg.meta.nabl2.lang-2.1.0-SNAPSHOT.spoofax-language!/",
-    specPath = "/Users/martijn/Projects/scopes-frames/L3/trans/analysis/l3.nabl2"
-  )
-
-  implicit val rules: List[Rule] = specification.rules
+  // Make the various language specifications implicitly available
+  implicit val productions = language.productions
+  implicit val signatures = language.signatures
+  implicit val specification = language.specification
+  implicit val printer = language.printer
+  implicit val rules = specification.rules
 
   def main(args: Array[String]): Unit = {
-    val print = Printer.printer(
-      languagePath = "/Users/martijn/Projects/scopes-frames/L3/"
-    )
-
+    // Get all start rules (TODO: Make this dynamic, i.e. using esv file)
     val startRules = rules.filter(_.sort == SortAppl("Start"))
 
     // Randomly combine rules to build larger rules
@@ -40,7 +22,7 @@ object Strategy8 {
 
     // Start from a start rule and build a complete program
     for (i <- 0 to 10000) {
-      val result = build(startRules.random, base.shuffle, 200)
+      val result = build(startRules.random, base.shuffle, 100)
 
       result match {
         case Left(rule) =>
@@ -56,7 +38,7 @@ object Strategy8 {
             val concreteTerm = Converter.toTerm(concretePattern)
 
             // Turn a stratego term (IStrategoTerm) into concrete syntax (String)
-            val syntax = print(concreteTerm)
+            val syntax = printer(concreteTerm)
 
             println(syntax.stringValue())
             println("===")
@@ -68,7 +50,7 @@ object Strategy8 {
   }
 
   // Randomly merge rules in a rules into larger consistent rules
-  def grow(rules: List[Rule])(implicit signatures: List[Signatures.Decl]): List[Rule] = {
+  def grow(rules: List[Rule])(implicit signatures: List[Signature]): List[Rule] = {
     val ruleA = rules.random
     val ruleB = rules.random
 
@@ -86,9 +68,9 @@ object Strategy8 {
   }
 
   // Build a complete program by growing a partial program
-  def build(partial: Rule, rules: List[Rule], fuel: Int)(implicit signatures: List[Signatures.Decl]): Either[Rule, Int] = {
+  def build(partial: Rule, rules: List[Rule], fuel: Int)(implicit signatures: List[Signature]): Either[Rule, Int] = {
     print(".")
-//    println(partial)
+    //    println(partial)
 
     if (partial.recurse.isEmpty) {
       //println("Complete program: " + partial)
@@ -103,20 +85,20 @@ object Strategy8 {
     } else {
       val recurse = partial.recurse.random
 
-      val maxSize = 20
+      val maxSize = 30
       val remSize = maxSize - partial.pattern.size
       val divSize = remSize / partial.recurse.size
 
       // Testing something..
       if (divSize > 2) {
-        val mergedRules = for {rule <- rules.shuffle if rule.pattern.size <= divSize} yield {
+        val mergedRules = (for {rule <- rules.shuffle if rule.pattern.size <= divSize} yield {
           partial.merge(recurse, rule)
-        }
+        }).flatten
 
         var remainingFuel = fuel
 
-        for (mergedRule <- mergedRules.flatten) {
-          remainingFuel = remainingFuel-1
+        for (mergedRule <- mergedRules) {
+          remainingFuel = remainingFuel - 1
 
           val complete = build(mergedRule, rules, remainingFuel)
 
@@ -126,7 +108,8 @@ object Strategy8 {
             remainingFuel = complete.asInstanceOf[Right[_, Int]].b
 
             if (remainingFuel < 0) {
-              println("Out of fuel")
+              //println("Out of fuel")
+              println()
 
               return Right(remainingFuel)
             }
