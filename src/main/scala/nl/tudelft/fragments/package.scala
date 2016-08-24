@@ -1,5 +1,7 @@
 package nl.tudelft
 
+import nl.tudelft.fragments.spoofax.models.{Sort, SortVar}
+
 import scala.annotation.tailrec
 import scala.util.Random
 
@@ -166,4 +168,11 @@ package object fragments {
     (t: T) => repeatAcc(t, n)
   }
 
+  // Computes the fixed point by repeated application of f on x
+  @tailrec def fixedPoint[T](f: T => T, x: T): T = f(x) match {
+    case fx if x == fx =>
+      x
+    case fx =>
+      fixedPoint(f, fx)
+  }
 }
