@@ -1,5 +1,7 @@
 package nl.tudelft.fragments
 
+import nl.tudelft.fragments.spoofax.models.Sort
+
 // Constraint
 abstract class Constraint {
   def substitute(binding: TermBinding): Constraint
@@ -271,6 +273,23 @@ case class CGenRecurse(pattern: Pattern, scopes: List[Scope], typ: Option[Patter
           )
       }
     }
+
+  override def isProper =
+    true
+}
+
+case class CFalse() extends Constraint {
+  override def substitute(binding: TermBinding): Constraint =
+    this
+
+  override def substituteSort(binding: SortBinding): Constraint =
+    this
+
+  override def substituteScope(binding: ScopeBinding): Constraint =
+    this
+
+  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
+    (nameBinding, this)
 
   override def isProper =
     true

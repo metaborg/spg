@@ -1,6 +1,6 @@
 package nl.tudelft.fragments
 
-import nl.tudelft.fragments.spoofax.{Signatures, Specification}
+import nl.tudelft.fragments.spoofax.models.{Signature, Sort}
 
 object Consistency {
   implicit val signatures = Strategy8.signatures
@@ -8,13 +8,17 @@ object Consistency {
   implicit val rules = Strategy8.rules
 
   // Check for consistency
-  def check(rule: Rule)(implicit signatures: List[Signatures.Decl]): Boolean = {
+  def check(rule: Rule)(implicit signatures: List[Signature]): Boolean = {
     val typeEqualsCheck = checkTypeEquals(rule.state.constraints).map { case (termBinding) =>
       checkTypeOf(rule.state.constraints, termBinding)
     }
 
-    typeEqualsCheck.isDefined && typeEqualsCheck.get && checkSubtyping(rule.state) && checkResolve(rule) && decidedDeclarationsConsistency(rule) && canSatisfyType(rule)
+    typeEqualsCheck.isDefined && typeEqualsCheck.get && checkSubtyping(rule.state) && checkFalse(rule) /* && checkResolve(rule) && decidedDeclarationsConsistency(rule)*/ /*&& canSatisfyType(rule)*/
   }
+
+  // A false constraint can never be solved
+  def checkFalse(rule: Rule) =
+    rule.constraints.exists(_.isInstanceOf[CFalse])
 
   // For references for which we cannot add new declarations, we can compute consistency relative to the possible resolutions
   def decidedDeclarationsConsistency(rule: Rule): Boolean =
@@ -54,9 +58,9 @@ object Consistency {
         println(rule)
         assert(false)
         false
-  }
+    }
 
-  // TODO. Now a dummy implementation to see effect.
+  // TODO. Now a dummy implementation to see effect. But this ignores e.g. Program(Nil, Assign(_, _)), which suffers from the same problem
   def canSatisfyType(rule: Rule): Boolean = {
     rule.pattern match {
       case TermAppl("Program", List(TermAppl("Nil", Nil), x)) =>
@@ -98,7 +102,7 @@ object Consistency {
     *
     * @return None if the answer cannot be computed; Some(Boolean) otherwise.
     */
-  def canAddDeclaration(seenSort: List[Sort], rule: Rule, scope: Scope, ns: String, bases: List[Rule])(implicit signatures: List[Signatures.Decl]): Boolean = {
+  def canAddDeclaration(seenSort: List[Sort], rule: Rule, scope: Scope, ns: String, bases: List[Rule])(implicit signatures: List[Signature]): Boolean = {
     val graph = Graph(rule.state.facts)
 
     // TODO: reachableScopes does not return ScopeVars. What if a ScopeVar is reachable? Then we cannot answer the question?
@@ -128,14 +132,15 @@ object Consistency {
             )
 
             r
-          }}
+          }
+          }
       )
     )
 
     rulesForRecurseConstraints.exists(rule => {
       // Does this new rule add a declaration?
       val graph = Graph(rule.state.facts)
-      val env = graph.env(graph.wellFormedness, Nil, Nil, rule.state.resolution)(rule.scopes(0)) // TODO: head is arbitrary
+      val env = graph.env(graph.wellFormedness, Nil, Nil, rule.state.resolution)(rule.scopes.head) // TODO: head is arbitrary
       val declarations = env.declarations
       val declarationsCorrectNs = declarations.filter(d => d._1.isInstanceOf[Name] && d._1.asInstanceOf[Name].namespace == ns)
 
@@ -274,13 +279,7 @@ object Consistency {
 
   // Check if the TypeOf for same name unify
   def checkTypeOf(C: List[Constraint], termBinding: TermBinding = Map.empty): Boolean = {
-    val typeOf = C.flatMap {
-      case c: CTypeOf =>
-        Some(c)
-      case _ =>
-        None
-    }
-
+    val typeOf = C.collect { case x: CTypeOf => x }
     val uniqueTypeOf = typeOf.distinct
 
     uniqueTypeOf.groupBy(_.n).values.forall(typeOfs =>
