@@ -1,24 +1,34 @@
 package nl.tudelft.fragments.spoofax
 
 import com.typesafe.scalalogging.Logger
+import nl.tudelft.fragments.Rule
 import nl.tudelft.fragments.spoofax.models._
 import org.slf4j.LoggerFactory
 import org.spoofax.interpreter.terms.{IStrategoString, IStrategoTerm}
 
-case class Language(productions: List[Production], signatures: List[Signature], specification: Specification, printer: IStrategoTerm => IStrategoString)
+case class Language(productions: List[Production], signatures: List[Signature], specification: Specification, printer: IStrategoTerm => IStrategoString, startSymbols: List[Sort]) {
+  def isStartSymbol(sort: Sort): Boolean =
+    startSymbols.contains(sort)
+
+  def isStartRule(rule: Rule): Boolean =
+    isStartSymbol(rule.sort)
+
+  def startRules: List[Rule] =
+    specification.rules.filter(isStartRule)
+}
 
 object Language {
   val logger = Logger(LoggerFactory.getLogger(this.getClass))
 
-  def load(): Language = {
+  def load(projectPath: String, name: String): Language = {
     logger.info("Loading productions")
 
     val productions = Productions.read(
       sdfPath = "zip:/Users/martijn/Projects/sdf/org.metaborg.meta.lang.template/target/org.metaborg.meta.lang.template-2.1.0-SNAPSHOT.spoofax-language!/",
-      productionsPath = "/Users/martijn/Projects/metaborg-pascal/org.metaborg.lang.pascal/syntax/Pascal.sdf3"
+      productionsPath = s"$projectPath/syntax/$name.sdf3"
     )
 
-    logger.info("Computing signatures ")
+    logger.info("Computing signatures")
 
     val signatures = defaultSignatures ++ productions
       .filter(_.cons.isDefined)
@@ -28,16 +38,21 @@ object Language {
 
     val specification = Specification.read(
       nablPath = "zip:/Users/martijn/Projects/nabl/org.metaborg.meta.nabl2.lang/target/org.metaborg.meta.nabl2.lang-2.1.0-SNAPSHOT.spoofax-language!/",
-      specPath = "/Users/martijn/Projects/metaborg-pascal/org.metaborg.lang.pascal/trans/static-semantics.nabl2"
+      specPath = s"$projectPath/trans/static-semantics.nabl2"
     )(signatures)
 
     logger.info("Constructing printer")
 
     val printer = Printer.printer(
-      languagePath = "/Users/martijn/Projects/metaborg-pascal/org.metaborg.lang.pascal/"
+      languagePath = projectPath
     )
 
-    Language(productions, signatures, specification, printer)
+    logger.info("Read start symbols")
+
+    val languageImpl = Utils.loadLanguage(s"zip:$projectPath/target/org.metaborg.lang.${name.toLowerCase}-2.1.0-SNAPSHOT.spoofax-language!/")
+    val startSymbols = Utils.startSymbols(languageImpl)
+
+    Language(productions, signatures, specification, printer, startSymbols)
   }
 
   def defaultSignatures: List[Signature] = List(

@@ -4,7 +4,7 @@ import nl.tudelft.fragments.spoofax._
 import nl.tudelft.fragments.spoofax.models._
 
 object Strategy8 {
-  val language = Language.load()
+  val language = Language.load("/Users/martijn/Projects/metaborg-pascal", "Pascal")
 
   // Make the various language specifications implicitly available
   implicit val productions = language.productions
@@ -14,8 +14,8 @@ object Strategy8 {
   implicit val rules = specification.rules
 
   def main(args: Array[String]): Unit = {
-    // Get all start rules (TODO: Make this dynamic, i.e. using esv file)
-    val startRules = rules.filter(_.sort == SortAppl("Start"))
+    // Get all start rules
+    val startRules = language.startRules
 
     // Randomly combine rules to build larger rules
     val base = repeat(grow, 200)(rules)
@@ -69,8 +69,8 @@ object Strategy8 {
 
   // Build a complete program by growing a partial program
   def build(partial: Rule, rules: List[Rule], fuel: Int)(implicit signatures: List[Signature]): Either[Rule, Int] = {
-    print(".")
-    //    println(partial)
+//    print(".")
+    println(partial)
 
     if (partial.recurse.isEmpty) {
       //println("Complete program: " + partial)
