@@ -16,8 +16,8 @@ libraryDependencies += "ch.qos.logback" %  "logback-classic" % "1.1.7"
 
 libraryDependencies += "org.scalatest" % "scalatest_2.11" % "2.2.6" % "test"
 
-libraryDependencies += "org.metaborg" % "org.metaborg.core" % "2.0.0-SNAPSHOT"
+libraryDependencies += "org.metaborg" % "org.metaborg.core" % "2.1.0-SNAPSHOT"
 
-libraryDependencies += "org.metaborg" % "org.metaborg.util" % "2.0.0-SNAPSHOT"
+libraryDependencies += "org.metaborg" % "org.metaborg.util" % "2.1.0-SNAPSHOT"
 
-libraryDependencies += "org.metaborg" % "org.metaborg.spoofax.core" % "2.0.0-SNAPSHOT"
+libraryDependencies += "org.metaborg" % "org.metaborg.spoofax.core" % "2.1.0-SNAPSHOT"
