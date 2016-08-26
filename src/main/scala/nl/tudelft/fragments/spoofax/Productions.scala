@@ -1,33 +1,26 @@
 package nl.tudelft.fragments.spoofax
 
-import nl.tudelft.fragments.spoofax.models._
 import nl.tudelft.fragments.Main
-import org.apache.commons.io.IOUtils
-import org.spoofax.interpreter.terms.{IStrategoAppl, IStrategoString, IStrategoTerm}
 import nl.tudelft.fragments.spoofax.SpoofaxScala._
+import nl.tudelft.fragments.spoofax.models._
+import org.spoofax.interpreter.terms.{IStrategoAppl, IStrategoString, IStrategoTerm}
 
 object Productions {
   val s = Main.spoofax
 
-  def read(sdfPath: String, productionsPath: String) = {
+  def read(sdfPath: String, productionsPath: String): List[Production] = {
     val nablImpl = Utils.loadLanguage(sdfPath)
+    val ast = Utils.parseFile(nablImpl, productionsPath)
 
-    // Get content to parse and build inputUnit
-    val file = s.resourceService.resolve(productionsPath)
-    val text = IOUtils.toString(file.getContent.getInputStream)
-    val inputUnit = s.unitService.inputUnit(text, nablImpl, null)
-
-    // Parse
-    val parseResult = s.syntaxService.parse(inputUnit)
-
-    // Translate ATerms to Scala DSL
-    toProductions(parseResult.ast())
+    toProductions(ast)
   }
 
   def toProductions(term: IStrategoTerm): List[Production] = {
     val productionTerms = term.collectAll {
       case appl: IStrategoAppl =>
-        appl.getConstructor.getName == "SdfProduction" || appl.getConstructor.getName == "SdfProductionWithCons"
+        appl.getConstructor.getName == "SdfProduction" ||
+        appl.getConstructor.getName == "SdfProductionWithCons" ||
+        appl.getConstructor.getName == "TemplateProductionWithCons"
       case _ =>
         false
     }
@@ -41,7 +34,7 @@ object Productions {
     case appl: IStrategoAppl if appl.getConstructor.getName == "SdfProductionWithCons" =>
       Production(toSort(appl.getSubterm(0).getSubterm(0)), toRhs(appl.getSubterm(1)), Some(toConstructor(appl.getSubterm(0).getSubterm(1))))
     case appl: IStrategoAppl if appl.getConstructor.getName == "TemplateProductionWithCons" =>
-      ???
+      Production(toSort(appl.getSubterm(0).getSubterm(0)), toRhs(appl.getSubterm(1)), Some(toConstructor(appl.getSubterm(0).getSubterm(1))))
   }
 
   def toConstructor(term: IStrategoTerm): String = term match {
@@ -59,6 +52,41 @@ object Productions {
   def toRhs(term: IStrategoTerm): List[Symbol] = term match {
     case appl: IStrategoAppl if appl.getConstructor.getName == "Rhs" =>
       appl.getSubterm(0).getAllSubterms.toList.map(toSymbol)
+
+    // For template productions
+    case appl: IStrategoAppl if appl.getConstructor.getName == "Template" =>
+      appl.getSubterm(0).getAllSubterms.toList.flatMap(toLine)
+    case appl: IStrategoAppl if appl.getConstructor.getName == "TemplateSquare" =>
+      term.getSubterm(0).getAllSubterms.toList.flatMap(toLine)
+  }
+
+  def toLine(term: IStrategoTerm): List[Symbol] = term match {
+    case appl: IStrategoAppl if appl.getConstructor.getName == "Line" =>
+      term.getSubterm(0).getAllSubterms.toList.flatMap(toTemplateSymbol)
+  }
+
+  // Many template symbols are ignored, since they are not important for generation.
+  def toTemplateSymbol(term: IStrategoTerm): List[Symbol] = term match {
+    case appl: IStrategoAppl if appl.getConstructor.getName == "Layout" =>
+      Nil
+    case appl: IStrategoAppl if appl.getConstructor.getName == "Angled" =>
+      toTemplateSymbol(appl.getSubterm(0))
+    case appl: IStrategoAppl if appl.getConstructor.getName == "Placeholder" =>
+      toTemplateSymbol(appl.getSubterm(0))
+    case appl: IStrategoAppl if appl.getConstructor.getName == "String" =>
+      Nil
+    case appl: IStrategoAppl if appl.getConstructor.getName == "IterStarSep" =>
+      List(IterStarSep(toSort(appl.getSubterm(0)), toString(appl.getSubterm(1).getSubterm(0))))
+    case appl: IStrategoAppl if appl.getConstructor.getName == "IterStar" =>
+      List(toSort(appl.getSubterm(0)))
+    case appl: IStrategoAppl if appl.getConstructor.getName == "Iter" =>
+      List(toSort(appl.getSubterm(0)))
+    case appl: IStrategoAppl if appl.getConstructor.getName == "IterSep" =>
+      List(IterSep(toSort(appl.getSubterm(0)), toString(appl.getSubterm(1).getSubterm(0))))
+    case appl: IStrategoAppl if appl.getConstructor.getName == "Sort" =>
+      List(toSymbol(appl))
+    case appl: IStrategoAppl if appl.getConstructor.getName == "Opt" =>
+      List(toSymbol(appl))
   }
 
   def toSymbol(term: IStrategoTerm): Symbol = term match {
@@ -122,5 +150,8 @@ object Productions {
       .replace("\\-", "-")
       .replace("\\_", "_")
       .replace("\\t", "t")
+      .replace("\\r", "r")
       .replace("\\n", "n")
+      .replace("\\<", "<")
+      .replace("\\>", ">")
 }
