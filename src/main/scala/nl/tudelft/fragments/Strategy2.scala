@@ -1,22 +1,11 @@
 package nl.tudelft.fragments
 
-import javax.inject.Singleton
-
 import nl.tudelft.fragments.spoofax.Signatures.Decl
 import nl.tudelft.fragments.spoofax.{Printer, Signatures, Specification}
-import org.metaborg.core.project.{IProjectService, SimpleProjectService}
-import org.metaborg.spoofax.core.{Spoofax, SpoofaxModule}
 
 import scala.util.Random
 
 object Strategy2 {
-  val spoofax = new Spoofax(new SpoofaxModule() {
-    override def bindProject() {
-      bind(classOf[SimpleProjectService]).in(classOf[Singleton])
-      bind(classOf[IProjectService]).to(classOf[SimpleProjectService])
-    }
-  })
-
   def main(args: Array[String]): Unit = {
     implicit val signatures = Signatures.read(
       strategoPath = "zip:/Users/martijn/Projects/spoofax-releng/stratego/org.metaborg.meta.lang.stratego/target/org.metaborg.meta.lang.stratego-2.0.0-SNAPSHOT.spoofax-language!/",
@@ -38,7 +27,7 @@ object Strategy2 {
     println(closedRules)
 
     for (rule <- closedRules) {
-      val resolvedRule = rule.resolutionConstraints.foldLeft(List(rule)) { case (rules, res@CResolve(n1, n2)) =>
+      val resolvedRule = rule.resolve.foldLeft(List(rule)) { case (rules, res@CResolve(n1, n2)) =>
         rules.flatMap(Builder.resolve(_, res, null))
       }
 
@@ -51,7 +40,7 @@ object Strategy2 {
     val rule = rules.random
 
     // Pick a random recurse constraint
-    val recurseOpt = rule.recurse.safeRandom
+    val recurseOpt = rule.recurse.randomOption
 
     // Lazily merge a random other rule $r \in rules$ into $rule$, solving $recurse$
     val mergedOpt = recurseOpt.flatMap(recurse =>
@@ -64,7 +53,7 @@ object Strategy2 {
     mergedOpt.map(merged => {
       // Get resolution constraints
       val ress = merged
-        .resolutionConstraints
+        .resolve
         .shuffle
         .view
 

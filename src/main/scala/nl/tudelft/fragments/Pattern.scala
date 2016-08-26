@@ -16,6 +16,8 @@ abstract class Pattern {
   def freshen(nameBinding: Map[String, String]): (Map[String, String], Pattern)
 
   def unify(t: Pattern, termBinding: TermBinding = Map.empty): Option[TermBinding]
+
+  def find(f: Pattern => Boolean): Option[Pattern]
 }
 
 case class TermAppl(cons: String, children: List[Pattern] = Nil) extends Pattern {
@@ -56,6 +58,20 @@ case class TermAppl(cons: String, children: List[Pattern] = Nil) extends Pattern
 
   override def toString: String =
     s"""TermAppl("$cons", $children)"""
+
+  override def find(f: (Pattern) => Boolean): Option[Pattern] =
+    if (f(this)) {
+      Some(this)
+    } else {
+      for (child <- children) {
+        child.find(f) match {
+          case x@Some(_) => return x
+          case _ =>
+        }
+      }
+
+      None
+    }
 }
 
 case class TermVar(name: String) extends Pattern {
@@ -100,6 +116,13 @@ case class TermVar(name: String) extends Pattern {
 
   override def toString: String =
     s"""TermVar("$name")"""
+
+  override def find(f: (Pattern) => Boolean): Option[Pattern] =
+    if (f(this)) {
+      Some(this)
+    } else {
+      None
+    }
 }
 
 case class TermString(name: String) extends Pattern {
@@ -126,6 +149,9 @@ case class TermString(name: String) extends Pattern {
 
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Pattern) =
     ???
+
+  override def find(f: (Pattern) => Boolean): Option[Pattern] =
+    None
 }
 
 abstract class Name extends Pattern {
@@ -169,6 +195,9 @@ case class SymbolicName(namespace: String, name: String) extends Name {
 
   override def substituteSort(binding: SortBinding): Pattern =
     this
+
+  override def find(f: (Pattern) => Boolean): Option[Pattern] =
+    None
 }
 
 case class ConcreteName(namespace: String, name: String) extends Name {
@@ -195,4 +224,7 @@ case class ConcreteName(namespace: String, name: String) extends Name {
 
   override def substituteScope(binding: ScopeBinding): Pattern =
     ???
+
+  override def find(f: (Pattern) => Boolean): Option[Pattern] =
+    None
 }

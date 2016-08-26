@@ -3,6 +3,7 @@ package nl.tudelft.fragments.spoofax
 import org.spoofax.interpreter.terms.IStrategoTerm
 
 object SpoofaxScala {
+
   implicit class RichStrategoTerm(term: IStrategoTerm) {
     // Collect all terms on which f succeeds
     def collectAll(f: IStrategoTerm => Boolean): List[IStrategoTerm] =
@@ -26,6 +27,4 @@ object SpoofaxScala {
       }
   }
 
-  // A strategy is a function that either succeeds with a term or fails
-  //abstract class Strategy extends (IStrategoTerm => Option[IStrategoTerm])
 }

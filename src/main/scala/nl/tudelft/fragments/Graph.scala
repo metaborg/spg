@@ -26,10 +26,8 @@ case class Graph(/*wellFormedness: Regex, labels: List[Label], labelOrdering: La
     .map(_.asInstanceOf[CGRef].s)
 
   // Get declarations for scope
-  def declarations(s: Scope): List[Pattern] = facts.flatMap {
-    case CGDecl(`s`, n) => Some(n)
-    case _ => None
-  }
+  def declarations(s: Scope): List[Pattern] =
+    facts.collect { case CGDecl(`s`, n) => n }
 
   // Get scope associated to name
   def associated(n: Pattern) = facts
@@ -40,28 +38,20 @@ case class Graph(/*wellFormedness: Regex, labels: List[Label], labelOrdering: La
     .map(_.asInstanceOf[CGAssoc].s)
 
   // Get named imports for scope s
-  def imports(s: Scope): List[(Label, Pattern)] = facts.flatMap {
-    case CGNamedEdge(`s`, l, n) => Some((l, n))
-    case _ => None
-  }
+  def imports(s: Scope): List[(Label, Pattern)] =
+    facts.collect { case CGNamedEdge(`s`, l, n) => (l, n) }
 
   // Get l-labeled named imports for scope s
-  def imports(l: Label, s: Scope): List[Pattern] = facts.flatMap {
-    case CGNamedEdge(`s`, `l`, n) => Some(n)
-    case _ => None
-  }
+  def imports(l: Label, s: Scope): List[Pattern] =
+    facts.collect { case CGNamedEdge(`s`, `l`, n) => n }
 
   // Get endpoints of l-labeled edges for scope s
-  def edges(l: Label, s: Scope): List[Scope] = facts.flatMap {
-    case CGDirectEdge(`s`, `l`, s2) => Some(s2)
-    case _ => None
-  }
+  def edges(l: Label, s: Scope): List[Scope] =
+    facts.collect { case CGDirectEdge(`s`, `l`, s2) => s2 }
 
   // Get endpoints for any direct edge for scope s
-  def edges(s: Scope): List[(Label, Scope)] = facts.flatMap {
-    case CGDirectEdge(`s`, l, s2) => Some((l, s2))
-    case _ => None
-  }
+  def edges(s: Scope): List[(Label, Scope)] =
+    facts.collect { case CGDirectEdge(`s`, l, s2) => (l, s2) }
 
   // Set of declarations to which the reference can resolve
   def res(R: Resolution)(x: Pattern): List[(Pattern, List[NamingConstraint])] =

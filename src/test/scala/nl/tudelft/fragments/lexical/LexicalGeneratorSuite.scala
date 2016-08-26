@@ -7,7 +7,7 @@ class LexicalGeneratorSuite extends FunSuite {
   test("generate ") {
     val productions = List(
       // Identifier = [a-zA-Z][a-zA-Z0-9\_]*
-      Production(Sort("Identifier"), List(
+      Production(SortAppl("Identifier"), List(
         Simple(Range(Short('a'), Short('z')), Range(Short('A'), Short('Z'))),
         IterStar(
           Simple(Range(Short('a'), Short('z')), Range(Short('A'), Short('Z')), Range(Short('0'), Short('9')), Short('_'))
@@ -15,78 +15,78 @@ class LexicalGeneratorSuite extends FunSuite {
       )),
 
       // Integernumber = Digitsequence
-      Production(Sort("Integernumber"), List(Sort("Digitsequence"))),
+      Production(SortAppl("Integernumber"), List(SortAppl("Digitsequence"))),
 
       // Realnumber = Digitsequence "." Digitsequence? Scalefactor?
-      Production(Sort("Realnumber"), List[Symbol](
-        Sort("Digitsequence"),
+      Production(SortAppl("Realnumber"), List[Symbol](
+        SortAppl("Digitsequence"),
         Lit("."),
-        Opt(Sort("Digitsequence")),
-        Opt(Sort("Scalefactor"))
+        Opt(SortAppl("Digitsequence")),
+        Opt(SortAppl("Scalefactor"))
       )),
 
       // Realnumber = Digitsequence Scalefactor
-      Production(Sort("Realnumber"), List[Symbol](
-        Sort("Digitsequence"),
-        Opt(Sort("Scalefactor"))
+      Production(SortAppl("Realnumber"), List[Symbol](
+        SortAppl("Digitsequence"),
+        Opt(SortAppl("Scalefactor"))
       )),
 
       // Scalefactor = [Ee] [\+\-]? Digitsequence
-      Production(Sort("Scalefactor"), List[Symbol](
+      Production(SortAppl("Scalefactor"), List[Symbol](
         Simple(Short('E'), Short('e')),
         Opt(
           Simple(Short('+'), Short('-'))
         ),
-        Sort("Digitsequence")
+        SortAppl("Digitsequence")
       )),
 
       // Unsigneddigitsequence = [0-9]+
-      Production(Sort("Unsigneddigitsequence"), List[Symbol](
+      Production(SortAppl("Unsigneddigitsequence"), List[Symbol](
         Iter(Simple(Range(Short('0'), Short('9'))))
       )),
 
       // Digitsequence = [\+\-]? Unsigneddigitsequence
-      Production(Sort("Digitsequence"), List[Symbol](
+      Production(SortAppl("Digitsequence"), List[Symbol](
         Opt(
           Simple(Short('+'), Short('-'))
         ),
-        Sort("Unsigneddigitsequence")
+        SortAppl("Unsigneddigitsequence")
       )),
 
       // String = "'" Stringcharacter+  "'"
-      Production(Sort("String"), List[Symbol](
+      Production(SortAppl("String"), List[Symbol](
         Lit("'"),
         Iter(
-          Sort("Stringcharacter")
+          SortAppl("Stringcharacter")
         ),
         Lit("'")
       )),
 
       // Stringcharacter = ~[\']
-      Production(Sort("Stringcharacter"), List[Symbol](
+      Production(SortAppl("Stringcharacter"), List[Symbol](
         Comp(Simple(Short('\\')))
       )),
 
       // Stringcharacter = "''"
-      Production(Sort("Stringcharacter"), List[Symbol](
+      Production(SortAppl("Stringcharacter"), List[Symbol](
         Lit("''")
       ))
     )
 
     for (i <- 0 to 10) {
-      println(new LexicalGenerator(productions).generate(Sort("Identifier")))
+      println(new LexicalGenerator(productions).generate(SortAppl("Identifier")))
     }
 
     for (i <- 0 to 10) {
-      println(new LexicalGenerator(productions).generate(Sort("Integernumber")))
+      println(new LexicalGenerator(productions).generate(SortAppl("Integernumber")))
     }
 
     for (i <- 0 to 10) {
-      println(new LexicalGenerator(productions).generate(Sort("Realnumber")))
+      println(new LexicalGenerator(productions).generate(SortAppl("Realnumber")))
     }
 
     for (i <- 0 to 10) {
-      println(new LexicalGenerator(productions).generate(Sort("String")))
+      println(new LexicalGenerator(productions).generate(SortAppl("String")))
     }
   }
 }

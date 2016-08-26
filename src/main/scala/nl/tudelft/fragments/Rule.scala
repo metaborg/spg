@@ -1,18 +1,17 @@
 package nl.tudelft.fragments
 
-import nl.tudelft.fragments.spoofax.Signatures
-import nl.tudelft.fragments.spoofax.Signatures.Decl
+import nl.tudelft.fragments.spoofax.models.{Signature, Sort, SortAppl}
 
 // Rule
 case class Rule(sort: Sort, typ: Option[Pattern], scopes: List[Scope], state: State) {
-  def mergex(recurse: CGenRecurse, rule: Rule, checkConsistency: Boolean = true)(implicit signatures: List[Decl]): Option[(Rule, Map[String, String], SortBinding, TermBinding, ScopeBinding)] = {
+  def mergex(recurse: CGenRecurse, rule: Rule, checkConsistency: Boolean = true)(implicit signatures: List[Signature]): Option[(Rule, Map[String, String], SortBinding, TermBinding, ScopeBinding)] = {
     // Prevent naming conflicts by freshening the names in the other rule
     val (nameBinding, freshRule) = rule.freshen()
 
     // Unify sort, type, scope and merge the rules
     val merged = for (
-      sortUnifier <- mergeSorts(recurse.sort, freshRule.sort);
-      typeUnifier <- mergeTypes(recurse.typ, freshRule.typ);
+      sortUnifier <- Rule.mergeSorts(recurse.sort, freshRule.sort);
+      typeUnifier <- Rule.mergeTypes(recurse.typ, freshRule.typ);
       scopeUnifier <- recurse.scopes.unify(freshRule.scopes)
     ) yield {
       val merged = copy(state = state.merge(recurse, freshRule.state))
@@ -39,28 +38,8 @@ case class Rule(sort: Sort, typ: Option[Pattern], scopes: List[Scope], state: St
   }
 
   // Shortcut when only the merged rule should be returned
-  def merge(recurse: CGenRecurse, rule: Rule)(implicit signatures: List[Decl]): Option[Rule] = {
+  def merge(recurse: CGenRecurse, rule: Rule)(implicit signatures: List[Signature]): Option[Rule] =
     mergex(recurse, rule).map(_._1)
-  }
-
-  // Merge sorts s1, s2 by unifying s2 with any of the sorts in the injection closure of s1
-  def mergeSorts(s1: Sort, s2: Sort)(implicit signatures: List[Decl]): Option[SortBinding] = {
-    val possibleSorts = Signatures.injectionsClosure(Set(s1))
-
-    possibleSorts.view
-      .flatMap(_.unify(s2))
-      .headOption
-  }
-
-  // Merge types
-  def mergeTypes(t1: Option[Pattern], t2: Option[Pattern]): Option[TermBinding] = (t1, t2) match {
-    case (None, None) =>
-      Some(Map.empty[TermVar, Pattern])
-    case (Some(x), Some(y)) =>
-      x.unify(y)
-    case _ =>
-      None
-  }
 
   // Fix broken references by adding name disequalities
   def restoreResolution(rule: Rule) = {
@@ -106,7 +85,7 @@ case class Rule(sort: Sort, typ: Option[Pattern], scopes: List[Scope], state: St
       .filter(_.isInstanceOf[CGenRecurse])
       .asInstanceOf[List[CGenRecurse]]
 
-  def resolutionConstraints =
+  def resolve =
     constraints
       .filter(_.isInstanceOf[CResolve])
       .asInstanceOf[List[CResolve]]
@@ -148,8 +127,25 @@ case class Rule(sort: Sort, typ: Option[Pattern], scopes: List[Scope], state: St
     s"""Rule($sort, $typ, $scopes, $state)"""
 }
 
-// TODO: Backwards compatibility
 object Rule {
+  // TODO: This method is added for backwards compatibility
   def apply(pattern: Pattern, sort: Sort, typ: Pattern, scopes: List[Scope], state: State): Rule =
     Rule(sort, Some(typ), scopes, state.copy(pattern = pattern))
+
+  // Merge sort s1 with s2 by unifying s2 with any of the sorts in the injection closure of s1. Note: non-associative. TODO: We mixed up the associativity somehwere..
+  def mergeSorts(s1: Sort, s2: Sort)(implicit signatures: List[Signature]): Option[SortBinding] =
+    Sort.injectionsClosure(signatures)(Set(s1))
+      .view
+      .flatMap(_.unify(s2))
+      .headOption
+
+  // Merge types t1, t2
+  def mergeTypes(t1: Option[Pattern], t2: Option[Pattern]): Option[TermBinding] = (t1, t2) match {
+    case (None, None) =>
+      Some(Map.empty[TermVar, Pattern])
+    case (Some(x), Some(y)) =>
+      x.unify(y)
+    case _ =>
+      None
+  }
 }

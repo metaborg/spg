@@ -4,7 +4,8 @@ import nl.tudelft.fragments.spoofax._
 import nl.tudelft.fragments.spoofax.models._
 
 object Strategy8 {
-  val language = Language.load("/Users/martijn/Projects/metaborg-pascal", "Pascal")
+  //val language = Language.load("/Users/martijn/Projects/metaborg-pascal/org.metaborg.lang.pascal", "org.metaborg:org.metaborg.lang.pascal:0.1.0-SNAPSHOT", "Pascal")
+  val language = Language.load("/Users/martijn/Projects/scopes-frames/L3", "org.metaborg:L3:0.1.0-SNAPSHOT", "L3")
 
   // Make the various language specifications implicitly available
   implicit val productions = language.productions
@@ -69,8 +70,8 @@ object Strategy8 {
 
   // Build a complete program by growing a partial program
   def build(partial: Rule, rules: List[Rule], fuel: Int)(implicit signatures: List[Signature]): Either[Rule, Int] = {
-//    print(".")
-    println(partial)
+    print(".")
+//    println(partial)
 
     if (partial.recurse.isEmpty) {
       //println("Complete program: " + partial)

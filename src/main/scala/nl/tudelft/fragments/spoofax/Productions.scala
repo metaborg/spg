@@ -69,12 +69,14 @@ object Productions {
   def toTemplateSymbol(term: IStrategoTerm): List[Symbol] = term match {
     case appl: IStrategoAppl if appl.getConstructor.getName == "Layout" =>
       Nil
+    case appl: IStrategoAppl if appl.getConstructor.getName == "Escape" =>
+      Nil
+    case appl: IStrategoAppl if appl.getConstructor.getName == "String" =>
+      Nil
     case appl: IStrategoAppl if appl.getConstructor.getName == "Angled" =>
       toTemplateSymbol(appl.getSubterm(0))
     case appl: IStrategoAppl if appl.getConstructor.getName == "Placeholder" =>
       toTemplateSymbol(appl.getSubterm(0))
-    case appl: IStrategoAppl if appl.getConstructor.getName == "String" =>
-      Nil
     case appl: IStrategoAppl if appl.getConstructor.getName == "IterStarSep" =>
       List(IterStarSep(toSort(appl.getSubterm(0)), toString(appl.getSubterm(1).getSubterm(0))))
     case appl: IStrategoAppl if appl.getConstructor.getName == "IterStar" =>

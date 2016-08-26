@@ -13,12 +13,12 @@ object Consistency {
       checkTypeOf(rule.state.constraints, termBinding)
     }
 
-    typeEqualsCheck.isDefined && typeEqualsCheck.get && checkSubtyping(rule.state) && checkFalse(rule) /* && checkResolve(rule) && decidedDeclarationsConsistency(rule)*/ /*&& canSatisfyType(rule)*/
+    typeEqualsCheck.isDefined && typeEqualsCheck.get && checkSubtyping(rule.state) && checkNotFalse(rule) /* && checkResolve(rule) && decidedDeclarationsConsistency(rule)*/ /*&& canSatisfyType(rule)*/
   }
 
   // A false constraint can never be solved
-  def checkFalse(rule: Rule) =
-    rule.constraints.exists(_.isInstanceOf[CFalse])
+  def checkNotFalse(rule: Rule) =
+    !rule.constraints.exists(_.isInstanceOf[CFalse])
 
   // For references for which we cannot add new declarations, we can compute consistency relative to the possible resolutions
   def decidedDeclarationsConsistency(rule: Rule): Boolean =

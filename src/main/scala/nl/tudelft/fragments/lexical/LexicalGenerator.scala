@@ -1,7 +1,7 @@
 package nl.tudelft.fragments.lexical
 
-import nl.tudelft.fragments._
 import nl.tudelft.fragments.spoofax.models._
+import nl.tudelft.fragments._
 
 import scala.util.Random
 
@@ -14,7 +14,7 @@ class LexicalGenerator(productions: List[Production]) {
     */
   def generate(symbol: Symbol): String = symbol match {
     // Recursively generate sort
-    case Sort(_) =>
+    case SortAppl(_, Nil) =>
       val productionOpt = productions
         .filter(_.sort == symbol)
         .randomOption
@@ -57,7 +57,7 @@ class LexicalGenerator(productions: List[Production]) {
         ""
       }
     // Pick any character from a simple class
-    case Simple(ranges @ _*) =>
+    case Simple(ranges@_*) =>
       ranges
         .map(generate)
         .random

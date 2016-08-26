@@ -1,34 +1,18 @@
 package nl.tudelft.fragments
 
-import javax.inject.Singleton
-
-import nl.tudelft.fragments.spoofax.Signatures.Decl
-import nl.tudelft.fragments.spoofax.{Converter, Printer, Signatures, Specification}
-import org.metaborg.core.project.{IProjectService, SimpleProjectService}
-import org.metaborg.spoofax.core.{Spoofax, SpoofaxModule}
+import nl.tudelft.fragments.spoofax.models.{Signature, SortAppl}
+import nl.tudelft.fragments.spoofax.{Language, Printer, Specification}
 
 object Strategy4 {
-  val spoofax = new Spoofax(new SpoofaxModule() {
-    override def bindProject() {
-      bind(classOf[SimpleProjectService]).in(classOf[Singleton])
-      bind(classOf[IProjectService]).to(classOf[SimpleProjectService])
-    }
-  })
-
   def main(args: Array[String]): Unit = {
-    implicit val signatures = Signatures.read(
-      strategoPath = "zip:/Users/martijn/Projects/spoofax-releng/stratego/org.metaborg.meta.lang.stratego/target/org.metaborg.meta.lang.stratego-2.0.0-SNAPSHOT.spoofax-language!/",
-      signaturePath = "/Users/martijn/Projects/scopes-frames/L3/src-gen/signatures/L3-sig.str"
-    )
+    val language = Language.load("/Users/martijn/Projects/scopes-frames/L3", "org.metaborg:L3:0.1.0-SNAPSHOT", "L3")
 
-    implicit val rules = Specification.read(
-      nablPath = "zip:/Users/martijn/Projects/nabl/org.metaborg.meta.nabl2.lang/target/org.metaborg.meta.nabl2.lang-2.0.0-SNAPSHOT.spoofax-language!/",
-      specPath = "/Users/martijn/Projects/scopes-frames/L3/trans/analysis/l3.nabl2"
-    )
-
-    val print = Printer.printer(
-      languagePath = "/Users/martijn/Projects/scopes-frames/L3/"
-    )
+    // Make the various language specifications implicitly available
+    implicit val productions = language.productions
+    implicit val signatures = language.signatures
+    implicit val specification = language.specification
+    implicit val printer = language.printer
+    implicit val rules = specification.rules
 
     val kb = repeat(gen, 200)(rules)
 
@@ -51,12 +35,12 @@ object Strategy4 {
     }
   }
 
-  def gen(rules: List[Rule])(implicit signatures: List[Decl]): List[Rule] = {
+  def gen(rules: List[Rule])(implicit signatures: List[Signature]): List[Rule] = {
     // Pick a random rule
     val rule = rules.random
 
     // Pick a random recurse constraint
-    val recurseOpt = rule.recurse.safeRandom
+    val recurseOpt = rule.recurse.randomOption
 
     // Lazily merge a random other rule $r \in rules$ into $rule$, solving $recurse$
     val mergedOpt = recurseOpt.flatMap(recurse =>
@@ -69,7 +53,7 @@ object Strategy4 {
     mergedOpt.map(merged => {
       // Get resolution constraints
       val ress = merged
-        .resolutionConstraints
+        .resolve
         .shuffle
         .view
 
@@ -95,15 +79,15 @@ object Strategy4 {
   }
 
   // Complete the given rule by solving resolution & recurse constraints
-  def complete(rules: List[Rule], rule: Rule)(implicit signatures: List[Decl]): Option[Rule] = {
-    if (rule.resolutionConstraints.nonEmpty) {
+  def complete(rules: List[Rule], rule: Rule)(implicit signatures: List[Signature]): Option[Rule] = {
+    if (rule.resolve.nonEmpty) {
       val choices = resolveRandom(rules, rule)
 
       val smallChoices = choices
         .filter(choice => choice.pattern.size + choice.recurse.size <= 20)
 
       for (choice <- smallChoices) {
-        if (choice.resolutionConstraints.isEmpty && choice.recurse.isEmpty) {
+        if (choice.resolve.isEmpty && choice.recurse.isEmpty) {
           return Some(choice)
         } else {
           val deeper = complete(rules, choice)
@@ -124,7 +108,7 @@ object Strategy4 {
           return None
         } else {
           for (choice <- smallChoices) {
-            if (choice.resolutionConstraints.isEmpty && choice.recurse.isEmpty) {
+            if (choice.resolve.isEmpty && choice.recurse.isEmpty) {
               return Some(choice)
             } else {
               val deeper = complete(rules, choice)
@@ -144,8 +128,8 @@ object Strategy4 {
   }
 
   // Resolve a random resolution constraint
-  def resolveRandom(rules: List[Rule], rule: Rule)(implicit signatures: List[Decl]): List[Rule] = {
-    val res = rule.resolutionConstraints
+  def resolveRandom(rules: List[Rule], rule: Rule)(implicit signatures: List[Signature]): List[Rule] = {
+    val res = rule.resolve
 
     res.flatMap(res => {
       val resolveInternal = Builder.resolve(rule, res, null)
@@ -162,7 +146,7 @@ object Strategy4 {
   }
 
   // Solve a random recurse constraint
-  def solveRandom(rules: List[Rule], rule: Rule)(implicit signatures: List[Decl]): List[Rule] = {
+  def solveRandom(rules: List[Rule], rule: Rule)(implicit signatures: List[Signature]): List[Rule] = {
     val randomRules = rules.shuffle
 
     rule.recurse.flatMap(rec =>
