@@ -30,12 +30,27 @@ object Productions {
 
   def toProduction(term: IStrategoTerm): Production = term match {
     case appl: IStrategoAppl if appl.getConstructor.getName == "SdfProduction" =>
-      Production(toSort(appl.getSubterm(0)), toRhs(appl.getSubterm(1)))
+      Production(toSort(appl.getSubterm(0)), toRhs(appl.getSubterm(1)), toAttrs(appl.getSubterm(2)))
     case appl: IStrategoAppl if appl.getConstructor.getName == "SdfProductionWithCons" =>
-      Production(toSort(appl.getSubterm(0).getSubterm(0)), toRhs(appl.getSubterm(1)), Some(toConstructor(appl.getSubterm(0).getSubterm(1))))
+      Production(toSort(appl.getSubterm(0).getSubterm(0)), toRhs(appl.getSubterm(1)), toAttrs(appl.getSubterm(2)), Some(toConstructor(appl.getSubterm(0).getSubterm(1))))
     case appl: IStrategoAppl if appl.getConstructor.getName == "TemplateProductionWithCons" =>
-      Production(toSort(appl.getSubterm(0).getSubterm(0)), toRhs(appl.getSubterm(1)), Some(toConstructor(appl.getSubterm(0).getSubterm(1))))
+      Production(toSort(appl.getSubterm(0).getSubterm(0)), toRhs(appl.getSubterm(1)), toAttrs(appl.getSubterm(2)), Some(toConstructor(appl.getSubterm(0).getSubterm(1))))
   }
+
+  def toAttrs(term: IStrategoTerm): List[Attribute] = term match {
+    case appl: IStrategoAppl if appl.getConstructor.getName == "Attrs" =>
+      appl.getSubterm(0).getAllSubterms.toList.flatMap(toAttr)
+    case appl: IStrategoAppl if appl.getConstructor.getName == "NoAttrs" =>
+      Nil
+  }
+
+  def toAttr(term: IStrategoTerm): Option[Attribute] = term match {
+    case appl: IStrategoAppl if appl.getConstructor.getName == "Reject" =>
+      Some(Reject())
+    case _ =>
+      None
+  }
+
 
   def toConstructor(term: IStrategoTerm): String = term match {
     case appl: IStrategoAppl if appl.getConstructor.getName == "Constructor" =>

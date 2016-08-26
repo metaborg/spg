@@ -17,6 +17,7 @@ class LexicalGenerator(productions: List[Production]) {
     case SortAppl(_, Nil) =>
       val productionOpt = productions
         .filter(_.sort == symbol)
+        .filter(!_.isReject)
         .randomOption
 
       productionOpt

@@ -1,6 +1,9 @@
 package nl.tudelft.fragments.spoofax.models
 
-case class Production(sort: Sort, rhs: List[Symbol], cons: Option[String] = None) {
+case class Production(sort: Sort, rhs: List[Symbol], attributes: List[Attribute] = Nil, cons: Option[String] = None) {
+  def isReject: Boolean =
+    attributes.contains(Reject())
+
   def toSignature: Signature = {
     def rhsToConstType(rhs: Symbol): Option[ConstType] = rhs match {
       case x@SortAppl(_, _) =>
@@ -27,3 +30,8 @@ case class Production(sort: Sort, rhs: List[Symbol], cons: Option[String] = None
     }
   }
 }
+
+// Attributes
+abstract class Attribute
+
+case class Reject() extends Attribute
