@@ -367,7 +367,7 @@ object Specification {
           true
       }
 
-      constraints.map(toConstraint)
+      constraints.flatMap(toConstraint)
     }
   }
 
@@ -378,35 +378,41 @@ object Specification {
   }
 
   // Turn a constraint into a Constarint
-  def toConstraint(constraint: IStrategoTerm)(implicit vars: List[String]): Constraint = constraint match {
+  def toConstraint(constraint: IStrategoTerm)(implicit vars: List[String]): Option[Constraint] = constraint match {
     case appl: StrategoAppl if appl.getConstructor.getName == "CTrue" =>
-      CTrue()
+      Some(CTrue())
     case appl: StrategoAppl if appl.getConstructor.getName == "CGRef" =>
-      CGRef(toName(appl.getSubterm(0)), toScope(appl.getSubterm(1)))
+      Some(CGRef(toName(appl.getSubterm(0)), toScope(appl.getSubterm(1))))
     case appl: StrategoAppl if appl.getConstructor.getName == "CGDecl" =>
-      CGDecl(toScope(appl.getSubterm(1)), toName(appl.getSubterm(0)))
+      Some(CGDecl(toScope(appl.getSubterm(1)), toName(appl.getSubterm(0))))
     case appl: StrategoAppl if appl.getConstructor.getName == "CResolve" =>
-      CResolve(toName(appl.getSubterm(0)), toName(appl.getSubterm(1)))
+      Some(CResolve(toName(appl.getSubterm(0)), toName(appl.getSubterm(1))))
     case appl: StrategoAppl if appl.getConstructor.getName == "CTypeOf" =>
-      CTypeOf(toName(appl.getSubterm(0)), toType(appl.getSubterm(1)))
+      Some(CTypeOf(toName(appl.getSubterm(0)), toType(appl.getSubterm(1))))
     case appl: StrategoAppl if appl.getConstructor.getName == "CGDirectEdge" =>
-      CGDirectEdge(toScope(appl.getSubterm(0)), toLabel(appl.getSubterm(1)), toScope(appl.getSubterm(2)))
+      Some(CGDirectEdge(toScope(appl.getSubterm(0)), toLabel(appl.getSubterm(1)), toScope(appl.getSubterm(2))))
     case appl: StrategoAppl if appl.getConstructor.getName == "CEqual" =>
-      CEqual(toType(appl.getSubterm(0)), toType(appl.getSubterm(1)))
+      Some(CEqual(toType(appl.getSubterm(0)), toType(appl.getSubterm(1))))
     case appl: StrategoAppl if appl.getConstructor.getName == "CGAssoc" =>
-      CGAssoc(toName(appl.getSubterm(0)), toScope(appl.getSubterm(2)))
+      Some(CGAssoc(toName(appl.getSubterm(0)), toScope(appl.getSubterm(2))))
     case appl: StrategoAppl if appl.getConstructor.getName == "CAssoc" =>
-      CAssoc(toName(appl.getSubterm(0)), toScope(appl.getSubterm(2)))
+      Some(CAssoc(toName(appl.getSubterm(0)), toScope(appl.getSubterm(2))))
     case appl: StrategoAppl if appl.getConstructor.getName == "CSubtype" =>
-      CSubtype(toType(appl.getSubterm(0)), toType(appl.getSubterm(1)))
+      Some(CSubtype(toType(appl.getSubterm(0)), toType(appl.getSubterm(1))))
     case appl: StrategoAppl if appl.getConstructor.getName == "FSubtype" =>
-      FSubtype(toType(appl.getSubterm(0)), toType(appl.getSubterm(1)))
+      Some(FSubtype(toType(appl.getSubterm(0)), toType(appl.getSubterm(1))))
     case appl: StrategoAppl if appl.getConstructor.getName == "CGNamedEdge" =>
-      CGNamedEdge(toScope(appl.getSubterm(2)), toLabel(appl.getSubterm(1)), toName(appl.getSubterm(0)))
+      Some(CGNamedEdge(toScope(appl.getSubterm(2)), toLabel(appl.getSubterm(1)), toName(appl.getSubterm(0))))
     case appl: StrategoAppl if appl.getConstructor.getName == "CGenRecurse" =>
-      CGenRecurse(toPattern(appl.getSubterm(1)), toScopeAppls(appl.getSubterm(2)), toTypeOption(appl.getSubterm(3)), null)
+      Some(CGenRecurse(toPattern(appl.getSubterm(1)), toScopeAppls(appl.getSubterm(2)), toTypeOption(appl.getSubterm(3)), null))
     case appl: StrategoAppl if appl.getConstructor.getName == "CFalse" =>
-      CFalse()
+      Some(CFalse())
+
+    // Unsupported constraints, ignored by this method
+    case appl: StrategoAppl if appl.getConstructor.getName == "CDistinct" =>
+      None
+    case appl: StrategoAppl if appl.getConstructor.getName == "CInequal" =>
+      None
   }
 
   // Turn IStrategoString into String

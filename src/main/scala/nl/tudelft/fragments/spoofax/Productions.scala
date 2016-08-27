@@ -20,6 +20,7 @@ object Productions {
       case appl: IStrategoAppl =>
         appl.getConstructor.getName == "SdfProduction" ||
         appl.getConstructor.getName == "SdfProductionWithCons" ||
+        appl.getConstructor.getName == "TemplateProduction" ||
         appl.getConstructor.getName == "TemplateProductionWithCons"
       case _ =>
         false
@@ -33,6 +34,8 @@ object Productions {
       Production(toSort(appl.getSubterm(0)), toRhs(appl.getSubterm(1)), toAttrs(appl.getSubterm(2)))
     case appl: IStrategoAppl if appl.getConstructor.getName == "SdfProductionWithCons" =>
       Production(toSort(appl.getSubterm(0).getSubterm(0)), toRhs(appl.getSubterm(1)), toAttrs(appl.getSubterm(2)), Some(toConstructor(appl.getSubterm(0).getSubterm(1))))
+    case appl: IStrategoAppl if appl.getConstructor.getName == "TemplateProduction" =>
+      Production(toSort(appl.getSubterm(0)), toRhs(appl.getSubterm(1)), toAttrs(appl.getSubterm(2)))
     case appl: IStrategoAppl if appl.getConstructor.getName == "TemplateProductionWithCons" =>
       Production(toSort(appl.getSubterm(0).getSubterm(0)), toRhs(appl.getSubterm(1)), toAttrs(appl.getSubterm(2)), Some(toConstructor(appl.getSubterm(0).getSubterm(1))))
   }
@@ -88,6 +91,8 @@ object Productions {
       Nil
     case appl: IStrategoAppl if appl.getConstructor.getName == "String" =>
       Nil
+    case appl: IStrategoAppl if appl.getConstructor.getName == "Squared" =>
+      toTemplateSymbol(appl.getSubterm(0))
     case appl: IStrategoAppl if appl.getConstructor.getName == "Angled" =>
       toTemplateSymbol(appl.getSubterm(0))
     case appl: IStrategoAppl if appl.getConstructor.getName == "Placeholder" =>
@@ -117,6 +122,8 @@ object Productions {
       Iter(toSymbol(appl.getSubterm(0)))
     case appl: IStrategoAppl if appl.getConstructor.getName == "IterStar" =>
       IterStar(toSymbol(appl.getSubterm(0)))
+    case appl: IStrategoAppl if appl.getConstructor.getName == "Alt" =>
+      Alt(toSymbol(appl.getSubterm(0)), toSymbol(appl.getSubterm(1)))
     case appl: IStrategoAppl if appl.getConstructor.getName == "CharClass" =>
       toCharClass(appl.getSubterm(0))
     case appl: IStrategoAppl if appl.getConstructor.getName == "Comp" =>
