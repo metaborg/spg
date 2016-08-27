@@ -7,8 +7,9 @@ import nl.tudelft.fragments.Main
 import nl.tudelft.fragments.spoofax.models.{Sort, SortAppl}
 import org.apache.commons.io.IOUtils
 import org.metaborg.core.language.ILanguageImpl
+import org.metaborg.core.project.SimpleProjectService
 import org.metaborg.spoofax.core.syntax.SyntaxFacet
-import org.spoofax.interpreter.terms.IStrategoTerm
+import org.spoofax.interpreter.terms.{IStrategoString, IStrategoTerm}
 
 import scala.collection.JavaConverters._
 
@@ -42,6 +43,23 @@ object Utils {
     }
 
     parseResult.ast()
+  }
+
+  /**
+    * Get a pretty-printer for the language
+    */
+  def getPrinter(languageImpl: ILanguageImpl): (IStrategoTerm => IStrategoString) = {
+    val languageLocation = Iterables.get(languageImpl.locations(), 0)
+    val component = Iterables.get(languageImpl.components(), 0)
+
+    val projectService = s.injector.getInstance(classOf[SimpleProjectService])
+    projectService.create(languageLocation)
+
+    val project = s.projectService.get(languageLocation)
+    val context = s.contextService.get(languageLocation, project, languageImpl)
+    val runtime = s.strategoRuntimeService.runtime(component, context, false)
+
+    (term: IStrategoTerm) => s.strategoCommon.invoke(runtime, term, "pp-debug").asInstanceOf[IStrategoString]
   }
 
   /**

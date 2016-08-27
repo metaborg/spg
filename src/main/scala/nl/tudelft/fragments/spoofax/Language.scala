@@ -3,7 +3,6 @@ package nl.tudelft.fragments.spoofax
 import com.typesafe.scalalogging.Logger
 import nl.tudelft.fragments.Rule
 import nl.tudelft.fragments.spoofax.models._
-import org.metaborg.core.language.LanguageIdentifier
 import org.slf4j.LoggerFactory
 import org.spoofax.interpreter.terms.{IStrategoString, IStrategoTerm}
 
@@ -46,13 +45,11 @@ object Language {
 
     logger.info("Constructing printer")
 
-    val printer = Printer.printer(
-      languagePath = projectPath
-    )
+    val languageImpl = Utils.loadLanguage(s"zip:$projectPath/target/$id-$version.spoofax-language!/")
+    val printer = Utils.getPrinter(languageImpl)
 
     logger.info("Read start symbols")
 
-    val languageImpl = Utils.loadLanguage(s"zip:$projectPath/target/$id-$version.spoofax-language!/")
     val startSymbols = Utils.startSymbols(languageImpl)
 
     Language(productions, signatures, specification, printer, startSymbols)
