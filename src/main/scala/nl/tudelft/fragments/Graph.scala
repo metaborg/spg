@@ -30,7 +30,7 @@ case class Graph(/*wellFormedness: Regex, labels: List[Label], labelOrdering: La
     facts.collect { case CGDecl(`s`, n) => n }
 
   // Get scope associated to name
-  def associated(n: Pattern) = facts
+  def associated(n: Pattern): Option[Scope] = facts
     .find {
       case CGAssoc(`n`, s) => true
       case _ => false
@@ -75,7 +75,7 @@ case class Graph(/*wellFormedness: Regex, labels: List[Label], labelOrdering: La
 
   // Set of declarations that are reachable from S with path satisfying re
   def env(re: Regex, I: SeenImport, S: SeenScope, R: Resolution)(s: Scope): Environment =
-    if (S.contains(s) || re == EmptySet) {
+    if (S.contains(s) || re.rejectsAll) {
       Environment()
     } else {
       envLabels(re, 'D' :: labels, I, S, R)(s)
@@ -91,13 +91,13 @@ case class Graph(/*wellFormedness: Regex, labels: List[Label], labelOrdering: La
   // Multiplex based on label
   def envL(re: Regex, l: Label, I: SeenImport, S: SeenScope, R: Resolution)(s: Scope): Environment = l match {
     case Label('D') =>
-      envDec(re, I, S, R)(s)
+      envDec(re, I, R)(s)
     case _ =>
       envOther(re, l, I, S, R)(s)
   }
 
   // Set of declarations accessible from scope s with a D-labeled step
-  def envDec(re: Regex, I: SeenImport, S: SeenScope, R: Resolution)(s: Scope): Environment =
+  def envDec(re: Regex, I: SeenImport, R: Resolution)(s: Scope): Environment =
     if (!re.acceptsEmptyString) {
       Environment()
     } else {
@@ -137,17 +137,21 @@ case class Graph(/*wellFormedness: Regex, labels: List[Label], labelOrdering: La
 
   // Get scopes reachable from s
   def reachableScopes(re: Regex, I: SeenImport, S: SeenScope, R: Resolution)(s: Scope): List[Scope] = {
-    val current = if (re.acceptsEmptyString) {
-      List(s)
-    } else {
+    if (S.contains(s)) {
       Nil
-    }
+    } else {
+      val current = if (re.acceptsEmptyString) {
+        List(s)
+      } else {
+        Nil
+      }
 
-    val importedScopes = IS(I, R)(s)
-    val directScopes = edges(s).filter(_._2.vars.isEmpty)
+      val importedScopes = IS(I, R)(s)
+      val directScopes = edges(s).filter(_._2.vars.isEmpty)
 
-    current ++ (importedScopes ++ directScopes).flatMap { case (l, s) =>
-      reachableScopes(re.derive(l.name), I, s :: S, R)(s)
+      current ++ (importedScopes ++ directScopes).flatMap { case (l, scope) =>
+        reachableScopes(re.derive(l.name), I, s :: S, R)(scope)
+      }
     }
   }
 }
