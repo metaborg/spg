@@ -12,7 +12,7 @@ case class Rule(sort: Sort, typ: Option[Pattern], scopes: List[Scope], state: St
     val merged = for (
       sortUnifier <- Rule.mergeSorts(recurse.sort, freshRule.sort);
       typeUnifier <- Rule.mergeTypes(recurse.typ, freshRule.typ);
-      scopeUnifier <- recurse.scopes.unify(freshRule.scopes)
+      scopeUnifier <- Rule.mergeScopes(recurse.scopes, freshRule.scopes)
     ) yield {
       val merged = copy(state = state.merge(recurse, freshRule.state))
         .substitute(typeUnifier)
@@ -22,7 +22,7 @@ case class Rule(sort: Sort, typ: Option[Pattern], scopes: List[Scope], state: St
       // The merge might have broken references. Restore these by adding name disequalities.
       val restored = restoreResolution(merged)
 
-      // Check consistency. E.g. the merge might have unified t1 with t2, but if t1 = Int, t2 = Bool, it's inconsistent
+      // Check consistency
       if (checkConsistency) {
         if (Consistency.check(restored)) {
           Some((restored, nameBinding, sortUnifier, typeUnifier, scopeUnifier))
@@ -139,7 +139,7 @@ object Rule {
       .flatMap(_.unify(s2))
       .headOption
 
-  // Merge types t1, t2
+  // Merge type t1 with t2
   def mergeTypes(t1: Option[Pattern], t2: Option[Pattern]): Option[TermBinding] = (t1, t2) match {
     case (None, None) =>
       Some(Map.empty[TermVar, Pattern])
@@ -148,4 +148,8 @@ object Rule {
     case _ =>
       None
   }
+
+  // Merge sort s1 with s2
+  def mergeScopes(s1: List[Scope], s2: List[Scope]) =
+    s1.unify(s2)
 }
