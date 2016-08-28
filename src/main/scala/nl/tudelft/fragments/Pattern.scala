@@ -200,9 +200,9 @@ case class SymbolicName(namespace: String, name: String) extends Name {
     None
 }
 
-case class ConcreteName(namespace: String, name: String) extends Name {
+case class ConcreteName(namespace: String, name: String, position: Int) extends Name {
   override def vars: List[TermVar] =
-    ???
+    Nil
 
   override def names: List[SymbolicName] =
     ???
@@ -217,14 +217,22 @@ case class ConcreteName(namespace: String, name: String) extends Name {
     ???
 
   override def substitute(binding: Map[TermVar, Pattern]): Pattern =
-    ???
+    this
 
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Pattern) =
-    ???
+    if (nameBinding.contains(name + "@" + position)) {
+      (nameBinding, ConcreteName(namespace, name, nameBinding(name + "@" + position).toInt))
+    } else {
+      val fresh = nameProvider.next
+      (nameBinding + (name + "@" + position -> fresh.toString), ConcreteName(namespace, name, fresh))
+    }
 
   override def substituteScope(binding: ScopeBinding): Pattern =
     ???
 
   override def find(f: (Pattern) => Boolean): Option[Pattern] =
     None
+
+  override def toString: String =
+    s"""ConcreteName("$namespace", "$name", $position)"""
 }

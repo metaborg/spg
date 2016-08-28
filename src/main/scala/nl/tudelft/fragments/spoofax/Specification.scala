@@ -2,7 +2,7 @@ package nl.tudelft.fragments.spoofax
 
 import nl.tudelft.fragments.spoofax.SpoofaxScala._
 import nl.tudelft.fragments.spoofax.models._
-import nl.tudelft.fragments.{CAssoc, CEqual, CFalse, CGAssoc, CGDecl, CGDirectEdge, CGNamedEdge, CGRef, CGenRecurse, CResolve, CSubtype, CTrue, CTypeOf, Character, Concatenation, Constraint, EmptySet, Epsilon, FSubtype, Intersection, Label, LabelOrdering, Main, NameProvider, Pattern, Regex, Rule, Scope, ScopeAppl, ScopeVar, Star, State, SymbolicName, TermAppl, TermVar, Union}
+import nl.tudelft.fragments.{CAssoc, CEqual, CFalse, CGAssoc, CGDecl, CGDirectEdge, CGNamedEdge, CGRef, CGenRecurse, CResolve, CSubtype, CTrue, CTypeOf, Character, Concatenation, ConcreteName, Constraint, EmptySet, Epsilon, FSubtype, Intersection, Label, LabelOrdering, Main, NameProvider, Pattern, Regex, Rule, Scope, ScopeAppl, ScopeVar, Star, State, SymbolicName, TermAppl, TermVar, Union}
 import org.spoofax.interpreter.terms.{IStrategoAppl, IStrategoList, IStrategoString, IStrategoTerm}
 import org.spoofax.terms.{StrategoAppl, StrategoList}
 
@@ -202,16 +202,16 @@ object Specification {
         false
     }
 
-    rules.map {
-      case appl: IStrategoAppl if appl.getConstructor.getName == "CGenMatchRule" =>
-        toRule(appl)
+    rules.zipWithIndex.map {
+      case (appl: IStrategoAppl, index) if appl.getConstructor.getName == "CGenMatchRule" =>
+        toRule(index, appl)
     }
   }
 
   /**
     * Turn a CGenRule into a Rule
     */
-  def toRule(term: IStrategoTerm)(implicit signatures: List[Signature]): Rule = term match {
+  def toRule(ruleIndex: Int, term: IStrategoTerm)(implicit signatures: List[Signature]): Rule = term match {
     case appl: StrategoAppl =>
       val pattern = toPattern(appl.getSubterm(1))
       val scopes = toScopeAppls(appl.getSubterm(2))
@@ -234,11 +234,11 @@ object Specification {
 
       Rule(
         sort = toSort(pattern),
-        typ = toTypeOption(appl.getSubterm(3)),
+        typ = toTypeOption(ruleIndex, appl.getSubterm(3)),
         scopes = scopes,
         state = State(
           pattern = pattern,
-          constraints = toConstraints(appl.getSubterm(4))
+          constraints = toConstraints(ruleIndex, appl.getSubterm(4))
         )
       )
   }
@@ -282,23 +282,23 @@ object Specification {
       toPattern(list.head()) :: toPatternsList(list.tail())
   }
 
-  def toTypeOption(term: IStrategoTerm): Option[Pattern] = term match {
+  def toTypeOption(ruleIndex: Int, term: IStrategoTerm): Option[Pattern] = term match {
     case appl: StrategoAppl if appl.getConstructor.getName == "NoType" =>
       None
     case appl: StrategoAppl if appl.getConstructor.getName == "Type" =>
-      Some(toType(appl.getSubterm(0)))
+      Some(toType(ruleIndex, appl.getSubterm(0)))
   }
 
   // Turn a Stratego type into a Type (represented as Pattern)
-  def toType(term: IStrategoTerm): Pattern = term match {
+  def toType(ruleIndex: Int, term: IStrategoTerm): Pattern = term match {
     case appl: StrategoAppl if appl.getConstructor.getName == "Var" =>
       TermVar(toString(appl.getSubterm(0)))
     case appl: StrategoAppl if appl.getConstructor.getName == "List" =>
-      TermAppl("List", appl.getSubterm(0).getAllSubterms.toList.map(toType))
+      TermAppl("List", appl.getSubterm(0).getAllSubterms.toList.map(toType(ruleIndex, _)))
     case appl: StrategoAppl if appl.getConstructor.getName == "Op" =>
-      TermAppl(toString(appl.getSubterm(0)), appl.getSubterm(1).getAllSubterms.map(toType).toList)
+      TermAppl(toString(appl.getSubterm(0)), appl.getSubterm(1).getAllSubterms.map(toType(ruleIndex, _)).toList)
     case appl: StrategoAppl if appl.getConstructor.getName == "Occurrence" =>
-      toName(appl)
+      toName(ruleIndex, appl)
   }
 
   // Turn a Stratego scope into a ScopeAppl
@@ -342,11 +342,15 @@ object Specification {
   }
 
   // Turn a Stratego name into a Name
-  def toName(term: IStrategoTerm): Pattern = term match {
+  def toName(ruleIndex: Int, term: IStrategoTerm): Pattern = term match {
     case appl: StrategoAppl if appl.getConstructor.getName == "Var" =>
       TermVar(toString(appl.getSubterm(0)))
     case appl: StrategoAppl if appl.getConstructor.getName == "Occurrence" =>
-      SymbolicName(toNamespace(appl.getSubterm(0)), toString(appl.getSubterm(1).getSubterm(0)))
+      if (appl.getSubterm(1).asInstanceOf[StrategoAppl].getConstructor.getName == "Str") {
+        ConcreteName(toNamespace(appl.getSubterm(0)), toString(appl.getSubterm(1).getSubterm(0)), ruleIndex)
+      } else {
+        SymbolicName(toNamespace(appl.getSubterm(0)), toString(appl.getSubterm(1).getSubterm(0)))
+      }
   }
 
   // Turn a Stratego namespace into a string. Use "Default" as a default namespace.
@@ -358,8 +362,8 @@ object Specification {
   }
 
   // Turn a Stratego list of constraints into a List[Constraint]
-  def toConstraints(constraint: IStrategoTerm)(implicit vars: List[String]): List[Constraint] = constraint match {
-    case list: StrategoList => {
+  def toConstraints(ruleIndex: Int, constraint: IStrategoTerm)(implicit vars: List[String]): List[Constraint] = constraint match {
+    case list: StrategoList =>
       val constraints = list.getAllSubterms.toList.filter {
         case appl: StrategoAppl if appl.getConstructor.getName == "NewScopes" =>
           false
@@ -367,8 +371,7 @@ object Specification {
           true
       }
 
-      constraints.flatMap(toConstraint)
-    }
+      constraints.flatMap(toConstraint(ruleIndex, _))
   }
 
   // Turn a Stratego Var into a String
@@ -378,33 +381,33 @@ object Specification {
   }
 
   // Turn a constraint into a Constarint
-  def toConstraint(constraint: IStrategoTerm)(implicit vars: List[String]): Option[Constraint] = constraint match {
+  def toConstraint(ruleIndex: Int, constraint: IStrategoTerm)(implicit vars: List[String]): Option[Constraint] = constraint match {
     case appl: StrategoAppl if appl.getConstructor.getName == "CTrue" =>
       Some(CTrue())
     case appl: StrategoAppl if appl.getConstructor.getName == "CGRef" =>
-      Some(CGRef(toName(appl.getSubterm(0)), toScope(appl.getSubterm(1))))
+      Some(CGRef(toName(ruleIndex, appl.getSubterm(0)), toScope(appl.getSubterm(1))))
     case appl: StrategoAppl if appl.getConstructor.getName == "CGDecl" =>
-      Some(CGDecl(toScope(appl.getSubterm(1)), toName(appl.getSubterm(0))))
+      Some(CGDecl(toScope(appl.getSubterm(1)), toName(ruleIndex, appl.getSubterm(0))))
     case appl: StrategoAppl if appl.getConstructor.getName == "CResolve" =>
-      Some(CResolve(toName(appl.getSubterm(0)), toName(appl.getSubterm(1))))
+      Some(CResolve(toName(ruleIndex, appl.getSubterm(0)), toName(ruleIndex, appl.getSubterm(1))))
     case appl: StrategoAppl if appl.getConstructor.getName == "CTypeOf" =>
-      Some(CTypeOf(toName(appl.getSubterm(0)), toType(appl.getSubterm(1))))
+      Some(CTypeOf(toName(ruleIndex, appl.getSubterm(0)), toType(ruleIndex, appl.getSubterm(1))))
     case appl: StrategoAppl if appl.getConstructor.getName == "CGDirectEdge" =>
       Some(CGDirectEdge(toScope(appl.getSubterm(0)), toLabel(appl.getSubterm(1)), toScope(appl.getSubterm(2))))
     case appl: StrategoAppl if appl.getConstructor.getName == "CEqual" =>
-      Some(CEqual(toType(appl.getSubterm(0)), toType(appl.getSubterm(1))))
+      Some(CEqual(toType(ruleIndex, appl.getSubterm(0)), toType(ruleIndex, appl.getSubterm(1))))
     case appl: StrategoAppl if appl.getConstructor.getName == "CGAssoc" =>
-      Some(CGAssoc(toName(appl.getSubterm(0)), toScope(appl.getSubterm(2))))
+      Some(CGAssoc(toName(ruleIndex, appl.getSubterm(0)), toScope(appl.getSubterm(2))))
     case appl: StrategoAppl if appl.getConstructor.getName == "CAssoc" =>
-      Some(CAssoc(toName(appl.getSubterm(0)), toScope(appl.getSubterm(2))))
+      Some(CAssoc(toName(ruleIndex, appl.getSubterm(0)), toScope(appl.getSubterm(2))))
     case appl: StrategoAppl if appl.getConstructor.getName == "CSubtype" =>
-      Some(CSubtype(toType(appl.getSubterm(0)), toType(appl.getSubterm(1))))
+      Some(CSubtype(toType(ruleIndex, appl.getSubterm(0)), toType(ruleIndex, appl.getSubterm(1))))
     case appl: StrategoAppl if appl.getConstructor.getName == "FSubtype" =>
-      Some(FSubtype(toType(appl.getSubterm(0)), toType(appl.getSubterm(1))))
+      Some(FSubtype(toType(ruleIndex, appl.getSubterm(0)), toType(ruleIndex, appl.getSubterm(1))))
     case appl: StrategoAppl if appl.getConstructor.getName == "CGNamedEdge" =>
-      Some(CGNamedEdge(toScope(appl.getSubterm(2)), toLabel(appl.getSubterm(1)), toName(appl.getSubterm(0))))
+      Some(CGNamedEdge(toScope(appl.getSubterm(2)), toLabel(appl.getSubterm(1)), toName(ruleIndex, appl.getSubterm(0))))
     case appl: StrategoAppl if appl.getConstructor.getName == "CGenRecurse" =>
-      Some(CGenRecurse(toPattern(appl.getSubterm(1)), toScopeAppls(appl.getSubterm(2)), toTypeOption(appl.getSubterm(3)), null))
+      Some(CGenRecurse(toPattern(appl.getSubterm(1)), toScopeAppls(appl.getSubterm(2)), toTypeOption(ruleIndex, appl.getSubterm(3)), null))
     case appl: StrategoAppl if appl.getConstructor.getName == "CFalse" =>
       Some(CFalse())
 
