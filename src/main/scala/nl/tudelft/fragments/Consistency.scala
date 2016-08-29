@@ -9,15 +9,100 @@ object Consistency {
 
   // Check for consistency
   def check(rule: Rule)(implicit signatures: List[Signature]): Boolean = {
-    val typeEqualsCheck = checkTypeEquals(rule.state.constraints).map { case (termBinding) =>
-      checkTypeOf(rule.state.constraints, termBinding)
+    // Solve CEqual and CTypeOf constraints; should result in single state.
+    val states = solve(rule.state)
+
+    //val typeEqualsCheck = checkTypeEquals(rule.state.constraints)
+    //val typeOfCheck = typeEqualsCheck.exists(checkTypeOf(rule.state.constraints, _))
+    //typeEqualsCheck.isDefined && typeOfCheck && ...
+
+    // If states is empty, CEqual or CTypeOf are not consistent
+    states.nonEmpty &&
+    // Detect CFalse
+    notFalse(rule) &&
+    // Conservative subtype check: only allow x <? y if x <! y.
+    conservativeSubtyping(states.head)
+    // Detect cyclic inheritance
+    //checkCyclicSubtyping(states.head)
+    // && checkResolve(rule) && decidedDeclarationsConsistency(rule) && canSatisfyType(rule)*/
+  }
+
+  // Rewrite constraints, returning Left(None) if we cannot process the constraint, Left(Some(states)) if we can process the state, and Right if we find an inconsistency
+  def rewrite(c: Constraint, state: State): Either[Option[List[State]], String] = c match {
+    case CTypeOf(n, t) if n.vars.isEmpty =>
+      if (state.typeEnv.contains(n)) {
+        Left(Some(state.addConstraint(CEqual(state.typeEnv(n), t))))
+      } else {
+        Left(Some(state.copy(typeEnv = state.typeEnv + (n -> t))))
+      }
+    case CEqual(t1, t2) =>
+      if (t1.unify(t2).isEmpty) {
+        Right(s"Unable to unify $t1 with $t2")
+      } else {
+        Left(Some(state.substitute(t1.unify(t2).get)))
+      }
+    case FSubtype(t1, t2) if (t1.vars ++ t2.vars).isEmpty =>
+      if (state.subtypeRelation.domain.contains(t1)) {
+        Right(s"$t1 is already a subtype of $t2, cannot have multiple supertypes")
+      } else if (state.subtypeRelation.isSubtype(t2, t1)) {
+        Right(s"$t2 is already a subtype of $t2, cannot have cyclic subytping")
+      } else {
+        val closure = for (ty1 <- state.subtypeRelation.subtypeOf(t1); ty2 <- state.subtypeRelation.supertypeOf(t2))
+          yield (ty1, ty2)
+
+        Left(Some(state.copy(subtypeRelation = state.subtypeRelation ++ closure)))
+      }
+    case CSubtype(t1, t2) if (t1.vars ++ t2.vars).isEmpty && state.subtypeRelation.isSubtype(t1, t2) =>
+      Left(Some(state))
+    case _ =>
+      Left(None)
+  }
+
+  // Solve constraints by type. Returns a List[State] of possible resuting states, or `Nil` if it is not possible to solve all constraints of given type.
+  def solve(state: State): List[State] = state match {
+    case State(pattern, remaining, all, ts, resolution, subtype, conditions) =>
+      for (c <- remaining) {
+        val result = rewrite(c, State(pattern, remaining - c, all, ts, resolution, subtype, conditions))
+
+        result match {
+          case Left(None) =>
+            /* noop */
+          case Left(Some(states)) =>
+            return states.flatMap(solve)
+          case Right(_) =>
+            return Nil
+        }
+      }
+
+      List(state)
+  }
+
+  // Check that all subtyping constraints can be satisfied
+  def conservativeSubtyping(state: State) = {
+    // Build the subtype relation
+    val subtypeRelation = state.constraints.foldLeft(state.subtypeRelation) {
+      case (subtypeRelation, FSubtype(t1, t2)) if (t1.vars ++ t2.vars).isEmpty && !subtypeRelation.domain.contains(t1) && !subtypeRelation.isSubtype(t2, t1) =>
+        val closure = for (ty1 <- subtypeRelation.subtypeOf(t1); ty2 <- subtypeRelation.supertypeOf(t2))
+          yield (ty1, ty2)
+
+        subtypeRelation ++ closure
+      case (subtypeRelation, _) =>
+        subtypeRelation
     }
 
-    typeEqualsCheck.isDefined && typeEqualsCheck.get && checkSubtyping(rule.state) && checkNotFalse(rule) /* && checkResolve(rule) && decidedDeclarationsConsistency(rule)*/ /*&& canSatisfyType(rule)*/
+    // Verify the CSubtype constraints according to the subtype relation
+    val validSubtyping = state.constraints.forall {
+      case CSubtype(t1, t2) if (t1.vars ++ t2.vars).isEmpty =>
+        subtypeRelation.isSubtype(t1, t2)
+      case _ =>
+        true
+    }
+
+    validSubtyping
   }
 
   // A false constraint can never be solved
-  def checkNotFalse(rule: Rule) =
+  def notFalse(rule: Rule) =
     !rule.constraints.exists(_.isInstanceOf[CFalse])
 
   // For references for which we cannot add new declarations, we can compute consistency relative to the possible resolutions
@@ -54,7 +139,7 @@ object Consistency {
         } else {
           true
         }
-      case _ =>
+      case c@CResolve(n1, n2: TermVar) =>
         println(rule)
         assert(false)
         false
@@ -233,7 +318,7 @@ object Consistency {
   }
 
   // Check for cycles in the combination of Supertype constraints and the built-up subtyping relation
-  def checkSubtyping(state: State): Boolean = {
+  def checkCyclicSubtyping(state: State): Boolean = {
     val supertypeConstraints = state.constraints.flatMap {
       case c: FSubtype =>
         Some(c)
@@ -264,11 +349,8 @@ object Consistency {
 
   // Check if the TypeEquals unify
   def checkTypeEquals(C: List[Constraint]): Option[TermBinding] = {
-    val typeEquals = C.flatMap {
-      case c: CEqual =>
-        Some(c)
-      case _ =>
-        None
+    val typeEquals = C.collect {
+      case c: CEqual => c
     }
 
     typeEquals.foldLeftWhile(Map.empty[TermVar, Pattern]) {
