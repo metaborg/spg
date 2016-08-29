@@ -1,47 +1,51 @@
 package nl.tudelft.fragments
 
-import javax.inject.Singleton
+import java.io.FileReader
 
 import com.google.common.collect.ImmutableList
 import nl.tudelft.fragments.spoofax.Utils
-import org.metaborg.core.project.{IProjectService, SimpleProjectService}
-import org.metaborg.spoofax.core.unit.ISpoofaxParseUnit
-import org.metaborg.spoofax.core.{Spoofax, SpoofaxModule}
+import rx.lang.scala.JavaConversions.toScalaObservable
+import rx.lang.scala.{Observable, Subscriber}
+import rx.observables.StringObservable._
+import observable._
 
 // Verify generated terms against expectations
 object Runner {
-  val spoofax = new Spoofax(new SpoofaxModule() {
-    override def bindProject() {
-      bind(classOf[SimpleProjectService]).in(classOf[Singleton])
-      bind(classOf[IProjectService]).to(classOf[SimpleProjectService])
-    }
-  })
+  val s = Main.spoofax
 
-  def main(args: Array[String]) = {
-    val langPath = "/Users/martijn/Projects/scopes-frames/L3"
-    val text = io.Source.fromFile("/tmp/terms.log").getLines.mkString("\n")
-    val terms = text.split("===")
+  def main(args: Array[String]): Unit = {
+    val langPath = "/Users/martijn/Projects/MiniJava"
+    val termPath = "/tmp/terms.log"
 
-    for (term <- terms) {
-      val langImpl = Utils.loadLanguage(langPath)
-      val inputUnit = spoofax.unitService.inputUnit(term, langImpl, null)
+    val langImpl = Utils.loadLanguage(langPath)
+    val termObservable = toScalaObservable(from(new FileReader(termPath))).split("===".r)
 
-      // Parse
-      val parseResult: ISpoofaxParseUnit = spoofax.syntaxService.parse(inputUnit)
+    termObservable
+      .count(_ => true)
+      .subscribe(i => println(s"Tested $i terms"))
+    
+    termObservable.subscribe(
+      onNext = (term: String) => {
+        val inputUnit = s.unitService.inputUnit(term, langImpl, null)
+        val parseResult = s.syntaxService.parse(inputUnit)
 
-      if (!parseResult.valid() || !ImmutableList.copyOf(parseResult.messages()).isEmpty) {
-        println("Could not parse: " + term)
-      } else {
-        println("Parsed without errors")
-      }
+        if (!parseResult.valid() || !ImmutableList.copyOf(parseResult.messages()).isEmpty) {
+          println("Could not parse:")
+          println(term)
+        }
 
-      // TODO: Static analysis
-      // spoofax.analysisService.analyze(parseResult, ???)
+        // TODO: Static analysis
+        // spoofax.analysisService.analyze(parseResult, ???)
 
-      // TODO: Operation semantics (type safety)
-    }
+        // TODO: Operation semantics (type safety)
+      },
 
-    println("Done")
+      onError = (e: Throwable) =>
+        throw e,
+
+      onCompleted = () =>
+        println(s"Done")
+    )
   }
 }
 
