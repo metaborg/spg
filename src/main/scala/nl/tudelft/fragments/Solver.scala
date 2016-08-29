@@ -11,10 +11,7 @@ object Solver {
         state.copy(typeEnv = state.typeEnv + (n -> t))
       }
     case CEqual(t1, t2) =>
-      t1.unify(t2).map {
-        case (typeBinding) =>
-          state.substitute(typeBinding)
-      }
+      t1.unify(t2).map(state.substitute(_))
     case CResolve(n1, n2@TermVar(_)) if Graph(state.facts).res(state.resolution)(n1).nonEmpty =>
       if (state.resolution.contains(n1)) {
         state.substitute(Map(n2 -> state.resolution(n1)))
@@ -45,29 +42,7 @@ object Solver {
       None
   }
 
-  // Solve constraints until no more constraints can be solved and return the resulting states
-  def solvePartial(state: State): List[State] = state match {
-    case State(_, Nil, _, _, _, _, _) =>
-      state
-    case State(pattern, remaining, all, ts, resolution, subtype, conditions) =>
-      // Do not solve resolution constraints during solvePartial, because we do not want to make "new" decisions, only
-      // propagate "existing" knowledge. For example, we may be able to solve one resolution, but then fail on the
-      // second, since there is not yet a corresponding declaration.
-      val nonRes = remaining.filter(!_.isInstanceOf[CResolve])
-
-      for (c <- nonRes) {
-        val result = rewrite(c, State(pattern, remaining - c, all, ts, resolution, subtype, conditions))
-
-        // As soon as a rewrite works, stick to it.
-        if (result.nonEmpty) {
-          return result.flatMap(solvePartial)
-        }
-      }
-
-      state
-  }
-
-  // Solve as many constraints as possible
+  // Solve as many constraints as possible. Returns a List[State] of possible resuting states.
   def solveAny(state: State): List[State] = state match {
     case State(_, Nil, _, _, _, _, _) =>
       state
@@ -75,7 +50,6 @@ object Solver {
       for (c <- remaining) {
         val result = rewrite(c, State(pattern, remaining - c, all, ts, resolution, subtype, conditions))
 
-        // As soon as a rewrite works, stick to it.
         if (result.nonEmpty) {
           return result.flatMap(solveAny)
         }
@@ -84,30 +58,21 @@ object Solver {
       state
   }
 
-  // Solve all constraints, but give TypeEquals(_, _) and TypeOf(SymbolicName(_), _) precedence
-  def solve2(state: State): List[State] = state match {
+  // Solve all constraints. Returns `Nil` if it is not possible to solve all constraints.
+  def solve(state: State): List[State] = state match {
     case State(_, Nil, _, _, _, _, _) =>
       state
     case State(pattern, remaining, all, ts, resolution, subtype, conditions) =>
       for (c <- remaining) {
         val result = rewrite(c, State(pattern, remaining - c, all, ts, resolution, subtype, conditions))
 
-        // As soon as a rewrite works, stick to it.
         if (result.nonEmpty) {
-          return result.flatMap(solve2)
+          return result.flatMap(solve)
         }
       }
 
       None
   }
-
-  // Solve all constraints in the given state
-  def solve(state: State): List[State] =
-    solve2(state)
-
-  // Solve all constraints with an empty state (DEPRECATED)
-  def solve(constraints: List[Constraint]): List[State] =
-    ??? // solve2(State(constraints.filter(_.isProper), constraints, TypeEnv(), Resolution(), SubtypeRelation(), constraints.filter(_.isInstanceOf[NamingConstraint])))
 }
 
 /**

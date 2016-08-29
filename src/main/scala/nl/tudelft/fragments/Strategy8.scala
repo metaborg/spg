@@ -1,11 +1,15 @@
 package nl.tudelft.fragments
 
+import com.typesafe.scalalogging.Logger
 import nl.tudelft.fragments.spoofax._
 import nl.tudelft.fragments.spoofax.models._
+import org.slf4j.LoggerFactory
 
 object Strategy8 {
-  //val language = Language.load("/Users/martijn/Projects/metaborg-pascal/org.metaborg.lang.pascal", "org.metaborg:org.metaborg.lang.pascal:0.1.0-SNAPSHOT", "Pascal")
-  val language = Language.load("/Users/martijn/Projects/scopes-frames/L3", "org.metaborg:L3:0.1.0-SNAPSHOT", "L3")
+  val logger = Logger(LoggerFactory.getLogger(this.getClass))
+//  val language = Language.load("/Users/martijn/Projects/metaborg-pascal/org.metaborg.lang.pascal", "org.metaborg:org.metaborg.lang.pascal:0.1.0-SNAPSHOT", "Pascal")
+//  val language = Language.load("/Users/martijn/Projects/scopes-frames/L3", "org.metaborg:L3:0.1.0-SNAPSHOT", "L3")
+  val language = Language.load("/Users/martijn/Projects/MiniJava", "org.metaborg:MiniJava:0.1.0-SNAPSHOT", "MiniJava")
 
   // Make the various language specifications implicitly available
   implicit val productions = language.productions
@@ -15,15 +19,18 @@ object Strategy8 {
   implicit val rules = specification.rules
 
   def main(args: Array[String]): Unit = {
-    // Get all start rules
     val startRules = language.startRules
+
+    logger.info("Start growing")
 
     // Randomly combine rules to build larger rules
     val base = repeat(grow, 200)(rules)
 
+    logger.info("Start building")
+
     // Start from a start rule and build a complete program
     for (i <- 0 to 10000) {
-      val result = build(startRules.random, base.shuffle, 100)
+      val result = build(startRules.random, base.shuffle, 200)
 
       result match {
         case Left(rule) =>
@@ -70,23 +77,19 @@ object Strategy8 {
 
   // Build a complete program by growing a partial program
   def build(partial: Rule, rules: List[Rule], fuel: Int)(implicit signatures: List[Signature]): Either[Rule, Int] = {
-    print(".")
+//    print(".")
 //    println(partial)
 
     if (partial.recurse.isEmpty) {
-      //println("Complete program: " + partial)
-
       if (Solver.solve(partial.state).nonEmpty) {
-        //println("Solved!")
+        Left(partial)
       } else {
-        //println("Unable to solve..")
+        Right(-1)
       }
-
-      Left(partial)
     } else {
       val recurse = partial.recurse.random
 
-      val maxSize = 30
+      val maxSize = 40
       val remSize = maxSize - partial.pattern.size
       val divSize = remSize / partial.recurse.size
 
@@ -109,9 +112,6 @@ object Strategy8 {
             remainingFuel = complete.asInstanceOf[Right[_, Int]].b
 
             if (remainingFuel < 0) {
-              //println("Out of fuel")
-              println()
-
               return Right(remainingFuel)
             }
           }
