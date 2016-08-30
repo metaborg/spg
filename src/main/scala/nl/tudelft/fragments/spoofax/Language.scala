@@ -6,7 +6,7 @@ import nl.tudelft.fragments.spoofax.models._
 import org.slf4j.LoggerFactory
 import org.spoofax.interpreter.terms.{IStrategoString, IStrategoTerm}
 
-case class Language(productions: List[Production], signatures: List[Signature], specification: Specification, printer: IStrategoTerm => IStrategoString, startSymbols: List[Sort]) {
+class Language(val productions: List[Production], val signatures: List[Signature], val specification: Specification, val printer: IStrategoTerm => IStrategoString, val startSymbols: List[Sort]) {
   def isStartSymbol(sort: Sort): Boolean =
     startSymbols.contains(sort)
 
@@ -15,6 +15,17 @@ case class Language(productions: List[Production], signatures: List[Signature], 
 
   def startRules: List[Rule] =
     specification.rules.filter(isStartRule)
+
+  def sorts: List[Sort] = signatures
+    .map {
+      case OpDecl(_, FunType(_, ConstType(resultType))) =>
+        resultType
+      case OpDeclInj(FunType(_, ConstType(resultType))) =>
+        resultType
+      case OpDecl(_, ConstType(resultType)) =>
+        resultType
+    }
+    .distinct
 }
 
 object Language {
@@ -24,6 +35,10 @@ object Language {
 
   def load(projectPath: String, identifier: String, name: String): Language = {
     val Array(_, id, version) = identifier.split(':')
+
+    logger.info("Loading language {}", id)
+
+    val languageImpl = Utils.loadLanguage(s"zip:$projectPath/target/$id-$version.spoofax-language!/")
 
     logger.info("Loading productions")
 
@@ -45,14 +60,13 @@ object Language {
 
     logger.info("Constructing printer")
 
-    val languageImpl = Utils.loadLanguage(s"zip:$projectPath/target/$id-$version.spoofax-language!/")
     val printer = Utils.getPrinter(languageImpl)
 
     logger.info("Read start symbols")
 
     val startSymbols = Utils.startSymbols(languageImpl)
 
-    Language(productions, signatures, specification, printer, startSymbols)
+    new Language(productions, signatures, specification, printer, startSymbols)
   }
 
   def defaultSignatures: List[Signature] = List(

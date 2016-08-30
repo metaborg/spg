@@ -4,7 +4,7 @@ import nl.tudelft.fragments.spoofax.Language
 import nl.tudelft.fragments.spoofax.models.{Signature, SortAppl}
 
 object Strategy5 {
-  val language = Language.load("/Users/martijn/Projects/scopes-frames/L3", "org.metaborg:L3:0.1.0-SNAPSHOT", "L3")
+  implicit val language = Language.load("/Users/martijn/Projects/scopes-frames/L3", "org.metaborg:L3:0.1.0-SNAPSHOT", "L3")
 
   // Make the various language specifications implicitly available
   implicit val productions = language.productions

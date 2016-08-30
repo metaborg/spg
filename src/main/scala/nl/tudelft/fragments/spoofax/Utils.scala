@@ -56,7 +56,7 @@ object Utils {
     projectService.create(languageLocation)
 
     val project = s.projectService.get(languageLocation)
-    val context = s.contextService.get(languageLocation, project, languageImpl)
+    val context = s.contextService.getTemporary(languageLocation, project, languageImpl)
     val runtime = s.strategoRuntimeService.runtime(component, context, false)
 
     (term: IStrategoTerm) => s.strategoCommon.invoke(runtime, term, "pp-debug").asInstanceOf[IStrategoString]

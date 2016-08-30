@@ -103,4 +103,14 @@ class SignaturesSuite extends FunSuite {
       SortAppl("TypeIdentifier")
     ))
   }
+
+  test("closure of List(MethodDecl) in MiniJava") {
+    val language = Language.load("/Users/martijn/Projects/MiniJava", "org.metaborg:MiniJava:0.1.0-SNAPSHOT", "MiniJava")
+    val injections = Sort.injectionsClosure(language.signatures)(Set(SortAppl("IterStar", List(SortAppl("MethodDecl", List())))))
+
+    assert(injections == Set(
+      SortAppl("List", List(SortAppl("MethodDecl", List()))),
+      SortAppl("IterStar", List(SortAppl("MethodDecl", List())))
+    ))
+  }
 }

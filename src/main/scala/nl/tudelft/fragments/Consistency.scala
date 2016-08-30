@@ -1,14 +1,11 @@
 package nl.tudelft.fragments
 
 import nl.tudelft.fragments.spoofax.models.{Signature, Sort}
+import nl.tudelft.fragments.spoofax.Language
 
 object Consistency {
-  implicit val signatures = Strategy8.signatures
-
-  implicit val rules = Strategy8.rules
-
   // Check for consistency
-  def check(rule: Rule)(implicit signatures: List[Signature]): Boolean = {
+  def check(rule: Rule)(implicit language: Language): Boolean = {
     // Solve CEqual and CTypeOf constraints; should result in single state.
     val states = solve(rule.state)
 
@@ -106,13 +103,13 @@ object Consistency {
     !rule.constraints.exists(_.isInstanceOf[CFalse])
 
   // For references for which we cannot add new declarations, we can compute consistency relative to the possible resolutions
-  def decidedDeclarationsConsistency(rule: Rule): Boolean =
+  def decidedDeclarationsConsistency(rule: Rule)(implicit language: Language): Boolean =
     rule.resolve.forall {
       case c@CResolve(n1, n2: TermVar) =>
         val g = Graph(rule.state.facts)
         val s = g.scope(n1).get
 
-        if (!canAddDeclaration(Nil, rule, s, n1.asInstanceOf[Name].namespace, rules) && !canReachScopeVar(rule, s)) {
+        if (!canAddDeclaration(Nil, rule, s, n1.asInstanceOf[Name].namespace, language.specification.rules) && !canReachScopeVar(rule, s)) {
           val declarations = g.res(rule.state.resolution)(n1)
 
           // There must exist a declaration that, if n1 resolves to it, yields a consistent fragment
@@ -187,7 +184,7 @@ object Consistency {
     *
     * @return None if the answer cannot be computed; Some(Boolean) otherwise.
     */
-  def canAddDeclaration(seenSort: List[Sort], rule: Rule, scope: Scope, ns: String, bases: List[Rule])(implicit signatures: List[Signature]): Boolean = {
+  def canAddDeclaration(seenSort: List[Sort], rule: Rule, scope: Scope, ns: String, bases: List[Rule])(implicit language: Language): Boolean = {
     val graph = Graph(rule.state.facts)
 
     // TODO: reachableScopes does not return ScopeVars. What if a ScopeVar is reachable? Then we cannot answer the question?
@@ -257,7 +254,7 @@ object Consistency {
   }
 
   // Consistency of resolve constraints
-  def checkResolve(rule: Rule): Boolean = {
+  def checkResolve(rule: Rule)(implicit language: Language): Boolean = {
     val noDec = (resolveConstraint: CResolve) => {
       !Solver
         .rewrite(resolveConstraint, rule.state.copy(constraints = rule.state.constraints - resolveConstraint))

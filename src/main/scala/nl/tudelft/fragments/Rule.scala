@@ -1,10 +1,11 @@
 package nl.tudelft.fragments
 
-import nl.tudelft.fragments.spoofax.models.{Signature, Sort, SortAppl}
+import nl.tudelft.fragments.spoofax.Language
+import nl.tudelft.fragments.spoofax.models.{Sort, SortAppl, SortVar}
 
 // Rule
 case class Rule(sort: Sort, typ: Option[Pattern], scopes: List[Scope], state: State) {
-  def mergex(recurse: CGenRecurse, rule: Rule, checkConsistency: Boolean = true)(implicit signatures: List[Signature]): Option[(Rule, Map[String, String], SortBinding, TermBinding, ScopeBinding)] = {
+  def mergex(recurse: CGenRecurse, rule: Rule, checkConsistency: Boolean = true)(implicit language: Language): Option[(Rule, Map[String, String], SortBinding, TermBinding, ScopeBinding)] = {
     // Prevent naming conflicts by freshening the names in the other rule
     val (nameBinding, freshRule) = rule.freshen()
 
@@ -20,7 +21,8 @@ case class Rule(sort: Sort, typ: Option[Pattern], scopes: List[Scope], state: St
         .substituteScope(scopeUnifier)
 
       // The merge might have broken references. Restore these by adding name disequalities.
-      val restored = restoreResolution(merged)
+      //val restored = restoreResolution(merged)
+      val restored = merged
 
       // Check consistency
       if (checkConsistency) {
@@ -38,7 +40,7 @@ case class Rule(sort: Sort, typ: Option[Pattern], scopes: List[Scope], state: St
   }
 
   // Shortcut when only the merged rule should be returned
-  def merge(recurse: CGenRecurse, rule: Rule)(implicit signatures: List[Signature]): Option[Rule] =
+  def merge(recurse: CGenRecurse, rule: Rule)(implicit language: Language): Option[Rule] =
     mergex(recurse, rule).map(_._1)
 
   // Fix broken references by adding name disequalities
@@ -128,16 +130,16 @@ case class Rule(sort: Sort, typ: Option[Pattern], scopes: List[Scope], state: St
 }
 
 object Rule {
-  // TODO: This method is added for backwards compatibility
-  def apply(pattern: Pattern, sort: Sort, typ: Pattern, scopes: List[Scope], state: State): Rule =
-    Rule(sort, Some(typ), scopes, state.copy(pattern = pattern))
-
-  // Merge sort s1 with s2 by unifying s2 with any of the sorts in the injection closure of s1. Note: non-associative. TODO: We mixed up the associativity somehwere..
-  def mergeSorts(s1: Sort, s2: Sort)(implicit signatures: List[Signature]): Option[SortBinding] =
-    Sort.injectionsClosure(signatures)(Set(s1))
-      .view
-      .flatMap(_.unify(s2))
-      .headOption
+  // Merge sort s1 with s2 by unifying s2 with any of the sorts in the injection closure of s1
+  def mergeSorts(s1: Sort, s2: Sort)(implicit language: Language): Option[SortBinding] = s1 match {
+    case SortVar(_) =>
+      s1.unify(s2)
+    case SortAppl(_, children) =>
+      Sort
+        .injectionsClosure(language.signatures)(Set(s1)).view
+        .flatMap(_.unify(s2))
+        .headOption
+  }
 
   // Merge type t1 with t2
   def mergeTypes(t1: Option[Pattern], t2: Option[Pattern]): Option[TermBinding] = (t1, t2) match {
