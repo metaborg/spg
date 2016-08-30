@@ -1,7 +1,7 @@
 package nl.tudelft.fragments
 
+import nl.tudelft.fragments.spoofax.models.{Signature, Sort, SortAppl, SortVar}
 import nl.tudelft.fragments.spoofax.Language
-import nl.tudelft.fragments.spoofax.models.{Sort, SortAppl, SortVar}
 
 // Rule
 case class Rule(sort: Sort, typ: Option[Pattern], scopes: List[Scope], state: State) {
@@ -20,7 +20,7 @@ case class Rule(sort: Sort, typ: Option[Pattern], scopes: List[Scope], state: St
         .substituteSort(sortUnifier)
         .substituteScope(scopeUnifier)
 
-      // The merge might have broken references. Restore these by adding name disequalities.
+      // The merge might have broken references. Restore these by adding name disequalities. TODO
       //val restored = restoreResolution(merged)
       val restored = merged
 
