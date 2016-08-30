@@ -264,9 +264,10 @@ object Specification {
     case appl: StrategoAppl if appl.getConstructor.getName == "List" =>
       TermAppl("Nil")
     case appl: StrategoAppl if appl.getConstructor.getName == "ListTail" =>
-      val patterns = toPatternsList(appl.getSubterm(0)) :+ toPattern(appl.getSubterm(1))
+      val heads = toPatternsList(appl.getSubterm(0))
+      val tail = toPattern(appl.getSubterm(1))
 
-      patterns.foldRight(TermAppl("Nil")) { case (acc, x) =>
+      heads.foldLeft(tail) { case (acc, x) =>
         TermAppl("Cons", List(x, acc))
       }
     case appl: StrategoAppl if appl.getConstructor.getName == "Var" =>
