@@ -38,6 +38,12 @@ object Consistency {
       } else {
         Left(Some(state.substitute(t1.unify(t2).get)))
       }
+    case CInequal(t1, t2) if t1.vars.isEmpty && t2.vars.isEmpty =>
+      if (t1 == t2) {
+        Right(s"Terms $t1 equals $t2 violating inequality")
+      } else {
+        Left(Some(state))
+      }
     case FSubtype(t1, t2) if (t1.vars ++ t2.vars).isEmpty =>
       if (state.subtypeRelation.domain.contains(t1)) {
         Right(s"$t1 is already a subtype of $t2, cannot have multiple supertypes")

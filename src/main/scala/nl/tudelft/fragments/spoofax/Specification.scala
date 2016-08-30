@@ -2,7 +2,7 @@ package nl.tudelft.fragments.spoofax
 
 import nl.tudelft.fragments.spoofax.SpoofaxScala._
 import nl.tudelft.fragments.spoofax.models._
-import nl.tudelft.fragments.{CAssoc, CEqual, CFalse, CGAssoc, CGDecl, CGDirectEdge, CGNamedEdge, CGRef, CGenRecurse, CResolve, CSubtype, CTrue, CTypeOf, Character, Concatenation, ConcreteName, Constraint, EmptySet, Epsilon, FSubtype, Intersection, Label, LabelOrdering, Main, NameProvider, Pattern, Regex, Rule, Scope, ScopeAppl, ScopeVar, Star, State, SymbolicName, TermAppl, TermVar, Union}
+import nl.tudelft.fragments._
 import org.spoofax.interpreter.terms.{IStrategoAppl, IStrategoList, IStrategoString, IStrategoTerm}
 import org.spoofax.terms.{StrategoAppl, StrategoList}
 
@@ -14,9 +14,6 @@ class ResolutionParams(val labels: List[Label], val order: PartialOrdering[Label
 
 // Companion object
 object Specification {
-  // TODO: Can we make Main.spoofax globally available or something? Or use DI, since it is just a dependency?
-  val s = Main.spoofax
-
   // Start at 9 so we do not clash with names in the rules
   val nameProvider = NameProvider(9)
 
@@ -409,6 +406,8 @@ object Specification {
       Some(CGNamedEdge(toScope(appl.getSubterm(2)), toLabel(appl.getSubterm(1)), toName(ruleIndex, appl.getSubterm(0))))
     case appl: StrategoAppl if appl.getConstructor.getName == "CGenRecurse" =>
       Some(CGenRecurse(toPattern(appl.getSubterm(1)), toScopeAppls(appl.getSubterm(2)), toTypeOption(ruleIndex, appl.getSubterm(3)), null))
+    case appl: StrategoAppl if appl.getConstructor.getName == "CInequal" =>
+      Some(CInequal(toType(ruleIndex, appl.getSubterm(0)), toType(ruleIndex, appl.getSubterm(1))))
     case appl: StrategoAppl if appl.getConstructor.getName == "CFalse" =>
       Some(CFalse())
 

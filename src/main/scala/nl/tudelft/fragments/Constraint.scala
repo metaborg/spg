@@ -207,6 +207,27 @@ case class CEqual(t1: Pattern, t2: Pattern) extends Constraint {
     true
 }
 
+case class CInequal(t1: Pattern, t2: Pattern) extends Constraint {
+  override def substitute(binding: TermBinding): Constraint =
+    CInequal(t1.substitute(binding), t2.substitute(binding))
+
+  override def substituteScope(binding: ScopeBinding): Constraint =
+    this
+
+  override def substituteSort(binding: SortBinding): Constraint =
+    this
+
+  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
+    t1.freshen(nameBinding).map { case (nameBinding, t1) =>
+      t2.freshen(nameBinding).map { case (nameBinding, t2) =>
+        (nameBinding, CInequal(t1, t2))
+      }
+    }
+
+  override def isProper =
+    true
+}
+
 case class FSubtype(t1: Pattern, t2: Pattern) extends Constraint {
   override def substitute(binding: TermBinding): Constraint =
     FSubtype(t1.substitute(binding), t2.substitute(binding))

@@ -11,7 +11,9 @@ object Solver {
         state.copy(typeEnv = state.typeEnv + (n -> t))
       }
     case CEqual(t1, t2) =>
-      t1.unify(t2).map(state.substitute(_))
+      t1.unify(t2).map(state.substitute)
+    case CInequal(t1, t2) if t1.vars.isEmpty && t2.vars.isEmpty && t1 != t2 =>
+      state
     case CResolve(n1, n2@TermVar(_)) if Graph(state.facts).res(state.resolution)(n1).nonEmpty =>
       if (state.resolution.contains(n1)) {
         state.substitute(Map(n2 -> state.resolution(n1)))
@@ -39,7 +41,7 @@ object Solver {
     case CSubtype(t1, t2) if (t1.vars ++ t2.vars).isEmpty && state.subtypeRelation.isSubtype(t1, t2) =>
       state
     case _ =>
-      None
+      Nil
   }
 
   // Solve as many constraints as possible. Returns a List[State] of possible resuting states.
