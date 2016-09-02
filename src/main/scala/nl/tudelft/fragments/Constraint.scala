@@ -13,6 +13,8 @@ abstract class Constraint {
   def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint)
 
   def isProper: Boolean = false
+
+  def priority: Int = 99
 }
 
 // Facts
@@ -31,6 +33,9 @@ case class CTrue() extends Constraint {
 
   override def isProper: Boolean =
     true
+
+  override def priority =
+    0
 }
 
 case class CGDirectEdge(s1: Scope, l: Label, s2: Scope) extends Constraint {
@@ -49,6 +54,9 @@ case class CGDirectEdge(s1: Scope, l: Label, s2: Scope) extends Constraint {
         (nameBinding, CGDirectEdge(s1, l, s2))
       }
     }
+
+  override def priority =
+    3
 }
 
 case class CGDecl(s: Scope, n: Pattern) extends Constraint {
@@ -67,6 +75,9 @@ case class CGDecl(s: Scope, n: Pattern) extends Constraint {
         (nameBinding, CGDecl(s, n))
       }
     }
+
+  override def priority =
+    3
 }
 
 case class CGRef(n: Pattern, s: Scope) extends Constraint {
@@ -85,6 +96,9 @@ case class CGRef(n: Pattern, s: Scope) extends Constraint {
         (nameBinding, CGRef(n, s))
       }
     }
+
+  override def priority =
+    3
 }
 
 case class CGNamedEdge(s: Scope, l: Label, n: Pattern) extends Constraint {
@@ -103,6 +117,9 @@ case class CGNamedEdge(s: Scope, l: Label, n: Pattern) extends Constraint {
         (nameBinding, CGNamedEdge(s, l, n))
       }
     }
+
+  override def priority =
+    3
 }
 
 case class CGAssoc(n: Pattern, s: Scope) extends Constraint {
@@ -121,6 +138,9 @@ case class CGAssoc(n: Pattern, s: Scope) extends Constraint {
         (nameBinding, CGAssoc(n, s))
       }
     }
+
+  override def priority =
+    3
 }
 
 case class CAssoc(n: Pattern, s: Scope) extends Constraint {
@@ -142,6 +162,9 @@ case class CAssoc(n: Pattern, s: Scope) extends Constraint {
 
   override def isProper =
     true
+
+  override def priority =
+    4
 }
 
 case class CResolve(n1: Pattern, n2: Pattern) extends Constraint {
@@ -163,6 +186,9 @@ case class CResolve(n1: Pattern, n2: Pattern) extends Constraint {
 
   override def isProper =
     true
+
+  override def priority =
+    4
 }
 
 case class CTypeOf(n: Pattern, t: Pattern) extends Constraint {
@@ -184,6 +210,9 @@ case class CTypeOf(n: Pattern, t: Pattern) extends Constraint {
 
   override def isProper =
     true
+
+  override def priority =
+    1
 }
 
 case class CEqual(t1: Pattern, t2: Pattern) extends Constraint {
@@ -205,6 +234,9 @@ case class CEqual(t1: Pattern, t2: Pattern) extends Constraint {
 
   override def isProper =
     true
+
+  override def priority =
+    0
 }
 
 case class CInequal(t1: Pattern, t2: Pattern) extends Constraint {
@@ -226,6 +258,9 @@ case class CInequal(t1: Pattern, t2: Pattern) extends Constraint {
 
   override def isProper =
     true
+
+  override def priority =
+    99
 }
 
 case class FSubtype(t1: Pattern, t2: Pattern) extends Constraint {
@@ -247,6 +282,9 @@ case class FSubtype(t1: Pattern, t2: Pattern) extends Constraint {
 
   override def isProper =
     true
+
+  override def priority =
+    0
 }
 
 case class CSubtype(t1: Pattern, t2: Pattern) extends Constraint {
@@ -268,6 +306,9 @@ case class CSubtype(t1: Pattern, t2: Pattern) extends Constraint {
 
   override def isProper =
     true
+
+  override def priority =
+    6
 }
 
 case class CGenRecurse(pattern: Pattern, scopes: List[Scope], typ: Option[Pattern], sort: Sort) extends Constraint {
@@ -314,4 +355,7 @@ case class CFalse() extends Constraint {
 
   override def isProper =
     true
+
+  override def priority =
+    0
 }

@@ -61,7 +61,7 @@ object Solver {
   }
 
   // Solve all constraints. Returns `Nil` if it is not possible to solve all constraints.
-  def solve(state: State): List[State] = state match {
+  def solvePrivate(state: State): List[State] = state match {
     case State(_, Nil, _, _, _, _, _) =>
       state
     case State(pattern, remaining, all, ts, resolution, subtype, conditions) =>
@@ -74,6 +74,15 @@ object Solver {
       }
 
       None
+  }
+
+  // Solve constraints after sorting on priority
+  def solve(state: State): List[State] = {
+    val sortedState = state.copy(
+      constraints = state.constraints.sortBy(_.priority)
+    )
+
+    solvePrivate(sortedState)
   }
 }
 
