@@ -12,12 +12,15 @@ object Consistency {
     // If states is empty, there was an inconsistency
     states.nonEmpty &&
     // Conservative subtype check: only allow x <? y if x <! y.
-    conservativeSubtyping(states.head)
+    conservativeSubtyping(states.head) &&
+    // Every unresolved reference for which no recurse constraint with a reachable scope exists, must consistently resolve to any of the reachable declarations
+    checkResolveScope(rule)
+
     // && checkResolve(rule) && decidedDeclarationsConsistency(rule) && canSatisfyType(rule)*/
   }
 
   // Rewrite constraints, returning Left(None) if we cannot process the constraint, Left(Some(states)) if we can process the state, and Right if we find an inconsistency
-  def rewrite(c: Constraint, state: State): Either[Option[List[State]], String] = c match {
+  def rewrite(c: Constraint, state: State): Either[Option[State], String] = c match {
     case CFalse() =>
       Right(s"Unable to solve CFalse()")
     case CTypeOf(n, t) if n.vars.isEmpty =>
@@ -49,15 +52,12 @@ object Consistency {
 
         Left(Some(state.copy(subtypeRelation = state.subtypeRelation ++ closure)))
       }
-    // TODO: What is the purpose of this rewrite?
-    case CSubtype(t1, t2) if (t1.vars ++ t2.vars).isEmpty && state.subtypeRelation.isSubtype(t1, t2) =>
-      Left(Some(state))
     case _ =>
       Left(None)
   }
 
-  // Solve constraints by type. Returns a List[State] of possible resuting states, or `Nil` if it is not possible to solve all constraints of given type.
-  def solve(state: State): List[State] = state match {
+  // Solve constraints by type. Returns `None` if constraints contain a consistency or `Some(state)` with the resulting state.
+  def solve(state: State): Option[State] = state match {
     case State(pattern, remaining, all, ts, resolution, subtype, conditions) =>
       for (c <- remaining) {
         val result = rewrite(c, State(pattern, remaining - c, all, ts, resolution, subtype, conditions))
@@ -65,14 +65,14 @@ object Consistency {
         result match {
           case Left(None) =>
             /* noop */
-          case Left(Some(states)) =>
-            return states.flatMap(solve)
+          case Left(Some(result)) =>
+            return solve(result)
           case Right(_) =>
-            return Nil
+            return None
         }
       }
 
-      List(state)
+      Some(state)
   }
 
   // Check that all subtyping constraints can be satisfied
@@ -100,6 +100,47 @@ object Consistency {
 
     validSubtyping
   }
+
+  // Check that unresolved references that won't get new declarations, can resolve to any of the declarations
+  def checkResolveScope(rule: Rule)(implicit language: Language): Boolean = {
+    val resolve = rule.resolve
+    val recurse = rule.recurse
+    val graph = Graph(rule.state.facts)
+
+    for (CResolve(n1, n2) <- resolve) {
+      val scopes = graph.reachableScopes(rule.state.resolution)(graph.scope(n1).get)
+      val incomplete = scopes.exists(scope => recurse.exists(recurse => recurse.scopes.contains(scope)))
+      val scopeVarReachable = canReachScopeVar(rule, graph.scope(n1).get)
+
+      if (!incomplete && !scopeVarReachable) {
+        val declarations = graph.res(rule.state.resolution)(n1)
+        val compatible = declarations.exists { case (declaration, namingConstraint) =>
+          // Resolve `n1` to `declaration`
+          val substitutedState = rule.state
+            .copy(constraints = rule.state.constraints - CResolve(n1, n2))
+            .substitute(Map(n2.asInstanceOf[TermVar] -> declaration))
+
+          val resolvedState = substitutedState.copy(
+            resolution = substitutedState.resolution + (n1 -> declaration),
+            nameConstraints = namingConstraint ++ substitutedState.nameConstraints
+          )
+
+          val resolvedRule = rule.copy(state = resolvedState)
+
+          // Check consistency of the resulting rule
+          Consistency.check(resolvedRule)
+        }
+
+        if (!compatible) {
+          return false
+        }
+      }
+    }
+
+    true
+  }
+
+
 
 
 
