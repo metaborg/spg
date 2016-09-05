@@ -12,8 +12,8 @@ abstract class Sort extends Symbol {
 }
 
 object Sort {
-  def injections(signatures: List[Signature])(sort: Sort): Set[Sort] = {
-    val sorts = signatures.flatMap {
+  def injections(signatures: Signatures)(sort: Sort): Set[Sort] = {
+    val sorts = signatures.list.flatMap {
       case OpDeclInj(FunType(List(ConstType(x)), ConstType(y))) =>
         y.unify(sort).map(x.substituteSort)
       case _ =>
@@ -23,10 +23,10 @@ object Sort {
     sorts.toSet
   }
 
-  def transitiveInjections(signatures: List[Signature])(sorts: Set[Sort]): Set[Sort] =
+  def transitiveInjections(signatures: Signatures)(sorts: Set[Sort]): Set[Sort] =
     sorts.flatMap(injections(signatures)) ++ sorts
 
-  def injectionsClosure(signatures: List[Signature])(sorts: Set[Sort]): Set[Sort] =
+  def injectionsClosure(signatures: Signatures)(sorts: Set[Sort]): Set[Sort] =
     fixedPoint(transitiveInjections(signatures), sorts)
 }
 

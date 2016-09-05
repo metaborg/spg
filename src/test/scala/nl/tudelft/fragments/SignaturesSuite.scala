@@ -5,7 +5,7 @@ import nl.tudelft.fragments.spoofax.models._
 import org.scalatest.FunSuite
 
 class SignaturesSuite extends FunSuite {
-  val signatures = List(
+  val signatures = Signatures(List(
     // Fun : ID * Type * Exp -> Exp
     OpDecl("Fun",
       FunType(
@@ -58,7 +58,7 @@ class SignaturesSuite extends FunSuite {
         ConstType(SortAppl("Iter", List(SortVar("a"))))
       )
     )
-  )
+  ))
 
   test("get direct injections for simple sort") {
     val inj = Sort.injections(signatures)(SortAppl("ResetExp"))

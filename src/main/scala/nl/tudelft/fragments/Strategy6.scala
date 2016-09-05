@@ -1,7 +1,7 @@
 package nl.tudelft.fragments
 
 import nl.tudelft.fragments.spoofax.Language
-import nl.tudelft.fragments.spoofax.models.{Signature, SortAppl}
+import nl.tudelft.fragments.spoofax.models.{Signature, Signatures, SortAppl}
 
 // Build programs top-down
 object Strategy6 {
@@ -20,7 +20,7 @@ object Strategy6 {
     build(startRules.random)
   }
 
-  def build(partial: Rule)(implicit rules: List[Rule], signatures: List[Signature]): List[Rule] = {
+  def build(partial: Rule)(implicit rules: List[Rule], signatures: Signatures): List[Rule] = {
     if (partial.pattern.size > 15) {
       Nil
     } else {

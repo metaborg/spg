@@ -3,6 +3,7 @@ package nl.tudelft.fragments
 import nl.tudelft.fragments.LabelImplicits._
 
 // Resolution algorithm
+// TODO: Remove distinction between facts and constraints?
 case class Graph(/*wellFormedness: Regex, labels: List[Label], labelOrdering: LabelOrdering,*/ facts: List[Constraint]) {
   val labels =
     List(Label('P'), Label('I'))

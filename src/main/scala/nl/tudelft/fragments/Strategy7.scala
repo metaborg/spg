@@ -1,7 +1,7 @@
 package nl.tudelft.fragments
 
 import nl.tudelft.fragments.spoofax.Language
-import nl.tudelft.fragments.spoofax.models.{Signature, SortAppl}
+import nl.tudelft.fragments.spoofax.models.{Signature, Signatures, SortAppl}
 
 object Strategy7 {
   implicit val language = Language.load("/Users/martijn/Projects/scopes-frames/L3", "org.metaborg:L3:0.1.0-SNAPSHOT", "L3")
@@ -20,7 +20,7 @@ object Strategy7 {
     println(build(startRules.random))
   }
 
-  def build(partial: Rule)(implicit rules: List[Rule], signatures: List[Signature]): Option[Rule] = {
+  def build(partial: Rule)(implicit rules: List[Rule], signatures: Signatures): Option[Rule] = {
     if (partial.recurse.isEmpty) {
       Some(partial)
     } else {

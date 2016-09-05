@@ -5,11 +5,13 @@ import nl.tudelft.fragments.spoofax._
 import nl.tudelft.fragments.spoofax.models._
 import org.slf4j.LoggerFactory
 
+import scala.util.Random
+
 object Strategy8 {
   val logger = Logger(LoggerFactory.getLogger(this.getClass))
 //  implicit val language = Language.load("/Users/martijn/Projects/metaborg-pascal/org.metaborg.lang.pascal", "org.metaborg:org.metaborg.lang.pascal:0.1.0-SNAPSHOT", "Pascal")
-  implicit val language = Language.load("/Users/martijn/Projects/scopes-frames/L3", "org.metaborg:L3:0.1.0-SNAPSHOT", "L3")
-//  implicit val language = Language.load("/Users/martijn/Projects/MiniJava", "org.metaborg:MiniJava:0.1.0-SNAPSHOT", "MiniJava")
+//  implicit val language = Language.load("/Users/martijn/Projects/scopes-frames/L3", "org.metaborg:L3:0.1.0-SNAPSHOT", "L3")
+  implicit val language = Language.load("/Users/martijn/Projects/MiniJava", "org.metaborg:MiniJava:0.1.0-SNAPSHOT", "MiniJava")
 
   // Make the various language specifications implicitly available
   implicit val productions = language.productions
@@ -18,20 +20,28 @@ object Strategy8 {
   implicit val printer = language.printer
   implicit val rules = specification.rules
 
+  // Generation properties
+  val maxSize = 30
+  val growSteps = 100
+  val fuel = 200
+
   def main(args: Array[String]): Unit = {
     val startRules = language.startRules
 
     logger.info("Start growing")
 
-    // Randomly combine rules to build larger rules
-    //val base = repeat(grow, 200)(rules)
-    val base = rules
+    val base = repeat(grow, growSteps)(rules)
+
+    base.foreach(rule => logger.debug(rule.toString))
 
     logger.info("Start building")
 
+    // Index rules by sort
+    val rulesBySort = indexRules(base)
+
     // Start from a start rule and build a complete program
     for (i <- 0 to 10000) {
-      val result = build(startRules.random, base.shuffle, 200)
+      val result = build(startRules.random, rulesBySort, fuel)
 
       result match {
         case Left(rule) =>
@@ -53,20 +63,20 @@ object Strategy8 {
             println("===")
           }
         case _ =>
-
+          //println(s"Atetmpt $i failed")
       }
     }
   }
 
+  // TODO: during growing, the recurse check should be disabled
   // Randomly merge rules in a rules into larger consistent rules
-  def grow(rules: List[Rule])(implicit signatures: List[Signature]): List[Rule] = {
+  def grow(rules: List[Rule])(implicit signatures: Signatures): List[Rule] = {
     val ruleA = rules.random
     val ruleB = rules.random
 
     if (ruleA.recurse.nonEmpty) {
       val recurse = ruleA.recurse.random
 
-      // TODO: During 'grow' we should not check consistency of resolve constraints
       ruleA
         .merge(recurse, ruleB)
         .map(_ :: rules)
@@ -77,7 +87,7 @@ object Strategy8 {
   }
 
   // Build a complete program by growing a partial program
-  def build(partial: Rule, rules: List[Rule], fuel: Int)(implicit signatures: List[Signature]): Either[Rule, Int] = {
+  def build(partial: Rule, rules: Map[String, List[Rule]], fuel: Int)(implicit signatures: Signatures): Either[Rule, Int] = {
 //    print(".")
 //    println(partial)
 
@@ -85,43 +95,117 @@ object Strategy8 {
       if (Solver.solve(partial.state).nonEmpty) {
         Left(partial)
       } else {
+        //println("Unsolvable")
         Right(-1)
       }
     } else {
-      val recurse = partial.recurse.random
+      // Randomly resolve the reference in a CResolve constraint to a random (but non-inconsistent) declaration
+      lazy val resolveConstraints = partial.resolve
 
-      val maxSize = 40
-      val remSize = maxSize - partial.pattern.size
-      val divSize = remSize / partial.recurse.size
+      val resolved = partial/*if (Random.nextInt(350) == 0 && resolveConstraints.nonEmpty) {
+        val resolveConstraint = resolveConstraints.random
+        val resolved = resolve(resolveConstraint, partial)
 
-      // Testing something..
-      if (divSize > 2) {
-        val mergedRules = (for {rule <- rules.shuffle if rule.pattern.size <= divSize} yield {
-          partial.merge(recurse, rule)
-        }).flatten
+        if (resolved.nonEmpty) {
+          resolved.get
+        } else {
+          partial
+        }
+      } else {
+        partial
+      }*/
 
-        var remainingFuel = fuel
+      // Continue solving recurse constraints
+      val recurse = resolved.recurse.random
 
-        for (mergedRule <- mergedRules) {
-          remainingFuel = remainingFuel - 1
+      val remSize = maxSize - resolved.pattern.size
+      val divSize = remSize / resolved.recurse.size
 
-          val complete = build(mergedRule, rules, remainingFuel)
+      val applicable = if (rules.contains(firstLevel(recurse.sort))) {
+        rules(firstLevel(recurse.sort))
+      } else {
+        rules.values.flatten
+      }
 
-          if (complete.isLeft) {
-            return complete
-          } else {
-            remainingFuel = complete.asInstanceOf[Right[_, Int]].b
+      // Randomize the applicable rules, because otherwise we get the same rule for some sort every time (e.g. Block(Block(Block(...))) for Statement)
+      val randomApplicable = applicable.toList.shuffle
 
-            if (remainingFuel < 0) {
-              return Right(remainingFuel)
-            }
+      // Make applicable lazy. We don't need to merge all upfront
+      val lazyApplicable = randomApplicable//.view
+
+      // Compute options (lazily)
+      val mergedRules = for (rule <- lazyApplicable if rule.pattern.size <= divSize) yield {
+        resolved.merge(recurse, rule)
+      }
+
+      // Collect only valid rules
+      val validMergedRules = mergedRules.flatten
+
+      var remainingFuel = fuel
+
+      for (mergedRule <- validMergedRules) {
+        remainingFuel = remainingFuel - 1
+
+        val complete = build(mergedRule, rules, remainingFuel)
+
+        if (complete.isLeft) {
+          return complete
+        } else {
+          remainingFuel = complete.asInstanceOf[Right[_, Int]].b
+
+          if (remainingFuel < 0) {
+            return Right(remainingFuel)
           }
         }
+      }
 
-        Right(remainingFuel)
-      } else {
-        Right(fuel)
+      if (remainingFuel < 0) {
+        //println("Out of fuel")
+      }
+
+      Right(remainingFuel)
+    }
+  }
+
+  // Solve given CResolve constraint in given rule
+  def resolve(resolve: CResolve, rule: Rule): Option[Rule] = {
+    val declarations = Graph(rule.state.facts).res(rule.state.resolution)(resolve.n1)
+
+    // For a random reachable declaration (TODO: using the language's resolution parameters)
+    for ((declaration, namingConstraint) <- declarations.shuffle) {
+      // TODO: This must be nicer.. substitue + copy is ugly programming...
+
+      // Replace the rhs (which is a variable) by the found declaration
+      val substitutedState = rule.state
+        // Remove the resolve constraint
+        .copy(constraints = rule.state.constraints - resolve)
+        // Propagate the resolution
+        .substitute(Map(resolve.n2.asInstanceOf[TermVar] -> declaration))
+
+      val resolvedState = substitutedState.copy(
+        // Add to the resolution
+        resolution = substitutedState.resolution + (resolve.n1 -> declaration),
+        // Add to the name constraints
+        nameConstraints = namingConstraint ++ substitutedState.nameConstraints
+      )
+
+      val resolvedRule = rule.copy(state = resolvedState)
+
+      if (Consistency.check(resolvedRule)) {
+        return Some(resolvedRule)
       }
     }
+
+    None
+  }
+
+  // Map every sort to its applicable rules
+  def indexRules(rules: List[Rule]): Map[String, List[Rule]] = {
+    rules.groupBy(rule => firstLevel(rule.sort))
+  }
+
+  // Flatten a sort to its first level
+  def firstLevel(sort: Sort): String = sort match {
+    case SortAppl(name, _) => name
   }
 }

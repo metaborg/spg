@@ -6,7 +6,7 @@ import nl.tudelft.fragments.spoofax.models._
 
 object Concretor {
   // Replace TermVars in pattern by concrete names satisfying the solution
-  def concretize(rule: Rule, solution: State)(implicit signatures: List[Signature], productions: List[Production]): Pattern = {
+  def concretize(rule: Rule, solution: State)(implicit signatures: Signatures, productions: List[Production]): Pattern = {
     // Use a new name provider to keep the numbers low
     val nameProvider = NameProvider(0)
 
@@ -37,7 +37,7 @@ object Concretor {
     // Convert remaining TermVars based on their sort
     val result = partially.substitute(
       partially.vars.map(v => {
-        val sort = getSort(partially, v)
+        val sort = signatures.sortForPattern(partially, v)
         val value = sort.map(generator.generate)
 
         v -> TermString(value.getOrElse(throw new RuntimeException("Could not determine Sort for TermVar")))
@@ -57,16 +57,14 @@ object Concretor {
     Strategy.topdown(Strategy.`try`(conssToCons))(result).get
   }
 
-  // Get sort for given TermVar in given pattern (TODO: This is proxied to Specification class, do this nicer?)
-  def getSort(pattern: Pattern, termVar: TermVar)(implicit signatures: List[Signature]): Option[Sort] =
-    Some(Specification.getSort(pattern, termVar).get)
-
   // Generate a binding from SymbolicNames to String satisfying the equality constraints
   def nameEq(eqs: List[Eq], binding: Map[String, String], nameProvider: NameProvider): Map[String, String] = eqs match {
     case Eq(s1@SymbolicName(_, n1), s2@SymbolicName(_, n2)) :: tail =>
       val name = binding.getOrElse(n1, binding.getOrElse(n2, "n" + nameProvider.next))
 
       nameEq(tail, binding + (n1 -> name) + (n2 -> name), nameProvider)
+    case Eq(c1@ConcreteName(_, n1, _), c2@ConcreteName(_, n2, _)) :: tail if n1 == n2 =>
+      nameEq(tail, binding + (n1 -> n1), nameProvider)
     case Nil =>
       binding
   }

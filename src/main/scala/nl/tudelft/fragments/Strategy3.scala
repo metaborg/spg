@@ -1,6 +1,6 @@
 package nl.tudelft.fragments
 
-import nl.tudelft.fragments.spoofax.models.Signature
+import nl.tudelft.fragments.spoofax.models.{Signature, Signatures}
 import nl.tudelft.fragments.spoofax.Language
 
 object Strategy3 {
@@ -19,7 +19,7 @@ object Strategy3 {
     }
   }
 
-  def gen(rule: Rule)(implicit rules: List[Rule], signatures: List[Signature]): Option[Rule] = {
+  def gen(rule: Rule)(implicit rules: List[Rule], signatures: Signatures): Option[Rule] = {
     if (rule.recurse.isEmpty && rule.resolve.isEmpty) {
       Some(rule)
     } else if (rule.recurse.nonEmpty) {

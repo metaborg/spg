@@ -72,6 +72,9 @@ case class TermAppl(cons: String, children: List[Pattern] = Nil) extends Pattern
 
       None
     }
+
+  def arity: Int =
+    children.length
 }
 
 case class TermVar(name: String) extends Pattern {

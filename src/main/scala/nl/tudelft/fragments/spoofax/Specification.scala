@@ -18,7 +18,7 @@ object Specification {
   val nameProvider = NameProvider(9)
 
   // Parse an NaBL2 specification file
-  def read(nablPath: String, specPath: String)(implicit signatures: List[Signature]): Specification = {
+  def read(nablPath: String, specPath: String)(implicit signatures: Signatures): Specification = {
     val nablImpl = Utils.loadLanguage(nablPath)
     val ast = Utils.parseFile(nablImpl, specPath)
 
@@ -36,53 +36,14 @@ object Specification {
   /**
     * Add sort to the Recurse constraints based on the position
     */
-  def inlineRecurse(rule: Rule)(implicit signatures: List[Signature]) = {
+  def inlineRecurse(rule: Rule)(implicit signatures: Signatures) = {
     rule.recurse.foldLeft(rule) { case (rule, r@CGenRecurse(variable, scopes, typ, null)) =>
       rule.copy(
         state = rule.state.copy(
-          constraints = CGenRecurse(variable, scopes, typ, getSort(rule.pattern, variable).get) :: rule.state.constraints - r
+          constraints = CGenRecurse(variable, scopes, typ, signatures.sortForPattern(rule.pattern, variable).get) :: rule.state.constraints - r
         )
       )
     }
-  }
-
-  /**
-    * Get sort for pattern p2 in pattern p1
-    */
-  def getSort(p1: Pattern, p2: Pattern, sort: Option[Sort] = None)(implicit signatures: List[Signature]): Option[Sort] = (p1, p2) match {
-    case (_, _) if p1 == p2 =>
-      sort
-    case (termAppl@TermAppl(_, children), _) =>
-      val signature = getSignature(p1).get
-
-      val sorts = signature.typ match {
-        case FunType(children, _) =>
-          children
-        case ConstType(_) =>
-          Nil
-      }
-
-      (children, sorts).zipped.foldLeft(Option.empty[Sort]) {
-        case (Some(x), _) =>
-          Some(x)
-        case (_, (child, sort)) =>
-          getSort(child, p2, Some(toSort(sort)))
-      }
-    case _ =>
-      None
-  }
-
-  /**
-    * Get signature for the given Pattern
-    */
-  def getSignature(pattern: Pattern)(implicit signatures: List[Signature]): Option[OpDecl] = pattern match {
-    case termAppl: TermAppl =>
-      signatures
-        .filter(_.isInstanceOf[OpDecl])
-        .map(_.asInstanceOf[OpDecl])
-        .find(_.name == termAppl.cons)
-    case _ =>
-      None
   }
 
   /**
@@ -191,7 +152,7 @@ object Specification {
   /**
     * Convert the Rules(_) block to a list of Rule
     */
-  def toRules(term: IStrategoTerm)(implicit signatures: List[Signature]): List[Rule] = {
+  def toRules(term: IStrategoTerm)(implicit signatures: Signatures): List[Rule] = {
     val rules = term.collectAll {
       case appl: IStrategoAppl if appl.getConstructor.getName == "CGenMatchRule" =>
         true
@@ -208,7 +169,7 @@ object Specification {
   /**
     * Turn a CGenRule into a Rule
     */
-  def toRule(ruleIndex: Int, term: IStrategoTerm)(implicit signatures: List[Signature]): Rule = term match {
+  def toRule(ruleIndex: Int, term: IStrategoTerm)(implicit signatures: Signatures): Rule = term match {
     case appl: StrategoAppl =>
       val pattern = toPattern(appl.getSubterm(1))
       val scopes = toScopeAppls(appl.getSubterm(2))
@@ -241,18 +202,8 @@ object Specification {
   }
 
   // Retrieve the sort for the given pattern from the signatures
-  def toSort(pattern: Pattern)(implicit signatures: List[Signature]): Sort = {
-    val sort = getSignature(pattern)
-
-    toSort(sort.get.typ)
-  }
-
-  def toSort(typ: Type): Sort = typ match {
-    case FunType(_, ConstType(sort)) =>
-      sort
-    case ConstType(sort) =>
-      sort
-  }
+  def toSort(pattern: Pattern)(implicit signatures: Signatures): Sort =
+    signatures.forPattern(pattern).head.sort
 
   // Turn a CGenMatch into a Pattern
   def toPattern(term: IStrategoTerm): Pattern = term match {

@@ -1,22 +1,45 @@
 package nl.tudelft.fragments.spoofax
 
 import com.typesafe.scalalogging.Logger
-import nl.tudelft.fragments.Rule
 import nl.tudelft.fragments.spoofax.models._
+import nl.tudelft.fragments.{Pattern, Rule, TermAppl}
 import org.slf4j.LoggerFactory
 import org.spoofax.interpreter.terms.{IStrategoString, IStrategoTerm}
 
-class Language(val productions: List[Production], val signatures: List[Signature], val specification: Specification, val printer: IStrategoTerm => IStrategoString, val startSymbols: List[Sort]) {
+class Language(val productions: List[Production], val signatures: Signatures, val specification: Specification, val printer: IStrategoTerm => IStrategoString, val startSymbols: List[Sort]) {
+  /**
+    * Check if the given sort is a start symbol
+    *
+    * @param sort
+    * @return
+    */
   def isStartSymbol(sort: Sort): Boolean =
     startSymbols.contains(sort)
 
+  /**
+    * Check if the given langauge is a start rule
+    *
+    * @param rule
+    * @return
+    */
   def isStartRule(rule: Rule): Boolean =
     isStartSymbol(rule.sort)
 
+  /**
+    * Get the start rules for the language
+    *
+    * @return
+    */
   def startRules: List[Rule] =
     specification.rules.filter(isStartRule)
 
+  /**
+    * Get all the sorts of the language
+    *
+    * @return
+    */
   def sorts: List[Sort] = signatures
+    .list
     .map {
       case OpDecl(_, FunType(_, ConstType(resultType))) =>
         resultType
@@ -26,6 +49,25 @@ class Language(val productions: List[Production], val signatures: List[Signature
         resultType
     }
     .distinct
+
+  /**
+    * Get signatures for the given pattern based on its constructor name.
+    *
+    * TODO: This ignores overloaded and duplicate constructors!
+    *
+    * @param pattern
+    * @return
+    */
+  def signatures(pattern: Pattern): List[Signature] = pattern match {
+    case termAppl: TermAppl =>
+      signatures
+        .list
+        .filter(_.isInstanceOf[OpDecl])
+        .map(_.asInstanceOf[OpDecl])
+        .filter(_.name == termAppl.cons)
+    case _ =>
+      Nil
+  }
 }
 
 object Language {
@@ -49,7 +91,7 @@ object Language {
 
     logger.info("Computing signatures")
 
-    val signatures = defaultSignatures ++ productions.map(_.toSignature)
+    val signatures = Signatures(defaultSignatures ++ productions.map(_.toSignature))
 
     logger.info("Loading specification")
 

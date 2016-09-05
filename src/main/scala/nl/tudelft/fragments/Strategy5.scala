@@ -1,7 +1,7 @@
 package nl.tudelft.fragments
 
 import nl.tudelft.fragments.spoofax.Language
-import nl.tudelft.fragments.spoofax.models.{Signature, SortAppl}
+import nl.tudelft.fragments.spoofax.models.{Signature, Signatures, SortAppl}
 
 object Strategy5 {
   implicit val language = Language.load("/Users/martijn/Projects/scopes-frames/L3", "org.metaborg:L3:0.1.0-SNAPSHOT", "L3")
@@ -51,7 +51,7 @@ object Strategy5 {
     }
   }
 
-  def gen(rules: List[Rule])(implicit signatures: List[Signature]): List[Rule] = {
+  def gen(rules: List[Rule])(implicit signatures: Signatures): List[Rule] = {
     // Pick a random rule
     val rule = rules.random
 
@@ -85,7 +85,7 @@ object Strategy5 {
   }
 
   // Complete the given rule by solving resolution & recurse constraints
-  def complete(rules: List[Rule], rule: Rule, limit: Int = 10)(implicit signatures: List[Signature]): Option[Rule] =
+  def complete(rules: List[Rule], rule: Rule, limit: Int = 10)(implicit signatures: Signatures): Option[Rule] =
     if (limit == 0) {
       None
     } else {
