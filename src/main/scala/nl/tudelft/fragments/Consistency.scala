@@ -4,19 +4,30 @@ import nl.tudelft.fragments.spoofax.models.{Signature, Sort}
 import nl.tudelft.fragments.spoofax.Language
 
 object Consistency {
-  // Check for consistency
-  def check(rule: Rule)(implicit language: Language): Boolean = {
-    // Solve CEqual and CTypeOf constraints; should result in single state.
-    val states = solve(rule.state)
+  // Check for consistency. The higher the level, the stricter the check.
+  def check(rule: Rule, level: Int = 2)(implicit language: Language): Boolean = {
+    if (level >= 0) {
+      // Solve CEqual and CTypeOf constraints; should result in single state.
+      val states = solve(rule.state)
 
-    // If states is empty, there was an inconsistency
-    states.nonEmpty &&
-    // Conservative subtype check: only allow x <? y if x <! y.
-    conservativeSubtyping(states.head) &&
-    // Every unresolved reference for which no recurse constraint with a reachable scope exists, must consistently resolve to any of the reachable declarations
-    checkResolveScope(rule)
+      if (level >= 1 && states.nonEmpty) {
+        // Conservative subtype check: only allow x <? y if x <! y.
+        val subtypingResult = conservativeSubtyping(states.head)
 
-    // && checkResolve(rule) && decidedDeclarationsConsistency(rule) && canSatisfyType(rule)*/
+        // Every unresolved reference for which no recurse constraint with a reachable scope exists, must consistently resolve to any of the reachable declarations
+        if (level >= 2) {
+          val resolveResult = checkResolveScope(rule)
+
+          states.nonEmpty && subtypingResult && resolveResult
+        } else {
+          states.nonEmpty && subtypingResult
+        }
+      } else {
+        states.nonEmpty
+      }
+    } else {
+      true
+    }
   }
 
   // Rewrite constraints, returning Left(None) if we cannot process the constraint, Left(Some(states)) if we can process the state, and Right if we find an inconsistency
@@ -108,9 +119,9 @@ object Consistency {
     val graph = Graph(rule.state.facts)
 
     for (CResolve(n1, n2) <- resolve) {
-      val scopes = graph.reachableScopes(rule.state.resolution)(graph.scope(n1).get)
+      val scopes = graph.reachableScopes(rule.state.resolution)(graph.scope(n1))
       val incomplete = scopes.exists(scope => recurse.exists(recurse => recurse.scopes.contains(scope)))
-      val scopeVarReachable = canReachScopeVar(rule, graph.scope(n1).get)
+      val scopeVarReachable = canReachScopeVar(rule, graph.scope(n1))
 
       if (!incomplete && !scopeVarReachable) {
         val declarations = graph.res(rule.state.resolution)(n1)
@@ -153,7 +164,7 @@ object Consistency {
     rule.resolve.forall {
       case c@CResolve(n1, n2: TermVar) =>
         val g = Graph(rule.state.facts)
-        val s = g.scope(n1).get
+        val s = g.scope(n1)
 
         if (!canAddDeclaration(Nil, rule, s, n1.asInstanceOf[Name].namespace, language.specification.rules) && !canReachScopeVar(rule, s)) {
           val declarations = g.res(rule.state.resolution)(n1)
@@ -240,8 +251,8 @@ object Consistency {
       bases.flatMap(base =>
         rule
           // Consistency checking disabled, because then we end in an infinite loop
-          .mergex(recurse, base, checkConsistency = false)
-          .map { case (_, nameBinding, sortBinding, typeBinding, scopeBinding) => {
+          .mergex(recurse, base, 1)
+          .map { case (_, nameBinding, sortBinding, typeBinding, scopeBinding) =>
             // TODO: Not sure if this substituting is okay? Do we need to use nameBinding as well?
             val r = base
               //.substitute(typeBinding)
@@ -260,7 +271,6 @@ object Consistency {
             )
 
             r
-          }
           }
       )
     )
@@ -299,66 +309,66 @@ object Consistency {
     }
   }
 
-  // Consistency of resolve constraints
-  def checkResolve(rule: Rule)(implicit language: Language): Boolean = {
-    val noDec = (resolveConstraint: CResolve) => {
-      !Solver
-        .rewrite(resolveConstraint, rule.state.copy(constraints = rule.state.constraints - resolveConstraint))
-        .map(state => rule.copy(state = state))
-        .exists(Consistency.check)
-    }
-
-    val noRecurse = (resolveConstraint: CResolve) => {
-      val scope = Graph(rule.state.facts).scope(resolveConstraint.n1)
-      val reachable = Graph(rule.state.facts).reachableScopes(rule.state.resolution)(scope.get)
-
-      !rule.state.constraints
-        .filter(_.isInstanceOf[CGenRecurse])
-        .map(_.asInstanceOf[CGenRecurse])
-        .exists(_.scopes.exists(reachable.contains(_)))
-    }
-
-    val noRoot = (resolveConstraint: CResolve) => {
-      // TODO: This is a hack that only works for L3
-      if (rule.state.pattern.asInstanceOf[TermAppl].cons == "Program") {
-        true
-      } else {
-        val scope = Graph(rule.state.facts).scope(resolveConstraint.n1)
-        val reachable = Graph(rule.state.facts).reachableScopes(rule.state.resolution)(scope.get)
-
-        !rule.scopes.exists(reachable.contains(_))
-      }
-    }
-
-    val noEdge = (resolveConstraint: CResolve) => {
-      val scope = Graph(rule.state.facts).scope(resolveConstraint.n1)
-      val reachable = Graph(rule.state.facts).reachableScopes(rule.state.resolution)(scope.get)
-
-      !reachable.exists(scope =>
-        Graph(rule.state.facts).edges(scope).exists {
-          case (_, _: ScopeVar) =>
-            true
-          case _ =>
-            false
-        }
-      )
-    }
-
-    val resolveConstraints = rule.state.constraints
-      .filter(_.isInstanceOf[CResolve])
-      .asInstanceOf[List[CResolve]]
-
-    val check = resolveConstraints.forall(resolveConstraint => {
-      val a = noDec(resolveConstraint)
-      val b = noRecurse(resolveConstraint)
-      val c = noRoot(resolveConstraint)
-      val d = noEdge(resolveConstraint)
-
-      !(a && b && c && d)
-    })
-
-    check
-  }
+//  // Consistency of resolve constraints
+//  def checkResolve(rule: Rule)(implicit language: Language): Boolean = {
+//    val noDec = (resolveConstraint: CResolve) => {
+//      !Solver
+//        .rewrite(resolveConstraint, rule.state.copy(constraints = rule.state.constraints - resolveConstraint))
+//        .map(state => rule.copy(state = state))
+//        .exists(Consistency.check)
+//    }
+//
+//    val noRecurse = (resolveConstraint: CResolve) => {
+//      val scope = Graph(rule.state.facts).scope(resolveConstraint.n1)
+//      val reachable = Graph(rule.state.facts).reachableScopes(rule.state.resolution)(scope.get)
+//
+//      !rule.state.constraints
+//        .filter(_.isInstanceOf[CGenRecurse])
+//        .map(_.asInstanceOf[CGenRecurse])
+//        .exists(_.scopes.exists(reachable.contains(_)))
+//    }
+//
+//    val noRoot = (resolveConstraint: CResolve) => {
+//      // TODO: This is a hack that only works for L3
+//      if (rule.state.pattern.asInstanceOf[TermAppl].cons == "Program") {
+//        true
+//      } else {
+//        val scope = Graph(rule.state.facts).scope(resolveConstraint.n1)
+//        val reachable = Graph(rule.state.facts).reachableScopes(rule.state.resolution)(scope.get)
+//
+//        !rule.scopes.exists(reachable.contains(_))
+//      }
+//    }
+//
+//    val noEdge = (resolveConstraint: CResolve) => {
+//      val scope = Graph(rule.state.facts).scope(resolveConstraint.n1)
+//      val reachable = Graph(rule.state.facts).reachableScopes(rule.state.resolution)(scope.get)
+//
+//      !reachable.exists(scope =>
+//        Graph(rule.state.facts).edges(scope).exists {
+//          case (_, _: ScopeVar) =>
+//            true
+//          case _ =>
+//            false
+//        }
+//      )
+//    }
+//
+//    val resolveConstraints = rule.state.constraints
+//      .filter(_.isInstanceOf[CResolve])
+//      .asInstanceOf[List[CResolve]]
+//
+//    val check = resolveConstraints.forall(resolveConstraint => {
+//      val a = noDec(resolveConstraint)
+//      val b = noRecurse(resolveConstraint)
+//      val c = noRoot(resolveConstraint)
+//      val d = noEdge(resolveConstraint)
+//
+//      !(a && b && c && d)
+//    })
+//
+//    check
+//  }
 
 
   // Check if the naming conditions are consistent

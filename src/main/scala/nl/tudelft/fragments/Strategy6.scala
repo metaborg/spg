@@ -42,7 +42,7 @@ object Strategy6 {
         val recurse = partial.recurse.random
 
         rules
-          .flatMap(partial.merge(recurse, _))
+          .flatMap(partial.merge(recurse, _, 2))
           .map(rule => {
             if (rule.recurse.isEmpty) {
               if (Solver.solve(rule.state).isEmpty) {

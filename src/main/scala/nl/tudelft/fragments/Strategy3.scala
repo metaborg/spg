@@ -28,7 +28,7 @@ object Strategy3 {
         .view
         .flatMap(other => {
           rule
-            .merge(rule.recurse.head, other)
+            .merge(rule.recurse.head, other, 2)
             .filter(_.state.pattern.size < 30)
         })
 

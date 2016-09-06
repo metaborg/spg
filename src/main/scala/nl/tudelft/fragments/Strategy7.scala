@@ -27,7 +27,7 @@ object Strategy7 {
       for (recurse <- partial.recurse) {
         for (rule <- rules) {
           val merged = partial
-            .merge(recurse, rule)
+            .merge(recurse, rule, 2)
             .filter(_.pattern.size <= 20)
 
           if (merged.isDefined && merged.get.recurse.size <= 5) {

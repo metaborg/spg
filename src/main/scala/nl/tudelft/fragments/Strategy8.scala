@@ -5,8 +5,6 @@ import nl.tudelft.fragments.spoofax._
 import nl.tudelft.fragments.spoofax.models._
 import org.slf4j.LoggerFactory
 
-import scala.util.Random
-
 object Strategy8 {
   val logger = Logger(LoggerFactory.getLogger(this.getClass))
 //  implicit val language = Language.load("/Users/martijn/Projects/metaborg-pascal/org.metaborg.lang.pascal", "org.metaborg:org.metaborg.lang.pascal:0.1.0-SNAPSHOT", "Pascal")
@@ -22,7 +20,7 @@ object Strategy8 {
 
   // Generation properties
   val maxSize = 30
-  val growSteps = 100
+  val growSteps = 2000
   val fuel = 200
 
   def main(args: Array[String]): Unit = {
@@ -32,9 +30,7 @@ object Strategy8 {
 
     val base = repeat(grow, growSteps)(rules)
 
-    base.foreach(rule => logger.debug(rule.toString))
-
-    logger.info("Start building")
+    logger.info("Grown {} new rules; start building", base.length - rules.length)
 
     // Index rules by sort
     val rulesBySort = indexRules(base)
@@ -68,7 +64,6 @@ object Strategy8 {
     }
   }
 
-  // TODO: during growing, the recurse check should be disabled
   // Randomly merge rules in a rules into larger consistent rules
   def grow(rules: List[Rule])(implicit signatures: Signatures): List[Rule] = {
     val ruleA = rules.random
@@ -78,7 +73,7 @@ object Strategy8 {
       val recurse = ruleA.recurse.random
 
       ruleA
-        .merge(recurse, ruleB)
+        .merge(recurse, ruleB, 2)
         .map(_ :: rules)
         .getOrElse(rules)
     } else {
@@ -135,7 +130,7 @@ object Strategy8 {
 
       // Compute options (lazily)
       val mergedRules = for (rule <- lazyApplicable if rule.pattern.size <= divSize) yield {
-        resolved.merge(recurse, rule)
+        resolved.merge(recurse, rule, 2)
       }
 
       // Collect only valid rules
@@ -160,7 +155,8 @@ object Strategy8 {
       }
 
       if (remainingFuel < 0) {
-        //println("Out of fuel")
+        println("Out of fuel")
+        println(partial)
       }
 
       Right(remainingFuel)

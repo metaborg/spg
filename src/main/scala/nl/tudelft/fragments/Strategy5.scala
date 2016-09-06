@@ -61,7 +61,7 @@ object Strategy5 {
     // Lazily merge a random other rule $r \in rules$ into $rule$, solving $recurse$
     val mergedOpt = recurseOpt.flatMap(recurse =>
       rules.shuffle.view
-        .flatMap(rule.merge(recurse, _))
+        .flatMap(rule.merge(recurse, _, 2))
         .find(_.pattern.size < 10)
     )
 
@@ -97,7 +97,7 @@ object Strategy5 {
         case _ =>
           for (recurse <- rule.recurse) {
             val choices = rules
-              .flatMap(rule.merge(recurse, _))
+              .flatMap(rule.merge(recurse, _, 2))
               .filter(choice => choice.pattern.size + choice.recurse.size <= 20)
 
             if (choices.isEmpty) {

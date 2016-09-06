@@ -5,7 +5,7 @@ import nl.tudelft.fragments.spoofax.Language
 
 // Rule
 case class Rule(sort: Sort, typ: Option[Pattern], scopes: List[Scope], state: State) {
-  def mergex(recurse: CGenRecurse, rule: Rule, checkConsistency: Boolean = true)(implicit language: Language): Option[(Rule, Map[String, String], SortBinding, TermBinding, ScopeBinding)] = {
+  def mergex(recurse: CGenRecurse, rule: Rule, level: Int)(implicit language: Language): Option[(Rule, Map[String, String], SortBinding, TermBinding, ScopeBinding)] = {
     // Prevent naming conflicts by freshening the names in the other rule
     val (nameBinding, freshRule) = rule.freshen()
 
@@ -25,14 +25,10 @@ case class Rule(sort: Sort, typ: Option[Pattern], scopes: List[Scope], state: St
       val restored = merged
 
       // Check consistency
-      if (checkConsistency) {
-        if (Consistency.check(restored)) {
-          Some((restored, nameBinding, sortUnifier, typeUnifier, scopeUnifier))
-        } else {
-          None
-        }
-      } else {
+      if (Consistency.check(restored, level)) {
         Some((restored, nameBinding, sortUnifier, typeUnifier, scopeUnifier))
+      } else {
+        None
       }
     }
 
@@ -40,8 +36,8 @@ case class Rule(sort: Sort, typ: Option[Pattern], scopes: List[Scope], state: St
   }
 
   // Shortcut when only the merged rule should be returned
-  def merge(recurse: CGenRecurse, rule: Rule)(implicit language: Language): Option[Rule] =
-    mergex(recurse, rule).map(_._1)
+  def merge(recurse: CGenRecurse, rule: Rule, level: Int)(implicit language: Language): Option[Rule] =
+    mergex(recurse, rule, level).map(_._1)
 
   // Fix broken references by adding name disequalities
   def restoreResolution(rule: Rule) = {
