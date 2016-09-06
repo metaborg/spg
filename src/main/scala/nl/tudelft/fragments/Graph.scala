@@ -19,40 +19,34 @@ case class Graph(/*wellFormedness: Regex, labels: List[Label], labelOrdering: La
     )
 
   // Get scope for reference
-  def scope(n: Pattern) = facts
-    .find {
-      case CGRef(`n`, s) => true
-      case _ => false
-    }
-    .map(_.asInstanceOf[CGRef].s)
+  def scope(n: Pattern): Scope = facts
+    .collect { case CGRef(`n`, s) => s }
+    .head
 
   // Get declarations for scope
-  def declarations(s: Scope): List[Pattern] =
-    facts.collect { case CGDecl(`s`, n) => n }
+  def declarations(s: Scope): List[Pattern] = facts
+    .collect { case CGDecl(`s`, n) => n }
 
   // Get scope associated to name
   def associated(n: Pattern): Option[Scope] = facts
-    .find {
-      case CGAssoc(`n`, s) => true
-      case _ => false
-    }
-    .map(_.asInstanceOf[CGAssoc].s)
+    .collect { case CGAssoc(`n`, s) => s }
+    .headOption
 
   // Get named imports for scope s
-  def imports(s: Scope): List[(Label, Pattern)] =
-    facts.collect { case CGNamedEdge(`s`, l, n) => (l, n) }
+  def imports(s: Scope): List[(Label, Pattern)] = facts
+    .collect { case CGNamedEdge(`s`, l, n) => (l, n) }
 
   // Get l-labeled named imports for scope s
-  def imports(l: Label, s: Scope): List[Pattern] =
-    facts.collect { case CGNamedEdge(`s`, `l`, n) => n }
+  def imports(l: Label, s: Scope): List[Pattern] = facts
+    .collect { case CGNamedEdge(`s`, `l`, n) => n }
 
   // Get endpoints of l-labeled edges for scope s
-  def edges(l: Label, s: Scope): List[Scope] =
-    facts.collect { case CGDirectEdge(`s`, `l`, s2) => s2 }
+  def edges(l: Label, s: Scope): List[Scope] = facts
+    .collect { case CGDirectEdge(`s`, `l`, s2) => s2 }
 
   // Get endpoints for any direct edge for scope s
-  def edges(s: Scope): List[(Label, Scope)] =
-    facts.collect { case CGDirectEdge(`s`, l, s2) => (l, s2) }
+  def edges(s: Scope): List[(Label, Scope)] = facts
+    .collect { case CGDirectEdge(`s`, l, s2) => (l, s2) }
 
   // Set of declarations to which the reference can resolve
   def res(R: Resolution)(x: Pattern): List[(Pattern, List[NamingConstraint])] =
@@ -63,7 +57,7 @@ case class Graph(/*wellFormedness: Regex, labels: List[Label], labelOrdering: La
     if (R.contains(x)) {
       List((R(x), List.empty[NamingConstraint]))
     } else {
-      val D = env(wellFormedness, x :: I, Nil, R)(scope(x).get)
+      val D = env(wellFormedness, x :: I, Nil, R)(scope(x))
 
       D.declarations
         .filter { case (y, _) =>
@@ -132,12 +126,11 @@ case class Graph(/*wellFormedness: Regex, labels: List[Label], labelOrdering: La
       .flatMap { case (l, d) => associated(d).map(s2 => (l, s2)) }
 
   // Get scopes reachable from s
-  def reachableScopes(R: Resolution)(s: Scope): List[Scope] = {
+  def reachableScopes(R: Resolution)(s: Scope): List[Scope] =
     reachableScopes(wellFormedness, Nil, Nil, R)(s)
-  }
 
   // Get scopes reachable from s
-  def reachableScopes(re: Regex, I: SeenImport, S: SeenScope, R: Resolution)(s: Scope): List[Scope] = {
+  def reachableScopes(re: Regex, I: SeenImport, S: SeenScope, R: Resolution)(s: Scope): List[Scope] =
     if (S.contains(s)) {
       Nil
     } else {
@@ -154,7 +147,6 @@ case class Graph(/*wellFormedness: Regex, labels: List[Label], labelOrdering: La
         reachableScopes(re.derive(l.name), I, s :: S, R)(scope)
       }
     }
-  }
 }
 
 abstract class NamingConstraint extends Constraint {
