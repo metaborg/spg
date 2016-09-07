@@ -1,8 +1,8 @@
 package nl.tudelft.fragments.regex
 
 // A regex that matches either choice1 or choice2.
-case class Union(choice1: Regex, choice2: Regex) extends Regex {
-  def derive(c: Char): Regex =
+case class Union[T](choice1: Regex[T], choice2: Regex[T]) extends Regex[T] {
+  def derive(c: T): Regex[T] =
     choice1.derive(c) || choice2.derive(c)
 
   def acceptsEmptyString =

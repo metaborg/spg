@@ -3,7 +3,7 @@ package nl.tudelft.fragments.regex
 import org.scalatest.FunSuite
 
 class RegexSuite extends FunSuite {
-  val regex: Regex = (Character('P')*) ~ (Character('I')*)
+  val regex: Regex[Char] = (Character('P')*) ~ (Character('I')*)
 
   test("well-formedness derivative wrt P") {
     assert(regex.derive('P') == regex)
@@ -14,6 +14,6 @@ class RegexSuite extends FunSuite {
   }
 
   test("well-formedness wrt invalid character") {
-    assert(regex.derive('D') == EmptySet)
+    assert(regex.derive('D') == EmptySet())
   }
 }

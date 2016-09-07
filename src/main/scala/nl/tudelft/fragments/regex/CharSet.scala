@@ -1,12 +1,12 @@
 package nl.tudelft.fragments.regex
 
 // A regular expression that matches a set of characters.
-case class CharSet(set: Set[Char]) extends Regex {
-  def derive(a: Char) =
-    if (set contains a)
-      Epsilon
+case class CharSet[T](set: Set[T]) extends Regex[T] {
+  def derive(c: T) =
+    if (set contains c)
+      Epsilon()
     else
-      EmptySet
+      EmptySet()
 
   def acceptsEmptyString: Boolean =
     false

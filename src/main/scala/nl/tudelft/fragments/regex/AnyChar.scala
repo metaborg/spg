@@ -1,9 +1,9 @@
 package nl.tudelft.fragments.regex
 
 // A regular expression that matches any character
-case object AnyChar extends Regex {
-  def derive(c: Char) =
-    Epsilon
+case class AnyChar[T]() extends Regex[T] {
+  def derive(c: T) =
+    Epsilon()
 
   def acceptsEmptyString =
     false

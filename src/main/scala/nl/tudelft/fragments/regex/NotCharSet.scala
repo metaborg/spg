@@ -1,12 +1,12 @@
 package nl.tudelft.fragments.regex
 
 // A regular expression that matches anything not in a set of characters.
-case class NotCharSet(set: Set[Char]) extends Regex {
-  def derive(a: Char) =
-    if (set contains a)
-      EmptySet
+case class NotCharSet[T](set: Set[T]) extends Regex[T] {
+  def derive(c: T) =
+    if (set contains c)
+      EmptySet()
     else
-      Epsilon
+      Epsilon()
 
   def acceptsEmptyString: Boolean =
     false

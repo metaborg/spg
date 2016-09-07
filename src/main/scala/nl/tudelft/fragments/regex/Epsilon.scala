@@ -1,9 +1,9 @@
 package nl.tudelft.fragments.regex
 
 // A regular expression that matches the empty string
-case object Epsilon extends Regex {
-  def derive(c: Char) =
-    EmptySet
+case class Epsilon[T]() extends Regex[T] {
+  def derive(c: T) =
+    EmptySet()
 
   def acceptsEmptyString =
     true

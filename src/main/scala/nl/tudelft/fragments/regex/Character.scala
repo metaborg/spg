@@ -1,12 +1,12 @@
 package nl.tudelft.fragments.regex
 
-// A regular expression that matches a specific character.
-case class Character(c: Char) extends Regex {
-  def derive(a: Char) =
+// A regular expression that matches a specific value of type T.
+case class Character[T](c: T) extends Regex[T] {
+  def derive(a: T) =
     if (c == a)
-      Epsilon
+      Epsilon()
     else
-      EmptySet
+      EmptySet()
 
   def acceptsEmptyString: Boolean =
     false

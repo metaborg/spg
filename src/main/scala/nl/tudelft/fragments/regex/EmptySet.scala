@@ -1,8 +1,8 @@
 package nl.tudelft.fragments.regex
 
 // A regular expression that matches nothing.
-case object EmptySet extends Regex {
-  def derive(c: Char) =
+case class EmptySet[T]() extends Regex[T] {
+  def derive(c: T) =
     this
 
   def acceptsEmptyString =

@@ -1,12 +1,12 @@
 package nl.tudelft.fragments.regex
 
 // A regular expression that matches n repetitions of the given regex.
-case class Repetition(regex: Regex, n: Int) extends Regex {
-  def derive(c: Char): Regex =
+case class Repetition[T](regex: Regex[T], n: Int) extends Regex[T] {
+  def derive(c: T): Regex[T] =
     if (n < 0)
-      EmptySet
+      EmptySet()
     else if (n == 0)
-      Epsilon
+      Epsilon()
     else
       regex.derive(c) ~ (regex ^ (n - 1))
 

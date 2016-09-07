@@ -1,36 +1,38 @@
 package nl.tudelft.fragments.regex
 
 // Based on a post by Matthew Might (http://goo.gl/WZmLaj). The methods in `Regex` normalize the result to prevent
-// the data structure from exploding when performing repetitive derivative calculations.
+// the data structure from exploding when performing repetitive derivative calculations. Also, regular expressions
+// have been generalized to any type T.
 
-abstract class Regex {
-  def `*`: Regex =
+// Regular expressions over the alphabet described by type T.
+abstract class Regex[T] {
+  def `*`: Regex[T] =
     Star(this)
 
-  def ^(n: Int): Regex =
+  def ^(n: Int): Regex[T] =
     Repetition(this, n)
 
-  def `+`: Regex =
+  def `+`: Regex[T] =
     this ~ Star(this)
 
-  def `?`: Regex =
-    Epsilon || this
+  def `?`: Regex[T] =
+    Epsilon() || this
 
-  def ~(that: Regex): Regex =
+  def ~(that: Regex[T]): Regex[T] =
     if (this.isEmptyString) {
       that
     } else if (that.isEmptyString) {
       this
     } else if (this.rejectsAll || that.rejectsAll) {
-      EmptySet
+      EmptySet()
     } else {
       Concatenation(this, that)
     }
 
-  def &(that: Regex): Regex =
+  def &(that: Regex[T]): Regex[T] =
     Intersection(this, that)
 
-  def ||(that: Regex): Regex =
+  def ||(that: Regex[T]): Regex[T] =
     if (this.rejectsAll) {
       that
     } else if (that.rejectsAll) {
@@ -40,11 +42,11 @@ abstract class Regex {
     }
 
   // Derivative of this regular expression with respect to given character sequence
-  def derive(cs: String): Regex =
-    cs.foldLeft(this)((regex, char) => regex.derive(char))
+  def derive(ts: Seq[T]): Regex[T] =
+    ts.foldLeft(this)((re, t) => re.derive(t))
 
   // Derivative of this regular expression with respect to given character
-  def derive(c: Char): Regex
+  def derive(c: T): Regex[T]
 
   // True iff the regular expression accepts the empty string.
   def acceptsEmptyString: Boolean

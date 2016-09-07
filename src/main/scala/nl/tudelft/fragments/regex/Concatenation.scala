@@ -1,8 +1,8 @@
 package nl.tudelft.fragments.regex
 
 // A regular expression that matches two regular expressions in sequence.
-case class Concatenation(prefix: Regex, suffix: Regex) extends Regex {
-  def derive(c: Char): Regex =
+case class Concatenation[T](prefix: Regex[T], suffix: Regex[T]) extends Regex[T] {
+  def derive(c: T): Regex[T] =
     if (prefix.acceptsEmptyString)
       (prefix.derive(c) ~ suffix) || suffix.derive(c)
     else

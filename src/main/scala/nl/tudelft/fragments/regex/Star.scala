@@ -1,8 +1,8 @@
 package nl.tudelft.fragments.regex
 
 // Kleene star of the given regex.
-case class Star(regex: Regex) extends Regex {
-  def derive(c: Char): Regex =
+case class Star[T](regex: Regex[T]) extends Regex[T] {
+  def derive(c: T): Regex[T] =
     regex.derive(c) ~ (regex *)
 
   def acceptsEmptyString =
