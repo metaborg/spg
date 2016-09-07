@@ -1,4 +1,4 @@
-package nl.tudelft.fragments
+package nl.tudelft.fragments.regex
 
 import org.scalatest.FunSuite
 

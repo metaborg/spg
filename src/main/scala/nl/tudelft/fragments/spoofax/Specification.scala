@@ -3,6 +3,7 @@ package nl.tudelft.fragments.spoofax
 import nl.tudelft.fragments.spoofax.SpoofaxScala._
 import nl.tudelft.fragments.spoofax.models._
 import nl.tudelft.fragments._
+import nl.tudelft.fragments.regex._
 import org.spoofax.interpreter.terms.{IStrategoAppl, IStrategoList, IStrategoString, IStrategoTerm}
 import org.spoofax.terms.{StrategoAppl, StrategoList}
 

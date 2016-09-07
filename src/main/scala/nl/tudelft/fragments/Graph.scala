@@ -1,6 +1,7 @@
 package nl.tudelft.fragments
 
 import nl.tudelft.fragments.LabelImplicits._
+import nl.tudelft.fragments.regex.{Character, Regex}
 
 // Resolution algorithm
 // TODO: Remove distinction between facts and constraints?

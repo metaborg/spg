@@ -1,5 +1,6 @@
 package nl.tudelft.fragments
 
+import nl.tudelft.fragments.regex.Character
 import org.scalatest.FunSuite
 
 class ResolutionSuite extends FunSuite {
