@@ -1,7 +1,7 @@
 package nl.tudelft.fragments
 
 import nl.tudelft.fragments.LabelImplicits._
-import nl.tudelft.fragments.regex.{Character, Regex}
+import nl.tudelft.fragments.regex.Regex
 
 // Resolution algorithm
 // TODO: Remove distinction between facts and constraints?
@@ -10,7 +10,7 @@ case class Graph(/*wellFormedness: Regex, labels: List[Label], labelOrdering: La
     List(Label('P'), Label('I'))
 
   val wellFormedness =
-    (Character('P') *) ~ (Character('I') *)
+    (Label('P') *) ~ (Label('I') *)
 
   val labelOrdering =
     LabelOrdering(
@@ -70,7 +70,7 @@ case class Graph(/*wellFormedness: Regex, labels: List[Label], labelOrdering: La
     }
 
   // Set of declarations that are reachable from S with path satisfying re
-  def env(re: Regex[Char], I: SeenImport, S: SeenScope, R: Resolution)(s: Scope): Environment =
+  def env(re: Regex[Label], I: SeenImport, S: SeenScope, R: Resolution)(s: Scope): Environment =
     if (S.contains(s) || re.rejectsAll) {
       Environment()
     } else {
@@ -78,14 +78,14 @@ case class Graph(/*wellFormedness: Regex, labels: List[Label], labelOrdering: La
     }
 
   // Set of declarations visible from S through labels in L after shadowing
-  def envLabels(re: Regex[Char], L: List[Label], I: SeenImport, S: SeenScope, R: Resolution)(s: Scope): Environment = {
+  def envLabels(re: Regex[Label], L: List[Label], I: SeenImport, S: SeenScope, R: Resolution)(s: Scope): Environment = {
     LabelOrdering.max(L, labelOrdering)
       .map(l => envLabels(re, LabelOrdering.lt(L, l, labelOrdering), I, S, R)(s) shadows envL(re, l, I, S, R)(s))
       .fold(Environment())(_ union _)
   }
 
   // Multiplex based on label
-  def envL(re: Regex[Char], l: Label, I: SeenImport, S: SeenScope, R: Resolution)(s: Scope): Environment = l match {
+  def envL(re: Regex[Label], l: Label, I: SeenImport, S: SeenScope, R: Resolution)(s: Scope): Environment = l match {
     case Label('D') =>
       envDec(re, I, R)(s)
     case _ =>
@@ -93,7 +93,7 @@ case class Graph(/*wellFormedness: Regex, labels: List[Label], labelOrdering: La
   }
 
   // Set of declarations accessible from scope s with a D-labeled step
-  def envDec(re: Regex[Char], I: SeenImport, R: Resolution)(s: Scope): Environment =
+  def envDec(re: Regex[Label], I: SeenImport, R: Resolution)(s: Scope): Environment =
     if (!re.acceptsEmptyString) {
       Environment()
     } else {
@@ -105,7 +105,7 @@ case class Graph(/*wellFormedness: Regex, labels: List[Label], labelOrdering: La
     }
 
   // Set of declarations accessible from scope s through an l-labeled edge
-  def envOther(re: Regex[Char], l: Label, I: SeenImport, S: SeenScope, R: Resolution)(s: Scope): Environment = {
+  def envOther(re: Regex[Label], l: Label, I: SeenImport, S: SeenScope, R: Resolution)(s: Scope): Environment = {
     val scopes = IS(l, I, R)(s) ++ edges(l, s).filter(_.vars.isEmpty)
 
     scopes
@@ -131,7 +131,7 @@ case class Graph(/*wellFormedness: Regex, labels: List[Label], labelOrdering: La
     reachableScopes(wellFormedness, Nil, Nil, R)(s)
 
   // Get scopes reachable from s
-  def reachableScopes(re: Regex[Char], I: SeenImport, S: SeenScope, R: Resolution)(s: Scope): List[Scope] =
+  def reachableScopes(re: Regex[Label], I: SeenImport, S: SeenScope, R: Resolution)(s: Scope): List[Scope] =
     if (S.contains(s)) {
       Nil
     } else {

@@ -1,5 +1,7 @@
 package nl.tudelft.fragments
 
+import nl.tudelft.fragments.regex.Character
+
 // Representation of a label
 case class Label(name: Char) {
   override def toString =
@@ -35,6 +37,11 @@ object LabelOrdering {
 }
 
 object LabelImplicits {
+  // Turn a Char (i.e. symbol) into a Label (c.f. resolution)
   implicit def charToLabel(char: Char): Label =
     Label(char)
+
+  // Turn a Label (c.f. resolution) into a Character (i.e. regex)
+  implicit def labelToCharacter(label: Label): Character[Label] =
+    Character(label)
 }

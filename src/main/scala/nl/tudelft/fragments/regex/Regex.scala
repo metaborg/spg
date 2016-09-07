@@ -2,7 +2,7 @@ package nl.tudelft.fragments.regex
 
 // Based on a post by Matthew Might (http://goo.gl/WZmLaj). The methods in `Regex` normalize the result to prevent
 // the data structure from exploding when performing repetitive derivative calculations. Also, regular expressions
-// have been generalized to any type T.
+// have been generalized to an arbitrary alphabet of type T.
 
 // Regular expressions over the alphabet described by type T.
 abstract class Regex[T] {

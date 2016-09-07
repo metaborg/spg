@@ -1,6 +1,6 @@
 package nl.tudelft.fragments
 
-import nl.tudelft.fragments.regex.Character
+import nl.tudelft.fragments.LabelImplicits._
 import org.scalatest.FunSuite
 
 class ResolutionSuite extends FunSuite {
@@ -39,12 +39,12 @@ class ResolutionSuite extends FunSuite {
 
   test("complex resolution") {
     val facts = List(
-      CGDecl(ScopeVar("s"),SymbolicName("Class", "x")),
-      CGAssoc(SymbolicName("Class", "x"),ScopeVar("s1705")),
-      CGDirectEdge(ScopeVar("s1705"),Label('P'),ScopeVar("s")),
-      CGDecl(ScopeVar("s1705"),SymbolicName("Var", "x835")),
-      CGRef(SymbolicName("Class", "x836"),ScopeVar("s1705")),
-      CGDecl(ScopeVar("s1705"),SymbolicName("Var", "x1706"))
+      CGDecl(ScopeVar("s"), SymbolicName("Class", "x")),
+      CGAssoc(SymbolicName("Class", "x"), ScopeVar("s1705")),
+      CGDirectEdge(ScopeVar("s1705"), Label('P'), ScopeVar("s")),
+      CGDecl(ScopeVar("s1705"), SymbolicName("Var", "x835")),
+      CGRef(SymbolicName("Class", "x836"), ScopeVar("s1705")),
+      CGDecl(ScopeVar("s1705"), SymbolicName("Var", "x1706"))
     )
 
     val resolution = Resolution()
@@ -59,7 +59,7 @@ class ResolutionSuite extends FunSuite {
       CGDirectEdge(ScopeVar("s1"), Label('P'), ScopeVar("s2"))
     )
 
-    assert(Graph(facts).reachableScopes((Character('P') *) ~ (Character('I') *), Nil, Nil, Resolution())(ScopeVar("s1")) == List(
+    assert(Graph(facts).reachableScopes((Label('P') *) ~ (Label('I') *), Nil, Nil, Resolution())(ScopeVar("s1")) == List(
       ScopeVar("s1"),
       ScopeVar("s2")
     ))
@@ -71,7 +71,7 @@ class ResolutionSuite extends FunSuite {
       CGDirectEdge(ScopeVar("s2"), Label('P'), ScopeVar("s3"))
     )
 
-    assert(Graph(facts).reachableScopes((Character('P') *) ~ (Character('I') *), Nil, Nil, Resolution())(ScopeVar("s1")) == List(
+    assert(Graph(facts).reachableScopes((Label('P') *) ~ (Label('I') *), Nil, Nil, Resolution())(ScopeVar("s1")) == List(
       ScopeVar("s1"),
       ScopeVar("s2"),
       ScopeVar("s3")
@@ -86,7 +86,7 @@ class ResolutionSuite extends FunSuite {
       CGNamedEdge(ScopeVar("s1"), Label('I'), SymbolicName("Class", "parent"))
     )
 
-    assert(Graph(facts).reachableScopes((Character('P') *) ~ (Character('I') *), Nil, Nil, Resolution())(ScopeVar("s1")) == List(
+    assert(Graph(facts).reachableScopes((Label('P') *) ~ (Label('I') *), Nil, Nil, Resolution())(ScopeVar("s1")) == List(
       ScopeVar("s1")
     ))
   }
@@ -103,7 +103,7 @@ class ResolutionSuite extends FunSuite {
       Map(SymbolicName("Class", "parent") -> SymbolicName("Class", "x"))
     )
 
-    assert(Graph(facts).reachableScopes((Character('P') *) ~ (Character('I') *), Nil, Nil, resolution)(ScopeVar("s1")) == List(
+    assert(Graph(facts).reachableScopes((Label('P') *) ~ (Label('I') *), Nil, Nil, resolution)(ScopeVar("s1")) == List(
       ScopeVar("s1"),
       ScopeVar("s2")
     ))
