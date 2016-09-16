@@ -1,70 +1,77 @@
 package nl.tudelft.fragments
 
 import nl.tudelft.fragments.Check.Path
-import nl.tudelft.fragments.regex.Regex
+import nl.tudelft.fragments.LabelImplicits._
+import nl.tudelft.fragments.regex.{EmptySet, Regex}
+import nl.tudelft.fragments.spoofax.Language
 import nl.tudelft.fragments.spoofax.models.Sort
 
 object Check {
+  val wf = (Label('P') *) ~ (Label('I') *)
+
+  type WF = Regex[Label]
   type Path = List[Label]
 
-  //  // Given a graph G, a well-formedness predicate WF, and a reference x, is it possible to add a declaration such that p: x^R \-> x^D is a well-formed path?
-  //  def declarationability(g: Graph, wf: Regex, x: Pattern) =
-  //    declarationability(g, g.scope(x), Set(wf))
-  //
-  //  // Given a graph G, a well-formedness predicate wf, and a scope s, is it possible to add a declaration such that p: S >-> x^D is a well-formed path?
-  //  def declarationability(g: Graph, s: Scope, cs: Set[Regex] = Set.empty) = {
-  //    for (rewrite <- rewrites) {
-  //      for (path <- rewrite(g).paths(s)) {
-  //        val c = g.cont(path)
-  //        // For every scope, we need the continuation from that scope
-  //        // In the newly added piece, we need to compute all paths, filter out paths that violate WF, check for duplicates, and recursively call this procedure
-  //      }
-  //    }
-  //  }
-
   /**
-    * Determine whether we can add a declaration given continuation c.
+    * Determine whether we can add a declaration with namespace ns given
+    * continuation c.
     *
     * @param rws
     * @param c
     * @return
     */
-  def declarationability(rws: List[Rewrite], g: List[Constraint], s: Scope, c: Regex[Label]): Boolean =
-    declarationability(rws, g, s, c, Set.empty)
+  def declarationability(rws: List[Rule], r: Rule, s: Scope, ns: String, c: Regex[Label])(implicit language: Language): Boolean =
+    declarationability(rws, r, r.recurse, s, ns, c, Set.empty) match {
+      case Left(_) => false
+      case Right(_) => true
+    }
 
   /**
-    * Determine whether we can add a declaration that is reachable from scope s with continuation c and seen
-    * continuations cs.
+    * Determine whether we can add a declaration with namespace ns that is
+    * reachable from scope s with continuation c and seen continuations cs.
+    *
+    * Returns either a seen set or the boolean true.
     *
     * @param rws Possible rewrites
     * @param c   Continuation c
     * @param cs  Set of seen continuations
     * @return
     */
-  def declarationability(rws: List[Rewrite], g: List[Constraint], s: Scope, c: Regex[Label], cs: Set[(Sort, Regex[Label])]): Boolean = {
-    val recurses = g.collect { case x: CGenRecurse => x }
+  def declarationability(rws: List[Rule], rule: Rule, recurses: List[CGenRecurse], s: Scope, ns: String, c: Regex[Label], cs: Set[(Sort, Regex[Label])])(implicit language: Language): Either[Set[(Sort, Regex[Label])], Boolean] = {
+    var css = cs
 
     for (recurse <- recurses) {
       val rewrites = rws.filter(rewrite => recurse.sort == rewrite.sort)
 
-      for (rewrite <- rewrites) {
-        val ng = applyRewrite(g, recurse, rewrite)
+      for (rewrite <- rewrites.filter(rw => rule.mergex(recurse, rw, 0).isDefined)) {
+        val merged = rule.mergex(recurse, rewrite, 0).get
+        val ng = merged._1
+        val newRecurses = ng.recurse.diff(rule.recurse.substituteSort(merged._3).substituteScope(merged._5).substitute(merged._4))
 
-        for ((path, scope) <- paths(s, ng)) {
+        for ((path, scope) <- paths(s.substituteScope(merged._5), ng)) {
           val nc = c.derive(path)
 
           if (nc.acceptsEmptyString) {
-            if (decls(ng, scope).nonEmpty) {
-              return true
+            if (decls(ng, scope).exists(_.asInstanceOf[Name].namespace == ns)) {
+              return Right(true)
             }
           }
 
           val sorts = sortsForScope(ng, scope)
 
           for (sort <- sorts) {
-            if (!cs.contains((sort, nc))) {
-              if (declarationability(rws, ng, scope, nc, cs + (sort -> nc))) {
-                return true
+            if (!css.contains((sort, nc))) {
+              // Add to seen set
+              css = css + (sort -> nc)
+
+              // Call child
+              val recursiveCall = declarationability(rws, ng, newRecurses, scope, ns, nc, css)
+
+              recursiveCall match {
+                // Merge seen sets
+                case Left(seen) => css = css ++ seen
+                case Right(true) => return Right(true)
+                case Right(false) => throw new Exception("Illegal state")
               }
             }
           }
@@ -72,61 +79,38 @@ object Check {
       }
     }
 
-    false
+    // We failed; return our seen set to the caller
+    Left(css)
   }
 
   /**
     * Get the sorts of the recurses for the given scope s in the graph g.
     *
-    * @param g
+    * @param r
     * @param s
     * @return
     */
-  def sortsForScope(g: List[Constraint], s: Scope): List[Sort] = g
-    .collect { case x: CGenRecurse => x }
-    .filter(_.scopes.head == s)
-    .map(_.sort)
-
-  /**
-    * Apply rewrite r to scope recurse.scopes.head in graph g and remove the
-    * recurse constraint from g.
-    *
-    * @param g
-    * @param recurse
-    * @return
-    */
-  def applyRewrite(g: List[Constraint], recurse: CGenRecurse, r: Rewrite): List[Constraint] = {
-    // Freshen names in the rewrite
-    val (_, freshr) = r.freshen()
-
-    // Unify s with ScopeAppl("s") in the rewrite (by convention)
-    val unifier = freshr.scope.unify(recurse.scopes.head).get
-
-    // Propagate the unification
-    val substituted = freshr.substitute(unifier)
-
-    // Merge g with r
-    (g - recurse) ++ substituted.constraints
-  }
+  def sortsForScope(r: Rule, s: Scope): List[Sort] =
+    r.recurse.filter(_.scopes.head == s).map(_.sort)
 
   /**
     * All paths in the graph from scope s
     *
     * @param s
-    * @param g
+    * @param r
     * @return
     */
-  def paths(s: Scope, g: List[Constraint]): List[(Path, Scope)] =
-    (Nil, s) :: Graphx(g).path(s)
+  def paths(s: Scope, r: Rule): List[(Path, Scope)] =
+    (Nil, s) :: Graphx(r.facts).path(s, wf)
 
   /**
     * All declarations in the scope s in the graph g
     *
-    * @param g
+    * @param r
     * @return
     */
-  def decls(g: List[Constraint], s: Scope): List[Pattern] =
-    Graphx(g).decls(s)
+  def decls(r: Rule, s: Scope): List[Pattern] =
+    Graphx(r.facts).decls(s)
 }
 
 case class Graphx(constraints: List[Constraint]) {
@@ -142,27 +126,19 @@ case class Graphx(constraints: List[Constraint]) {
   def pathDirect(s: Scope): List[(Path, Scope)] = edges(s)
     .map { case CGDirectEdge(_, l, s2) => (List(l), s2) }
 
-  // Multi-step paths from scope s. TODO: Fails on cycles!
-  def path(s: Scope): List[(Path, Scope)] =
-    pathDirect(s) ++ pathDirect(s).flatMap { case (label1, scope1) =>
-      path(scope1).map { case (label2, scope2) =>
-        (label1 ++ label2, scope2)
+  // Multi-step paths with well-formedness wf from scope s. TODO: Fails on cycles!
+  def path(s: Scope, wf: Regex[Label]): List[(Path, Scope)] = wf match {
+    case EmptySet() =>
+      Nil
+    case _ =>
+      pathDirect(s) ++ pathDirect(s).flatMap { case (label1, scope1) =>
+        path(scope1, wf.derive(label1)).map { case (label2, scope2) =>
+          (label1 ++ label2, scope2)
+        }
       }
-    }
+  }
 
   // Reachable declarations
-  def reachable(s: Scope) =
-    path(s).flatMap { case (_, ss) => decls(ss) }
-}
-
-case class Rewrite(sort: Sort, scope: Scope, constraints: List[Constraint]) {
-  def freshen(nameBinding: Map[String, String] = Map.empty): (Map[String, String], Rewrite) =
-    constraints.freshen(nameBinding).map { case (nameBinding, constraints) =>
-      scope.freshen(nameBinding).map { case (nameBinding, scope) =>
-        (nameBinding, Rewrite(sort, scope, constraints))
-      }
-    }
-
-  def substitute(binding: ScopeBinding): Rewrite =
-    Rewrite(sort, scope.substituteScope(binding), constraints.substituteScope(binding))
+  def reachable(s: Scope, wf: Regex[Label]): List[Pattern] =
+    path(s, wf).flatMap { case (_, ss) => decls(ss) }
 }

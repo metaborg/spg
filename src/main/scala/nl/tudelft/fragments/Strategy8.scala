@@ -26,14 +26,12 @@ object Strategy8 {
   def main(args: Array[String]): Unit = {
     val startRules = language.startRules
 
-    logger.info("Start growing")
-
-    val base = repeat(grow, growSteps)(rules)
-
-    logger.info("Grown {} new rules; start building", base.length - rules.length)
+    //logger.info("Start growing")
+    //val base = repeat(grow, growSteps)(rules)
+    //logger.info("Grown {} new rules; start building", base.length - rules.length)
 
     // Index rules by sort
-    val rulesBySort = indexRules(base)
+    val rulesBySort = indexRules(rules)
 
     // Start from a start rule and build a complete program
     for (i <- 0 to 10000) {
@@ -59,7 +57,7 @@ object Strategy8 {
             println("===")
           }
         case _ =>
-          //println(s"Atetmpt $i failed")
+          println(s"Attempt $i failed")
       }
     }
   }
@@ -73,7 +71,7 @@ object Strategy8 {
       val recurse = ruleA.recurse.random
 
       ruleA
-        .merge(recurse, ruleB, 2)
+        .merge(recurse, ruleB, 1)
         .map(_ :: rules)
         .getOrElse(rules)
     } else {
@@ -90,7 +88,8 @@ object Strategy8 {
       if (Solver.solve(partial.state).nonEmpty) {
         Left(partial)
       } else {
-        //println("Unsolvable")
+        println("Unsolvable")
+        println(partial)
         Right(-1)
       }
     } else {

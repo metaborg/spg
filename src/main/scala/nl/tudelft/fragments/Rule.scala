@@ -93,6 +93,10 @@ case class Rule(sort: Sort, typ: Option[Pattern], scopes: List[Scope], state: St
     state.constraints
 
   // Backwards compatibility
+  def facts: List[Constraint] =
+    state.facts
+
+  // Backwards compatibility
   def pattern: Pattern =
     state.pattern
 

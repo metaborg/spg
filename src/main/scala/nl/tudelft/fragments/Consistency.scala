@@ -1,7 +1,7 @@
 package nl.tudelft.fragments
 
-import nl.tudelft.fragments.spoofax.models.{Signature, Sort}
 import nl.tudelft.fragments.spoofax.Language
+import nl.tudelft.fragments.spoofax.models.Sort
 
 object Consistency {
   // Check for consistency. The higher the level, the stricter the check.
@@ -17,6 +17,7 @@ object Consistency {
         // Every unresolved reference for which no recurse constraint with a reachable scope exists, must consistently resolve to any of the reachable declarations
         if (level >= 2) {
           val resolveResult = checkResolveScope(rule)
+//          val resolveResult = checkResolveAddability(rule)
 
           states.nonEmpty && subtypingResult && resolveResult
         } else {
@@ -75,7 +76,7 @@ object Consistency {
 
         result match {
           case Left(None) =>
-            /* noop */
+          /* noop */
           case Left(Some(result)) =>
             return solve(result)
           case Right(_) =>
@@ -151,6 +152,42 @@ object Consistency {
     true
   }
 
+  /**
+    * If there is:
+    * - no reachable declaration
+    * - no way to add a reachable declaration
+    *
+    * Then we will never add a declaration. If this is also the case for
+    * ScopeVar, then we will not "solve" a declaration either. If both
+    * is the case, the fragment is inconsistent.
+    *
+    */
+  def checkResolveAddability(rule: Rule)(implicit language: Language): Boolean = {
+    val resolve = rule.resolve
+    val graph = Graph(rule.state.facts)
+
+    for (CResolve(n1, _) <- resolve) {
+      val scope = graph.scope(n1)
+      val name = n1.asInstanceOf[Name]
+
+      // If there is no reachable ScopeVar (TODO: This currently ignores well-formedness)
+      if (!canReachScopeVar(rule, scope)) {
+        // And no reachable declaration
+        if (graph.res(rule.state.resolution)(n1).isEmpty) {
+          // TODO: Take namespace into account
+          // And no way to add a reachable declaration
+          if (!Check.declarationability(language.specification.rules, rule, scope, name.namespace, language.specification.params.wf)) {
+            // TODO: And no way to add a reachable ScopeVar
+            if (true) {
+              return false
+            }
+          }
+        }
+      }
+    }
+
+    true
+  }
 
 
 
@@ -309,66 +346,66 @@ object Consistency {
     }
   }
 
-//  // Consistency of resolve constraints
-//  def checkResolve(rule: Rule)(implicit language: Language): Boolean = {
-//    val noDec = (resolveConstraint: CResolve) => {
-//      !Solver
-//        .rewrite(resolveConstraint, rule.state.copy(constraints = rule.state.constraints - resolveConstraint))
-//        .map(state => rule.copy(state = state))
-//        .exists(Consistency.check)
-//    }
-//
-//    val noRecurse = (resolveConstraint: CResolve) => {
-//      val scope = Graph(rule.state.facts).scope(resolveConstraint.n1)
-//      val reachable = Graph(rule.state.facts).reachableScopes(rule.state.resolution)(scope.get)
-//
-//      !rule.state.constraints
-//        .filter(_.isInstanceOf[CGenRecurse])
-//        .map(_.asInstanceOf[CGenRecurse])
-//        .exists(_.scopes.exists(reachable.contains(_)))
-//    }
-//
-//    val noRoot = (resolveConstraint: CResolve) => {
-//      // TODO: This is a hack that only works for L3
-//      if (rule.state.pattern.asInstanceOf[TermAppl].cons == "Program") {
-//        true
-//      } else {
-//        val scope = Graph(rule.state.facts).scope(resolveConstraint.n1)
-//        val reachable = Graph(rule.state.facts).reachableScopes(rule.state.resolution)(scope.get)
-//
-//        !rule.scopes.exists(reachable.contains(_))
-//      }
-//    }
-//
-//    val noEdge = (resolveConstraint: CResolve) => {
-//      val scope = Graph(rule.state.facts).scope(resolveConstraint.n1)
-//      val reachable = Graph(rule.state.facts).reachableScopes(rule.state.resolution)(scope.get)
-//
-//      !reachable.exists(scope =>
-//        Graph(rule.state.facts).edges(scope).exists {
-//          case (_, _: ScopeVar) =>
-//            true
-//          case _ =>
-//            false
-//        }
-//      )
-//    }
-//
-//    val resolveConstraints = rule.state.constraints
-//      .filter(_.isInstanceOf[CResolve])
-//      .asInstanceOf[List[CResolve]]
-//
-//    val check = resolveConstraints.forall(resolveConstraint => {
-//      val a = noDec(resolveConstraint)
-//      val b = noRecurse(resolveConstraint)
-//      val c = noRoot(resolveConstraint)
-//      val d = noEdge(resolveConstraint)
-//
-//      !(a && b && c && d)
-//    })
-//
-//    check
-//  }
+  //  // Consistency of resolve constraints
+  //  def checkResolve(rule: Rule)(implicit language: Language): Boolean = {
+  //    val noDec = (resolveConstraint: CResolve) => {
+  //      !Solver
+  //        .rewrite(resolveConstraint, rule.state.copy(constraints = rule.state.constraints - resolveConstraint))
+  //        .map(state => rule.copy(state = state))
+  //        .exists(Consistency.check)
+  //    }
+  //
+  //    val noRecurse = (resolveConstraint: CResolve) => {
+  //      val scope = Graph(rule.state.facts).scope(resolveConstraint.n1)
+  //      val reachable = Graph(rule.state.facts).reachableScopes(rule.state.resolution)(scope.get)
+  //
+  //      !rule.state.constraints
+  //        .filter(_.isInstanceOf[CGenRecurse])
+  //        .map(_.asInstanceOf[CGenRecurse])
+  //        .exists(_.scopes.exists(reachable.contains(_)))
+  //    }
+  //
+  //    val noRoot = (resolveConstraint: CResolve) => {
+  //      // TODO: This is a hack that only works for L3
+  //      if (rule.state.pattern.asInstanceOf[TermAppl].cons == "Program") {
+  //        true
+  //      } else {
+  //        val scope = Graph(rule.state.facts).scope(resolveConstraint.n1)
+  //        val reachable = Graph(rule.state.facts).reachableScopes(rule.state.resolution)(scope.get)
+  //
+  //        !rule.scopes.exists(reachable.contains(_))
+  //      }
+  //    }
+  //
+  //    val noEdge = (resolveConstraint: CResolve) => {
+  //      val scope = Graph(rule.state.facts).scope(resolveConstraint.n1)
+  //      val reachable = Graph(rule.state.facts).reachableScopes(rule.state.resolution)(scope.get)
+  //
+  //      !reachable.exists(scope =>
+  //        Graph(rule.state.facts).edges(scope).exists {
+  //          case (_, _: ScopeVar) =>
+  //            true
+  //          case _ =>
+  //            false
+  //        }
+  //      )
+  //    }
+  //
+  //    val resolveConstraints = rule.state.constraints
+  //      .filter(_.isInstanceOf[CResolve])
+  //      .asInstanceOf[List[CResolve]]
+  //
+  //    val check = resolveConstraints.forall(resolveConstraint => {
+  //      val a = noDec(resolveConstraint)
+  //      val b = noRecurse(resolveConstraint)
+  //      val c = noRoot(resolveConstraint)
+  //      val d = noEdge(resolveConstraint)
+  //
+  //      !(a && b && c && d)
+  //    })
+  //
+  //    check
+  //  }
 
 
   // Check if the naming conditions are consistent

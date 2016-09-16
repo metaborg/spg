@@ -1,9 +1,10 @@
 package nl.tudelft.fragments.spoofax
 
-import nl.tudelft.fragments.spoofax.SpoofaxScala._
-import nl.tudelft.fragments.spoofax.models._
+import nl.tudelft.fragments.LabelImplicits._
 import nl.tudelft.fragments._
 import nl.tudelft.fragments.regex._
+import nl.tudelft.fragments.spoofax.SpoofaxScala._
+import nl.tudelft.fragments.spoofax.models._
 import org.spoofax.interpreter.terms.{IStrategoAppl, IStrategoList, IStrategoString, IStrategoTerm}
 import org.spoofax.terms.{StrategoAppl, StrategoList}
 
@@ -11,7 +12,7 @@ import org.spoofax.terms.{StrategoAppl, StrategoList}
 class Specification(val params: ResolutionParams, val rules: List[Rule])
 
 // Representation of NaBL2 resolution parameters
-class ResolutionParams(val labels: List[Label], val order: PartialOrdering[Label], val wf: Regex[Char])
+class ResolutionParams(val labels: List[Label], val order: PartialOrdering[Label], val wf: Regex[Label])
 
 // Companion object
 object Specification {
@@ -106,7 +107,7 @@ object Specification {
   /**
     * Convert the WF or fall back to default WF
     */
-  def toWF(term: IStrategoTerm): Regex[Char] = {
+  def toWF(term: IStrategoTerm): Regex[Label] = {
     val customWf = term
       .collect {
         case appl: StrategoAppl if appl.getConstructor.getName == "WF" =>
@@ -120,7 +121,7 @@ object Specification {
 
     customWf match {
       case None =>
-        (Character('P') *) ~ (Character('I') *)
+        (Label('P') *) ~ (Label('I') *)
       case Some(wf) =>
         wf
     }
@@ -129,7 +130,7 @@ object Specification {
   /**
     * Convert the regex to our Scala DSL
     */
-  def toRegex(term: IStrategoTerm): Regex[Char] = term match {
+  def toRegex(term: IStrategoTerm): Regex[Label] = term match {
     case appl: StrategoAppl if appl.getConstructor.getName == "Concat" =>
       Concatenation(toRegex(appl.getSubterm(0)), toRegex(appl.getSubterm(1)))
     case appl: StrategoAppl if appl.getConstructor.getName == "Or" =>
