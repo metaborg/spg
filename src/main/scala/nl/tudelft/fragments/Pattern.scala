@@ -159,6 +159,8 @@ case class TermString(name: String) extends Pattern {
 
 abstract class Name extends Pattern {
   def namespace: String
+
+  def name: String
 }
 
 case class SymbolicName(namespace: String, name: String) extends Name {

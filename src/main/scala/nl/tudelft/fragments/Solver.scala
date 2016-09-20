@@ -22,13 +22,10 @@ object Solver {
       } else {
         val choices = Graph(state.facts).res(state.resolution)(n1)
 
-        choices.map { case (dec, cond) =>
+        choices.map { case dec =>
           state
             .substitute(Map(n2 -> dec))
-            .copy(
-              resolution = state.resolution + (n1 -> dec),
-              nameConstraints = cond ++ state.nameConstraints
-            )
+            .copy(resolution = state.resolution + (n1 -> dec))
         }
       }
     case CAssoc(n@SymbolicName(_, _), s@ScopeVar(_)) if Graph(state.facts).associated(n).nonEmpty =>
@@ -62,11 +59,11 @@ object Solver {
 
   // Solve as many constraints as possible. Returns a List[State] of possible resuting states.
   def solveAny(state: State)(implicit language: Language): List[State] = state match {
-    case State(_, Nil, _, _, _, _, _) =>
+    case State(_, Nil, _, _, _, _) =>
       state
-    case State(pattern, remaining, all, ts, resolution, subtype, conditions) =>
+    case State(pattern, remaining, all, ts, resolution, subtype) =>
       for (c <- remaining) {
-        val result = rewrite(c, State(pattern, remaining - c, all, ts, resolution, subtype, conditions))
+        val result = rewrite(c, State(pattern, remaining - c, all, ts, resolution, subtype))
 
         if (result.nonEmpty) {
           return result.flatMap(solveAny)
@@ -78,11 +75,11 @@ object Solver {
 
   // Solve all constraints. Returns `Nil` if it is not possible to solve all constraints.
   def solvePrivate(state: State)(implicit language: Language): List[State] = state match {
-    case State(_, Nil, _, _, _, _, _) =>
+    case State(_, Nil, _, _, _, _) =>
       state
-    case State(pattern, remaining, all, ts, resolution, subtype, conditions) =>
+    case State(pattern, remaining, all, ts, resolution, subtype) =>
       for (c <- remaining) {
-        val result = rewrite(c, State(pattern, remaining - c, all, ts, resolution, subtype, conditions))
+        val result = rewrite(c, State(pattern, remaining - c, all, ts, resolution, subtype))
 
         if (result.nonEmpty) {
           return result.flatMap(solve)
@@ -108,11 +105,10 @@ object Solver {
   * @param constraints     The (remaining) proper constraints
   * @param facts           The known facts
   * @param typeEnv         The typing environment
-  * @param nameConstraints The naming constraints
   */
 
 // TODO: Facts vs. constraints goes wrong. We never upgrade a constraint to a fact once we've solved it?!
-case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Constraint], typeEnv: TypeEnv, resolution: Resolution, subtypeRelation: SubtypeRelation, nameConstraints: List[NamingConstraint]) {
+case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Constraint], typeEnv: TypeEnv, resolution: Resolution, subtypeRelation: SubtypeRelation) {
   def merge(recurse: CGenRecurse, state: State): State = {
     State(
       pattern =
@@ -126,9 +122,7 @@ case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Co
       resolution =
         resolution ++ state.resolution,
       subtypeRelation =
-        subtypeRelation ++ state.subtypeRelation,
-      nameConstraints =
-        nameConstraints ++ state.nameConstraints
+        subtypeRelation ++ state.subtypeRelation
     )
   }
 
@@ -151,9 +145,7 @@ case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Co
           typeEnv.freshen(nameBinding).map { case (nameBinding, typeEnv) =>
             resolution.freshen(nameBinding).map { case (nameBinding, resolution) =>
               subtypeRelation.freshen(nameBinding).map { case (nameBinding, subtypeRelation) =>
-                nameConstraints.freshen(nameBinding).map { case (nameBinding, nameConstraints) =>
-                  (nameBinding, copy(pattern, constraints, all, typeEnv, resolution, subtypeRelation, nameConstraints))
-                }
+                (nameBinding, copy(pattern, constraints, all, typeEnv, resolution, subtypeRelation))
               }
             }
           }
@@ -163,20 +155,20 @@ case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Co
 }
 
 object State {
-  def apply(constraints: List[Constraint], facts: List[Constraint], typeEnv: TypeEnv, resolution: Resolution, subtypeRelation: SubtypeRelation, nameConstraints: List[NamingConstraint]): State = {
-    State(null, constraints, facts, typeEnv, resolution, subtypeRelation, nameConstraints)
+  def apply(constraints: List[Constraint], facts: List[Constraint], typeEnv: TypeEnv, resolution: Resolution, subtypeRelation: SubtypeRelation): State = {
+    State(null, constraints, facts, typeEnv, resolution, subtypeRelation)
   }
 
   def apply(pattern: Pattern, constraints: List[Constraint]): State = {
     val (proper, facts) = constraints.partition(_.isProper)
 
-    State(pattern, proper, facts, TypeEnv(), Resolution(), SubtypeRelation(), Nil)
+    State(pattern, proper, facts, TypeEnv(), Resolution(), SubtypeRelation())
   }
 
   def apply(constraints: List[Constraint]): State = {
     val (proper, facts) = constraints.partition(_.isProper)
 
-    State(proper, facts, TypeEnv(), Resolution(), SubtypeRelation(), Nil)
+    State(proper, facts, TypeEnv(), Resolution(), SubtypeRelation())
   }
 }
 

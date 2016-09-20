@@ -129,23 +129,6 @@ package object fragments {
       list.map(_.substituteScope(binding))
   }
 
-  implicit class RichNamingConstraintList[T <: NamingConstraint](list: List[T]) extends RichList[T](list) {
-    def freshen(nameBinding: Map[String, String]): (Map[String, String], List[NamingConstraint]) =
-      this.mapFoldLeft(nameBinding) { case (nameBinding, constraint) =>
-        constraint.freshen(nameBinding)
-      }
-  }
-
-//  implicit class RichEqList[T <: Eq](list: List[T]) extends RichList[T](list) {
-//    def substituteConcrete(binding: ConcreteBinding): List[Eq] =
-//      list.map(_.substituteConcrete(binding))
-//  }
-//
-//  implicit class RichDiseqList[T <: Diseq](list: List[T]) extends RichList[T](list) {
-//    def substituteConcrete(binding: ConcreteBinding): List[Diseq] =
-//      list.map(_.substituteConcrete(binding))
-//  }
-
   // CPS for Tuple2
   implicit class RichTuple2[T1, T2](tuple2: Tuple2[T1, T2]) {
     def map[T3](f: ((T1, T2)) => T3) =

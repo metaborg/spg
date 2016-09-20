@@ -359,3 +359,45 @@ case class CFalse() extends Constraint {
   override def priority =
     0
 }
+
+// Naming constraints
+
+abstract class NamingConstraint extends Constraint {
+  override def freshen(nameBinding: Map[String, String]): (Map[String, String], NamingConstraint)
+}
+
+case class Diseq(n1: Pattern, n2: Pattern) extends NamingConstraint {
+  override def substitute(binding: TermBinding): NamingConstraint =
+    Diseq(n1.substitute(binding), n2.substitute(binding))
+
+  override def substituteScope(binding: ScopeBinding): NamingConstraint =
+    this
+
+  override def substituteSort(binding: SortBinding): Constraint =
+    this
+
+  override def freshen(nameBinding: Map[String, String]): (Map[String, String], NamingConstraint) =
+    n1.freshen(nameBinding).map { case (nameBinding, n1) =>
+      n2.freshen(nameBinding).map { case (nameBinding, n2) =>
+        (nameBinding, Diseq(n1, n2))
+      }
+    }
+}
+
+case class Eq(n1: Pattern, n2: Pattern) extends NamingConstraint {
+  override def substitute(binding: TermBinding): NamingConstraint =
+    Eq(n1.substitute(binding), n2.substitute(binding))
+
+  override def substituteScope(binding: ScopeBinding): NamingConstraint =
+    this
+
+  override def substituteSort(binding: SortBinding): Constraint =
+    this
+
+  override def freshen(nameBinding: Map[String, String]): (Map[String, String], NamingConstraint) =
+    n1.freshen(nameBinding).map { case (nameBinding, n1) =>
+      n2.freshen(nameBinding).map { case (nameBinding, n2) =>
+        (nameBinding, Eq(n1, n2))
+      }
+    }
+}

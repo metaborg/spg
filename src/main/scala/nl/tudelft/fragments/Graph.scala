@@ -37,23 +37,20 @@ case class Graph(facts: List[Constraint])(implicit language: Language) {
     .collect { case CGDirectEdge(`s`, l, s2) => (l, s2) }
 
   // Set of declarations to which the reference can resolve
-  def res(R: Resolution)(x: Pattern): List[(Pattern, List[NamingConstraint])] =
+  def res(R: Resolution)(x: Pattern): List[Pattern] =
     res(Nil, R)(x)
 
   // Set of declarations to which the reference can resolve
-  def res(I: SeenImport, R: Resolution)(x: Pattern): List[(Pattern, List[NamingConstraint])] =
+  def res(I: SeenImport, R: Resolution)(x: Pattern): List[Pattern] =
     if (R.contains(x)) {
-      List((R(x), List.empty[NamingConstraint]))
+      List(R(x))
     } else {
       val D = env(language.specification.params.wf, x :: I, Nil, R)(scope(x))
 
-      D.declarations
-        .filter { case (y, _) =>
+      D.declarations.filter {
+        case (y) =>
           x.isInstanceOf[Name] && y.isInstanceOf[Name] && x.asInstanceOf[Name].namespace == y.asInstanceOf[Name].namespace
-        }
-        .map { case (y, c) =>
-          (y, Eq(x, y) :: c)
-        }
+      }
     }
 
   // Set of declarations that are reachable from S with path satisfying re
@@ -84,11 +81,7 @@ case class Graph(facts: List[Constraint])(implicit language: Language) {
     if (!re.acceptsEmptyString) {
       Environment()
     } else {
-      val names = declarations(s).map(x =>
-        (x, (declarations(s) - x).map(y => Diseq(x, y)))
-      )
-
-      Environment(names)
+      Environment(declarations(s))
     }
 
   // Set of declarations accessible from scope s through an l-labeled edge
@@ -133,46 +126,6 @@ case class Graph(facts: List[Constraint])(implicit language: Language) {
 
       current ++ (importedScopes ++ directScopes).flatMap { case (l, scope) =>
         reachableScopes(re.derive(l.name), I, s :: S, R)(scope)
-      }
-    }
-}
-
-abstract class NamingConstraint extends Constraint {
-  override def freshen(nameBinding: Map[String, String]): (Map[String, String], NamingConstraint)
-}
-
-case class Diseq(n1: Pattern, n2: Pattern) extends NamingConstraint {
-  override def substitute(binding: TermBinding): NamingConstraint =
-    Diseq(n1.substitute(binding), n2.substitute(binding))
-
-  override def substituteScope(binding: ScopeBinding): NamingConstraint =
-    this
-
-  override def substituteSort(binding: SortBinding): Constraint =
-    this
-
-  override def freshen(nameBinding: Map[String, String]): (Map[String, String], NamingConstraint) =
-    n1.freshen(nameBinding).map { case (nameBinding, n1) =>
-      n2.freshen(nameBinding).map { case (nameBinding, n2) =>
-        (nameBinding, Diseq(n1, n2))
-      }
-    }
-}
-
-case class Eq(n1: Pattern, n2: Pattern) extends NamingConstraint {
-  override def substitute(binding: TermBinding): NamingConstraint =
-    Eq(n1.substitute(binding), n2.substitute(binding))
-
-  override def substituteScope(binding: ScopeBinding): NamingConstraint =
-    this
-
-  override def substituteSort(binding: SortBinding): Constraint =
-    this
-
-  override def freshen(nameBinding: Map[String, String]): (Map[String, String], NamingConstraint) =
-    n1.freshen(nameBinding).map { case (nameBinding, n1) =>
-      n2.freshen(nameBinding).map { case (nameBinding, n2) =>
-        (nameBinding, Eq(n1, n2))
       }
     }
 }

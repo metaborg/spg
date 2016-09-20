@@ -16,8 +16,8 @@ object Consistency {
 
         // Every unresolved reference for which no recurse constraint with a reachable scope exists, must consistently resolve to any of the reachable declarations
         if (level >= 2) {
-          val resolveResult = checkResolveScope(rule)
-//          val resolveResult = checkResolveAddability(rule)
+//          val resolveResult = checkResolveScope(rule)
+          val resolveResult = checkResolveAddability(rule)
 
           states.nonEmpty && subtypingResult && resolveResult
         } else {
@@ -70,9 +70,9 @@ object Consistency {
 
   // Solve constraints by type. Returns `None` if constraints contain a consistency or `Some(state)` with the resulting state.
   def solve(state: State): Option[State] = state match {
-    case State(pattern, remaining, all, ts, resolution, subtype, conditions) =>
+    case State(pattern, remaining, all, ts, resolution, subtype) =>
       for (c <- remaining) {
-        val result = rewrite(c, State(pattern, remaining - c, all, ts, resolution, subtype, conditions))
+        val result = rewrite(c, State(pattern, remaining - c, all, ts, resolution, subtype))
 
         result match {
           case Left(None) =>
@@ -120,13 +120,19 @@ object Consistency {
     val graph = Graph(rule.state.facts)
 
     for (CResolve(n1, n2) <- resolve) {
+      // TODO: Debug strange behavior where n2 is not a TermVar?
+      if (!n2.isInstanceOf[TermVar]) {
+        println(rule)
+        System.exit(0)
+      }
+
       val scopes = graph.reachableScopes(rule.state.resolution)(graph.scope(n1))
       val incomplete = scopes.exists(scope => recurse.exists(recurse => recurse.scopes.contains(scope)))
       val scopeVarReachable = canReachScopeVar(rule, graph.scope(n1))
 
       if (!incomplete && !scopeVarReachable) {
         val declarations = graph.res(rule.state.resolution)(n1)
-        val compatible = declarations.exists { case (declaration, namingConstraint) =>
+        val compatible = declarations.exists { case declaration =>
           Consistency.check(
             Solver.resolve(rule, CResolve(n1, n2), declaration)
           )
@@ -204,7 +210,7 @@ object Consistency {
           val declarations = g.res(rule.state.resolution)(n1)
 
           // There must exist a declaration that, if n1 resolves to it, yields a consistent fragment
-          val consistent = declarations.exists { case (dec, cond) =>
+          val consistent = declarations.exists(dec => {
             // Resolve n1 to dec by substituting n2 by dec
             val newRule = rule.copy(
               state = rule.state.copy(
@@ -214,14 +220,14 @@ object Consistency {
 
             val newRule2 = newRule.copy(state =
               newRule.state.copy(
-                resolution = newRule.state.resolution + (n1 -> dec),
-                nameConstraints = cond ++ newRule.state.nameConstraints
+                resolution = newRule.state.resolution + (n1 -> dec)
+                // nameConstraints = cond ++ newRule.state.nameConstraints
               )
             )
 
             // Check consistency of the resulting rule
             Consistency.check(newRule2)
-          }
+          })
 
           consistent
         } else {
@@ -314,7 +320,7 @@ object Consistency {
       val graph = Graph(rule.state.facts)
       val env = graph.env(language.specification.params.wf, Nil, Nil, rule.state.resolution)(rule.scopes.head) // TODO: head is arbitrary
       val declarations = env.declarations
-      val declarationsCorrectNs = declarations.filter(d => d._1.isInstanceOf[Name] && d._1.asInstanceOf[Name].namespace == ns)
+      val declarationsCorrectNs = declarations.filter(d => d.isInstanceOf[Name] && d.asInstanceOf[Name].namespace == ns)
 
       if (declarationsCorrectNs.nonEmpty) {
         true

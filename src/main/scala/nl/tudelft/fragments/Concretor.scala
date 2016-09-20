@@ -1,26 +1,46 @@
 package nl.tudelft.fragments
 
 import nl.tudelft.fragments.lexical.LexicalGenerator
-import nl.tudelft.fragments.spoofax.Specification
+import nl.tudelft.fragments.spoofax.Language
 import nl.tudelft.fragments.spoofax.models._
 
 object Concretor {
+  /**
+    * The rule's resolution may not be valid due to shadowing. This method computes Eq and Diseq
+    * constraints for names that should be equal (or inequal) when made concrete.
+    *
+    * For every resolution x |-> y, we create an Eq(x, y), and for all other names y that are
+    * reachable from x, we create a Diseq(x, y).
+    */
+  def computeNamingConstraints(state: State)(implicit language: Language): List[NamingConstraint] = {
+    state.resolution.bindings.foldLeft(List.empty[NamingConstraint]) {
+      case (namingConstraints, (ref, dec)) =>
+        val reachableDeclarations = Graph(state.facts).res(state.resolution)(ref)
+
+        Eq(ref, dec) :: namingConstraints ++ reachableDeclarations
+          .filter(_ != dec)
+          .map(newDec => Diseq(dec, newDec))
+    }
+  }
+
   // Replace TermVars in pattern by concrete names satisfying the solution
-  def concretize(rule: Rule, solution: State)(implicit signatures: Signatures, productions: List[Production]): Pattern = {
+  def concretize(rule: Rule, state: State)(implicit language: Language): Pattern = {
     // Use a new name provider to keep the numbers low
     val nameProvider = NameProvider(0)
 
-    // - solution.nameConstraints contains constraints that the names must satisfy for `solution.resolution` to occur
-    val partially = rule.pattern
-      .substitute(
-        nameEq(filterEqs(solution.nameConstraints), Map.empty, nameProvider)
-          .map { case (n1, n2) => TermVar(n1) -> TermString(n2) }
-      )
+    // Compute constraints on the symbolic names to enforce the chosen resolution
+    val namingConstraints = computeNamingConstraints(state)
 
-    //    // Convert symbolic names based on equality and disequality conditions
-    //    val partially = rule.pattern
-    //      .substituteConcrete(nameEq(filterEqs(solution.nameConstraints), nameProvider))
-    //      .substituteConcrete(nameDiseq(filterDiseqs(solution.nameConstraints), nameProvider))
+    // Replace names in Eq constraints
+    val partially = rule.pattern.substitute(
+      nameEq(filterEqs(namingConstraints), Map.empty, nameProvider)
+        .map { case (n1, n2) => TermVar(n1) -> TermString(n2) }
+    )
+
+    // TODO: Convert symbolic names based on disequality constraints (to prevent altering resolution)
+//    val partially = rule.pattern
+//      .substitute(nameEq(filterEqs(solution.nameConstraints), nameProvider).map { case (n1, n2) => Term})
+//      .substitute(nameDiseq(filterDiseqs(solution.nameConstraints), nameProvider))
     //
     //    // Convert remaining symbolic names. This is a lazy solution; we can use names sparingly/randomly.
     //    partially
@@ -28,16 +48,13 @@ object Concretor {
     //        partially.names.map(s => (s, ConcreteName(s.namespace, "n" + nameProvider.next, 0))).toMap
     //      )
 
-    // TODO: We just assume TermVars to be names, but is this correct?
-    // TODO: We just assign increasing names, but we can re-use names (and other strategies)
-
     // Create lexical generator
-    val generator = new LexicalGenerator(productions)
+    val generator = new LexicalGenerator(language.productions)
 
     // Convert remaining TermVars based on their sort
     val result = partially.substitute(
       partially.vars.map(v => {
-        val sort = signatures.sortForPattern(partially, v)
+        val sort = language.signatures.sortForPattern(partially, v)
         val value = sort.map(generator.generate)
 
         v -> TermString(value.getOrElse(throw new RuntimeException("Could not determine Sort for TermVar")))

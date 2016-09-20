@@ -121,6 +121,24 @@ object Language {
       ConstType(SortAppl("List", List(SortVar("a"))))
     )),
 
+    // Duplicate Cons to get larger lists (in expectation)
+    OpDecl("Cons", FunType(
+      List(
+        ConstType(SortVar("a")),
+        ConstType(SortAppl("List", List(SortVar("a"))))
+      ),
+      ConstType(SortAppl("List", List(SortVar("a"))))
+    )),
+
+    // Duplicate Cons to get larger lists (in expectation)
+    OpDecl("Cons", FunType(
+      List(
+        ConstType(SortVar("a")),
+        ConstType(SortAppl("List", List(SortVar("a"))))
+      ),
+      ConstType(SortAppl("List", List(SortVar("a"))))
+    )),
+
     // Nil : List(a)
     OpDecl("Nil", ConstType(
       SortAppl("List", List(SortVar("a")))

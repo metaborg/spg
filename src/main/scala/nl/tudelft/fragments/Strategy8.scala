@@ -161,12 +161,12 @@ object Strategy8 {
       Right(remainingFuel)
     }
   }
-  
+
   // Solve given CResolve constraint in given rule
   def resolve(resolve: CResolve, rule: Rule): Option[Rule] = {
     val declarations = Graph(rule.state.facts).res(rule.state.resolution)(resolve.n1)
 
-    for ((declaration, namingConstraint) <- declarations.shuffle) {
+    for (declaration <- declarations.shuffle) {
       val resolvedRule = Solver.resolve(rule, resolve, declaration)
 
       if (Consistency.check(resolvedRule)) {

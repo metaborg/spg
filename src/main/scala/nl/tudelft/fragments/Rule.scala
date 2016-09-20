@@ -41,22 +41,27 @@ case class Rule(sort: Sort, typ: Option[Pattern], scopes: List[Scope], state: St
 
   // Fix broken references by adding name disequalities
   def restoreResolution(rule: Rule)(implicit language: Language) = {
+    // TODO: This is broken. Move restoring resolution to concretor.
+    assert(false)
+
     // The merge may have broken existing resolutions, fix this
     val fixedRule = rule.state.resolution.bindings.foldLeft(rule) { case (rule, (ref, dec)) =>
       // Get the declarations that `ref` may resolve to and remove declarations longer than `dec` as they don't break the resolution
       val newResolves = Graph(rule.state.facts).res(rule.state.resolution)(ref)
 
-      if (newResolves.length != 1 || (newResolves.length == 1 && newResolves.head._1 != dec)) {
+      if (newResolves.length != 1 || (newResolves.length == 1 && newResolves.head != dec)) {
         // TODO: We can use the constraint from newResolves here, as that already contains the necessary condition for resolving to that single name
         val newDisEqs = newResolves
-          .filter(_._1 != dec)
-          .map { case (newDec, _) => Diseq(dec, newDec) }
+          .filter(_ != dec)
+          .map { case newDec => Diseq(dec, newDec) }
 
-        rule.copy(state =
-          rule.state.copy(nameConstraints =
-            newDisEqs ++ rule.state.nameConstraints
-          )
-        )
+        // TODO: Copy `rule` with nameConstraints = newDisEqs ++ rule.state.nameConstraints to get the fixed rule.
+//        rule.copy(state =
+//          rule.state.copy(nameConstraints =
+//            newDisEqs ++ rule.state.nameConstraints
+//          )
+//        )
+        null
       } else {
         rule
       }
@@ -66,7 +71,7 @@ case class Rule(sort: Sort, typ: Option[Pattern], scopes: List[Scope], state: St
     for ((ref, dec) <- fixedRule.state.resolution.bindings) {
       val newResolves = Graph(fixedRule.state.facts).res(fixedRule.state.resolution)(ref)
 
-      if (newResolves.length != 1 || (newResolves.length == 1 && newResolves.head._1 != dec)) {
+      if (newResolves.length != 1 || (newResolves.length == 1 && newResolves.head != dec)) {
         println(ref)
         println(fixedRule)
         println(newResolves)
