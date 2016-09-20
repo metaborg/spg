@@ -2,23 +2,10 @@ package nl.tudelft.fragments
 
 import nl.tudelft.fragments.LabelImplicits._
 import nl.tudelft.fragments.regex.Regex
+import nl.tudelft.fragments.spoofax.Language
 
 // Resolution algorithm
-// TODO: Remove distinction between facts and constraints?
-case class Graph(/*wellFormedness: Regex, labels: List[Label], labelOrdering: LabelOrdering,*/ facts: List[Constraint]) {
-  val labels =
-    List(Label('P'), Label('I'))
-
-  val wellFormedness =
-    (Label('P') *) ~ (Label('I') *)
-
-  val labelOrdering =
-    LabelOrdering(
-      (Label('D'), Label('P')),
-      (Label('D'), Label('I')),
-      (Label('I'), Label('P'))
-    )
-
+case class Graph(facts: List[Constraint])(implicit language: Language) {
   // Get scope for reference
   def scope(n: Pattern): Scope = facts
     .collect { case CGRef(`n`, s) => s }
@@ -58,7 +45,7 @@ case class Graph(/*wellFormedness: Regex, labels: List[Label], labelOrdering: La
     if (R.contains(x)) {
       List((R(x), List.empty[NamingConstraint]))
     } else {
-      val D = env(wellFormedness, x :: I, Nil, R)(scope(x))
+      val D = env(language.specification.params.wf, x :: I, Nil, R)(scope(x))
 
       D.declarations
         .filter { case (y, _) =>
@@ -74,13 +61,13 @@ case class Graph(/*wellFormedness: Regex, labels: List[Label], labelOrdering: La
     if (S.contains(s) || re.rejectsAll) {
       Environment()
     } else {
-      envLabels(re, 'D' :: labels, I, S, R)(s)
+      envLabels(re, 'D' :: language.specification.params.labels, I, S, R)(s)
     }
 
   // Set of declarations visible from S through labels in L after shadowing
   def envLabels(re: Regex[Label], L: List[Label], I: SeenImport, S: SeenScope, R: Resolution)(s: Scope): Environment = {
-    LabelOrdering.max(L, labelOrdering)
-      .map(l => envLabels(re, LabelOrdering.lt(L, l, labelOrdering), I, S, R)(s) shadows envL(re, l, I, S, R)(s))
+    LabelOrdering.max(L, language.specification.params.order)
+      .map(l => envLabels(re, LabelOrdering.lt(L, l, language.specification.params.order), I, S, R)(s) shadows envL(re, l, I, S, R)(s))
       .fold(Environment())(_ union _)
   }
 
@@ -128,7 +115,7 @@ case class Graph(/*wellFormedness: Regex, labels: List[Label], labelOrdering: La
 
   // Get scopes reachable from s
   def reachableScopes(R: Resolution)(s: Scope): List[Scope] =
-    reachableScopes(wellFormedness, Nil, Nil, R)(s)
+    reachableScopes(language.specification.params.wf, Nil, Nil, R)(s)
 
   // Get scopes reachable from s
   def reachableScopes(re: Regex[Label], I: SeenImport, S: SeenScope, R: Resolution)(s: Scope): List[Scope] =

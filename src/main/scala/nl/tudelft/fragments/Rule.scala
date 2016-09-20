@@ -40,7 +40,7 @@ case class Rule(sort: Sort, typ: Option[Pattern], scopes: List[Scope], state: St
     mergex(recurse, rule, level).map(_._1)
 
   // Fix broken references by adding name disequalities
-  def restoreResolution(rule: Rule) = {
+  def restoreResolution(rule: Rule)(implicit language: Language) = {
     // The merge may have broken existing resolutions, fix this
     val fixedRule = rule.state.resolution.bindings.foldLeft(rule) { case (rule, (ref, dec)) =>
       // Get the declarations that `ref` may resolve to and remove declarations longer than `dec` as they don't break the resolution

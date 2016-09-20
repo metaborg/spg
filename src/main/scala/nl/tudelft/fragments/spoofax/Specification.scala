@@ -12,7 +12,7 @@ import org.spoofax.terms.{StrategoAppl, StrategoList}
 class Specification(val params: ResolutionParams, val rules: List[Rule])
 
 // Representation of NaBL2 resolution parameters
-class ResolutionParams(val labels: List[Label], val order: PartialOrdering[Label], val wf: Regex[Label])
+class ResolutionParams(val labels: List[Label], val order: LabelOrdering, val wf: Regex[Label])
 
 // Companion object
 object Specification {

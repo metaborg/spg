@@ -1,7 +1,9 @@
 package nl.tudelft.fragments
 
+import nl.tudelft.fragments.spoofax.Language
+
 object Solver {
-  def rewrite(c: Constraint, state: State): List[State] = c match {
+  def rewrite(c: Constraint, state: State)(implicit language: Language): List[State] = c match {
     case CTrue() =>
       state
     case CTypeOf(n, t) if n.vars.isEmpty =>
@@ -59,7 +61,7 @@ object Solver {
   }
 
   // Solve as many constraints as possible. Returns a List[State] of possible resuting states.
-  def solveAny(state: State): List[State] = state match {
+  def solveAny(state: State)(implicit language: Language): List[State] = state match {
     case State(_, Nil, _, _, _, _, _) =>
       state
     case State(pattern, remaining, all, ts, resolution, subtype, conditions) =>
@@ -75,7 +77,7 @@ object Solver {
   }
 
   // Solve all constraints. Returns `Nil` if it is not possible to solve all constraints.
-  def solvePrivate(state: State): List[State] = state match {
+  def solvePrivate(state: State)(implicit language: Language): List[State] = state match {
     case State(_, Nil, _, _, _, _, _) =>
       state
     case State(pattern, remaining, all, ts, resolution, subtype, conditions) =>
@@ -91,7 +93,7 @@ object Solver {
   }
 
   // Solve constraints after sorting on priority
-  def solve(state: State): List[State] = {
+  def solve(state: State)(implicit language: Language): List[State] = {
     val sortedState = state.copy(
       constraints = state.constraints.sortBy(_.priority)
     )

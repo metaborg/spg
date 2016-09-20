@@ -161,6 +161,8 @@ object Consistency {
 
       // If there is no reachable ScopeVar (TODO: This currently ignores well-formedness)
       if (!canReachScopeVar(rule, scope)) {
+        // TODO: Maybe, there is a reachable declaration, but resolving to this declaration yields an inconsistent fragment (e.g. resolving to the main class).
+
         // And no reachable declaration
         if (graph.res(rule.state.resolution)(n1).isEmpty) {
           // TODO: Take namespace into account
@@ -177,6 +179,12 @@ object Consistency {
 
     true
   }
+
+
+
+
+
+
 
 
 
@@ -249,7 +257,7 @@ object Consistency {
     * @param rule
     * @return
     */
-  def canReachScopeVar(rule: Rule, scope: Scope): Boolean = {
+  def canReachScopeVar(rule: Rule, scope: Scope)(implicit language: Language): Boolean = {
     val graph = Graph(rule.state.facts)
     val reachableScopes = graph.reachableScopes(rule.state.resolution)(scope)
 
@@ -304,7 +312,7 @@ object Consistency {
     rulesForRecurseConstraints.exists(rule => {
       // Does this new rule add a declaration?
       val graph = Graph(rule.state.facts)
-      val env = graph.env(graph.wellFormedness, Nil, Nil, rule.state.resolution)(rule.scopes.head) // TODO: head is arbitrary
+      val env = graph.env(language.specification.params.wf, Nil, Nil, rule.state.resolution)(rule.scopes.head) // TODO: head is arbitrary
       val declarations = env.declarations
       val declarationsCorrectNs = declarations.filter(d => d._1.isInstanceOf[Name] && d._1.asInstanceOf[Name].namespace == ns)
 

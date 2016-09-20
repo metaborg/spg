@@ -1,9 +1,26 @@
 package nl.tudelft.fragments
 
 import nl.tudelft.fragments.LabelImplicits._
+import nl.tudelft.fragments.spoofax.{Language, ResolutionParams, Specification}
 import org.scalatest.FunSuite
 
 class ResolutionSuite extends FunSuite {
+  val resolutionParams = new ResolutionParams(
+    labels = List(
+      Label('P'),
+      Label('I')
+    ),
+    order = LabelOrdering(
+      (Label('D'), Label('P')),
+      (Label('D'), Label('I')),
+      (Label('I'), Label('P'))
+    ),
+    wf = (Label('P') *) ~ (Label('I') *)
+  )
+
+  // Define an implicit language with resolution params to do resolution on
+  implicit val language: Language = new Language(Nil, null, new Specification(resolutionParams, Nil), null, Nil)
+
   test("resolution") {
     val facts = List(
       CGRef(SymbolicName("Var", "x"), ScopeVar("s1")),
