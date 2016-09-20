@@ -44,6 +44,20 @@ object Solver {
       Nil
   }
 
+  // Solve a resolve constraint (x |-> d) by resolving x to z
+  def resolve(rule: Rule, resolve: CResolve, z: Pattern): Rule = resolve match {
+    case CResolve(n1, n2) =>
+      val substitutedState = rule.state
+        .copy(constraints = rule.state.constraints - CResolve(n1, n2))
+        .substitute(Map(n2.asInstanceOf[TermVar] -> z))
+
+      val resolvedState = substitutedState.copy(
+        resolution = substitutedState.resolution + (n1 -> z)
+      )
+
+      rule.copy(state = resolvedState)
+  }
+
   // Solve as many constraints as possible. Returns a List[State] of possible resuting states.
   def solveAny(state: State): List[State] = state match {
     case State(_, Nil, _, _, _, _, _) =>

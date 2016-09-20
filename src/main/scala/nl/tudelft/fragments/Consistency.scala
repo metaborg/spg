@@ -127,20 +127,9 @@ object Consistency {
       if (!incomplete && !scopeVarReachable) {
         val declarations = graph.res(rule.state.resolution)(n1)
         val compatible = declarations.exists { case (declaration, namingConstraint) =>
-          // Resolve `n1` to `declaration`
-          val substitutedState = rule.state
-            .copy(constraints = rule.state.constraints - CResolve(n1, n2))
-            .substitute(Map(n2.asInstanceOf[TermVar] -> declaration))
-
-          val resolvedState = substitutedState.copy(
-            resolution = substitutedState.resolution + (n1 -> declaration),
-            nameConstraints = namingConstraint ++ substitutedState.nameConstraints
+          Consistency.check(
+            Solver.resolve(rule, CResolve(n1, n2), declaration)
           )
-
-          val resolvedRule = rule.copy(state = resolvedState)
-
-          // Check consistency of the resulting rule
-          Consistency.check(resolvedRule)
         }
 
         if (!compatible) {

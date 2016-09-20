@@ -161,30 +161,13 @@ object Strategy8 {
       Right(remainingFuel)
     }
   }
-
+  
   // Solve given CResolve constraint in given rule
   def resolve(resolve: CResolve, rule: Rule): Option[Rule] = {
     val declarations = Graph(rule.state.facts).res(rule.state.resolution)(resolve.n1)
 
-    // For a random reachable declaration (TODO: using the language's resolution parameters)
     for ((declaration, namingConstraint) <- declarations.shuffle) {
-      // TODO: This must be nicer.. substitue + copy is ugly programming...
-
-      // Replace the rhs (which is a variable) by the found declaration
-      val substitutedState = rule.state
-        // Remove the resolve constraint
-        .copy(constraints = rule.state.constraints - resolve)
-        // Propagate the resolution
-        .substitute(Map(resolve.n2.asInstanceOf[TermVar] -> declaration))
-
-      val resolvedState = substitutedState.copy(
-        // Add to the resolution
-        resolution = substitutedState.resolution + (resolve.n1 -> declaration),
-        // Add to the name constraints
-        nameConstraints = namingConstraint ++ substitutedState.nameConstraints
-      )
-
-      val resolvedRule = rule.copy(state = resolvedState)
+      val resolvedRule = Solver.resolve(rule, resolve, declaration)
 
       if (Consistency.check(resolvedRule)) {
         return Some(resolvedRule)
