@@ -1,15 +1,13 @@
 package nl.tudelft.fragments
 
-import nl.tudelft.fragments.spoofax.models.{Signature, Sort, SortAppl, SortVar}
 import nl.tudelft.fragments.spoofax.Language
+import nl.tudelft.fragments.spoofax.models.{Sort, SortAppl, SortVar}
 
 // Rule
 case class Rule(sort: Sort, typ: Option[Pattern], scopes: List[Scope], state: State) {
   def mergex(recurse: CGenRecurse, rule: Rule, level: Int)(implicit language: Language): Option[(Rule, Map[String, String], SortBinding, TermBinding, ScopeBinding)] = {
-    // Prevent naming conflicts by freshening the names in the other rule
     val (nameBinding, freshRule) = rule.freshen()
 
-    // Unify sort, type, scope and merge the rules
     val merged = for (
       sortUnifier <- Rule.mergeSorts(recurse.sort, freshRule.sort);
       typeUnifier <- Rule.mergeTypes(recurse.typ, freshRule.typ);
@@ -20,13 +18,8 @@ case class Rule(sort: Sort, typ: Option[Pattern], scopes: List[Scope], state: St
         .substituteSort(sortUnifier)
         .substituteScope(scopeUnifier)
 
-      // The merge might have broken references. Restore these by adding name disequalities. TODO
-      //val restored = restoreResolution(merged)
-      val restored = merged
-
-      // Check consistency
-      if (Consistency.check(restored, level)) {
-        Some((restored, nameBinding, sortUnifier, typeUnifier, scopeUnifier))
+      if (Consistency.check(merged, level)) {
+        Some((merged, nameBinding, sortUnifier, typeUnifier, scopeUnifier))
       } else {
         None
       }
@@ -39,69 +32,27 @@ case class Rule(sort: Sort, typ: Option[Pattern], scopes: List[Scope], state: St
   def merge(recurse: CGenRecurse, rule: Rule, level: Int)(implicit language: Language): Option[Rule] =
     mergex(recurse, rule, level).map(_._1)
 
-  // Fix broken references by adding name disequalities
-  def restoreResolution(rule: Rule)(implicit language: Language) = {
-    // TODO: This is broken. Move restoring resolution to concretor.
-    assert(false)
-
-    // The merge may have broken existing resolutions, fix this
-    val fixedRule = rule.state.resolution.bindings.foldLeft(rule) { case (rule, (ref, dec)) =>
-      // Get the declarations that `ref` may resolve to and remove declarations longer than `dec` as they don't break the resolution
-      val newResolves = Graph(rule.state.facts).res(rule.state.resolution)(ref)
-
-      if (newResolves.length != 1 || (newResolves.length == 1 && newResolves.head != dec)) {
-        // TODO: We can use the constraint from newResolves here, as that already contains the necessary condition for resolving to that single name
-        val newDisEqs = newResolves
-          .filter(_ != dec)
-          .map { case newDec => Diseq(dec, newDec) }
-
-        // TODO: Copy `rule` with nameConstraints = newDisEqs ++ rule.state.nameConstraints to get the fixed rule.
-//        rule.copy(state =
-//          rule.state.copy(nameConstraints =
-//            newDisEqs ++ rule.state.nameConstraints
-//          )
-//        )
-        null
-      } else {
-        rule
-      }
-    }
-
-    // TODO) Sanity check: did we really restore the resolution? (Remove this code eventually)
-    for ((ref, dec) <- fixedRule.state.resolution.bindings) {
-      val newResolves = Graph(fixedRule.state.facts).res(fixedRule.state.resolution)(ref)
-
-      if (newResolves.length != 1 || (newResolves.length == 1 && newResolves.head != dec)) {
-        println(ref)
-        println(fixedRule)
-        println(newResolves)
-
-        assert(false, "Ook na fixen nog geshadowed?!")
-      }
-    }
-
-    fixedRule
-  }
-
+  // Get all recurse constraints
   def recurse: List[CGenRecurse] =
     state.constraints
       .filter(_.isInstanceOf[CGenRecurse])
       .asInstanceOf[List[CGenRecurse]]
 
+  // Get all resolve constraints
   def resolve =
     constraints
       .filter(_.isInstanceOf[CResolve])
       .asInstanceOf[List[CResolve]]
 
-  // Backwards compatibility
+  // Get all constraints
   def constraints: List[Constraint] =
     state.constraints
 
-  // Backwards compatibility
+  // Get all facts
   def facts: List[Constraint] =
     state.facts
 
-  // Backwards compatibility
+  // Get the pattern
   def pattern: Pattern =
     state.pattern
 

@@ -106,8 +106,6 @@ object Solver {
   * @param facts           The known facts
   * @param typeEnv         The typing environment
   */
-
-// TODO: Facts vs. constraints goes wrong. We never upgrade a constraint to a fact once we've solved it?!
 case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Constraint], typeEnv: TypeEnv, resolution: Resolution, subtypeRelation: SubtypeRelation) {
   def merge(recurse: CGenRecurse, state: State): State = {
     State(
