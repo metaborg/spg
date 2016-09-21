@@ -8,23 +8,24 @@ object Consistency {
   def check(rule: Rule, level: Int = 2)(implicit language: Language): Boolean = {
     if (level >= 0) {
       // Solve CEqual and CTypeOf constraints; should result in single state.
-      val states = solve(rule.state)
+      val state = solve(rule.state)
 
-      if (level >= 1 && states.nonEmpty) {
+      if (level >= 1 && state.nonEmpty) {
         // Conservative subtype check: only allow x <? y if x <! y.
-        val subtypingResult = conservativeSubtyping(states.head)
+        val subtypingResult = conservativeSubtyping(state.head)
 
         // Every unresolved reference for which no recurse constraint with a reachable scope exists, must consistently resolve to any of the reachable declarations
         if (level >= 2) {
-//          val resolveResult = checkResolveScope(rule)
-          val resolveResult = checkResolveAddability(rule)
+          val updatedRule = rule.copy(state = state.get)
+//          val resolveResult = checkResolveScope(updatedRule)
+          val resolveResult = checkResolveAddability(updatedRule)
 
-          states.nonEmpty && subtypingResult && resolveResult
+          state.nonEmpty && subtypingResult && resolveResult
         } else {
-          states.nonEmpty && subtypingResult
+          state.nonEmpty && subtypingResult
         }
       } else {
-        states.nonEmpty
+        state.nonEmpty
       }
     } else {
       true
@@ -32,7 +33,7 @@ object Consistency {
   }
 
   // Rewrite constraints, returning Left(None) if we cannot process the constraint, Left(Some(states)) if we can process the state, and Right if we find an inconsistency
-  def rewrite(c: Constraint, state: State): Either[Option[State], String] = c match {
+  def rewrite(c: Constraint, state: State)(implicit language: Language): Either[Option[State], String] = c match {
     case CFalse() =>
       Right(s"Unable to solve CFalse()")
     case CTypeOf(n, t) if n.vars.isEmpty =>
@@ -64,12 +65,16 @@ object Consistency {
 
         Left(Some(state.copy(subtypeRelation = state.subtypeRelation ++ closure)))
       }
+    case CAssoc(n@SymbolicName(_, _), s@ScopeVar(_)) if Graph(state.facts).associated(n).nonEmpty =>
+      Left(Graph(state.facts).associated(n).map(scope =>
+        state.substituteScope(Map(s -> scope))
+      ))
     case _ =>
       Left(None)
   }
 
   // Solve constraints by type. Returns `None` if constraints contain a consistency or `Some(state)` with the resulting state.
-  def solve(state: State): Option[State] = state match {
+  def solve(state: State)(implicit language: Language): Option[State] = state match {
     case State(pattern, remaining, all, ts, resolution, subtype) =>
       for (c <- remaining) {
         val result = rewrite(c, State(pattern, remaining - c, all, ts, resolution, subtype))
