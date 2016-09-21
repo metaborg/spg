@@ -1,25 +1,19 @@
-package nl.tudelft.fragments
+package nl.tudelft.fragments.strategies
 
-import nl.tudelft.fragments.spoofax.Signatures.Decl
-import nl.tudelft.fragments.spoofax.{Printer, Signatures, Specification}
+import nl.tudelft.fragments.spoofax.{Language, Specification}
+import nl.tudelft.fragments.spoofax.models.Signatures
+import nl.tudelft.fragments.{Builder, CResolve, Graph, Rule, _}
 
 import scala.util.Random
 
 object Strategy2 {
   def main(args: Array[String]): Unit = {
-    implicit val signatures = Signatures.read(
-      strategoPath = "zip:/Users/martijn/Projects/spoofax-releng/stratego/org.metaborg.meta.lang.stratego/target/org.metaborg.meta.lang.stratego-2.0.0-SNAPSHOT.spoofax-language!/",
-      signaturePath = "/Users/martijn/Projects/scopes-frames/L1/src-gen/signatures/L1-sig.str"
-    )
+    implicit val language = Language.load("/Users/martijn/Projects/scopes-frames/L3", "org.metaborg:L3:0.1.0-SNAPSHOT", "L3")
 
-    val rules = Specification.read(
-      nablPath = "zip:/Users/martijn/Projects/nabl/org.metaborg.meta.nabl2.lang/target/org.metaborg.meta.nabl2.lang-2.0.0-SNAPSHOT.spoofax-language!/",
-      specPath = "/Users/martijn/Projects/scopes-frames/L1/trans/analysis/l1.nabl2"
-    )
-
-    val printer = Printer.printer(
-      languagePath = "/Users/martijn/Projects/scopes-frames/L1/"
-    )
+    implicit val signatures = language.signatures
+    implicit val printer = language.printer
+    implicit val specification = language.specification
+    implicit val rules = specification.rules
 
     val kb = repeat(gen, 4000)(rules)
 
@@ -35,7 +29,7 @@ object Strategy2 {
     }
   }
 
-  def gen(rules: List[Rule])(implicit signatures: List[Decl]): List[Rule] = {
+  def gen(rules: List[Rule])(implicit signatures: List[CGDecl]): List[Rule] = {
     // Pick a random rule
     val rule = rules.random
 

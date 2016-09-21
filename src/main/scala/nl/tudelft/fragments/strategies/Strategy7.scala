@@ -1,7 +1,8 @@
-package nl.tudelft.fragments
+package nl.tudelft.fragments.strategies
 
+import nl.tudelft.fragments.Rule
 import nl.tudelft.fragments.spoofax.Language
-import nl.tudelft.fragments.spoofax.models.{Signature, Signatures, SortAppl}
+import nl.tudelft.fragments.spoofax.models.{Signatures, SortAppl}
 
 object Strategy7 {
   implicit val language = Language.load("/Users/martijn/Projects/scopes-frames/L3", "org.metaborg:L3:0.1.0-SNAPSHOT", "L3")

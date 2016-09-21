@@ -1,7 +1,8 @@
-package nl.tudelft.fragments
+package nl.tudelft.fragments.strategies
 
 import nl.tudelft.fragments.spoofax.Language
-import nl.tudelft.fragments.spoofax.models.{Signature, Signatures, SortAppl}
+import nl.tudelft.fragments.spoofax.models.{Signatures, SortAppl}
+import nl.tudelft.fragments.{Rule, Solver}
 
 // Build programs top-down
 object Strategy6 {

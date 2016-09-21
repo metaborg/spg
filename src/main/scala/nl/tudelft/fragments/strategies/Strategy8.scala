@@ -1,8 +1,9 @@
-package nl.tudelft.fragments
+package nl.tudelft.fragments.strategies
 
 import com.typesafe.scalalogging.Logger
 import nl.tudelft.fragments.spoofax._
 import nl.tudelft.fragments.spoofax.models._
+import nl.tudelft.fragments.{CResolve, Concretor, Consistency, Graph, Rule, Solver}
 import org.slf4j.LoggerFactory
 
 object Strategy8 {

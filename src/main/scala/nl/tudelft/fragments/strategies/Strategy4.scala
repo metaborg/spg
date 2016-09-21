@@ -1,7 +1,8 @@
-package nl.tudelft.fragments
+package nl.tudelft.fragments.strategies
 
+import nl.tudelft.fragments.spoofax.Language
 import nl.tudelft.fragments.spoofax.models.{Signature, SortAppl}
-import nl.tudelft.fragments.spoofax.{Language, Printer, Specification}
+import nl.tudelft.fragments.{Builder, Graph, Rule, _}
 
 object Strategy4 {
   def main(args: Array[String]): Unit = {
