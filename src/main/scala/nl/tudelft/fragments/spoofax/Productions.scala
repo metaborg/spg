@@ -1,13 +1,10 @@
 package nl.tudelft.fragments.spoofax
 
-import nl.tudelft.fragments.Main
 import nl.tudelft.fragments.spoofax.SpoofaxScala._
 import nl.tudelft.fragments.spoofax.models._
 import org.spoofax.interpreter.terms.{IStrategoAppl, IStrategoString, IStrategoTerm}
 
 object Productions {
-  val s = Main.spoofax
-
   def read(sdfPath: String, productionsPath: String): List[Production] = {
     val nablImpl = Utils.loadLanguage(sdfPath)
     val ast = Utils.parseFile(nablImpl, productionsPath)
@@ -19,9 +16,9 @@ object Productions {
     val productionTerms = term.collectAll {
       case appl: IStrategoAppl =>
         appl.getConstructor.getName == "SdfProduction" ||
-        appl.getConstructor.getName == "SdfProductionWithCons" ||
-        appl.getConstructor.getName == "TemplateProduction" ||
-        appl.getConstructor.getName == "TemplateProductionWithCons"
+          appl.getConstructor.getName == "SdfProductionWithCons" ||
+          appl.getConstructor.getName == "TemplateProduction" ||
+          appl.getConstructor.getName == "TemplateProductionWithCons"
       case _ =>
         false
     }

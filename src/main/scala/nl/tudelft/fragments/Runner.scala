@@ -11,7 +11,7 @@ import observable._
 
 // Verify generated terms against expectations
 object Runner {
-  val s = Main.spoofax
+  val s = Spoofax
 
   def main(args: Array[String]): Unit = {
     val langPath = "/Users/martijn/Projects/MiniJava"

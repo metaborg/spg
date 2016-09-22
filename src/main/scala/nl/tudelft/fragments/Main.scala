@@ -1,27 +1,13 @@
 package nl.tudelft.fragments
 
-import javax.inject.Singleton
-
 import com.typesafe.scalalogging.Logger
 import nl.tudelft.fragments.spoofax.models.{Signatures, Sort, SortAppl}
 import nl.tudelft.fragments.spoofax.{Converter, Language}
-import org.metaborg.core.editor.{IEditorRegistry, NullEditorRegistry}
-import org.metaborg.core.project.{IProjectService, SimpleProjectService}
-import org.metaborg.spoofax.core.{Spoofax, SpoofaxModule}
 import org.slf4j.LoggerFactory
 
+import scala.util.Random
+
 object Main {
-  val spoofax = new Spoofax(new SpoofaxModule() {
-    override def bindProject() {
-      bind(classOf[SimpleProjectService]).in(classOf[Singleton])
-      bind(classOf[IProjectService]).to(classOf[SimpleProjectService])
-    }
-
-    override def bindEditor() {
-      bind(classOf[IEditorRegistry]).to(classOf[NullEditorRegistry]).in(classOf[Singleton])
-    }
-  })
-
   val logger = Logger(LoggerFactory.getLogger(this.getClass))
 //  implicit val language = Language.load("/Users/martijn/Projects/metaborg-pascal/org.metaborg.lang.pascal", "org.metaborg:org.metaborg.lang.pascal:0.1.0-SNAPSHOT", "Pascal")
 //  implicit val language = Language.load("/Users/martijn/Projects/scopes-frames/L3", "org.metaborg:L3:0.1.0-SNAPSHOT", "L3")

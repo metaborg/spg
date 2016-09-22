@@ -3,7 +3,7 @@ package nl.tudelft.fragments.spoofax
 import java.nio.charset.StandardCharsets
 
 import com.google.common.collect.Iterables
-import nl.tudelft.fragments.Main
+import nl.tudelft.fragments.Spoofax
 import nl.tudelft.fragments.spoofax.models.{Sort, SortAppl}
 import org.apache.commons.io.IOUtils
 import org.metaborg.core.language.ILanguageImpl
@@ -14,7 +14,7 @@ import org.spoofax.interpreter.terms.{IStrategoString, IStrategoTerm}
 import scala.collection.JavaConverters._
 
 object Utils {
-  val s = Main.spoofax
+  val s = Spoofax
 
   /**
     * Load the language implementation
