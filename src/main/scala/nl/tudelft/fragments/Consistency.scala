@@ -36,6 +36,8 @@ object Consistency {
   def rewrite(c: Constraint, state: State)(implicit language: Language): Either[Option[State], String] = c match {
     case CFalse() =>
       Right(s"Unable to solve CFalse()")
+    case CTrue() =>
+      Left(Some(state))
     case CTypeOf(n, t) if n.vars.isEmpty =>
       if (state.typeEnv.contains(n)) {
         Left(Some(state.addConstraint(CEqual(state.typeEnv(n), t))))
@@ -81,7 +83,7 @@ object Consistency {
 
         result match {
           case Left(None) =>
-          /* noop */
+            /* noop */
           case Left(Some(result)) =>
             return solve(result)
           case Right(_) =>
