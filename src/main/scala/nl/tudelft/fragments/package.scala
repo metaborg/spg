@@ -35,6 +35,10 @@ package object fragments {
       case Nil => None
       case _ => Some(seq(Random.nextInt(seq.length)))
     }
+
+    // Zip with a function
+    def zipWith[U](f: T => U): Seq[(T, U)] =
+      seq.map(x => (x, f(x)))
   }
 
   implicit class RichList[T](list: List[T]) {
@@ -46,7 +50,7 @@ package object fragments {
         Some(z)
     }
 
-    // A hybrid of map and foldLeft
+    // A hybrid of map and foldLeft (TODO: I like 'mapAccum' better, courtesy of Sven)
     def mapFoldLeft[U, V](z: V)(f: (V, T) => (V, U)): (V, List[U]) = list match {
       case x :: xs =>
         val (a1, elem) = f(z, x)

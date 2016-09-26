@@ -32,8 +32,9 @@ object Synergy {
     logger.info("Start synergizing with " + rules.length + " rules")
 
     for (i <- 0 to 100) {
-      // TODO: 100 steps won't complete the program... as long as there are recurse constraints, we have work to do!
-      val result = repeatUntilNoneOrDone(synergize(rules), 100)(language.startRules.random)
+      val start = Rule(SortAppl("Program", List()), None, List(ScopeAppl("s118361")), State(TermAppl("Program", List(TermVar("mc"), TermAppl("Cons", List(TermVar("x118362"), TermVar("x118363"))))),List(CGenRecurse(TermVar("mc"),List(ScopeAppl("s118361")),None,SortAppl("MainClass", List())), CGenRecurse(TermVar("x118363"),List(ScopeAppl("s118361")),None,SortAppl("List", List(SortAppl("ClassDecl", List())))), CGenRecurse(TermVar("x118362"),List(ScopeAppl("s118361")),None,SortAppl("ClassDecl", List()))),List(),TypeEnv(),Resolution(),SubtypeRelation(List())))
+//      val start = Rule(SortAppl("Program", List()), None, List(ScopeAppl("s408940")), State(TermAppl("Program", List(TermAppl("MainClass", List(TermVar("x340230"), TermVar("x340231"), TermAppl("Block", List(TermAppl("Cons", List(TermVar("x408941"), TermVar("x408942"))))))), TermAppl("Cons", List(TermAppl("Class", List(TermVar("x328829"), TermAppl("NoParent", List()), TermAppl("Nil", List()), TermAppl("Cons", List(TermAppl("Method", List(TermAppl("ClassType", List(TermVar("x457612"))), TermVar("x457613"), TermVar("x457614"), TermVar("x457615"), TermVar("x457616"), TermVar("x457617"))), TermAppl("Cons", List(TermVar("x431751"), TermAppl("Nil", List()))))))), TermVar("x118363"))))),List(CGenRecurse(TermVar("x118363"),List(ScopeAppl("s408940")),None,SortAppl("List", List(SortAppl("ClassDecl", List())))), CGenRecurse(TermVar("x408942"),List(ScopeAppl("s408940")),None,SortAppl("List", List(SortAppl("Statement", List())))), CGenRecurse(TermVar("x408941"),List(ScopeAppl("s408940")),None,SortAppl("Statement", List())), CGenRecurse(TermVar("x431751"),List(ScopeAppl("s457611")),None,SortAppl("MethodDecl", List())), CGenRecurse(TermVar("x457617"),List(ScopeAppl("s457618")),Some(TermVar("x457619")),SortAppl("Exp", List())), CGenRecurse(TermVar("x457616"),List(ScopeAppl("s457618")),None,SortAppl("IterStar", List(SortAppl("Statement", List())))), CGenRecurse(TermVar("x457615"),List(ScopeAppl("s457618")),None,SortAppl("IterStar", List(SortAppl("VarDecl", List())))), CGenRecurse(TermVar("x457614"),List(ScopeAppl("s457618")),Some(TermVar("x457620")),SortAppl("IterStar", List(SortAppl("ParamDecl", List())))), CSubtype(TermVar("x457619"),TermAppl("TClass", List(SymbolicName("Class", "x328829"))))),List(CGDecl(ScopeAppl("s408940"),SymbolicName("Class", "x328829")), CGAssoc(SymbolicName("Class", "x328829"),ScopeAppl("s457611")), CGDecl(ScopeAppl("s457611"),ConcreteName("Implicit", "this", 328835)), CGDirectEdge(ScopeAppl("s457611"),Label('P'),ScopeAppl("s408940")), CGDecl(ScopeAppl("s408940"),SymbolicName("Class", "x340230")), CGDecl(ScopeAppl("s457611"),SymbolicName("Method", "x457613")), CGRef(SymbolicName("Method", "x457613"),ScopeAppl("s457624")), CGDirectEdge(ScopeAppl("s457624"),Label('I'),ScopeAppl("s457611")), CGDirectEdge(ScopeAppl("s457624"),Label('S'),ScopeAppl("s457611")), CGDirectEdge(ScopeAppl("s457618"),Label('P'),ScopeAppl("s457611")), CGRef(SymbolicName("Class", "x457612"),ScopeAppl("s457611"))),TypeEnv(Map(Binding(SymbolicName("Class", "x328829"), TermAppl("TClass", List(SymbolicName("Class", "x328829")))), Binding(ConcreteName("Implicit", "this", 328835), TermAppl("TClass", List(SymbolicName("Class", "x328829")))), Binding(SymbolicName("Class", "x340230"), TermAppl("TMainClass", List())), Binding(SymbolicName("Method", "x457613"), TermAppl("TMethod", List(TermAppl("TClass", List(SymbolicName("Class", "x328829"))), TermVar("x457620")))))),Resolution(Map(Binding(SymbolicName("Method", "x457613"), SymbolicName("Method", "x457613")), Binding(SymbolicName("Class", "x457612"), SymbolicName("Class", "x328829")))),SubtypeRelation(List(Binding(TermAppl("TClass", List(SymbolicName("Class", "x328829"))), TermAppl("TClass", List(ConcreteName("Class", "Object", 351655))))))))
+      val result = synergize(rules)(/*language.startRules.random*/start)
 
       if (result.isEmpty) {
         // Synergize returned None meaning there was an inconsistency..
@@ -64,48 +65,74 @@ object Synergy {
   // Expand rule with the best alternative from rules
   def synergize(rules: List[Rule])(current: Rule): Option[Rule] = {
     // Debug
-    //println(current)
+    println(current)
 
     // Pick a random recurse constraint (position to expand the current rule)
     val recurseOpt = current.recurse.randomOption
 
-    // If there is still a recurse constraint
-    if (recurseOpt.nonEmpty) {
-      // Merge with every other rule and filter out inconsistent merges and too big rules
-      val options = rules
-        .flatMap(current.merge(recurseOpt.get, _, 2))
-        .filter(_.pattern.size < 50)
-
-      // For every option, solve constraints and compute its score
-      val scored = options.flatMap(score)
-
-      if (scored.isEmpty) {
-        None
-      } else {
-        /*
-        // Get the option with the best (lowest) score
-        val best = scored.minBy(_._2)
-
-        // Return the best
-        best._1
-        */
-
-        // Take the top. We do not want to always take the best, as this is pretty deterministic...
-        val bests = scored.sortBy(_._2).take((scored.length * 0.2).ceil.toInt)
-
-        // Return a random from this top
-        Some(bests.random._1)
-      }
-    } else {
-      Some(current)
+    // If all recurse constraints are solved, return
+    if (recurseOpt.isEmpty) {
+      return Some(current)
     }
+
+    // Merge with every other rule and filter out inconsistent merges and too big rules
+    val options = rules.flatMap(current.merge(recurseOpt.get, _, 2))
+
+    // For every option, solve constraints and compute its score
+    val scored = options.flatMap(score)
+
+    if (scored.isEmpty) {
+      return None
+    }
+
+    /*
+    // Get the option with the best (lowest) score
+    val best = scored.minBy(_._2)
+
+    // Return the best
+    best._1
+    */
+
+    // Take the top 10. We do not want to always take the best, as this is pretty deterministic.
+    // We also don't want to take the top 5%, because then with 2 choices we get determinisitc as well.
+    val bests = scored.sortBy(_._2).take(2)
+
+    // If there is a complete fragment, return it!
+    for ((rule, score) <- bests) if (score == 0) {
+      return Some(rule)
+    }
+
+    // Backtracking
+    /*
+    for (best <- bests.shuffle) {
+      val child = synergize(rules)(best._1)
+
+      if (child.isDefined) {
+        return child
+      }
+    }
+
+    None
+    */
+
+    // Non-backtracking
+    synergize(rules)(bests.random._1)
   }
 
-  // Compute the solved rule and its score for the given rule
-  def score(rule: Rule): Option[(Rule, Int)] =
+  // Compute the solved rule and its score for each possible solution
+  def score(rule: Rule): List[(Rule, Int)] = {
+    // Compute the score for a single constraint
+    def constraintScore(constraint: Constraint) = constraint match {
+      case _: CResolve => 3
+      case _: CGenRecurse => 1000
+      case _ => 1
+    }
+
+    // Compute the score after crossing out constraints
     Consistency
       .solve(rule.state)
-      .map(state => (rule.copy(state = state), state.constraints.length))
+      .map(state => (rule.copy(state = state), state.constraints.map(constraintScore).sum))
+  }
 
   // Randomly merge rules in a rules into larger consistent rules
   def grow(rules: List[Rule]): List[Rule] = {
@@ -114,6 +141,8 @@ object Synergy {
 
     if (ruleA.recurse.nonEmpty) {
       val recurse = ruleA.recurse.random
+
+      // TODO: we can already solve some constraints in the grown fragments, i.e. "cache" their solutions?
 
       ruleA
         .merge(recurse, ruleB, 1)
@@ -142,4 +171,12 @@ object Synergy {
 
     (t: Rule) => repeatAcc(t, n)
   }
+}
+
+// For parsing a printed rule
+class Binding[A, B](a: A, b: B) extends Tuple2[A, B](a, b)
+
+object Binding {
+  def apply[A, B](a: A, b: B): Binding[A, B] =
+    new Binding(a, b)
 }

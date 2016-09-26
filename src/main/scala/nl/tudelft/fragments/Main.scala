@@ -21,7 +21,7 @@ object Main {
   implicit val rules = specification.rules
 
   // Generation properties
-  val maxSize = 30
+  val maxSize = 50
   val growSteps = 2000
   val fuel = 200
 
@@ -98,7 +98,7 @@ object Main {
       // Randomly resolve the reference in a CResolve constraint to a random (but non-inconsistent) declaration
       lazy val resolveConstraints = partial.resolve
 
-      val resolved = partial /*if (Random.nextInt(350) == 0 && resolveConstraints.nonEmpty) {
+      val resolved = /*partial*/ if (Random.nextInt(150) == 0 && resolveConstraints.nonEmpty) {
         val resolveConstraint = resolveConstraints.random
         val resolved = resolve(resolveConstraint, partial)
 
@@ -109,7 +109,7 @@ object Main {
         }
       } else {
         partial
-      }*/
+      }
 
       // Continue solving recurse constraints
       val recurse = resolved.recurse.random
@@ -170,6 +170,8 @@ object Main {
 
     for (declaration <- declarations.shuffle) {
       val resolvedRule = Solver.resolve(rule, resolve, declaration)
+
+      // TODO: After resolving, we need to propagate changes by solving constraints. Otherwise, we're checking consistency on an
 
       if (Consistency.check(resolvedRule)) {
         return Some(resolvedRule)
