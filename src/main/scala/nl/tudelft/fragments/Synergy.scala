@@ -1,5 +1,7 @@
 package nl.tudelft.fragments
 
+import java.io.{File, FileOutputStream, PrintWriter}
+
 import com.typesafe.scalalogging.Logger
 import nl.tudelft.fragments.spoofax.models.SortAppl
 import nl.tudelft.fragments.spoofax.{Converter, Language}
@@ -31,6 +33,8 @@ object Synergy {
     // Synergize from a random start rule
     logger.info("Start synergizing with " + rules.length + " rules")
 
+    val writer = new PrintWriter(new FileOutputStream(new File("results.log"), true))
+
     for (i <- 0 to 100) {
       val start = Rule(SortAppl("Program", List()), None, List(ScopeAppl("s118361")), State(TermAppl("Program", List(TermVar("mc"), TermAppl("Cons", List(TermVar("x118362"), TermVar("x118363"))))),List(CGenRecurse(TermVar("mc"),List(ScopeAppl("s118361")),None,SortAppl("MainClass", List())), CGenRecurse(TermVar("x118363"),List(ScopeAppl("s118361")),None,SortAppl("List", List(SortAppl("ClassDecl", List())))), CGenRecurse(TermVar("x118362"),List(ScopeAppl("s118361")),None,SortAppl("ClassDecl", List()))),List(),TypeEnv(),Resolution(),SubtypeRelation(List())))
 //      val start = Rule(SortAppl("Program", List()), None, List(ScopeAppl("s408940")), State(TermAppl("Program", List(TermAppl("MainClass", List(TermVar("x340230"), TermVar("x340231"), TermAppl("Block", List(TermAppl("Cons", List(TermVar("x408941"), TermVar("x408942"))))))), TermAppl("Cons", List(TermAppl("Class", List(TermVar("x328829"), TermAppl("NoParent", List()), TermAppl("Nil", List()), TermAppl("Cons", List(TermAppl("Method", List(TermAppl("ClassType", List(TermVar("x457612"))), TermVar("x457613"), TermVar("x457614"), TermVar("x457615"), TermVar("x457616"), TermVar("x457617"))), TermAppl("Cons", List(TermVar("x431751"), TermAppl("Nil", List()))))))), TermVar("x118363"))))),List(CGenRecurse(TermVar("x118363"),List(ScopeAppl("s408940")),None,SortAppl("List", List(SortAppl("ClassDecl", List())))), CGenRecurse(TermVar("x408942"),List(ScopeAppl("s408940")),None,SortAppl("List", List(SortAppl("Statement", List())))), CGenRecurse(TermVar("x408941"),List(ScopeAppl("s408940")),None,SortAppl("Statement", List())), CGenRecurse(TermVar("x431751"),List(ScopeAppl("s457611")),None,SortAppl("MethodDecl", List())), CGenRecurse(TermVar("x457617"),List(ScopeAppl("s457618")),Some(TermVar("x457619")),SortAppl("Exp", List())), CGenRecurse(TermVar("x457616"),List(ScopeAppl("s457618")),None,SortAppl("IterStar", List(SortAppl("Statement", List())))), CGenRecurse(TermVar("x457615"),List(ScopeAppl("s457618")),None,SortAppl("IterStar", List(SortAppl("VarDecl", List())))), CGenRecurse(TermVar("x457614"),List(ScopeAppl("s457618")),Some(TermVar("x457620")),SortAppl("IterStar", List(SortAppl("ParamDecl", List())))), CSubtype(TermVar("x457619"),TermAppl("TClass", List(SymbolicName("Class", "x328829"))))),List(CGDecl(ScopeAppl("s408940"),SymbolicName("Class", "x328829")), CGAssoc(SymbolicName("Class", "x328829"),ScopeAppl("s457611")), CGDecl(ScopeAppl("s457611"),ConcreteName("Implicit", "this", 328835)), CGDirectEdge(ScopeAppl("s457611"),Label('P'),ScopeAppl("s408940")), CGDecl(ScopeAppl("s408940"),SymbolicName("Class", "x340230")), CGDecl(ScopeAppl("s457611"),SymbolicName("Method", "x457613")), CGRef(SymbolicName("Method", "x457613"),ScopeAppl("s457624")), CGDirectEdge(ScopeAppl("s457624"),Label('I'),ScopeAppl("s457611")), CGDirectEdge(ScopeAppl("s457624"),Label('S'),ScopeAppl("s457611")), CGDirectEdge(ScopeAppl("s457618"),Label('P'),ScopeAppl("s457611")), CGRef(SymbolicName("Class", "x457612"),ScopeAppl("s457611"))),TypeEnv(Map(Binding(SymbolicName("Class", "x328829"), TermAppl("TClass", List(SymbolicName("Class", "x328829")))), Binding(ConcreteName("Implicit", "this", 328835), TermAppl("TClass", List(SymbolicName("Class", "x328829")))), Binding(SymbolicName("Class", "x340230"), TermAppl("TMainClass", List())), Binding(SymbolicName("Method", "x457613"), TermAppl("TMethod", List(TermAppl("TClass", List(SymbolicName("Class", "x328829"))), TermVar("x457620")))))),Resolution(Map(Binding(SymbolicName("Method", "x457613"), SymbolicName("Method", "x457613")), Binding(SymbolicName("Class", "x457612"), SymbolicName("Class", "x328829")))),SubtypeRelation(List(Binding(TermAppl("TClass", List(SymbolicName("Class", "x328829"))), TermAppl("TClass", List(ConcreteName("Class", "Object", 351655))))))))
@@ -50,12 +54,19 @@ object Synergy {
           println("Unsolvable")
         } else {
           // Print pretty-printed concrete solved rule
-          println(printer(
+          val source = printer(
             Converter.toTerm(
               Concretor.concretize(result.get, solvedStates.random)
             )
-          ).stringValue())
+          )
 
+          // Append to results.log
+          writer.println(source.stringValue())
+          writer.println("===")
+          writer.flush()
+
+          // Print to stdout
+          println(source.stringValue())
           println("===")
         }
       }
