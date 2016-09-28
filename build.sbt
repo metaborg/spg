@@ -22,8 +22,4 @@ libraryDependencies += "org.metaborg" % "org.metaborg.util" % "2.1.0-SNAPSHOT"
 
 libraryDependencies += "org.metaborg" % "org.metaborg.spoofax.core" % "2.1.0-SNAPSHOT"
 
-libraryDependencies += "io.reactivex" % "rxscala_2.11" % "0.26.2"
-
-libraryDependencies += "io.reactivex" % "rxjava-string" % "1.1.0"
-
 libraryDependencies += "net.codingwell" %% "scala-guice" % "4.1.0"
