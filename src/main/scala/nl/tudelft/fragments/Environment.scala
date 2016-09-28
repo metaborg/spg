@@ -1,6 +1,6 @@
 package nl.tudelft.fragments
 
-// Environment of declarations
+// Environment of declarations (TODO: should be sets instead of lists)
 case class Environment(declarations: List[Pattern] = Nil) {
   // This environment shadows given environment e. It contains:
   // - all names from this environment
@@ -22,7 +22,7 @@ case class Environment(declarations: List[Pattern] = Nil) {
     Environment(declarations ++ shadowed)
   }
 
-  // Union two environments
+  // Union two environments by unioning their sets of declarations
   def union(that: Environment) =
-    Environment(declarations union that.declarations)
+    Environment((declarations union that.declarations).distinct)
 }

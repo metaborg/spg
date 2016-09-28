@@ -1,6 +1,7 @@
 package nl.tudelft.fragments
 
 import nl.tudelft.fragments.LabelImplicits._
+import nl.tudelft.fragments.regex.Epsilon
 import nl.tudelft.fragments.spoofax.{Language, ResolutionParams, Specification}
 import org.scalatest.FunSuite
 
@@ -124,5 +125,40 @@ class ResolutionSuite extends FunSuite {
       ScopeVar("s1"),
       ScopeVar("s2")
     ))
+  }
+
+  test("single declaration when multiple max labels") {
+    val resolutionParams = new ResolutionParams(
+      labels = List(
+        Label('D'),
+        Label('P'),
+        Label('I'),
+        Label('S')
+      ),
+      order = LabelOrdering(
+        (Label('D'), Label('P')),
+        (Label('D'), Label('I')),
+        (Label('I'), Label('P')),
+        (Label('S'), Label('I')),
+        (Label('S'), Label('P')),
+        (Label('D'), Label('S'))
+      ),
+      wf = (Label('P') *) ~ (Epsilon() || (Label('S') ~ Label('I'))) ~ (Label('I') *)
+    )
+
+    val language = new Language(Nil, null, new Specification(resolutionParams, Nil), null, Nil)
+
+    val facts = List(
+      CGRef(ConcreteName("C", "Foo", 1), ScopeAppl("s")),
+      CGDecl(ScopeAppl("s"), ConcreteName("C", "Foo", 2)),
+      CGDirectEdge(ScopeAppl("cs"), Label('P'), ScopeAppl("s")),
+      CGAssoc(ConcreteName("C", "Foo", 2), ScopeAppl("cs")),
+      CGDecl(ScopeAppl("cs"), ConcreteName("M", "m", 3)),
+      CGDirectEdge(ScopeAppl("ms"), Label('P'), ScopeAppl("cs")),
+      CGRef(ConcreteName("M", "m", 4), ScopeAppl("s'")),
+      CGDirectEdge(ScopeAppl("s'"), Label('I'), ScopeVar("sigma"))
+    )
+
+    assert(Graph(facts)(language).res(Resolution())(ConcreteName("C", "Foo", 1)).length == 1)
   }
 }
