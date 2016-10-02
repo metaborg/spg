@@ -210,7 +210,7 @@ case class TypeEnv(bindings: Map[Pattern, Pattern] = Map.empty) {
   }
 
   override def toString =
-    "TypeEnv(List(" + bindings.map { case (name, typ) => s"""Binding($name, $typ)""" }.mkString(", ") + "))"
+    "TypeEnv(Map(" + bindings.map { case (name, typ) => s"""Binding($name, $typ)""" }.mkString(", ") + "))"
 }
 
 case class Resolution(bindings: Map[Pattern, Pattern] = Map.empty) {
@@ -251,7 +251,7 @@ case class Resolution(bindings: Map[Pattern, Pattern] = Map.empty) {
   }
 
   override def toString =
-    "Resolution(List(" + bindings.map { case (n1, n2) => s"""Binding($n1, $n2)""" }.mkString(", ") + "))"
+    "Resolution(Map(" + bindings.map { case (n1, n2) => s"Tuple2($n1, $n2)" }.mkString(", ") + "))"
 }
 
 case class SubtypeRelation(bindings: List[(Pattern, Pattern)] = Nil) {

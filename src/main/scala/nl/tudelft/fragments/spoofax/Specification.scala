@@ -245,7 +245,25 @@ object Specification {
     case appl: StrategoAppl if appl.getConstructor.getName == "Var" =>
       TermVar(toString(appl.getSubterm(0)))
     case appl: StrategoAppl if appl.getConstructor.getName == "List" =>
-      TermAppl("List", appl.getSubterm(0).getAllSubterms.toList.map(toType(ruleIndex, _)))
+      // Convert the list to a list of types
+      val list = appl.getSubterm(0).getAllSubterms.toList.map(toType(ruleIndex, _))
+
+      // Reduce the list to a Cons/Nil structure
+      list.foldLeft(TermAppl("Nil")) { case (acc, x) =>
+        TermAppl("Cons", List(x, acc))
+      }
+    // ListTail([Var("ty")],Var("tys"))
+    case appl: StrategoAppl if appl.getConstructor.getName == "ListTail" =>
+      // Convert the head list to a list of types
+      val headList = appl.getSubterm(0).getAllSubterms.toList.map(toType(ruleIndex, _))
+
+      // Convert the tail to a type
+      val tail = toType(ruleIndex, appl.getSubterm(1))
+
+      // Combine both in a Cons/Nil structure
+      headList.foldLeft(tail) { case (acc, x) =>
+        TermAppl("Cons", List(x, acc))
+      }
     case appl: StrategoAppl if appl.getConstructor.getName == "Op" =>
       TermAppl(toString(appl.getSubterm(0)), appl.getSubterm(1).getAllSubterms.map(toType(ruleIndex, _)).toList)
     case appl: StrategoAppl if appl.getConstructor.getName == "Occurrence" =>

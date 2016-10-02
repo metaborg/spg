@@ -20,10 +20,20 @@ case class Signatures(list: List[Signature]) {
       Nil
   }
 
+  /**
+    * Get the sort of p2 for its occurrence in p1. If p2 occurs multiple times,
+    * the sort for the first occurrence is returned.
+    *
+    * @param p1
+    * @param p2
+    * @param sort
+    * @return
+    */
   def sortForPattern(p1: Pattern, p2: Pattern, sort: Option[Sort] = None): Option[Sort] = (p1, p2) match {
     case (_, _) if p1 == p2 =>
       sort
     case (termAppl@TermAppl(_, children), _) =>
+      // TODO: What if `forPattern(p1) == Nil`?!
       val signature = forPattern(p1).head
 
       val sorts = signature.typ match {

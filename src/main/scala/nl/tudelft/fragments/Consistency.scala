@@ -11,7 +11,7 @@ object Consistency {
       val state = solve(rule.state)
 
       if (level >= 1 && state.nonEmpty) {
-        // Conservative subtype check: only allow x <? y if x <! y.
+        // Conservative subtype check: only allow x <? y if x <! y. (TODO: Why do we use head? See also 5 lines below)
         val subtypingResult = conservativeSubtyping(state.head)
 
         // Every unresolved reference for which no recurse constraint with a reachable scope exists, must consistently resolve to any of the reachable declarations
@@ -123,6 +123,7 @@ object Consistency {
         subtypeRelation
     }
 
+    // TODO: Why build the relation twice? ^^' If we're sure it works, it works..
     assert(subtypeRelation == state.subtypeRelation)
 
     // Verify the CSubtype constraints according to the subtype relation

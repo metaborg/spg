@@ -2,7 +2,7 @@ package nl.tudelft.fragments
 
 import nl.tudelft.fragments.regex.Character
 
-// Representation of a label
+// Representation of a label (TODO: deprecate this, use labels with a string instead. We can now take derivative w.r.t label, even if it is a string)
 case class Label(name: Char) {
   override def toString =
     s"""Label('$name')"""

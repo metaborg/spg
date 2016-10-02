@@ -111,6 +111,18 @@ object Language {
     new Language(productions, signatures, specification, printer, startSymbols)
   }
 
+  /**
+    * These signatures are defined in the standard library and do not appear in
+    * the signature file. Hence, we add them ourselves.
+    *
+    * The last two signatures define the sort Iter(a) and IterStar(a):
+    *  - Iter(a) is a list with at least one element. This is not supported in
+    *  Stratego.
+    *  - IterStar(a) is a list with zero or more elements. It is the same as
+    *  List(a), so we define an injection to it.
+    *
+    * @return
+    */
   def defaultSignatures: List[Signature] = List(
     // Cons : a * Lits(a) -> List(a)
     OpDecl("Cons", FunType(
@@ -120,24 +132,6 @@ object Language {
       ),
       ConstType(SortAppl("List", List(SortVar("a"))))
     )),
-
-//    // Duplicate Cons to get larger lists (in expectation)
-//    OpDecl("Cons", FunType(
-//      List(
-//        ConstType(SortVar("a")),
-//        ConstType(SortAppl("List", List(SortVar("a"))))
-//      ),
-//      ConstType(SortAppl("List", List(SortVar("a"))))
-//    )),
-//
-//    // Duplicate Cons to get larger lists (in expectation)
-//    OpDecl("Cons", FunType(
-//      List(
-//        ConstType(SortVar("a")),
-//        ConstType(SortAppl("List", List(SortVar("a"))))
-//      ),
-//      ConstType(SortAppl("List", List(SortVar("a"))))
-//    )),
 
     // Nil : List(a)
     OpDecl("Nil", ConstType(

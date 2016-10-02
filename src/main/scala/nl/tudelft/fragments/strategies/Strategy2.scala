@@ -29,7 +29,7 @@ object Strategy2 {
     }
   }
 
-  def gen(rules: List[Rule])(implicit signatures: List[CGDecl]): List[Rule] = {
+  def gen(rules: List[Rule])(implicit signatures: Signatures): List[Rule] = {
     // Pick a random rule
     val rule = rules.random
 

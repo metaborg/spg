@@ -126,7 +126,7 @@ case class Graphx(constraints: List[Constraint]) {
   def pathDirect(s: Scope): List[(Path, Scope)] = edges(s)
     .map { case CGDirectEdge(_, l, s2) => (List(l), s2) }
 
-  // Multi-step paths with well-formedness wf from scope s. TODO: Fails on cycles!
+  // Multi-step paths with well-formedness wf from scope s. TODO: Fails on cycles! This already happend once!
   def path(s: Scope, wf: Regex[Label]): List[(Path, Scope)] = wf match {
     case EmptySet() =>
       Nil
