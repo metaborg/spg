@@ -221,9 +221,9 @@ object Specification {
         TermAppl("Cons", List(x, acc))
       }
     case appl: StrategoAppl if appl.getConstructor.getName == "Var" =>
-      TermVar(toString(appl.getSubterm(0)))
+      Var(toString(appl.getSubterm(0)))
     case appl: StrategoAppl if appl.getConstructor.getName == "Wld" =>
-      TermVar("x" + nameProvider.next)
+      Var("x" + nameProvider.next)
   }
 
   def toPatternsList(term: IStrategoTerm): List[Pattern] = term match {
@@ -243,7 +243,7 @@ object Specification {
   // Turn a Stratego type into a Type (represented as Pattern)
   def toType(ruleIndex: Int, term: IStrategoTerm): Pattern = term match {
     case appl: StrategoAppl if appl.getConstructor.getName == "Var" =>
-      TermVar(toString(appl.getSubterm(0)))
+      Var(toString(appl.getSubterm(0)))
     case appl: StrategoAppl if appl.getConstructor.getName == "List" =>
       // Convert the list to a list of types
       val list = appl.getSubterm(0).getAllSubterms.toList.map(toType(ruleIndex, _))
@@ -313,7 +313,7 @@ object Specification {
   // Turn a Stratego name into a Name
   def toName(ruleIndex: Int, term: IStrategoTerm): Pattern = term match {
     case appl: StrategoAppl if appl.getConstructor.getName == "Var" =>
-      TermVar(toString(appl.getSubterm(0)))
+      Var(toString(appl.getSubterm(0)))
     case appl: StrategoAppl if appl.getConstructor.getName == "Occurrence" =>
       if (appl.getSubterm(1).asInstanceOf[StrategoAppl].getConstructor.getName == "Str") {
         ConcreteName(toNamespace(appl.getSubterm(0)), toString(appl.getSubterm(1).getSubterm(0)), ruleIndex)

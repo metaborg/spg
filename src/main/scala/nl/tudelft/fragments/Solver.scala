@@ -16,7 +16,7 @@ object Solver {
       t1.unify(t2).map(state.substitute)
     case CInequal(t1, t2) if t1.vars.isEmpty && t2.vars.isEmpty && t1 != t2 =>
       state
-    case CResolve(n1, n2@TermVar(_)) if Graph(state.facts).res(state.resolution)(n1).nonEmpty =>
+    case CResolve(n1, n2@Var(_)) if Graph(state.facts).res(state.resolution)(n1).nonEmpty =>
       if (state.resolution.contains(n1)) {
         state.substitute(Map(n2 -> state.resolution(n1)))
       } else {
@@ -48,7 +48,7 @@ object Solver {
     case CResolve(n1, n2) =>
       val substitutedState = rule.state
         .copy(constraints = rule.state.constraints - CResolve(n1, n2))
-        .substitute(Map(n2.asInstanceOf[TermVar] -> z))
+        .substitute(Map(n2.asInstanceOf[Var] -> z))
 
       val resolvedState = substitutedState.copy(
         resolution = substitutedState.resolution + (n1 -> z)
@@ -110,7 +110,7 @@ case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Co
   def merge(recurse: CGenRecurse, state: State): State = {
     State(
       pattern =
-        pattern.substitute(Map(recurse.pattern.asInstanceOf[TermVar] -> state.pattern)),
+        pattern.substitute(Map(recurse.pattern.asInstanceOf[Var] -> state.pattern)),
       constraints =
         (constraints ++ state.constraints) - recurse,
       facts =

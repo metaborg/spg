@@ -34,7 +34,7 @@ object Concretor {
     // Replace names in Eq constraints
     val partially = rule.pattern.substitute(
       nameEq(filterEqs(namingConstraints), Map.empty, nameProvider)
-        .map { case (n1, n2) => TermVar(n1) -> TermString(n2) }
+        .map { case (n1, n2) => Var(n1) -> TermString(n2) }
     )
 
     // TODO: Convert symbolic names based on disequality constraints (to prevent altering resolution)

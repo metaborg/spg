@@ -22,7 +22,7 @@ class CheckSuite extends FunSuite {
 
     // Initial graph
     val r = Rule(SortAppl("Program"), None, List(ScopeAppl("s")), State(TermAppl("Program"), List(
-      CGenRecurse(TermVar("x"), List(ScopeAppl("s")), None, SortAppl("VarDecl"))
+      CGenRecurse(Var("x"), List(ScopeAppl("s")), None, SortAppl("VarDecl"))
     )))
 
     // Scope for which the continuation applies
@@ -46,7 +46,7 @@ class CheckSuite extends FunSuite {
 
     // Initial graph
     val r = Rule(SortAppl("Program"), None, Nil, State(TermAppl("Program"), List(
-      CGenRecurse(TermVar("x"), List(ScopeAppl("s")), None, SortAppl("VarDecl"))
+      CGenRecurse(Var("x"), List(ScopeAppl("s")), None, SortAppl("VarDecl"))
     )))
 
     // Scope for which the continuation applies
@@ -61,7 +61,7 @@ class CheckSuite extends FunSuite {
       // Class : Field -> ClassDecl
       Rule(SortAppl("ClassDecl"), None, List(ScopeAppl("s")), State(TermAppl("Class", List()), List(
         CGDirectEdge(ScopeAppl("s"), Label('P'), ScopeAppl("s2")),
-        CGenRecurse(TermVar("x"), List(ScopeAppl("s2")), None, SortAppl("FieldDecl"))
+        CGenRecurse(Var("x"), List(ScopeAppl("s2")), None, SortAppl("FieldDecl"))
       ))),
 
       // Field : String -> FieldDecl
@@ -75,7 +75,7 @@ class CheckSuite extends FunSuite {
 
     // Initial graph
     val r = Rule(SortAppl("Program"), None, Nil, State(TermAppl("Program"), List(
-      CGenRecurse(TermVar("x"), List(ScopeAppl("s")), None, SortAppl("ClassDecl"))
+      CGenRecurse(Var("x"), List(ScopeAppl("s")), None, SortAppl("ClassDecl"))
     )))
 
     // Scope for which the continuation applies
@@ -90,13 +90,13 @@ class CheckSuite extends FunSuite {
       // Class : Field -> ClassDecl
       Rule(SortAppl("ClassDecl"), None, List(ScopeAppl("s")), State(TermAppl("Class", List()), List(
         CGDirectEdge(ScopeAppl("s"), Label('P'), ScopeAppl("s2")),
-        CGenRecurse(TermVar("x"), List(ScopeAppl("s2")), None, SortAppl("FieldDecl"))
+        CGenRecurse(Var("x"), List(ScopeAppl("s2")), None, SortAppl("FieldDecl"))
       ))),
 
       // Field : String -> FieldDecl
       Rule(SortAppl("FieldDecl"), None, List(ScopeAppl("s")), State(TermAppl("Field", List()), List(
         CGDirectEdge(ScopeAppl("s"), Label('P'), ScopeAppl("s2")),
-        CGenRecurse(TermVar("x"), List(ScopeAppl("s2")), None, SortAppl("Exp"))
+        CGenRecurse(Var("x"), List(ScopeAppl("s2")), None, SortAppl("Exp"))
       ))),
 
       // Add : Exp
@@ -111,7 +111,7 @@ class CheckSuite extends FunSuite {
 
     // Initial graph
     val r = Rule(SortAppl("Program"), None, Nil, State(TermAppl("Program"), List(
-      CGenRecurse(TermVar("x"), List(ScopeAppl("s")), None, SortAppl("ClassDecl"))
+      CGenRecurse(Var("x"), List(ScopeAppl("s")), None, SortAppl("ClassDecl"))
     )))
 
     // Scope for which the continuation applies

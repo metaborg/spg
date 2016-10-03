@@ -100,7 +100,7 @@ object Rule {
   // Merge type t1 with t2
   def mergeTypes(t1: Option[Pattern], t2: Option[Pattern]): Option[TermBinding] = (t1, t2) match {
     case (None, None) =>
-      Some(Map.empty[TermVar, Pattern])
+      Some(Map.empty[Var, Pattern])
     case (Some(x), Some(y)) =>
       x.unify(y)
     case _ =>

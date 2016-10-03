@@ -71,7 +71,7 @@ object Consistency {
       Left(Graph(state.facts).associated(n).map(scope =>
         state.substituteScope(Map(s -> scope))
       ))
-    case CResolve(n1, n2@TermVar(_)) =>
+    case CResolve(n1, n2@Var(_)) =>
       // TODO: Can also choose not to resolve (and this might also be the only viable option)!
 
       if (state.resolution.contains(n1)) {
@@ -145,7 +145,7 @@ object Consistency {
 
     for (CResolve(n1, n2) <- resolve) {
       // TODO: Debug strange behavior where n2 is not a TermVar?
-      if (!n2.isInstanceOf[TermVar]) {
+      if (!n2.isInstanceOf[Var]) {
         println(rule)
         System.exit(0)
       }
@@ -226,7 +226,7 @@ object Consistency {
   // For references for which we cannot add new declarations, we can compute consistency relative to the possible resolutions
   def decidedDeclarationsConsistency(rule: Rule)(implicit language: Language): Boolean =
     rule.resolve.forall {
-      case c@CResolve(n1, n2: TermVar) =>
+      case c@CResolve(n1, n2: Var) =>
         val g = Graph(rule.state.facts)
         val s = g.scope(n1)
 
@@ -257,7 +257,7 @@ object Consistency {
         } else {
           true
         }
-      case c@CResolve(n1, n2: TermVar) =>
+      case c@CResolve(n1, n2: Var) =>
         println(rule)
         assert(false)
         false

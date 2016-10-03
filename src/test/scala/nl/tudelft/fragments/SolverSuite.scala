@@ -256,14 +256,14 @@ class SolverSuite extends FunSuite {
     val language = Language.load("/Users/martijn/Projects/MiniJava", "org.metaborg:MiniJava:0.1.0-SNAPSHOT", "MiniJava")
 
     val s = State(
-      pattern = TermVar("x"),
+      pattern = Var("x"),
       constraints = List(
         CTypeOf(ConcreteName("M", "m", 3), TermAppl("TMethod", List(TermAppl("TInt"), TermAppl("TInt")))),
-        CResolve(ConcreteName("C", "Foo", 1), TermVar("d1")),
-        CAssoc(TermVar("d1"), ScopeVar("sigma")),
-        CResolve(ConcreteName("M", "m", 4), TermVar("d2")),
-        CTypeOf(TermVar("d2"), TermAppl("TMethod", List(TermVar("rty"), TermVar("tf")))),
-        CSubtype(TermAppl("TInt", List(TermAppl("TInt", List(TermAppl("TInt", Nil))))), TermVar("tf"))
+        CResolve(ConcreteName("C", "Foo", 1), Var("d1")),
+        CAssoc(Var("d1"), ScopeVar("sigma")),
+        CResolve(ConcreteName("M", "m", 4), Var("d2")),
+        CTypeOf(Var("d2"), TermAppl("TMethod", List(Var("rty"), Var("tf")))),
+        CSubtype(TermAppl("TInt", List(TermAppl("TInt", List(TermAppl("TInt", Nil))))), Var("tf"))
       ),
       facts = List(
         CGRef(ConcreteName("C", "Foo", 1), ScopeAppl("s")),

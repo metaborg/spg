@@ -1,13 +1,13 @@
 package nl.tudelft.fragments
 
 abstract class Pattern {
-  def vars: List[TermVar]
+  def vars: List[Var]
 
   def size: Int
 
   def names: List[SymbolicName]
 
-  def substitute(binding: Map[TermVar, Pattern]): Pattern
+  def substitute(binding: Map[Var, Pattern]): Pattern
 
   def substituteScope(binding: ScopeBinding): Pattern
 
@@ -20,8 +20,61 @@ abstract class Pattern {
   def find(f: Pattern => Boolean): Option[Pattern]
 }
 
-case class TermAppl(cons: String, children: List[Pattern] = Nil) extends Pattern {
-  override def vars: List[TermVar] =
+case class Var(name: String) extends Pattern {
+  override def vars: List[Var] =
+    List(this)
+
+  override def size: Int =
+    1
+
+  override def names: List[SymbolicName] =
+    Nil
+
+  override def substitute(binding: Map[Var, Pattern]): Pattern =
+    binding.getOrElse(this, this)
+
+  override def substituteScope(binding: ScopeBinding): Pattern =
+    Var(name)
+
+  override def substituteSort(binding: SortBinding): Pattern =
+    Var(name)
+
+  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Pattern) =
+    if (nameBinding.contains(name)) {
+      (nameBinding, Var(nameBinding(name)))
+    } else {
+      val fresh = "x" + nameProvider.next
+      (nameBinding + (name -> fresh), Var(fresh))
+    }
+
+  override def unify(typ: Pattern, termBinding: TermBinding): Option[TermBinding] = {
+    typ match {
+      case t@Var(_) if termBinding.contains(t) =>
+        unify(termBinding(t), termBinding)
+      case _ =>
+        if (termBinding.contains(this)) {
+          termBinding(this).unify(typ, termBinding)
+        } else {
+          Some(termBinding + (this -> typ))
+        }
+    }
+  }
+
+  override def toString: String =
+    s"""TermVar("$name")"""
+
+  override def find(f: (Pattern) => Boolean): Option[Pattern] =
+    if (f(this)) {
+      Some(this)
+    } else {
+      None
+    }
+}
+
+abstract class Term extends Pattern
+
+case class TermAppl(cons: String, children: List[Pattern] = Nil) extends Term {
+  override def vars: List[Var] =
     children.flatMap(_.vars).distinct
 
   override def size: Int =
@@ -30,7 +83,7 @@ case class TermAppl(cons: String, children: List[Pattern] = Nil) extends Pattern
   override def names: List[SymbolicName] =
     children.flatMap(_.names).distinct
 
-  override def substitute(binding: Map[TermVar, Pattern]): Pattern =
+  override def substitute(binding: Map[Var, Pattern]): Pattern =
     TermAppl(cons, children.map(_.substitute(binding)))
 
   override def substituteScope(binding: ScopeBinding): Pattern =
@@ -50,7 +103,7 @@ case class TermAppl(cons: String, children: List[Pattern] = Nil) extends Pattern
         case (termBinding, (t1, t2)) =>
           t1.unify(t2, termBinding)
       }
-    case TermVar(_) =>
+    case Var(_) =>
       typ.unify(this, termBinding)
     case _ =>
       None
@@ -77,59 +130,8 @@ case class TermAppl(cons: String, children: List[Pattern] = Nil) extends Pattern
     children.length
 }
 
-case class TermVar(name: String) extends Pattern {
-  override def vars: List[TermVar] =
-    List(this)
-
-  override def size: Int =
-    0
-
-  override def names: List[SymbolicName] =
-    Nil
-
-  override def substitute(binding: Map[TermVar, Pattern]): Pattern =
-    binding.getOrElse(this, this)
-
-  override def substituteScope(binding: ScopeBinding): Pattern =
-    TermVar(name)
-
-  override def substituteSort(binding: SortBinding): Pattern =
-    TermVar(name)
-
-  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Pattern) =
-    if (nameBinding.contains(name)) {
-      (nameBinding, TermVar(nameBinding(name)))
-    } else {
-      val fresh = "x" + nameProvider.next
-      (nameBinding + (name -> fresh), TermVar(fresh))
-    }
-
-  override def unify(typ: Pattern, termBinding: TermBinding): Option[TermBinding] = {
-    typ match {
-      case t@TermVar(_) if termBinding.contains(t) =>
-        unify(termBinding(t), termBinding)
-      case _ =>
-        if (termBinding.contains(this)) {
-          termBinding(this).unify(typ, termBinding)
-        } else {
-          Some(termBinding + (this -> typ))
-        }
-    }
-  }
-
-  override def toString: String =
-    s"""TermVar("$name")"""
-
-  override def find(f: (Pattern) => Boolean): Option[Pattern] =
-    if (f(this)) {
-      Some(this)
-    } else {
-      None
-    }
-}
-
-case class TermString(name: String) extends Pattern {
-  override def vars: List[TermVar] =
+case class TermString(name: String) extends Term {
+  override def vars: List[Var] =
     Nil
 
   override def names: List[SymbolicName] =
@@ -141,7 +143,7 @@ case class TermString(name: String) extends Pattern {
   override def unify(t: Pattern, termBinding: TermBinding): Option[TermBinding] =
     ???
 
-  override def substitute(binding: Map[TermVar, Pattern]): Pattern =
+  override def substitute(binding: Map[Var, Pattern]): Pattern =
     this
 
   override def substituteSort(binding: SortBinding): Pattern =
@@ -175,13 +177,13 @@ case class SymbolicName(namespace: String, name: String) extends Name {
   override def unify(t: Pattern, termBinding: TermBinding = Map.empty): Option[TermBinding] = t match {
     case SymbolicName(`namespace`, `name`) =>
       Some(Map())
-    case v@TermVar(_) =>
+    case v@Var(_) =>
       v.unify(this, termBinding)
     case _ =>
       None
   }
 
-  override def vars: List[TermVar] =
+  override def vars: List[Var] =
     Nil
 
   override def toString: String =
@@ -192,7 +194,7 @@ case class SymbolicName(namespace: String, name: String) extends Name {
 
   override def names: List[SymbolicName] = ???
 
-  override def substitute(binding: Map[TermVar, Pattern]): Pattern =
+  override def substitute(binding: Map[Var, Pattern]): Pattern =
     this
 
   override def substituteScope(binding: ScopeBinding): Pattern =
@@ -206,7 +208,7 @@ case class SymbolicName(namespace: String, name: String) extends Name {
 }
 
 case class ConcreteName(namespace: String, name: String, position: Int) extends Name {
-  override def vars: List[TermVar] =
+  override def vars: List[Var] =
     Nil
 
   override def names: List[SymbolicName] =
@@ -221,7 +223,7 @@ case class ConcreteName(namespace: String, name: String, position: Int) extends 
   override def substituteSort(binding: SortBinding): Pattern =
     ???
 
-  override def substitute(binding: Map[TermVar, Pattern]): Pattern =
+  override def substitute(binding: Map[Var, Pattern]): Pattern =
     this
 
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Pattern) =
