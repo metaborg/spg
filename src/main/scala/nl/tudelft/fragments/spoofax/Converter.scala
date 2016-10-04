@@ -18,17 +18,15 @@ object Converter {
       }
     case TermString(name) =>
       toString(name)
-//    case ConcreteName(namespace, name, pos) =>
-//      toString(name)
-    // TODO: Symbolic names should be replaced before conversion, but this does not always happen yet (bug)
-    case SymbolicName(namespace, name) =>
-      toString(name)
   }
 
   def toConstructor(name: String, arity: Int): IStrategoConstructor =
     new StrategoConstructor(name, arity)
 
-  // Cons(x, Cons(y, Nil)) => IStrategoList(x, IStrategoList(y, IStrategoList(null)))
+  def toString(value: String): IStrategoString =
+    new StrategoString(value, null, 0)
+
+  // TermAppl("Cons", List(x, TermAppl("Cons", List(y, TermAppl("Nil"))))) => IStrategoList(x, IStrategoList(y, IStrategoList(null)))
   def consToList(list: Pattern): IStrategoList = list match {
     case TermAppl(cons, children) =>
       cons match {
@@ -46,7 +44,4 @@ object Converter {
     case _ =>
       new StrategoList(null, null, null, 0)
   }
-
-  def toString(s: String): IStrategoString =
-    new StrategoString(s, null, 0)
 }

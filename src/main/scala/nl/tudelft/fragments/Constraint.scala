@@ -360,7 +360,53 @@ case class CFalse() extends Constraint {
     0
 }
 
-// Naming constraints
+case class CDistinct(names: Names) extends Constraint {
+  override def substitute(binding: TermBinding): Constraint =
+    this
+
+  override def substituteSort(binding: SortBinding): Constraint =
+    this
+
+  override def substituteScope(binding: ScopeBinding): Constraint =
+    CDistinct(names.substituteScope(binding))
+
+  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
+    names.freshen(nameBinding).map { case (nameBinding, names) =>
+      (nameBinding, CDistinct(names))
+    }
+
+  override def isProper =
+    true
+
+  /**
+    * Distinct has the highest priority. For generation, solving CDistinct does
+    * not uncover new information and it can only be solved when the scope is
+    * ground.
+    */
+  override def priority =
+    99
+}
+
+abstract class Names {
+  def substituteScope(binding: ScopeBinding): Names
+
+  def freshen(nameBinding: Map[String, String]): (Map[String, String], Names)
+}
+
+case class Declarations(scope: Scope, namespace: String) extends Names {
+  override def substituteScope(binding: ScopeBinding): Names =
+    Declarations(scope.substituteScope(binding), namespace)
+
+  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Names) =
+    scope.freshen(nameBinding).map { case (nameBinding, scope) =>
+      (nameBinding, Declarations(scope, namespace))
+    }
+
+  override def toString: String =
+    s"""Declarations($scope, "$namespace")"""
+}
+
+// Naming constraints (TODO: does this need to subclass Constraint?)
 
 abstract class NamingConstraint extends Constraint {
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], NamingConstraint)

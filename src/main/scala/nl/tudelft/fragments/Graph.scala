@@ -15,6 +15,11 @@ case class Graph(facts: List[Constraint])(implicit language: Language) {
   def declarations(s: Scope): List[Pattern] = facts
     .collect { case CGDecl(`s`, n) => n }
 
+  // Get declarations for scope with namespace
+  def declarations(s: Scope, ns: String): List[Pattern] = facts
+    .collect { case CGDecl(`s`, n) => n }
+    .filter(_.asInstanceOf[Name].namespace == ns)
+
   // Get scope associated to name
   def associated(n: Pattern): Option[Scope] = facts
     .collect { case CGAssoc(`n`, s) => s }

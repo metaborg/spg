@@ -277,7 +277,8 @@ class SolverSuite extends FunSuite {
       ),
       typeEnv = TypeEnv(),
       resolution = Resolution(),
-      subtypeRelation = SubtypeRelation()
+      subtypeRelation = SubtypeRelation(),
+      inequalities = Nil
     )
 
     assert(Solver.solve(s)(language).isEmpty)

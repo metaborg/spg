@@ -349,7 +349,20 @@ object Specification {
       toString(appl.getSubterm(0))
   }
 
-  // Turn a constraint into a Constarint
+  def toNames(term: IStrategoTerm)(implicit concrete: List[String]): Names = term match {
+    case appl: StrategoAppl if appl.getConstructor.getName == "Declarations" =>
+      Declarations(toScope(appl.getSubterm(0)), toNamespace(appl.getSubterm(1)))
+  }
+
+  /**
+    * Turn a constraint into a Constarint. Returns None if the constraint is
+    * not supported.
+    *
+    * @param ruleIndex
+    * @param constraint
+    * @param vars
+    * @return
+    */
   def toConstraint(ruleIndex: Int, constraint: IStrategoTerm)(implicit vars: List[String]): Option[Constraint] = constraint match {
     case appl: StrategoAppl if appl.getConstructor.getName == "CTrue" =>
       Some(CTrue())
@@ -381,11 +394,9 @@ object Specification {
       Some(CInequal(toType(ruleIndex, appl.getSubterm(0)), toType(ruleIndex, appl.getSubterm(1))))
     case appl: StrategoAppl if appl.getConstructor.getName == "CFalse" =>
       Some(CFalse())
-
-    // Unsupported constraints, ignored by this method
     case appl: StrategoAppl if appl.getConstructor.getName == "CDistinct" =>
-      None
-    case appl: StrategoAppl if appl.getConstructor.getName == "CInequal" =>
+      Some(CDistinct(toNames(appl.getSubterm(0))))
+    case _ =>
       None
   }
 

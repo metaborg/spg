@@ -157,6 +157,9 @@ case class TermString(name: String) extends Term {
 
   override def find(f: (Pattern) => Boolean): Option[Pattern] =
     None
+
+  override def toString =
+    s"""TermString("$name")"""
 }
 
 abstract class Name extends Pattern {

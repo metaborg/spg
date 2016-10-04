@@ -133,6 +133,13 @@ package object fragments {
       list.map(_.substituteScope(binding))
   }
 
+  implicit class RichInequalityList(list: List[(Pattern, Pattern)]) extends RichList[(Pattern, Pattern)](list) {
+    def substitute(binding: TermBinding): List[(Pattern, Pattern)] =
+      list.map { case (p1, p2) =>
+        (p1.substitute(binding), p2.substitute(binding))
+      }
+  }
+
   // CPS for Tuple2
   implicit class RichTuple2[T1, T2](tuple2: Tuple2[T1, T2]) {
     def map[T3](f: ((T1, T2)) => T3) =

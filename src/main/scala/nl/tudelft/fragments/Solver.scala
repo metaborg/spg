@@ -39,6 +39,11 @@ object Solver {
       state.copy(subtypeRelation = state.subtypeRelation ++ closure)
     case CSubtype(t1, t2) if (t1.vars ++ t2.vars).isEmpty && state.subtypeRelation.isSubtype(t1, t2) =>
       state
+    case CDistinct(Declarations(scope, namespace)) if scope.vars.isEmpty /* TODO: vars.isEmpty does not ensure groundness! */ =>
+      val names = Graph(state.facts).declarations(scope, namespace)
+      val combis = for (List(a, b, _*) <- names.combinations(2).toList) yield (a, b)
+
+      state.addInequalities(combis)
     case _ =>
       Nil
   }
@@ -58,35 +63,35 @@ object Solver {
   }
 
   // Solve as many constraints as possible. Returns a List[State] of possible resuting states.
-  def solveAny(state: State)(implicit language: Language): List[State] = state match {
-    case State(_, Nil, _, _, _, _) =>
-      state
-    case State(pattern, remaining, all, ts, resolution, subtype) =>
-      for (c <- remaining) {
-        val result = rewrite(c, State(pattern, remaining - c, all, ts, resolution, subtype))
+  def solveAny(state: State)(implicit language: Language): List[State] = state.constraints match {
+    case Nil =>
+      List(state)
+    case _ =>
+      for (c <- state.constraints) {
+        val result = rewrite(c, state.removeConstraint(c))
 
         if (result.nonEmpty) {
           return result.flatMap(solveAny)
         }
       }
 
-      state
+      List(state)
   }
 
   // Solve all constraints. Returns `Nil` if it is not possible to solve all constraints.
-  def solvePrivate(state: State)(implicit language: Language): List[State] = state match {
-    case State(_, Nil, _, _, _, _) =>
-      state
-    case State(pattern, remaining, all, ts, resolution, subtype) =>
-      for (c <- remaining) {
-        val result = rewrite(c, State(pattern, remaining - c, all, ts, resolution, subtype))
+  def solvePrivate(state: State)(implicit language: Language): List[State] = state.constraints match {
+    case Nil =>
+      List(state)
+    case _ =>
+      for (constraint <- state.constraints) {
+        val result = rewrite(constraint, state.removeConstraint(constraint))
 
         if (result.nonEmpty) {
           return result.flatMap(solve)
         }
       }
 
-      None
+      Nil
   }
 
   // Solve constraints after sorting on priority
@@ -106,7 +111,7 @@ object Solver {
   * @param facts           The known facts
   * @param typeEnv         The typing environment
   */
-case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Constraint], typeEnv: TypeEnv, resolution: Resolution, subtypeRelation: SubtypeRelation) {
+case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Constraint], typeEnv: TypeEnv, resolution: Resolution, subtypeRelation: SubtypeRelation, inequalities: List[(Pattern, Pattern)]) {
   def merge(recurse: CGenRecurse, state: State): State = {
     State(
       pattern =
@@ -120,15 +125,23 @@ case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Co
       resolution =
         resolution ++ state.resolution,
       subtypeRelation =
-        subtypeRelation ++ state.subtypeRelation
+        subtypeRelation ++ state.subtypeRelation,
+      inequalities =
+        inequalities ++ state.inequalities
     )
   }
+
+  def removeConstraint(constraint: Constraint): State =
+    copy(constraints = constraints - constraint)
 
   def addConstraint(constraint: Constraint): State =
     copy(constraints = constraint :: constraints)
 
+  def addInequalities(inequals: List[(Pattern, Pattern)]) =
+    copy(inequalities = inequals ++ inequalities)
+
   def substitute(binding: TermBinding): State =
-    copy(pattern.substitute(binding), constraints.substitute(binding), facts.substitute(binding), typeEnv.substitute(binding), resolution.substitute(binding), subtypeRelation.substitute(binding))
+    copy(pattern.substitute(binding), constraints.substitute(binding), facts.substitute(binding), typeEnv.substitute(binding), resolution.substitute(binding), subtypeRelation.substitute(binding), inequalities.substitute(binding))
 
   def substituteScope(binding: ScopeBinding): State =
     copy(pattern.substituteScope(binding), constraints.substituteScope(binding), facts.substituteScope(binding))
@@ -153,20 +166,17 @@ case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Co
 }
 
 object State {
-  def apply(constraints: List[Constraint], facts: List[Constraint], typeEnv: TypeEnv, resolution: Resolution, subtypeRelation: SubtypeRelation): State = {
-    State(null, constraints, facts, typeEnv, resolution, subtypeRelation)
-  }
-
+  // TODO: This is legacy..
   def apply(pattern: Pattern, constraints: List[Constraint]): State = {
     val (proper, facts) = constraints.partition(_.isProper)
 
-    State(pattern, proper, facts, TypeEnv(), Resolution(), SubtypeRelation())
+    State(pattern, proper, facts, TypeEnv(), Resolution(), SubtypeRelation(), Nil)
   }
 
   def apply(constraints: List[Constraint]): State = {
     val (proper, facts) = constraints.partition(_.isProper)
 
-    State(proper, facts, TypeEnv(), Resolution(), SubtypeRelation())
+    State(null, proper, facts, TypeEnv(), Resolution(), SubtypeRelation(), Nil)
   }
 }
 

@@ -4,7 +4,9 @@ import nl.tudelft.fragments.lexical.LexicalGenerator
 import nl.tudelft.fragments.spoofax.Language
 import nl.tudelft.fragments.spoofax.models._
 
-object Concretor {
+case class Concretor(language: Language) {
+  val generator = new LexicalGenerator(language.productions)
+
   /**
     * The rule's resolution may not be valid due to shadowing. This method computes Eq and Diseq
     * constraints for names that should be equal (or inequal) when made concrete.
@@ -12,10 +14,10 @@ object Concretor {
     * For every resolution x |-> y, we create an Eq(x, y), and for all other names y that are
     * reachable from x, we create a Diseq(x, y).
     */
-  def computeNamingConstraints(state: State)(implicit language: Language): List[NamingConstraint] = {
+  def computeNamingConstraints(state: State): List[NamingConstraint] = {
     state.resolution.bindings.foldLeft(List.empty[NamingConstraint]) {
       case (namingConstraints, (ref, dec)) =>
-        val reachableDeclarations = Graph(state.facts).res(state.resolution)(ref)
+        val reachableDeclarations = Graph(state.facts)(language).res(state.resolution)(ref)
 
         Eq(ref, dec) :: namingConstraints ++ reachableDeclarations
           .filter(_ != dec)
@@ -24,37 +26,44 @@ object Concretor {
   }
 
   // Replace TermVars in pattern by concrete names satisfying the solution
-  def concretize(rule: Rule, state: State)(implicit language: Language): Pattern = {
+  def concretize(rule: Rule, state: State): Pattern = {
     // Use a new name provider to keep the numbers low
     val nameProvider = NameProvider(0)
 
-    // Compute constraints on the symbolic names to enforce the chosen resolution
+    // Compute equality constraints
     val namingConstraints = computeNamingConstraints(state)
 
+    // Compute inequality constraints
+    val inequalityConsraints = state.inequalities.map { case (p1, p2) =>
+      Diseq(p1, p2)
+    }
+
+    // Combine the constraints
+    val constraints = namingConstraints ++ inequalityConsraints
+
+    // Equality constraints
+    val equalityConstraints = filterEqs(constraints)
+
+    // Disequality constraints
+    val disequalityConstraints = filterDiseqs(constraints)
+
     // Replace names in Eq constraints
-    val partially = rule.pattern.substitute(
-      nameEq(filterEqs(namingConstraints), Map.empty, nameProvider)
-        .map { case (n1, n2) => Var(n1) -> TermString(n2) }
+    val r1 = rule.pattern.substitute(
+      nameEq(equalityConstraints, Map.empty, nameProvider).map {
+        case (n1, n2) =>
+          Var(n1) -> TermString(n2)
+      }
     )
 
-    // TODO: Convert symbolic names based on disequality constraints (to prevent altering resolution)
-//    val partially = rule.pattern
-//      .substitute(nameEq(filterEqs(solution.nameConstraints), nameProvider).map { case (n1, n2) => Term})
-//      .substitute(nameDiseq(filterDiseqs(solution.nameConstraints), nameProvider))
-    //
-    //    // Convert remaining symbolic names. This is a lazy solution; we can use names sparingly/randomly.
-    //    partially
-    //      .substituteConcrete(
-    //        partially.names.map(s => (s, ConcreteName(s.namespace, "n" + nameProvider.next, 0))).toMap
-    //      )
-
-    // Create lexical generator
-    val generator = new LexicalGenerator(language.productions)
+    // Replace names in Diseq constraints
+    val r2 = r1.substitute(
+      nameDiseq(filterDiseqs(disequalityConstraints), nameProvider)
+    )
 
     // Convert remaining TermVars based on their sort
-    val result = partially.substitute(
-      partially.vars.map(v => {
-        val sort = language.signatures.sortForPattern(partially, v)
+    val result2 = r2.substitute(
+      r2.vars.map(v => {
+        val sort = language.signatures.sortForPattern(r2, v)
         val value = sort.map(generator.generate)
 
         v -> TermString(value.getOrElse(throw new RuntimeException("Could not determine Sort for TermVar")))
@@ -71,7 +80,7 @@ object Concretor {
       }
     }
 
-    Strategy.topdown(Strategy.`try`(conssToCons))(result).get
+    Strategy.topdown(Strategy.`try`(conssToCons))(result2).get
   }
 
   // Generate a binding from SymbolicNames to String satisfying the equality constraints
@@ -86,46 +95,12 @@ object Concretor {
       binding
   }
 
-  // Generate a binding from symbolic names to concrete names satisfying the equality constraints
-  //  def nameEq(eqs: List[Eq], nameProvider: NameProvider): TermBinding = eqs match {
-  //    case Eq(s@SymbolicName(_, _), c@ConcreteName(_, _, _)) :: _ =>
-  //      val binding = Map(s -> c)
-  //
-  //      nameEq(eqs.substitute(binding), nameProvider) ++ binding
-  //    case Eq(c@ConcreteName(_, _, _), s@SymbolicName(_, _)) :: _ =>
-  //      val binding = Map(s -> c)
-  //
-  //      nameEq(eqs.substituteConcrete(binding), nameProvider) ++ binding
-  //    case Eq(s@SymbolicName(ns, _), _) :: _ =>
-  //      val next = "n" + nameProvider.next
-  //      val binding = Map(s -> ConcreteName(ns, next, 0))
-  //
-  //      nameEq(eqs.substituteConcrete(binding), nameProvider) ++ binding
-  //    case Eq(_, s@SymbolicName(ns, n)) :: _ =>
-  //      val next = "n" + nameProvider.next
-  //      val binding = Map(s -> ConcreteName(ns, next, 0))
-  //
-  //      nameEq(eqs.substituteConcrete(binding), nameProvider) ++ binding
-  //    case _ :: tail =>
-  //      nameEq(tail, nameProvider)
-  //    case Nil =>
-  //      Map.empty
-  //  }
-
-  // Give each name in the DisEq a different name. This is a lazy solution; we can use names sparingly/randomly.
+  // Give each name in the DisEq a different name. This is a liberal solution; we can use names sparingly/randomly.
   // TODO: DisEq constraints may contain ConcreteNames which we can then no longer use!
-  //  def nameDiseq(diseqs: List[Diseq], nameProvider: NameProvider): ConcreteBinding =
-  //    diseqsToNames(diseqs)
-  //      .map(s => (s, ConcreteName(s.namespace, "n" + nameProvider.next, 0)))
-  //      .toMap
-
-  // Get the equality conditions
-  def filterEqs(substitution: List[Constraint]) =
-    substitution.collect { case x: Eq => x }
-
-  // Get the disequality conditions
-  def filterDiseqs(substitution: List[Constraint]) =
-    substitution.collect { case x: Diseq => x }
+  def nameDiseq(diseqs: List[Diseq], nameProvider: NameProvider): TermBinding =
+    diseqsToNames(diseqs)
+      .map(s => (Var(s.name), TermString("n" + nameProvider.next)))
+      .toMap
 
   // Get the symbolic names in the disequality conditions
   def diseqsToNames(diseqs: List[Diseq]): List[SymbolicName] =
@@ -136,6 +111,13 @@ object Concretor {
         List(n1)
       case Diseq(_, n2@SymbolicName(_, _)) =>
         List(n2)
-
     }.distinct
+
+  // Get the equality conditions
+  def filterEqs(substitution: List[Constraint]) =
+    substitution.collect { case x: Eq => x }
+
+  // Get the disequality conditions
+  def filterDiseqs(substitution: List[Constraint]) =
+    substitution.collect { case x: Diseq => x }
 }

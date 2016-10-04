@@ -47,7 +47,7 @@ object Main {
             val state = states.random
 
             // Use solution to create a concrete pattern
-            val concretePattern = Concretor.concretize(rule, state)
+            val concretePattern = Concretor(language).concretize(rule, state)
 
             // Turn solved state (State) into a stratego term (IStrategoTerm)
             val concreteTerm = Converter.toTerm(concretePattern)

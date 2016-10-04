@@ -15,6 +15,7 @@ object Synergy {
 
   // Make the language parts implicitly available
   implicit val language = Language.load("/Users/martijn/Projects/MiniJava", "org.metaborg:MiniJava:0.1.0-SNAPSHOT", "MiniJava")
+//  implicit val language = Language.load("/Users/martijn/Projects/scopes-frames/L3", "org.metaborg:L3:0.1.0-SNAPSHOT", "L3")
   implicit val productions = language.productions
   implicit val signatures = language.signatures
   implicit val specification = language.specification
@@ -36,13 +37,8 @@ object Synergy {
 
     val writer = new PrintWriter(new FileOutputStream(new File("results.log"), true))
 
-    for (i <- 0 to 1000) {
-      // This produced a call:
-      val start = Rule(SortAppl("Program", List()), None, List(ScopeAppl("s118361")), State(TermAppl("Program", List(Var("mc"), TermAppl("Cons", List(Var("x118362"), Var("x118363"))))),List(CGenRecurse(Var("mc"),List(ScopeAppl("s118361")),None,SortAppl("MainClass", List())), CGenRecurse(Var("x118363"),List(ScopeAppl("s118361")),None,SortAppl("List", List(SortAppl("ClassDecl", List())))), CGenRecurse(Var("x118362"),List(ScopeAppl("s118361")),None,SortAppl("ClassDecl", List()))),List(),TypeEnv(),Resolution(),SubtypeRelation(List())))
-
-      //val start = Rule(SortAppl("Program", List()), None, List(ScopeAppl("s1251080")), State(TermAppl("Program", List(TermAppl("MainClass", List(TermVar("x195685"), TermVar("x195686"), TermAppl("Print", List(TermAppl("Int", List(TermVar("x253777"))))))), TermAppl("Cons", List(TermAppl("Class", List(TermVar("x274956"), TermAppl("NoParent", List()), TermAppl("Nil", List()), TermAppl("Cons", List(TermAppl("Method", List(TermAppl("ClassType", List(TermVar("x1274022"))), TermVar("x1266366"), TermAppl("Cons", List(TermAppl("Param", List(TermAppl("ClassType", List(TermVar("x22922"))), TermVar("x1277456"))), TermAppl("Nil", List()))), TermAppl("Nil", List()), TermAppl("Cons", List(TermAppl("Block", List(TermAppl("Nil", List()))), TermAppl("Nil", List()))), TermAppl("Call", List(TermVar("x41605"), TermVar("x41606"), TermVar("x41607"))))), TermAppl("Nil", List()))))), TermAppl("Nil", List()))))),List(CSubtype(TermVar("x41612"),TermAppl("TClass", List(SymbolicName("Class", "x274956")))), CGenRecurse(TermVar("x41607"),List(ScopeAppl("s22921")),Some(TermVar("x41608")),SortAppl("IterStar", List(SortAppl("Exp", List())))), CGenRecurse(TermVar("x41605"),List(ScopeAppl("s22921")),Some(TermAppl("TClass", List(TermVar("x41609")))),SortAppl("Exp", List())), CAssoc(TermVar("x41609"),ScopeVar("s41610")), CResolve(SymbolicName("Method", "x41606"),TermVar("x41611")), CTypeOf(TermVar("x41611"),TermAppl("TMethod", List(TermVar("x41612"), TermVar("x41613")))), CSubtype(TermVar("x41608"),TermVar("x41613"))),List(CGDecl(ScopeAppl("s1251080"),SymbolicName("Class", "x195685")), CGDecl(ScopeAppl("s1251080"),SymbolicName("Class", "x274956")), CGAssoc(SymbolicName("Class", "x274956"),ScopeAppl("s1274021")), CGDecl(ScopeAppl("s1274021"),ConcreteName("Implicit", "this", 274962)), CGDirectEdge(ScopeAppl("s1274021"),Label('P'),ScopeAppl("s1251080")), CGDecl(ScopeAppl("s1274021"),SymbolicName("Method", "x1266366")), CGDirectEdge(ScopeAppl("s22921"),Label('P'),ScopeAppl("s1274021")), CGRef(SymbolicName("Class", "x1274022"),ScopeAppl("s1274021")), CGDecl(ScopeAppl("s22921"),SymbolicName("Var", "x1277456")), CGDirectEdge(ScopeAppl("s41614"),Label('I'),ScopeVar("s41610")), CGRef(SymbolicName("Method", "x41606"),ScopeAppl("s41614")), CGRef(SymbolicName("Class", "x22922"),ScopeAppl("s22921"))),TypeEnv(Map(Binding(SymbolicName("Class", "x274956"), TermAppl("TClass", List(SymbolicName("Class", "x274956")))), Binding(SymbolicName("Var", "x1277456"), TermAppl("TClass", List(SymbolicName("Class", "x274956")))), Binding(ConcreteName("Implicit", "this", 274962), TermAppl("TClass", List(SymbolicName("Class", "x274956")))), Binding(SymbolicName("Class", "x195685"), TermAppl("TMainClass", List())), Binding(SymbolicName("Method", "x1266366"), TermAppl("TMethod", List(TermAppl("TClass", List(SymbolicName("Class", "x274956"))), TermAppl("Cons", List(TermAppl("TClass", List(SymbolicName("Class", "x274956"))), TermAppl("Nil", List())))))))),Resolution(Map(Tuple2(SymbolicName("Class", "x1274022"), SymbolicName("Class", "x274956")), Tuple2(SymbolicName("Class", "x22922"), SymbolicName("Class", "x274956")))),SubtypeRelation(List(Binding(TermAppl("TClass", List(SymbolicName("Class", "x274956"))), TermAppl("TClass", List(ConcreteName("Class", "Object", 1251083))))))))
-
-      val result = synergize(rules)(/*language.startRules.random*/start)
+    for (i <- 0 to 10000) {
+      val result = synergize(rules)(language.startRules.random)
 
       if (result.isEmpty) {
         // Synergize returned None meaning there was an inconsistency or the term diverged
@@ -57,10 +53,16 @@ object Synergy {
         if (solvedStates.isEmpty) {
           println("Unsolvable")
         } else {
+          // State
+          val state = solvedStates.random
+
+          // Show the distinct constraints (TODO: For debugging, remove in future)
+          println(state.inequalities)
+
           // Print pretty-printed concrete solved rule
           val source = printer(
             Converter.toTerm(
-              Concretor.concretize(result.get, solvedStates.random)
+              Concretor(language).concretize(result.get, state)
             )
           )
 
@@ -83,7 +85,7 @@ object Synergy {
   // Expand rule with the best alternative from rules
   def synergize(rules: List[Rule])(current: Rule): Option[Rule] = {
     // Debug
-    println(current)
+    //println(current)
 
     // Prevent diverging
     if (current.pattern.size > termSizeLimit) {
