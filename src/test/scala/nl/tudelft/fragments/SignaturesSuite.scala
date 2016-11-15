@@ -61,7 +61,7 @@ class SignaturesSuite extends FunSuite {
   ))
 
   test("get direct injections for simple sort") {
-    val inj = Sort.injections(signatures)(SortAppl("ResetExp"))
+    val inj = Sort.injections(signatures, SortAppl("ResetExp"))
 
     assert(inj == Set(SortAppl("Exp")))
   }

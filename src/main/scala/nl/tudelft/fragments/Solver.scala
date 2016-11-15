@@ -112,6 +112,14 @@ object Solver {
   * @param typeEnv         The typing environment
   */
 case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Constraint], typeEnv: TypeEnv, resolution: Resolution, subtypeRelation: SubtypeRelation, inequalities: List[(Pattern, Pattern)]) {
+  /**
+    * Get all wrapped constraints
+    *
+    * @return
+    */
+  def wrapped(): List[Constraint] =
+    constraints.filter(_.isInstanceOf[WrappedConstraint])
+
   def merge(recurse: CGenRecurse, state: State): State = {
     State(
       pattern =
@@ -140,6 +148,22 @@ case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Co
   def addInequalities(inequals: List[(Pattern, Pattern)]) =
     copy(inequalities = inequals ++ inequalities)
 
+  /**
+    * Substitute a variable by a pattern.
+    *
+    * @param v
+    * @param p
+    * @return
+    */
+  def substitute(v: Var, p: Pattern): State =
+    copy(pattern.substitute(Map(v -> p)), constraints.substitute(Map(v -> p)), facts.substitute(Map(v -> p)), typeEnv.substitute(Map(v -> p)), resolution.substitute(Map(v -> p)), subtypeRelation.substitute(Map(v -> p)), inequalities.substitute(Map(v -> p)))
+
+  /**
+    * Substitute the given map of variables to patterns.
+    *
+    * @param binding
+    * @return
+    */
   def substitute(binding: TermBinding): State =
     copy(pattern.substitute(binding), constraints.substitute(binding), facts.substitute(binding), typeEnv.substitute(binding), resolution.substitute(binding), subtypeRelation.substitute(binding), inequalities.substitute(binding))
 

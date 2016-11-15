@@ -2,19 +2,9 @@ package nl.tudelft.fragments
 
 import nl.tudelft.fragments.spoofax.Language
 
-object Consistency {
-  // Check for consistency. The higher the level, the stricter the check.
-  def check(rule: Rule, level: Int = 2)(implicit language: Language): Boolean = {
-    if (level >= 0) {
-      // There should not be an inconsistency (e.g. in CEqual and CTypeOf constraints)
-      val state = solve(rule.state)
+import scala.util.Random
 
-      (level >= 1 && state.nonEmpty) || state.nonEmpty
-    } else {
-      true
-    }
-  }
-
+object Eliminate {
   // Rewrite constraints, returning Left(None) if we cannot process the constraint, Left(Some(states)) if we can process the state, and Right if we find an inconsistency
   def rewrite(c: Constraint, state: State)(implicit language: Language): Either[List[State], String] = c match {
     case CFalse() =>
@@ -60,7 +50,14 @@ object Consistency {
       } else {
         val choices = Graph(state.facts).res(state.resolution)(n1)
 
-        Left(List(state.addConstraint(WrappedConstraint(c))) ++ choices.map { case dec =>
+        // With 50% chance, postpone solving the constraint
+        val noResolve = if (Random.nextInt(2) == 0) {
+          List(state.addConstraint(WrappedConstraint(c)))
+        } else {
+          Nil
+        }
+
+        Left(noResolve ++ choices.map { case dec =>
           state
             .substitute(Map(n2 -> dec))
             .copy(resolution = state.resolution + (n1 -> dec))

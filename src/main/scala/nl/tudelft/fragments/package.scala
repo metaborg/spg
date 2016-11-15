@@ -35,10 +35,6 @@ package object fragments {
       case Nil => None
       case _ => Some(seq(Random.nextInt(seq.length)))
     }
-
-    // Zip with a function
-    def zipWith[U](f: T => U): Seq[(T, U)] =
-      seq.map(x => (x, f(x)))
   }
 
   implicit class RichList[T](list: List[T]) {
@@ -50,7 +46,7 @@ package object fragments {
         Some(z)
     }
 
-    // A hybrid of map and foldLeft (TODO: I like 'mapAccum' better, courtesy of Sven)
+    // A hybrid of map and foldLeft
     def mapFoldLeft[U, V](z: V)(f: (V, T) => (V, U)): (V, List[U]) = list match {
       case x :: xs =>
         val (a1, elem) = f(z, x)
@@ -61,19 +57,9 @@ package object fragments {
         (z, Nil)
     }
 
-    // Pair consecutive elements. I.e. turn [1,2,3, ...] into [(1,2); (2,3), ...]
-    def pairs: List[(T, T)] = list match {
-      case x1 :: x2 :: xs => (x1, x2) :: (x2 :: xs).pairs
-      case _ => Nil
-    }
-
     // Shuffle elements of the list
     def shuffle: List[T] =
       Random.shuffle(list)
-
-    // Get a random subset of the list
-    def randomSubset(n: Int): List[T] =
-      Random.shuffle(list).take(n)
 
     // Remove element from list
     def -(elem: T): List[T] =
@@ -141,15 +127,9 @@ package object fragments {
   }
 
   // CPS for Tuple2
-  implicit class RichTuple2[T1, T2](tuple2: Tuple2[T1, T2]) {
+  implicit class RichTuple2[T1, T2](tuple2: (T1, T2)) {
     def map[T3](f: ((T1, T2)) => T3) =
       f(tuple2._1, tuple2._2)
-  }
-
-  // Extract a random element from a list
-  object ~ {
-    def unapply[T](xs: List[T]): Some[T] =
-      Some(xs.random)
   }
 
   // Returns a function x => f(f(f(x))) with n times f

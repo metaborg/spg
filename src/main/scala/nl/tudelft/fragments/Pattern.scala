@@ -61,7 +61,7 @@ case class Var(name: String) extends Pattern {
   }
 
   override def toString: String =
-    s"""TermVar("$name")"""
+    s"""Var("$name")"""
 
   override def find(f: (Pattern) => Boolean): Option[Pattern] =
     if (f(this)) {

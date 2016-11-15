@@ -12,7 +12,14 @@ abstract class Sort extends Symbol {
 }
 
 object Sort {
-  def injections(signatures: Signatures)(sort: Sort): Set[Sort] = {
+  /**
+    * Compute the direct injections for the given sort.
+    *
+    * @param signatures
+    * @param sort
+    * @return
+    */
+  def injections(signatures: Signatures, sort: Sort): Set[Sort] = {
     val sorts = signatures.list.flatMap {
       case OpDeclInj(FunType(List(ConstType(x)), ConstType(y))) =>
         y.unify(sort).map(x.substituteSort)
@@ -23,11 +30,26 @@ object Sort {
     sorts.toSet
   }
 
-  def transitiveInjections(signatures: Signatures)(sorts: Set[Sort]): Set[Sort] =
-    sorts.flatMap(injections(signatures)) ++ sorts
+  /**
+    * Compute the direct injections for the given set of sorts.
+    *
+    * @param signatures
+    * @param sorts
+    * @return
+    */
+  def injections(signatures: Signatures, sorts: Set[Sort]): Set[Sort] =
+    sorts.flatMap(injections(signatures, _)) ++ sorts
 
+  /**
+    * Compute the transitive closure of the injection relation on the given set
+    * of sorts.
+    *
+    * @param signatures
+    * @param sorts
+    * @return
+    */
   def injectionsClosure(signatures: Signatures)(sorts: Set[Sort]): Set[Sort] =
-    fixedPoint(transitiveInjections(signatures), sorts)
+    fixedPoint(injections(signatures, _: Set[Sort]), sorts)
 }
 
 case class SortAppl(name: String, children: List[Sort] = Nil) extends Sort {

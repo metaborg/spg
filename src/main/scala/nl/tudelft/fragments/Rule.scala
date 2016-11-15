@@ -81,6 +81,9 @@ case class Rule(sort: Sort, typ: Option[Pattern], scopes: List[Scope], state: St
     }
   }
 
+  def withState(state: State) =
+    this.copy(state = state)
+
   override def toString: String =
     s"""Rule($sort, $typ, $scopes, $state)"""
 }
