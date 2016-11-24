@@ -5,17 +5,16 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
 import com.typesafe.scalalogging.Logger
+import nl.tudelft.fragments.spoofax.models.SortAppl
 import nl.tudelft.fragments.spoofax.{Converter, Language}
 import org.slf4j.LoggerFactory
 
-import scala.annotation.tailrec
-
-// Synergy is v2 where we combine fragments if it solves constraints.
 object Synergy {
   val logger = Logger(LoggerFactory.getLogger(this.getClass))
 
   // Make the language parts implicitly available
   //implicit val language = Language.load("/Users/martijn/Projects/scopes-frames/L3", "org.metaborg:L3:0.1.0-SNAPSHOT", "L3")
+  //implicit val language = Language.load("/Users/martijn/Projects/metaborg-tiger/org.metaborg.lang.tiger", "org.metaborg:org.metaborg.lang.tiger:0.1.0-SNAPSHOT", "Tiger")
   implicit val language = Language.load("/Users/martijn/Projects/MiniJava", "org.metaborg:MiniJava:0.1.0-SNAPSHOT", "MiniJava")
   implicit val productions = language.productions
   implicit val signatures = language.signatures
@@ -23,54 +22,97 @@ object Synergy {
   implicit val printer = language.printer
   implicit val rules = specification.rules
 
+  def statistics(states: List[State]): Unit = {
+    // Term size
+    val termSizes = states.map(state => state.pattern.size)
+
+    // Number of name resolutions
+    val resolutionCounts = states.map(state => state.resolution.size)
+
+    // Number of 'Assign' constructors
+    val assignCount = states.map(state => state.pattern.collect {
+      case x@TermAppl(cons, _) if cons == "Assign" =>
+        List(x)
+      case _ =>
+        Nil
+    }.size)
+
+    // Number of 'Call' constructors
+    val callCount = states.map(state => state.pattern.collect {
+      case x@TermAppl(cons, _) if cons == "Call" =>
+        List(x)
+      case _ =>
+        Nil
+    }.size)
+
+    println("Averages:")
+    println("Generated terms = " + states.size)
+    println("Term size = " + termSizes.average)
+    println("Resolution count = " + resolutionCounts.average)
+    println("'Assign' constructors = " + assignCount.average)
+    println("'Call' constructors = " + callCount.average)
+  }
+
   def main(args: Array[String]): Unit = {
     val rules = Synergy.rules
     val writer = new PrintWriter(new FileOutputStream(new File("results.log"), true))
 
-    for (i <- 0 to 10000) {
+    val states = (0 to 300).toList.flatMap(_ => {
       bench()
 
-      val result = synergize(rules)(language.startRules.random)
+      val startRule = language.startRules.random
+      val result = synergize(rules)(startRule)
 
-      if (result.isEmpty) {
-        // Synergize returned None meaning there was an inconsistency or the term diverged
-        //println("Failed")
-      } else {
-        // Print rule
-        println(result)
+      result match {
+        case None => {
+          // Synergize returned None meaning there was an inconsistency or the term diverged
+          println("Failed")
 
-        // Solve remaining constraints
-        val solvedStates = Solver.solve(result.get.state)
+          None
+        }
+        case Some(rule) => {
+          // Print rule
+          println(result)
 
-        if (solvedStates.isEmpty) {
-          //println("Unsolvable")
-        } else {
-          // State
-          val state = solvedStates.random
+          // Solve remaining constraints
+          val solvedStates = Solver.solve(rule.state)
 
-          // Print pretty-printed concrete solved rule
-          val source = printer(
-            Converter.toTerm(
-              Concretor(language).concretize(result.get, state)
-            )
-          )
+          if (solvedStates.isEmpty) {
+            println("Unsolvable")
 
-          // Append to results.log
-          writer.println("===")
-          writer.println(result)
-          writer.println("---")
-          writer.println(source.stringValue())
-          writer.println("===")
-          writer.flush()
+            None
+          } else {
+            // State
+            val state = solvedStates.random
 
-          // Print to stdout
-          println(source.stringValue())
-          println("===")
+            // Concretize the tree
+            val concrete = Concretor(language).concretize(rule, state)
 
-          bench()
+            // Convert back to IStrategoTerm
+            val term = Converter.toTerm(concrete)
+
+            // Pretty-print IStrategoTerm to String
+            val source = printer(term)
+
+            // Print to stdout
+            println(source)
+
+            // Append to results.log
+            writer.println("===============")
+            writer.println(DateTimeFormatter.ISO_DATE_TIME.format(ZonedDateTime.now()))
+            writer.println("---------------")
+            writer.println(source)
+            writer.flush()
+
+            bench()
+
+            Some(state)
+          }
         }
       }
-    }
+    })
+
+    statistics(states)
   }
 
   // Expand rule with the best alternative from rules
@@ -94,11 +136,14 @@ object Synergy {
     // For every option, solve constraints and compute its score
     val scored = options.flatMap(score)
 
+    // All scored terms should still be consistent!
+    assert(scored.forall { case (rule, score) => Consistency.check(rule) })
+
     if (scored.isEmpty) {
       return None
     }
 
-    // Take the best 5 programs
+    // Take the best n programs
     val bests = scored.sortBy(_._2).take(3)
 
     // If there is a complete fragment, return it!
@@ -106,7 +151,19 @@ object Synergy {
       return Some(rule)
     }
 
-    // Continue with a random program among the best programs
+    // Approach A: Backtrack among the best programs
+    /*
+    for (best <- bests) {
+      synergize(rules)(bests.random._1) match {
+        case r@Some(_) => return r
+        case _ =>
+      }
+    }
+
+    None
+    */
+
+    // Approach B: Continue with a random program among the best programs
     synergize(rules)(bests.random._1)
   }
 
@@ -115,14 +172,15 @@ object Synergy {
     // Compute the score for a single constraint
     def constraintScore(constraint: Constraint) = constraint match {
       case _: CResolve => 3
-      case _: CGenRecurse => 6
+      case _: CGenRecurse => 3
       case _ => 1
     }
 
-    // Compute the score after crossing out constraints
+    // Compute the score after eliminating constraints
     Eliminate
       .solve(rule.state)
       .map(state => (rule.withState(state), state.constraints.map(constraintScore).sum))
+      .filter { case (rule, _) => Consistency.check(rule) }
   }
 
   // Print the time so we can bencmark

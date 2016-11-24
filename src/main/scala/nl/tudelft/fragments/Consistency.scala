@@ -1,5 +1,6 @@
 package nl.tudelft.fragments
 
+import nl.tudelft.fragments.consistency.{ConservativeResolve, ConservativeSubtype, ResolveLight}
 import nl.tudelft.fragments.spoofax.Language
 
 object Consistency {
@@ -7,9 +8,17 @@ object Consistency {
   def check(rule: Rule, level: Int = 2)(implicit language: Language): Boolean = {
     if (level >= 0) {
       // There should not be an inconsistency (e.g. in CEqual and CTypeOf constraints)
-      val state = solve(rule.state)
+      val states = solve(rule.state)
 
-      (level >= 1 && state.nonEmpty) || state.nonEmpty
+      if (level >= 1) {
+        val consistencyCheck = states.exists(state =>
+          /*ResolveLight.isConsistent(state)*/ ConservativeResolve.isConsistent(state) && ConservativeSubtype.isConsistent(state)
+        )
+
+        states.nonEmpty && consistencyCheck
+      } else {
+        states.nonEmpty
+      }
     } else {
       true
     }
@@ -54,18 +63,6 @@ object Consistency {
       Left(Graph(state.facts).associated(n).map(scope =>
         state.substituteScope(Map(s -> scope))
       ))
-    case CResolve(n1, n2@Var(_)) =>
-      if (state.resolution.contains(n1)) {
-        Left(List(state.substitute(n2, state.resolution(n1))))
-      } else {
-        val choices = Graph(state.facts).res(state.resolution)(n1)
-
-        Left(List(state.addConstraint(WrappedConstraint(c))) ++ choices.map { case dec =>
-          state
-            .substitute(Map(n2 -> dec))
-            .copy(resolution = state.resolution + (n1 -> dec))
-        })
-      }
     case _ =>
       Left(Nil)
   }
@@ -77,15 +74,13 @@ object Consistency {
 
       result match {
         case Left(Nil) =>
-        /* noop */
+          /* noop */
         case Left(states) =>
           return states.flatMap(solve)
         case Right(_) =>
           return Nil
       }
     }
-
-    // TODO: unwrap any WrappedConstraint
 
     List(state)
   }

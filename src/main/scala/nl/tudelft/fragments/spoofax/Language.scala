@@ -6,7 +6,7 @@ import nl.tudelft.fragments.{Pattern, Rule, TermAppl}
 import org.slf4j.LoggerFactory
 import org.spoofax.interpreter.terms.{IStrategoString, IStrategoTerm}
 
-class Language(val productions: List[Production], val signatures: Signatures, val specification: Specification, val printer: IStrategoTerm => IStrategoString, val startSymbols: List[Sort]) {
+class Language(val productions: List[Production], val signatures: Signatures, val specification: Specification, val printer: IStrategoTerm => String, val startSymbols: List[Sort]) {
   /**
     * Check if the given sort is a start symbol
     *

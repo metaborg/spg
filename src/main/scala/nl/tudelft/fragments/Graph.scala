@@ -52,10 +52,9 @@ case class Graph(facts: List[Constraint])(implicit language: Language) {
     } else {
       val D = env(language.specification.params.wf, x :: I, Nil, R)(scope(x))
 
-      D.declarations.filter {
-        case (y) =>
-          x.isInstanceOf[Name] && y.isInstanceOf[Name] && x.asInstanceOf[Name].namespace == y.asInstanceOf[Name].namespace
-      }
+      D.declarations.filter(y =>
+        x.isInstanceOf[Name] && y.isInstanceOf[Name] && x.asInstanceOf[Name].namespace == y.asInstanceOf[Name].namespace
+      )
     }
 
   // Set of declarations that are reachable from S with path satisfying re
@@ -111,26 +110,62 @@ case class Graph(facts: List[Constraint])(implicit language: Language) {
       .flatMap { case (l, y) => R.get(y).map(d => (l, d)) }
       .flatMap { case (l, d) => associated(d).map(s2 => (l, s2)) }
 
-  // Get scopes reachable from s
+  /**
+    * Get scopes reachable from s. Ignores variable scopes.
+    */
   def reachableScopes(R: Resolution)(s: Scope): List[Scope] =
     reachableScopes(language.specification.params.wf, Nil, Nil, R)(s)
 
-  // Get scopes reachable from s
+  /**
+    * Get scopes reachable from s. Ignores variable scopes.
+    */
   def reachableScopes(re: Regex[Label], I: SeenImport, S: SeenScope, R: Resolution)(s: Scope): List[Scope] =
     if (S.contains(s)) {
       Nil
     } else {
-      val current = if (re.acceptsEmptyString) {
+      val currentScope = if (re.acceptsEmptyString) {
         List(s)
       } else {
         Nil
       }
 
       val importedScopes = IS(I, R)(s)
-      val directScopes = edges(s).filter(_._2.vars.isEmpty)
+      val directScopes = edges(s).filter {
+        case (label, targetScope) =>
+          targetScope.vars.isEmpty
+      }
 
-      current ++ (importedScopes ++ directScopes).flatMap { case (l, scope) =>
-        reachableScopes(re.derive(l.name), I, s :: S, R)(scope)
+      currentScope ++ (importedScopes ++ directScopes).flatMap {
+        case (l, scope) =>
+          reachableScopes(re.derive(l.name), I, s :: S, R)(scope)
+      }
+    }
+
+  /**
+    * Get variable scopes reachable from s.
+    */
+  def reachableVarScopes(R: Resolution)(s: Scope): List[Scope] =
+    reachableVarScopes(language.specification.params.wf, Nil, Nil, R)(s)
+
+  /**
+    * Get variable scopes reachable from s.
+    */
+  def reachableVarScopes(re: Regex[Label], I: SeenImport, S: SeenScope, R: Resolution)(s: Scope): List[Scope] =
+    if (S.contains(s)) {
+      Nil
+    } else {
+      val currentScope = if (!re.rejectsAll && s.isInstanceOf[ScopeVar]) {
+        List(s)
+      } else {
+        Nil
+      }
+
+      val importedScopes = IS(I, R)(s)
+      val directScopes = edges(s)
+
+      currentScope ++ (importedScopes ++ directScopes).flatMap {
+        case (l, scope) =>
+          reachableVarScopes(re.derive(l.name), I, s :: S, R)(scope)
       }
     }
 }

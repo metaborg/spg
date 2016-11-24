@@ -48,7 +48,7 @@ object Utils {
   /**
     * Get a pretty-printer for the language
     */
-  def getPrinter(languageImpl: ILanguageImpl): (IStrategoTerm => IStrategoString) = {
+  def getPrinter(languageImpl: ILanguageImpl): (IStrategoTerm => String) = {
     val languageLocation = Iterables.get(languageImpl.locations(), 0)
     val component = Iterables.get(languageImpl.components(), 0)
 
@@ -59,7 +59,7 @@ object Utils {
     val context = s.contextService.getTemporary(languageLocation, project, languageImpl)
     val runtime = s.strategoRuntimeService.runtime(component, context, false)
 
-    (term: IStrategoTerm) => s.strategoCommon.invoke(runtime, term, "pp-debug").asInstanceOf[IStrategoString]
+    (term: IStrategoTerm) => s.strategoCommon.invoke(runtime, term, "pp-debug").asInstanceOf[IStrategoString].stringValue()
   }
 
   /**

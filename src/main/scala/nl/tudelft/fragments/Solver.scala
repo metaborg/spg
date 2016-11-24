@@ -107,6 +107,8 @@ object Solver {
 /**
   * Representation of the solver state
   *
+  * TODO: Remove distinction between constraints and facts..
+  *
   * @param constraints     The (remaining) proper constraints
   * @param facts           The known facts
   * @param typeEnv         The typing environment
@@ -119,6 +121,26 @@ case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Co
     */
   def wrapped(): List[Constraint] =
     constraints.filter(_.isInstanceOf[WrappedConstraint])
+
+  /**
+    * Get all CResolve constraints
+    *
+    * @return
+    */
+  def resolve =
+    constraints
+      .filter(_.isInstanceOf[CResolve])
+      .asInstanceOf[List[CResolve]]
+
+  /**
+    * Get all CGenRecurse constraints
+    *
+    * @return
+    */
+  def recurse =
+    constraints
+      .filter(_.isInstanceOf[CGenRecurse])
+      .asInstanceOf[List[CGenRecurse]]
 
   def merge(recurse: CGenRecurse, state: State): State = {
     State(
@@ -269,6 +291,9 @@ case class Resolution(bindings: Map[Pattern, Pattern] = Map.empty) {
         t1.substitute(binding) -> t2.substitute(binding)
       }
     )
+
+  def size =
+    bindings.size
 
   def freshen(nameBinding: Map[String, String]): (Map[String, String], Resolution) = {
     val freshBindings = bindings.toList.mapFoldLeft(nameBinding) { case (nameBinding, (n1, n2)) =>

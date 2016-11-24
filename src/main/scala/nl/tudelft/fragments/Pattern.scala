@@ -18,6 +18,14 @@ abstract class Pattern {
   def unify(t: Pattern, termBinding: TermBinding = Map.empty): Option[TermBinding]
 
   def find(f: Pattern => Boolean): Option[Pattern]
+
+  /**
+    * Apply f at every node in the tree and collect all results f(x).
+    *
+    * @param f
+    * @return
+    */
+  def collect(f: Pattern => List[Pattern]): List[Pattern]
 }
 
 case class Var(name: String) extends Pattern {
@@ -69,6 +77,9 @@ case class Var(name: String) extends Pattern {
     } else {
       None
     }
+
+  override def collect(f: Pattern => List[Pattern]): List[Pattern] =
+    f(this)
 }
 
 abstract class Term extends Pattern
@@ -126,6 +137,9 @@ case class TermAppl(cons: String, children: List[Pattern] = Nil) extends Term {
       None
     }
 
+  override def collect(f: Pattern => List[Pattern]): List[Pattern] =
+    f(this) ++ children.flatMap(_.collect(f))
+
   def arity: Int =
     children.length
 }
@@ -157,6 +171,9 @@ case class TermString(name: String) extends Term {
 
   override def find(f: (Pattern) => Boolean): Option[Pattern] =
     None
+
+  override def collect(f: Pattern => List[Pattern]): List[Pattern] =
+    Nil
 
   override def toString =
     s"""TermString("$name")"""
@@ -208,6 +225,9 @@ case class SymbolicName(namespace: String, name: String) extends Name {
 
   override def find(f: (Pattern) => Boolean): Option[Pattern] =
     None
+
+  override def collect(f: Pattern => List[Pattern]): List[Pattern] =
+    Nil
 }
 
 case class ConcreteName(namespace: String, name: String, position: Int) extends Name {
@@ -242,6 +262,9 @@ case class ConcreteName(namespace: String, name: String, position: Int) extends 
 
   override def find(f: (Pattern) => Boolean): Option[Pattern] =
     None
+
+  override def collect(f: Pattern => List[Pattern]): List[Pattern] =
+    Nil
 
   override def toString: String =
     s"""ConcreteName("$namespace", "$name", $position)"""

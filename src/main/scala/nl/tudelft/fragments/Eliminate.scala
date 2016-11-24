@@ -50,18 +50,20 @@ object Eliminate {
       } else {
         val choices = Graph(state.facts).res(state.resolution)(n1)
 
-        // With 50% chance, postpone solving the constraint
-        val noResolve = if (Random.nextInt(2) == 0) {
+        // With 50% chance, postpone solving the constraint. The later you resolve a constraint, the more chance there
+        // is a declaration to which you can resolve and that satisfies all constraints. But, this also means that you
+        // spend more time building a term before realizing a reference cannot be resolved.
+        val noResolve = if (Random.nextInt(5) == 0) {
           List(state.addConstraint(WrappedConstraint(c)))
         } else {
           Nil
         }
 
-        Left(noResolve ++ choices.map { case dec =>
+        Left(noResolve ++ choices.map(dec =>
           state
             .substitute(Map(n2 -> dec))
             .copy(resolution = state.resolution + (n1 -> dec))
-        })
+        ))
       }
     case _ =>
       Left(Nil)
@@ -82,8 +84,15 @@ object Eliminate {
       }
     }
 
-    // TODO: unwrap any WrappedConstraint
+    val unwrapConstraints = state.constraints.map {
+      case WrappedConstraint(c) =>
+        c
+      case x =>
+        x
+    }
 
-    List(state)
+    val unwrapState = state.copy(constraints = unwrapConstraints)
+
+    List(unwrapState)
   }
 }

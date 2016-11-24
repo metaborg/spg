@@ -34,15 +34,11 @@ case class Rule(sort: Sort, typ: Option[Pattern], scopes: List[Scope], state: St
 
   // Get all recurse constraints
   def recurse: List[CGenRecurse] =
-    state.constraints
-      .filter(_.isInstanceOf[CGenRecurse])
-      .asInstanceOf[List[CGenRecurse]]
+    state.recurse
 
   // Get all resolve constraints
   def resolve =
-    constraints
-      .filter(_.isInstanceOf[CResolve])
-      .asInstanceOf[List[CResolve]]
+    state.resolve
 
   // Get all constraints
   def constraints: List[Constraint] =

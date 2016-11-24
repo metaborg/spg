@@ -66,6 +66,11 @@ package object fragments {
       list diff List(elem)
   }
 
+  implicit class RichIntList[T <: Int](list: List[T]) extends RichList[T](list) {
+    def average(implicit num: Numeric[T]): Float =
+      list.sum.toFloat / list.size
+  }
+
   implicit class RichScopeList[T <: Scope](list: List[T]) extends RichList[T](list) {
     def unify(scopes: List[Scope]): Option[ScopeBinding] =
       if (list.length == scopes.length) {
