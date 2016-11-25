@@ -5,7 +5,6 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
 import com.typesafe.scalalogging.Logger
-import nl.tudelft.fragments.spoofax.models.SortAppl
 import nl.tudelft.fragments.spoofax.{Converter, Language}
 import org.slf4j.LoggerFactory
 
@@ -23,41 +22,46 @@ object Synergy {
   implicit val rules = specification.rules
 
   def statistics(states: List[State]): Unit = {
+    // Count the number of occurrences of the given constructor in the states
+    val consCount = (cons: String) => states.map(state => state.pattern.collect {
+      case x@TermAppl(`cons`, _) =>
+        List(x)
+      case _ =>
+        Nil
+    }.size)
+
     // Term size
     val termSizes = states.map(state => state.pattern.size)
 
     // Number of name resolutions
     val resolutionCounts = states.map(state => state.resolution.size)
 
-    // Number of 'Assign' constructors
-    val assignCount = states.map(state => state.pattern.collect {
-      case x@TermAppl(cons, _) if cons == "Assign" =>
-        List(x)
-      case _ =>
-        Nil
-    }.size)
-
-    // Number of 'Call' constructors
-    val callCount = states.map(state => state.pattern.collect {
-      case x@TermAppl(cons, _) if cons == "Call" =>
-        List(x)
-      case _ =>
-        Nil
-    }.size)
-
+    // Count constructor occurrences
     println("Averages:")
     println("Generated terms = " + states.size)
     println("Term size = " + termSizes.average)
     println("Resolution count = " + resolutionCounts.average)
-    println("'Assign' constructors = " + assignCount.average)
-    println("'Call' constructors = " + callCount.average)
+    println("'Class' constructors = " + consCount("Class").average)
+    println("'Parent' constructors = " + consCount("Parent").average)
+    println("'Assign' constructors = " + consCount("Assign").average)
+    println("'Not' constructors = " + consCount("Not").average)
+    println("'Add' constructors = " + consCount("Add").average)
+    println("'Sub' constructors = " + consCount("Sub").average)
+    println("'Mul' constructors = " + consCount("Mul").average)
+    println("'Lt' constructors = " + consCount("Lt").average)
+    println("'And' constructors = " + consCount("And").average)
+    println("'Call' constructors = " + consCount("Call").average)
+    println("'NewArray' constructors = " + consCount("NewArray").average)
+    println("'Subscript' constructors = " + consCount("Subscript").average)
+    println("'Length' constructors = " + consCount("Length").average)
+    println("'NewObject' constructors = " + consCount("NewObject").average)
   }
 
   def main(args: Array[String]): Unit = {
     val rules = Synergy.rules
     val writer = new PrintWriter(new FileOutputStream(new File("results.log"), true))
 
-    val states = (0 to 300).toList.flatMap(_ => {
+    val states = (0 to 1000).toList.flatMap(_ => {
       bench()
 
       val startRule = language.startRules.random
