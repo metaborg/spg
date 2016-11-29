@@ -148,7 +148,7 @@ object Synergy {
     }
 
     // Take the best n programs. We shuffle before sorting to randomize ruels with same score
-    val bests = scored.shuffle.sortBy(_._2).take(3)
+    val bests = scored.shuffle.sortBy(_._2).take(5)
 
     // If there is a complete fragment, return it!
     for ((rule, score) <- bests) if (score == 0) {
