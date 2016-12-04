@@ -4,8 +4,12 @@ import nl.tudelft.fragments.spoofax.Language
 import nl.tudelft.fragments.spoofax.models.{Sort, SortAppl, SortVar}
 
 // Rule
-case class Rule(sort: Sort, typ: Option[Pattern], scopes: List[Scope], state: State) {
+case class Rule(name: String, sort: Sort, typ: Option[Pattern], scopes: List[Scope], state: State) {
   def mergex(recurse: CGenRecurse, rule: Rule, level: Int)(implicit language: Language): Option[(Rule, Map[String, String], SortBinding, TermBinding, ScopeBinding)] = {
+    if (recurse.name != rule.name) {
+      return None
+    }
+
     val (nameBinding, freshRule) = rule.freshen()
 
     val merged = for (
@@ -53,13 +57,13 @@ case class Rule(sort: Sort, typ: Option[Pattern], scopes: List[Scope], state: St
     state.pattern
 
   def substitute(binding: TermBinding): Rule =
-    Rule(sort, typ.map(_.substitute(binding)), scopes, state.substitute(binding))
+    Rule(name, sort, typ.map(_.substitute(binding)), scopes, state.substitute(binding))
 
   def substituteScope(binding: ScopeBinding): Rule =
-    Rule(sort, typ, scopes.substituteScope(binding), state.substituteScope(binding))
+    Rule(name, sort, typ, scopes.substituteScope(binding), state.substituteScope(binding))
 
   def substituteSort(binding: SortBinding): Rule =
-    Rule(sort.substituteSort(binding), typ, scopes, state.substituteSort(binding))
+    Rule(name, sort.substituteSort(binding), typ, scopes, state.substituteSort(binding))
 
   def freshen(nameBinding: Map[String, String] = Map.empty): (Map[String, String], Rule) = {
     scopes.freshen(nameBinding).map { case (nameBinding, scopes) =>
@@ -68,10 +72,10 @@ case class Rule(sort: Sort, typ: Option[Pattern], scopes: List[Scope], state: St
 
         newTyp
           .map { case (nameBinding, typ) =>
-            (nameBinding, Rule(sort, Some(typ), scopes, state))
+            (nameBinding, Rule(name, sort, Some(typ), scopes, state))
           }
           .getOrElse(
-            (nameBinding, Rule(sort, typ, scopes, state))
+            (nameBinding, Rule(name, sort, typ, scopes, state))
           )
       }
     }
@@ -81,7 +85,7 @@ case class Rule(sort: Sort, typ: Option[Pattern], scopes: List[Scope], state: St
     this.copy(state = state)
 
   override def toString: String =
-    s"""Rule($sort, $typ, $scopes, $state)"""
+    s"""Rule("$name", $sort, $typ, $scopes, $state)"""
 }
 
 object Rule {
@@ -109,4 +113,8 @@ object Rule {
   // Merge sort s1 with s2
   def mergeScopes(s1: List[Scope], s2: List[Scope]) =
     s1.unify(s2)
+
+  // Wrap state in a rule -- TODO: Nonsensical.. state vs. rule is a bad abstraction
+  def fromState(state: State): Rule =
+    Rule("Default", SortAppl("Module"), None, Nil, state)
 }

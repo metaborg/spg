@@ -39,12 +39,16 @@ object Specification {
     * Add sort to the Recurse constraints based on the position
     */
   def inlineRecurse(rule: Rule)(implicit signatures: Signatures) = {
-    rule.recurse.foldLeft(rule) { case (rule, r@CGenRecurse(variable, scopes, typ, null)) =>
-      rule.copy(
-        state = rule.state.copy(
-          constraints = CGenRecurse(variable, scopes, typ, signatures.sortForPattern(rule.pattern, variable).get) :: rule.state.constraints - r
+    rule.recurse.foldLeft(rule) {
+      case (rule, r@CGenRecurse(name, variable, scopes, typ, null)) =>
+        val sortOpt = signatures.sortForPattern(rule.pattern, variable)
+        val sort = sortOpt.getOrElse(throw new IllegalStateException("Could not find sort for " + variable + " in " + rule.pattern))
+
+        rule.copy(
+          state = rule.state.copy(
+            constraints = CGenRecurse(name, variable, scopes, typ, sort) :: rule.state.constraints - r
+          )
         )
-      )
     }
   }
 
@@ -173,8 +177,9 @@ object Specification {
     */
   def toRule(ruleIndex: Int, term: IStrategoTerm)(implicit signatures: Signatures): Rule = term match {
     case appl: StrategoAppl =>
+      val name = toRuleName(appl.getSubterm(0))
       val pattern = toPattern(appl.getSubterm(1))
-      val scopes = toScopeAppls(appl.getSubterm(2))
+      val scopes = toScopeAppls(appl.getSubterm(2).getSubterm(0))
 
       val newScopesTerms: List[IStrategoTerm] = appl.getSubterm(4).collectAll {
         case appl: IStrategoAppl if appl.getConstructor.getName == "NewScopes" =>
@@ -193,6 +198,7 @@ object Specification {
       implicit val concrete = newScopeNames ++ scopes.map(_.name)
 
       Rule(
+        name = name,
         sort = toSort(pattern),
         typ = toTypeOption(ruleIndex, appl.getSubterm(3)),
         scopes = scopes,
@@ -203,16 +209,30 @@ object Specification {
       )
   }
 
+  def toRuleName(term: IStrategoTerm): String = term match {
+    case appl: StrategoAppl if appl.getConstructor.getName == "NoName" =>
+      "Default"
+    case appl: StrategoAppl if appl.getConstructor.getName == "Name" =>
+      toString(appl.getSubterm(0))
+  }
+
   // Retrieve the sort for the given pattern from the signatures
   def toSort(pattern: Pattern)(implicit signatures: Signatures): Sort =
     signatures.forPattern(pattern).head.sort
 
   // Turn a CGenMatch into a Pattern
   def toPattern(term: IStrategoTerm): Pattern = term match {
+    case appl: StrategoAppl if appl.getConstructor.getName == "As" =>
+      As(toPattern(appl.getSubterm(0)).asInstanceOf[Var], toPattern(appl.getSubterm(1)))
     case appl: StrategoAppl if appl.getConstructor.getName == "Op" =>
       TermAppl(toString(appl.getSubterm(0)), toPatternsList(appl.getSubterm(1)))
-    case appl: StrategoAppl if appl.getConstructor.getName == "List" =>
+    case appl: StrategoAppl if appl.getConstructor.getName == "List" && appl.getSubterm(0).getSubtermCount == 0 =>
       TermAppl("Nil")
+    case appl: StrategoAppl if appl.getConstructor.getName == "List" && appl.getSubterm(0).getSubtermCount > 0 =>
+      appl.getSubterm(0).getAllSubterms.map(toPattern).foldRight(TermAppl("Nil")) {
+        case (pattern, list) =>
+          TermAppl("Cons", List(pattern, list))
+      }
     case appl: StrategoAppl if appl.getConstructor.getName == "ListTail" =>
       val heads = toPatternsList(appl.getSubterm(0))
       val tail = toPattern(appl.getSubterm(1))
@@ -233,7 +253,7 @@ object Specification {
       toPattern(list.head()) :: toPatternsList(list.tail())
   }
 
-  def toTypeOption(ruleIndex: Int, term: IStrategoTerm): Option[Pattern] = term match {
+  def toTypeOption(ruleIndex: Int, term: IStrategoTerm)(implicit concrete: List[String]): Option[Pattern] = term match {
     case appl: StrategoAppl if appl.getConstructor.getName == "NoType" =>
       None
     case appl: StrategoAppl if appl.getConstructor.getName == "Type" =>
@@ -241,10 +261,14 @@ object Specification {
   }
 
   // Turn a Stratego type into a Type (represented as Pattern)
-  def toType(ruleIndex: Int, term: IStrategoTerm): Pattern = term match {
+  def toType(ruleIndex: Int, term: IStrategoTerm)(implicit concrete: List[String]): Pattern = term match {
     case appl: StrategoAppl if appl.getConstructor.getName == "Var" =>
-      Var(toString(appl.getSubterm(0)))
-    case appl: StrategoAppl if appl.getConstructor.getName == "List" =>
+      if (concrete.contains(toString(appl.getSubterm(0)))) {
+        TermAppl(toString(appl.getSubterm(0)))
+      } else {
+        Var(toString(appl.getSubterm(0)))
+      }
+    case appl: StrategoAppl if appl.getConstructor.getName == "TList" =>
       // Convert the list to a list of types
       val list = appl.getSubterm(0).getAllSubterms.toList.map(toType(ruleIndex, _))
 
@@ -252,8 +276,8 @@ object Specification {
       list.foldLeft(TermAppl("Nil")) { case (acc, x) =>
         TermAppl("Cons", List(x, acc))
       }
-    // ListTail([Var("ty")],Var("tys"))
-    case appl: StrategoAppl if appl.getConstructor.getName == "ListTail" =>
+    // TListTail([Var("ty")],Var("tys"))
+    case appl: StrategoAppl if appl.getConstructor.getName == "TListTail" =>
       // Convert the head list to a list of types
       val headList = appl.getSubterm(0).getAllSubterms.toList.map(toType(ruleIndex, _))
 
@@ -326,12 +350,14 @@ object Specification {
   def toNamespace(term: IStrategoTerm): String = term match {
     case appl: StrategoAppl if appl.getConstructor.getName == "Default" =>
       "Default"
+    case appl: StrategoAppl if appl.getConstructor.getName == "All" =>
+      "All"
     case appl =>
       toString(appl.getSubterm(0))
   }
 
   // Turn a Stratego list of constraints into a List[Constraint]
-  def toConstraints(ruleIndex: Int, constraint: IStrategoTerm)(implicit vars: List[String]): List[Constraint] = constraint match {
+  def toConstraints(ruleIndex: Int, constraint: IStrategoTerm)(implicit concrete: List[String]): List[Constraint] = constraint match {
     case list: StrategoList =>
       val constraints = list.getAllSubterms.toList.filter {
         case appl: StrategoAppl if appl.getConstructor.getName == "NewScopes" =>
@@ -360,10 +386,10 @@ object Specification {
     *
     * @param ruleIndex
     * @param constraint
-    * @param vars
+    * @param concrete
     * @return
     */
-  def toConstraint(ruleIndex: Int, constraint: IStrategoTerm)(implicit vars: List[String]): Option[Constraint] = constraint match {
+  def toConstraint(ruleIndex: Int, constraint: IStrategoTerm)(implicit concrete: List[String]): Option[Constraint] = constraint match {
     case appl: StrategoAppl if appl.getConstructor.getName == "CTrue" =>
       Some(CTrue())
     case appl: StrategoAppl if appl.getConstructor.getName == "CGRef" =>
@@ -389,7 +415,7 @@ object Specification {
     case appl: StrategoAppl if appl.getConstructor.getName == "CGNamedEdge" =>
       Some(CGNamedEdge(toScope(appl.getSubterm(2)), toLabel(appl.getSubterm(1)), toName(ruleIndex, appl.getSubterm(0))))
     case appl: StrategoAppl if appl.getConstructor.getName == "CGenRecurse" =>
-      Some(CGenRecurse(toPattern(appl.getSubterm(1)), toScopeAppls(appl.getSubterm(2)), toTypeOption(ruleIndex, appl.getSubterm(3)), null))
+      Some(CGenRecurse(toRuleName(appl.getSubterm(0)), toPattern(appl.getSubterm(1)), toScopeAppls(appl.getSubterm(2).getSubterm(0)), toTypeOption(ruleIndex, appl.getSubterm(3)), null))
     case appl: StrategoAppl if appl.getConstructor.getName == "CInequal" =>
       Some(CInequal(toType(ruleIndex, appl.getSubterm(0)), toType(ruleIndex, appl.getSubterm(1))))
     case appl: StrategoAppl if appl.getConstructor.getName == "CFalse" =>
