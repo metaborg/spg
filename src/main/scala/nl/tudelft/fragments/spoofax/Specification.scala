@@ -188,7 +188,7 @@ object Specification {
         //
         // Except for the init rule, where scope parameters are not implicitly
         // concrete scopes.
-        implicit val concrete = newScopeNames ++ scopes.map(_.name)
+        implicit val concrete = newScopeNames ++ scopes.map(_.cons)
 
         Rule("Init", SortVar("y"), toTypeOption(-1, appl.getSubterm(1)), scopes, State(
           pattern = Var("x"),
@@ -237,7 +237,7 @@ object Specification {
       // A scope is concrete if either:
       //   a) it is marked as 'new ...'
       //   b) it is a scope parameters
-      implicit val concrete = newScopeNames ++ scopes.map(_.name)
+      implicit val concrete = newScopeNames ++ scopes.map(_.cons)
 
       Rule(
         name = name,
@@ -341,27 +341,27 @@ object Specification {
   }
 
   // Turn a Stratego scope into a ScopeAppl
-  def toScopeAppl(term: IStrategoTerm): ScopeAppl = term match {
+  def toScopeAppl(term: IStrategoTerm): TermAppl = term match {
     case appl: StrategoAppl if appl.getConstructor.getName == "Var" =>
-      ScopeAppl(toString(appl.getSubterm(0)))
+      TermAppl(toString(appl.getSubterm(0)))
     case appl: StrategoAppl if appl.getConstructor.getName == "Wld" =>
-      ScopeAppl("s" + nameProvider.next)
+      TermAppl("s" + nameProvider.next)
   }
 
   // Turn a Stratego scope into a Scope
-  def toScope(term: IStrategoTerm)(implicit concrete: List[String]): Scope = term match {
+  def toScope(term: IStrategoTerm)(implicit concrete: List[String]): Pattern = term match {
     case appl: StrategoAppl if appl.getConstructor.getName == "Var" =>
       if (concrete.contains(toString(appl.getSubterm(0)))) {
-        ScopeAppl(toString(appl.getSubterm(0)))
+        TermAppl(toString(appl.getSubterm(0)))
       } else {
-        ScopeVar(toString(appl.getSubterm(0)))
+        Var(toString(appl.getSubterm(0)))
       }
     case appl: StrategoAppl if appl.getConstructor.getName == "Wld" =>
-      ScopeVar("s" + nameProvider.next)
+      Var("s" + nameProvider.next)
   }
 
-  // Turn a list of Stratego scopes into a List[Scope]
-  def toScopes(term: IStrategoTerm)(implicit concrete: List[String]): List[Scope] = term match {
+  // Turn a list of Stratego scopes into a List[Pattern]
+  def toScopes(term: IStrategoTerm)(implicit concrete: List[String]): List[Pattern] = term match {
     case appl: StrategoAppl if appl.getConstructor.getName == "List" =>
       toScopes(appl.getSubterm(0))
     case appl: IStrategoList if appl.isEmpty =>
@@ -370,8 +370,8 @@ object Specification {
       toScope(appl.head()) :: toScopes(appl.tail())
   }
 
-  // Turn a list of Stratego scopes into a List[ScopeAppl]
-  def toScopeAppls(term: IStrategoTerm): List[ScopeAppl] = term match {
+  // Turn a list of Stratego scopes into a List[TermAppl]
+  def toScopeAppls(term: IStrategoTerm): List[TermAppl] = term match {
     case appl: StrategoAppl if appl.getConstructor.getName == "List" =>
       toScopeAppls(appl.getSubterm(0))
     case appl: IStrategoList if appl.isEmpty =>

@@ -8,10 +8,9 @@ import scala.util.Random
 
 package object fragments {
   type TermBinding = Map[Var, Pattern]
-  type ScopeBinding = Map[Scope, Scope]
   type SortBinding = Map[SortVar, Sort]
   type SeenImport = List[Pattern]
-  type SeenScope = List[Scope]
+  type SeenScope = List[Pattern]
 
   // An instance of the NameProvider made globally available
   val nameProvider = NameProvider(100)
@@ -93,26 +92,6 @@ package object fragments {
       list.sum.toFloat / list.size
   }
 
-  implicit class RichScopeList[T <: Scope](list: List[T]) extends RichList[T](list) {
-    def unify(scopes: List[Scope]): Option[ScopeBinding] =
-      if (list.length == scopes.length) {
-        list.zip(scopes).foldLeftWhile(Map.empty[Scope, Scope]) {
-          case (scopeBinding, (s1, s2)) =>
-            s1.unify(s2, scopeBinding)
-        }
-      } else {
-        None
-      }
-
-    def substituteScope(binding: ScopeBinding): List[Scope] =
-      list.map(_.substituteScope(binding))
-
-    def freshen(scopeBinding: Map[String, String]): (Map[String, String], List[Scope]) =
-      this.mapFoldLeft(scopeBinding) { case (nameBinding, scope) =>
-        scope.freshen(nameBinding)
-      }
-  }
-
   implicit class RichPatternList[T <: Pattern](list: List[T]) extends RichList[T](list) {
     def freshen(nameBinding: Map[String, String]): (Map[String, String], List[Pattern]) =
       this.mapFoldLeft(nameBinding) { case (nameBinding, pattern) =>
@@ -141,9 +120,6 @@ package object fragments {
 
     def substituteSort(binding: SortBinding): List[Constraint] =
       list.map(_.substituteSort(binding))
-
-    def substituteScope(binding: ScopeBinding): List[Constraint] =
-      list.map(_.substituteScope(binding))
   }
 
   implicit class RichInequalityList(list: List[(Pattern, Pattern)]) extends RichList[(Pattern, Pattern)](list) {

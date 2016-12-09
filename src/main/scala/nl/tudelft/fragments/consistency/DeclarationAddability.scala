@@ -3,7 +3,7 @@ package nl.tudelft.fragments.consistency
 import nl.tudelft.fragments.regex.{EmptySet, Regex}
 import nl.tudelft.fragments.spoofax.Language
 import nl.tudelft.fragments.spoofax.models.Sort
-import nl.tudelft.fragments.{CGDecl, CGDirectEdge, CGenRecurse, CResolve, Constraint, Graph, Label, Name, Pattern, Rule, Scope, State, SymbolicName}
+import nl.tudelft.fragments.{CGDecl, CGDirectEdge, CGenRecurse, CResolve, Constraint, Graph, Label, Name, Pattern, Rule, SymbolicName}
 
 /**
   * Check whether for every reference (in isolation) there is either a reachable declaration or there exists a sequence
@@ -36,7 +36,7 @@ object DeclarationAddability {
     * @param c
     * @return
     */
-  def declarationability(rws: List[Rule], rule: Rule, s: Scope, ns: String, c: Regex[Label])(implicit language: Language): Boolean =
+  def declarationability(rws: List[Rule], rule: Rule, s: Pattern, ns: String, c: Regex[Label])(implicit language: Language): Boolean =
     declarationability(rws, rule, rule.recurse, s, ns, c, Set.empty) match {
       case Left(_) => false
       case Right(_) => true
@@ -53,7 +53,7 @@ object DeclarationAddability {
     * @param cs  Set of seen continuations
     * @return
     */
-  def declarationability(rws: List[Rule], rule: Rule, recurses: List[CGenRecurse], s: Scope, ns: String, c: Regex[Label], cs: Set[(Sort, Regex[Label])])(implicit language: Language): Either[Set[(Sort, Regex[Label])], Boolean] = {
+  def declarationability(rws: List[Rule], rule: Rule, recurses: List[CGenRecurse], s: Pattern, ns: String, c: Regex[Label], cs: Set[(Sort, Regex[Label])])(implicit language: Language): Either[Set[(Sort, Regex[Label])], Boolean] = {
     var css = cs
 
     for (recurse <- recurses) {
@@ -62,9 +62,9 @@ object DeclarationAddability {
       for (rewrite <- rewrites.filter(rw => rule.mergex(recurse, rw, 0).isDefined)) {
         val merged = rule.mergex(recurse, rewrite, 0).get
         val ng = merged._1
-        val newRecurses = ng.recurse.diff(rule.recurse.substituteSort(merged._3).substituteScope(merged._5).substitute(merged._4))
+        val newRecurses = ng.recurse.diff(rule.recurse.substituteSort(merged._3).substitute(merged._5).substitute(merged._4))
 
-        for ((path, scope) <- paths(s.substituteScope(merged._5), ng)) {
+        for ((path, scope) <- paths(s.substitute(merged._5), ng)) {
           val nc = c.derive(path)
 
           if (nc.acceptsEmptyString) {
@@ -106,7 +106,7 @@ object DeclarationAddability {
     * @param s
     * @return
     */
-  def sortsForScope(r: Rule, s: Scope): List[Sort] =
+  def sortsForScope(r: Rule, s: Pattern): List[Sort] =
     r.recurse.filter(_.scopes.head == s).map(_.sort)
 
   /**
@@ -116,7 +116,7 @@ object DeclarationAddability {
     * @param r
     * @return
     */
-  def paths(s: Scope, r: Rule)(implicit language: Language): List[(Path, Scope)] =
+  def paths(s: Pattern, r: Rule)(implicit language: Language): List[(Path, Pattern)] =
     (Nil, s) :: Graphx(r.facts).path(s, language.specification.params.wf) // TODO: Shouldn't the WF predicate be a derivative? I.e. after n steps, its no longer the default WF...
 
   /**
@@ -125,7 +125,7 @@ object DeclarationAddability {
     * @param r
     * @return
     */
-  def decls(r: Rule, s: Scope): List[Pattern] =
+  def decls(r: Rule, s: Pattern): List[Pattern] =
     Graphx(r.facts).decls(s)
 }
 
@@ -134,19 +134,19 @@ case class Graphx(constraints: List[Constraint]) {
   type Path = List[Label]
 
   // Edges from scope s
-  def edges(s: Scope): List[CGDirectEdge] = constraints
+  def edges(s: Pattern): List[CGDirectEdge] = constraints
     .collect { case e@CGDirectEdge(s1, _, s2) if s1 == s => e }
 
   // Declarations in scope s
-  def decls(s: Scope): List[Pattern] = constraints
+  def decls(s: Pattern): List[Pattern] = constraints
     .collect { case e@CGDecl(s1, n) if s1 == s => n }
 
   // Single-step paths from scope s
-  def pathDirect(s: Scope): List[(Path, Scope)] = edges(s)
+  def pathDirect(s: Pattern): List[(Path, Pattern)] = edges(s)
     .map { case CGDirectEdge(_, l, s2) => (List(l), s2) }
 
   // Multi-step paths with well-formedness wf from scope s. TODO: Fails on cycles! This already happend once!
-  def path(s: Scope, wf: Regex[Label]): List[(Path, Scope)] = wf match {
+  def path(s: Pattern, wf: Regex[Label]): List[(Path, Pattern)] = wf match {
     case EmptySet() =>
       Nil
     case _ =>
@@ -158,6 +158,6 @@ case class Graphx(constraints: List[Constraint]) {
   }
 
   // Reachable declarations
-  def reachable(s: Scope, wf: Regex[Label]): List[Pattern] =
+  def reachable(s: Pattern, wf: Regex[Label]): List[Pattern] =
     path(s, wf).flatMap { case (_, ss) => decls(ss) }
 }

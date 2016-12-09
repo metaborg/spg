@@ -24,9 +24,9 @@ class ResolutionSuite extends FunSuite {
 
   test("resolution") {
     val facts = List(
-      CGRef(SymbolicName("Var", "x"), ScopeVar("s1")),
-      CGDecl(ScopeVar("s1"), SymbolicName("Var", "y")),
-      CGDecl(ScopeVar("s1"), SymbolicName("Var", "z"))
+      CGRef(SymbolicName("Var", "x"), Var("s1")),
+      CGDecl(Var("s1"), SymbolicName("Var", "y")),
+      CGDecl(Var("s1"), SymbolicName("Var", "z"))
     )
 
     val resolution = Resolution(Map(
@@ -40,10 +40,10 @@ class ResolutionSuite extends FunSuite {
 
   test("resolution with a direct edge") {
     val facts = List(
-      CGRef(SymbolicName("Var", "x"), ScopeVar("s1")),
-      CGDirectEdge(ScopeVar("s1"), Label('P'), ScopeVar("s2")),
-      CGDecl(ScopeVar("s2"), SymbolicName("Var", "y")),
-      CGDecl(ScopeVar("s2"), SymbolicName("Var", "z"))
+      CGRef(SymbolicName("Var", "x"), Var("s1")),
+      CGDirectEdge(Var("s1"), Label('P'), Var("s2")),
+      CGDecl(Var("s2"), SymbolicName("Var", "y")),
+      CGDecl(Var("s2"), SymbolicName("Var", "z"))
     )
 
     val resolution = Resolution(Map(
@@ -57,12 +57,12 @@ class ResolutionSuite extends FunSuite {
 
   test("complex resolution") {
     val facts = List(
-      CGDecl(ScopeVar("s"), SymbolicName("Class", "x")),
-      CGAssoc(SymbolicName("Class", "x"), ScopeVar("s1705")),
-      CGDirectEdge(ScopeVar("s1705"), Label('P'), ScopeVar("s")),
-      CGDecl(ScopeVar("s1705"), SymbolicName("Var", "x835")),
-      CGRef(SymbolicName("Class", "x836"), ScopeVar("s1705")),
-      CGDecl(ScopeVar("s1705"), SymbolicName("Var", "x1706"))
+      CGDecl(Var("s"), SymbolicName("Class", "x")),
+      CGAssoc(SymbolicName("Class", "x"), Var("s1705")),
+      CGDirectEdge(Var("s1705"), Label('P'), Var("s")),
+      CGDecl(Var("s1705"), SymbolicName("Var", "x835")),
+      CGRef(SymbolicName("Class", "x836"), Var("s1705")),
+      CGDecl(Var("s1705"), SymbolicName("Var", "x1706"))
     )
 
     val resolution = Resolution()
@@ -74,56 +74,56 @@ class ResolutionSuite extends FunSuite {
 
   test("reachable scopes with parent edge") {
     val facts = List(
-      CGDirectEdge(ScopeVar("s1"), Label('P'), ScopeVar("s2"))
+      CGDirectEdge(Var("s1"), Label('P'), Var("s2"))
     )
 
-    assert(Graph(facts).reachableScopes((Label('P') *) ~ (Label('I') *), Nil, Nil, Resolution())(ScopeVar("s1")) == List(
-      ScopeVar("s1"),
-      ScopeVar("s2")
+    assert(Graph(facts).reachableScopes((Label('P') *) ~ (Label('I') *), Nil, Nil, Resolution())(Var("s1")) == List(
+      Var("s1"),
+      Var("s2")
     ))
   }
 
   test("reachable scopes with multiple parent edges") {
     val facts = List(
-      CGDirectEdge(ScopeVar("s1"), Label('P'), ScopeVar("s2")),
-      CGDirectEdge(ScopeVar("s2"), Label('P'), ScopeVar("s3"))
+      CGDirectEdge(Var("s1"), Label('P'), Var("s2")),
+      CGDirectEdge(Var("s2"), Label('P'), Var("s3"))
     )
 
-    assert(Graph(facts).reachableScopes((Label('P') *) ~ (Label('I') *), Nil, Nil, Resolution())(ScopeVar("s1")) == List(
-      ScopeVar("s1"),
-      ScopeVar("s2"),
-      ScopeVar("s3")
+    assert(Graph(facts).reachableScopes((Label('P') *) ~ (Label('I') *), Nil, Nil, Resolution())(Var("s1")) == List(
+      Var("s1"),
+      Var("s2"),
+      Var("s3")
     ))
   }
 
   test("reachable scopes with named edge without resolution") {
     val facts = List(
-      CGRef(SymbolicName("Class", "parent"), ScopeVar("s1")),
-      CGDecl(ScopeVar("s1"), SymbolicName("Class", "x")),
-      CGAssoc(SymbolicName("Class", "x"), ScopeVar("s2")),
-      CGNamedEdge(ScopeVar("s1"), Label('I'), SymbolicName("Class", "parent"))
+      CGRef(SymbolicName("Class", "parent"), Var("s1")),
+      CGDecl(Var("s1"), SymbolicName("Class", "x")),
+      CGAssoc(SymbolicName("Class", "x"), Var("s2")),
+      CGNamedEdge(Var("s1"), Label('I'), SymbolicName("Class", "parent"))
     )
 
-    assert(Graph(facts).reachableScopes((Label('P') *) ~ (Label('I') *), Nil, Nil, Resolution())(ScopeVar("s1")) == List(
-      ScopeVar("s1")
+    assert(Graph(facts).reachableScopes((Label('P') *) ~ (Label('I') *), Nil, Nil, Resolution())(Var("s1")) == List(
+      Var("s1")
     ))
   }
 
   test("reachable scopes with named edge with resolution") {
     val facts = List(
-      CGRef(SymbolicName("Class", "parent"), ScopeVar("s1")),
-      CGDecl(ScopeVar("s1"), SymbolicName("Class", "x")),
-      CGAssoc(SymbolicName("Class", "x"), ScopeVar("s2")),
-      CGNamedEdge(ScopeVar("s1"), Label('I'), SymbolicName("Class", "parent"))
+      CGRef(SymbolicName("Class", "parent"), Var("s1")),
+      CGDecl(Var("s1"), SymbolicName("Class", "x")),
+      CGAssoc(SymbolicName("Class", "x"), Var("s2")),
+      CGNamedEdge(Var("s1"), Label('I'), SymbolicName("Class", "parent"))
     )
 
     val resolution = Resolution(
       Map(SymbolicName("Class", "parent") -> SymbolicName("Class", "x"))
     )
 
-    assert(Graph(facts).reachableScopes((Label('P') *) ~ (Label('I') *), Nil, Nil, resolution)(ScopeVar("s1")) == List(
-      ScopeVar("s1"),
-      ScopeVar("s2")
+    assert(Graph(facts).reachableScopes((Label('P') *) ~ (Label('I') *), Nil, Nil, resolution)(Var("s1")) == List(
+      Var("s1"),
+      Var("s2")
     ))
   }
 
@@ -149,14 +149,14 @@ class ResolutionSuite extends FunSuite {
     val language = new Language(Nil, null, new Specification(resolutionParams, null, Nil), null, Nil)
 
     val facts = List(
-      CGRef(ConcreteName("C", "Foo", 1), ScopeAppl("s")),
-      CGDecl(ScopeAppl("s"), ConcreteName("C", "Foo", 2)),
-      CGDirectEdge(ScopeAppl("cs"), Label('P'), ScopeAppl("s")),
-      CGAssoc(ConcreteName("C", "Foo", 2), ScopeAppl("cs")),
-      CGDecl(ScopeAppl("cs"), ConcreteName("M", "m", 3)),
-      CGDirectEdge(ScopeAppl("ms"), Label('P'), ScopeAppl("cs")),
-      CGRef(ConcreteName("M", "m", 4), ScopeAppl("s'")),
-      CGDirectEdge(ScopeAppl("s'"), Label('I'), ScopeVar("sigma"))
+      CGRef(ConcreteName("C", "Foo", 1), TermAppl("s")),
+      CGDecl(TermAppl("s"), ConcreteName("C", "Foo", 2)),
+      CGDirectEdge(TermAppl("cs"), Label('P'), TermAppl("s")),
+      CGAssoc(ConcreteName("C", "Foo", 2), TermAppl("cs")),
+      CGDecl(TermAppl("cs"), ConcreteName("M", "m", 3)),
+      CGDirectEdge(TermAppl("ms"), Label('P'), TermAppl("cs")),
+      CGRef(ConcreteName("M", "m", 4), TermAppl("s'")),
+      CGDirectEdge(TermAppl("s'"), Label('I'), Var("sigma"))
     )
 
     assert(Graph(facts)(language).res(Resolution())(ConcreteName("C", "Foo", 1)).length == 1)

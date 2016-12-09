@@ -9,8 +9,6 @@ abstract class Pattern {
 
   def substitute(binding: Map[Var, Pattern]): Pattern
 
-  def substituteScope(binding: ScopeBinding): Pattern
-
   def substituteSort(binding: SortBinding): Pattern
 
   def freshen(nameBinding: Map[String, String]): (Map[String, String], Pattern)
@@ -100,9 +98,6 @@ case class Var(name: String) extends Pattern {
   override def substitute(binding: Map[Var, Pattern]): Pattern =
     binding.getOrElse(this, this)
 
-  override def substituteScope(binding: ScopeBinding): Pattern =
-    Var(name)
-
   override def substituteSort(binding: SortBinding): Pattern =
     Var(name)
 
@@ -160,9 +155,6 @@ case class As(alias: Var, term: Pattern) extends Term {
       As(alias, term.substitute(binding))
     }
 
-  override def substituteScope(binding: ScopeBinding): Pattern =
-    As(alias, term.substituteScope(binding))
-
   override def substituteSort(binding: SortBinding): Pattern =
     As(alias, term.substituteSort(binding))
 
@@ -205,9 +197,6 @@ case class TermAppl(cons: String, children: List[Pattern] = Nil) extends Term {
 
   override def substitute(binding: Map[Var, Pattern]): Pattern =
     TermAppl(cons, children.map(_.substitute(binding)))
-
-  override def substituteScope(binding: ScopeBinding): Pattern =
-    TermAppl(cons, children.map(_.substituteScope(binding)))
 
   override def substituteSort(binding: SortBinding): Pattern =
     TermAppl(cons, children.map(_.substituteSort(binding)))
@@ -272,9 +261,6 @@ case class TermString(name: String) extends Term {
   override def substituteSort(binding: SortBinding): Pattern =
     ???
 
-  override def substituteScope(binding: ScopeBinding): Pattern =
-    ???
-
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Pattern) =
     ???
 
@@ -326,9 +312,6 @@ case class SymbolicName(namespace: String, name: String) extends Name {
   override def substitute(binding: Map[Var, Pattern]): Pattern =
     this
 
-  override def substituteScope(binding: ScopeBinding): Pattern =
-    this
-
   override def substituteSort(binding: SortBinding): Pattern =
     this
 
@@ -365,9 +348,6 @@ case class ConcreteName(namespace: String, name: String, position: Int) extends 
       val fresh = nameProvider.next
       (nameBinding + (name + "@" + position -> fresh.toString), ConcreteName(namespace, name, fresh))
     }
-
-  override def substituteScope(binding: ScopeBinding): Pattern =
-    ???
 
   override def find(f: (Pattern) => Boolean): Option[Pattern] =
     None

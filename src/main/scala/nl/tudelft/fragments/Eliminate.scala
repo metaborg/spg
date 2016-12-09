@@ -40,9 +40,9 @@ object Eliminate {
 
         Left(List(state.copy(subtypeRelation = state.subtypeRelation ++ closure)))
       }
-    case CAssoc(n@SymbolicName(_, _), s@ScopeVar(_)) if Graph(state.facts).associated(n).nonEmpty =>
+    case CAssoc(n@SymbolicName(_, _), s@Var(_)) if Graph(state.facts).associated(n).nonEmpty =>
       Left(Graph(state.facts).associated(n).map(scope =>
-        state.substituteScope(Map(s -> scope))
+        state.substitute(Map(s -> scope))
       ))
     case CResolve(n1, n2@Var(_)) =>
       if (state.resolution.contains(n1)) {

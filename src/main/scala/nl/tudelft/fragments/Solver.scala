@@ -28,9 +28,9 @@ object Solver {
             .copy(resolution = state.resolution + (n1 -> dec))
         }
       }
-    case CAssoc(n@SymbolicName(_, _), s@ScopeVar(_)) if Graph(state.facts).associated(n).nonEmpty =>
+    case CAssoc(n@SymbolicName(_, _), s@Var(_)) if Graph(state.facts).associated(n).nonEmpty =>
       Graph(state.facts).associated(n).map(scope =>
-        state.substituteScope(Map(s -> scope))
+        state.substitute(Map(s -> scope))
       )
     case FSubtype(t1, t2) if (t1.vars ++ t2.vars).isEmpty && !state.subtypeRelation.domain.contains(t1) && !state.subtypeRelation.isSubtype(t2, t1) =>
       val closure = for (ty1 <- state.subtypeRelation.subtypeOf(t1); ty2 <- state.subtypeRelation.supertypeOf(t2))
@@ -188,9 +188,6 @@ case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Co
     */
   def substitute(binding: TermBinding): State =
     copy(pattern.substitute(binding), constraints.substitute(binding), facts.substitute(binding), typeEnv.substitute(binding), resolution.substitute(binding), subtypeRelation.substitute(binding), inequalities.substitute(binding))
-
-  def substituteScope(binding: ScopeBinding): State =
-    copy(pattern.substituteScope(binding), constraints.substituteScope(binding), facts.substituteScope(binding))
 
   def substituteSort(binding: SortBinding): State =
     copy(constraints = constraints.substituteSort(binding), facts = facts.substituteSort(binding))

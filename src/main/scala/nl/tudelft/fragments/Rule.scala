@@ -4,8 +4,8 @@ import nl.tudelft.fragments.spoofax.Language
 import nl.tudelft.fragments.spoofax.models.{Sort, SortAppl, SortVar}
 
 // Rule
-case class Rule(name: String, sort: Sort, typ: Option[Pattern], scopes: List[Scope], state: State) {
-  def mergex(recurse: CGenRecurse, rule: Rule, level: Int)(implicit language: Language): Option[(Rule, Map[String, String], SortBinding, TermBinding, ScopeBinding)] = {
+case class Rule(name: String, sort: Sort, typ: Option[Pattern], scopes: List[Pattern], state: State) {
+  def mergex(recurse: CGenRecurse, rule: Rule, level: Int)(implicit language: Language): Option[(Rule, Map[String, String], SortBinding, TermBinding, TermBinding)] = {
     if (recurse.name != rule.name) {
       return None
     }
@@ -20,8 +20,8 @@ case class Rule(name: String, sort: Sort, typ: Option[Pattern], scopes: List[Sco
     ) yield {
       val merged = copy(state = state.merge(recurse, freshRule.state))
         .substitute(typeUnifier)
+        .substitute(scopeUnifier)
         .substituteSort(sortUnifier)
-        .substituteScope(scopeUnifier)
         .substitute(patternUnifier)
 
       if (Consistency.check(merged, level)) {
@@ -59,10 +59,7 @@ case class Rule(name: String, sort: Sort, typ: Option[Pattern], scopes: List[Sco
     state.pattern
 
   def substitute(binding: TermBinding): Rule =
-    Rule(name, sort, typ.map(_.substitute(binding)), scopes, state.substitute(binding))
-
-  def substituteScope(binding: ScopeBinding): Rule =
-    Rule(name, sort, typ, scopes.substituteScope(binding), state.substituteScope(binding))
+    Rule(name, sort, typ.map(_.substitute(binding)), scopes.map(_.substitute(binding)), state.substitute(binding))
 
   def substituteSort(binding: SortBinding): Rule =
     Rule(name, sort.substituteSort(binding), typ, scopes, state.substituteSort(binding))
@@ -113,7 +110,7 @@ object Rule {
   }
 
   // Merge sort s1 with s2
-  def mergeScopes(s1: List[Scope], s2: List[Scope]): Option[ScopeBinding] =
+  def mergeScopes(s1: List[Pattern], s2: List[Pattern]): Option[TermBinding] =
     s1.unify(s2)
 
   // If p1 occurs as `As(p1, x)` in r.pattern, then (x unify p2) must be defined
