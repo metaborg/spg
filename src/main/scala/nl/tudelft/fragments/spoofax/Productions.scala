@@ -162,17 +162,22 @@ object Productions {
 
   def toString(term: IStrategoTerm): String = term match {
     case string: IStrategoString =>
-      string.stringValue()
+      unescape(string.stringValue())
   }
 
   def unescape(s: String): String =
     s
-      .replace("\\+", "+")
-      .replace("\\-", "-")
-      .replace("\\_", "_")
-      .replace("\\t", "t")
-      .replace("\\r", "r")
-      .replace("\\n", "n")
-      .replace("\\<", "<")
-      .replace("\\>", ">")
+      .replace("\\ ", " ")       // 2-char string `\ ` becomes 1-char string ` `
+      .replace("\\t", "\t")      // 2-char string `\t` becomes 1-char string `\t`
+      .replace("\\n", "\n")      // 2-char string `\n` becomes 1-char string `\n`
+      .replace("\\r", "\r")      // 2-char string `\r` becomes 1-char string `\r`
+      .replace("\\*", "*")       // 2-char string `\*` becomes 1-char string `*`
+      .replace("\\\"", "\"")     // 2-char string `\"` becomes 1-char string `"`
+      .replace("\\\\", "\\")     // 2-char string `\\` becomes 1-char string `\`
+      .replace("\\_", "_")       // 2-char string `\_` becomes 1-char string `_`
+      .replace("\\^", "^")       // 2-char string `\^` becomes 1-char string `^`
+      .replace("\\+", "+")       // 2-char string `\+` becomes 1-char string `+`
+      .replace("\\-", "-")       // 2-char string `\-` becomes 1-char string `-`
+      .replace("\\<", "<")       // 2-char string `\<` becomes 1-char string `<`
+      .replace("\\>", ">")       // 2-char string `\>` becomes 1-char string `>`
 }

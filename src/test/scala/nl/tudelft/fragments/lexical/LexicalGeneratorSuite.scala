@@ -1,5 +1,6 @@
 package nl.tudelft.fragments.lexical
 
+import nl.tudelft.fragments.spoofax.Language
 import nl.tudelft.fragments.spoofax.models._
 import org.scalatest.FunSuite
 
@@ -87,6 +88,16 @@ class LexicalGeneratorSuite extends FunSuite {
 
     for (i <- 0 to 10) {
       println(new LexicalGenerator(productions).generate(SortAppl("String")))
+    }
+  }
+
+  test("generate Tiger strings") {
+    val language = Language.load("/Users/martijn/Projects/metaborg-tiger/org.metaborg.lang.tiger", "org.metaborg:org.metaborg.lang.tiger:0.1.0-SNAPSHOT", "Tiger")
+
+    val generator = new LexicalGenerator(language.productions)
+
+    for (i <- 0 to 20) {
+      println(generator.generate(SortAppl("StrChar")))
     }
   }
 }

@@ -68,44 +68,42 @@ class Language(val productions: List[Production], val signatures: Signatures, va
     case _ =>
       Nil
   }
+
+  /**
+    * Get the constructor names for the language.
+    *
+    * @return
+    */
+  def constructors: List[String] = signatures.list.collect {
+    case OpDecl(constructor, _) =>
+      constructor
+  }
 }
 
 object Language {
   val logger = Logger(LoggerFactory.getLogger(this.getClass))
-  val SdfPath = "zip:/Users/martijn/Projects/sdf/org.metaborg.meta.lang.template/target/org.metaborg.meta.lang.template-2.1.0-SNAPSHOT.spoofax-language!/"
-  val NablPath = "zip:/Users/martijn/Projects/spoofax-releng/nabl/org.metaborg.meta.nabl2.lang/target/org.metaborg.meta.nabl2.lang-2.1.0-SNAPSHOT.spoofax-language!/"
+  val sdfPath = "zip:/Users/martijn/Projects/sdf/org.metaborg.meta.lang.template/target/org.metaborg.meta.lang.template-2.1.0-SNAPSHOT.spoofax-language!/"
+  val nablPath = "zip:/Users/martijn/Projects/spoofax-releng/nabl/org.metaborg.meta.nabl2.lang/target/org.metaborg.meta.nabl2.lang-2.1.0-SNAPSHOT.spoofax-language!/"
 
   def load(projectPath: String, identifier: String, name: String): Language = {
     val Array(_, id, version) = identifier.split(':')
 
     logger.info("Loading language {}", id)
-
     val languageImpl = Utils.loadLanguage(s"zip:$projectPath/target/$id-$version.spoofax-language!/")
 
     logger.info("Loading productions")
-
-    val productions = Productions.read(
-      sdfPath = SdfPath,
-      productionsPath = s"$projectPath/syntax/$name.sdf3"
-    )
+    val productions = Productions.read(sdfPath, s"$projectPath/syntax/$name.sdf3")
 
     logger.info("Computing signatures")
-
     val signatures = Signatures(defaultSignatures ++ productions.map(_.toSignature))
 
-    logger.info("Loading specification")
-
-    val specification = Specification.read(
-      nablPath = NablPath,
-      specPath = s"$projectPath/trans/static-semantics.nabl2"
-    )(signatures)
+    logger.info("Loading static semantics")
+    val specification = Specification.read(nablPath, s"$projectPath/trans/static-semantics.nabl2")(signatures)
 
     logger.info("Constructing printer")
-
     val printer = Utils.getPrinter(languageImpl)
 
     logger.info("Read start symbols")
-
     val startSymbols = Utils.startSymbols(languageImpl)
 
     new Language(productions, signatures, specification, printer, startSymbols)

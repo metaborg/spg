@@ -59,7 +59,8 @@ object Utils {
     val context = s.contextService.getTemporary(languageLocation, project, languageImpl)
     val runtime = s.strategoRuntimeService.runtime(component, context, false)
 
-    (term: IStrategoTerm) => s.strategoCommon.invoke(runtime, term, "pp-debug").asInstanceOf[IStrategoString].stringValue()
+    (term: IStrategoTerm) => s.strategoCommon.invoke(runtime, term, "pp-debug")
+      .asInstanceOf[IStrategoString].stringValue()
   }
 
   /**

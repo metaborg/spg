@@ -13,6 +13,8 @@ object Converter {
       cons match {
         case "Cons" | "Nil" =>
           consToList(term)
+        case "STRING" =>
+          termFactory.makeString("X")
         case _ =>
           termFactory.makeAppl(toConstructor(cons, children.length), listToList(children))
       }

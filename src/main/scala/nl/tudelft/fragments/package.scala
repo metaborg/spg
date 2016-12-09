@@ -3,6 +3,7 @@ package nl.tudelft
 import nl.tudelft.fragments.spoofax.models.{Sort, SortVar}
 
 import scala.annotation.tailrec
+import scala.collection.mutable
 import scala.util.Random
 
 package object fragments {
@@ -13,7 +14,7 @@ package object fragments {
   type SeenScope = List[Scope]
 
   // An instance of the NameProvider made globally available
-  val nameProvider = NameProvider(9)
+  val nameProvider = NameProvider(100)
 
   // Implicitly convert Option[State] to List[State]
   implicit def optionToList(o: Option[State]): List[State] = o match {
@@ -38,6 +39,27 @@ package object fragments {
   }
 
   implicit class RichList[T](list: List[T]) {
+    // Group by with custom equivalence function
+    def groupByWith[K](f: T => K, equivalence: (K, K) => Boolean): mutable.Map[K, List[T]] = {
+      val m = mutable.Map.empty[K, List[T]]
+
+      for (x <- list) {
+        val key = f(x)
+
+        // Check if x is equivalent to any of keys(m)
+        m.keys.find(existingKey => equivalence(existingKey, key)) match {
+          // If so, add it to the group represented by keys(m)
+          case Some(existingKey) =>
+            m.update(existingKey, x :: m(existingKey))
+          // If not, give it its own group
+          case None =>
+            m += ((key, List(x)))
+        }
+      }
+
+      m
+    }
+
     // Fold until the accumulator becomes None
     def foldLeftWhile[B](z: B)(f: (B, T) => Option[B]): Option[B] = list match {
       case x :: xs =>

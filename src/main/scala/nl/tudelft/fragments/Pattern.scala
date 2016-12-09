@@ -28,6 +28,65 @@ abstract class Pattern {
   def collect(f: Pattern => List[Pattern]): List[Pattern]
 }
 
+object Pattern {
+  /**
+    * Compute alpha-equivalence by checking if p1 subsumes p2 and p2 subsumes
+    * p1. This is achieved by computing a renaming `s` such that `s(p1) == p2`
+    * and `p1 == s(p2)`.
+    *
+    * We do not take care of capture-avoiding substitutions, because we already
+    * know the resolutions. By definition, references/declarations not involved
+    * in a resolution should be given names that do not change the resolution.
+    *
+    * This also distinguishes alpha-equivalence from unification. With
+    * unification, one term can be "more general" or "more special" then the
+    * other. Yet, applying the substitution to both terms will make them equal.
+    */
+  def equivalence(p1: Pattern, p2: Pattern): Boolean =
+    subsumes(p1, p2).isDefined && subsumes(p2, p1).isDefined
+
+  /**
+    * Check if p1 subsumes p2 by constructing a renaming of variables that
+    * turns p1 into p2.
+    *
+    * @param p1
+    * @param p2
+    * @param renaming
+    * @return
+    */
+  def subsumes(p1: Pattern, p2: Pattern, renaming: Map[String, String] = Map.empty): Option[Map[String, String]] = (p1, p2) match {
+    case (TermAppl(cons1, children1), TermAppl(cons2, children2)) if cons1 == cons2 && children1.length == children2.length =>
+      children1.zip(children2).foldLeftWhile(renaming) {
+        case (renaming, (child1, child2)) =>
+          Pattern.subsumes(child1, child2, renaming)
+      }
+    case (Var(x), Var(y)) if renaming.contains(x) && renaming(x) == y =>
+      Some(renaming)
+    case (Var(x), Var(y)) if !renaming.contains(x) =>
+      Some(renaming + (x -> y))
+    case _ =>
+      None
+  }
+
+  /*(p1, p2) match {
+    case (TermAppl(cons1, children1), TermAppl(cons2, children2)) if cons1 == cons2 && children1.length == children2.length =>
+      children1.zip(children2).forall {
+        case (child1, child2) =>
+          Pattern.equivalence(child1, child2, b)
+      }
+    case (Var(x), Var(y)) =>
+      if (b.contains(Var(x)) && b(Var(x)) == Var(y)) {
+        true
+      } else {
+
+      }
+    case (x, Var(y)) =>
+      Pattern.equivalence(Var(y), x, b)
+    case _ =>
+      false
+  }*/
+}
+
 case class Var(name: String) extends Pattern {
   override def vars: List[Var] =
     List(this)
@@ -83,6 +142,56 @@ case class Var(name: String) extends Pattern {
 }
 
 abstract class Term extends Pattern
+
+case class As(alias: Var, term: Pattern) extends Term {
+  override def vars: List[Var] =
+    term.vars
+
+  override def size: Int =
+    term.size
+
+  override def names: List[SymbolicName] =
+    term.names
+
+  override def substitute(binding: Map[Var, Pattern]): Pattern =
+    if (binding.contains(alias)) {
+      binding(alias)
+    } else {
+      As(alias, term.substitute(binding))
+    }
+
+  override def substituteScope(binding: ScopeBinding): Pattern =
+    As(alias, term.substituteScope(binding))
+
+  override def substituteSort(binding: SortBinding): Pattern =
+    As(alias, term.substituteSort(binding))
+
+  override def freshen(binding: Map[String, String]): (Map[String, String], Pattern) =
+    alias.freshen(binding).map { case (binding, alias) =>
+      term.freshen(binding).map { case (binding, term) =>
+        (binding, As(alias.asInstanceOf[Var], term))
+      }
+    }
+
+  override def unify(t: Pattern, termBinding: TermBinding): Option[TermBinding] = t match {
+    case o@As(_, _) =>
+      term.unify(o.term, termBinding).flatMap(termBinding =>
+        o.alias.unify(o.alias, termBinding)
+      )
+    case TermAppl(_, _) =>
+      t.unify(term, termBinding)
+    case Var(_) =>
+      t.unify(this, termBinding)
+    case _ =>
+      None
+  }
+
+  override def find(f: (Pattern) => Boolean): Option[Pattern] =
+    ???
+
+  override def collect(f: (Pattern) => List[Pattern]): List[Pattern] =
+    f(this) ++ term.collect(f)
+}
 
 case class TermAppl(cons: String, children: List[Pattern] = Nil) extends Term {
   override def vars: List[Var] =

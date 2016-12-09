@@ -1,6 +1,6 @@
 package nl.tudelft.fragments.spoofax.models
 
-import nl.tudelft.fragments.{Pattern, TermAppl}
+import nl.tudelft.fragments.{As, Pattern, TermAppl, Var}
 
 case class Signatures(list: List[Signature]) {
   /**
@@ -32,6 +32,10 @@ case class Signatures(list: List[Signature]) {
   def sortForPattern(p1: Pattern, p2: Pattern, sort: Option[Sort] = None): Option[Sort] = (p1, p2) match {
     case (_, _) if p1 == p2 =>
       sort
+    case (As(Var(n1), _), Var(n2)) if n1 == n2 =>
+      sort
+    case (As(Var(n1), term1), term2) =>
+      sortForPattern(term1, term2)
     case (termAppl@TermAppl(_, children), _) =>
       // TODO: What if `forPattern(p1) == Nil`?!
       val signature = forPattern(p1).head

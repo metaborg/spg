@@ -5,6 +5,8 @@ abstract class Scope {
 
   def unify(t: Scope, binding: ScopeBinding = Map.empty): Option[ScopeBinding]
 
+  def substitute(binding: TermBinding): Scope
+
   def substituteScope(binding: ScopeBinding): Scope
 
   def freshen(nameBinding: Map[String, String]): (Map[String, String], Scope)
@@ -21,6 +23,9 @@ case class ScopeAppl(name: String) extends Scope {
     case _ =>
       None
   }
+
+  override def substitute(binding: TermBinding): Scope =
+    binding.getOrElse()
 
   override def substituteScope(binding: ScopeBinding): Scope =
     binding.getOrElse(this, this)

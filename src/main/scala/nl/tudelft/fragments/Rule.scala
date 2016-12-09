@@ -15,12 +15,14 @@ case class Rule(name: String, sort: Sort, typ: Option[Pattern], scopes: List[Sco
     val merged = for (
       sortUnifier <- Rule.mergeSorts(recurse.sort, freshRule.sort);
       typeUnifier <- Rule.mergeTypes(recurse.typ, freshRule.typ);
-      scopeUnifier <- Rule.mergeScopes(recurse.scopes, freshRule.scopes)
+      scopeUnifier <- Rule.mergeScopes(recurse.scopes, freshRule.scopes);
+      patternUnifier <- Rule.mergePatterns(this, recurse.pattern, freshRule.pattern)
     ) yield {
       val merged = copy(state = state.merge(recurse, freshRule.state))
         .substitute(typeUnifier)
         .substituteSort(sortUnifier)
         .substituteScope(scopeUnifier)
+        .substitute(patternUnifier)
 
       if (Consistency.check(merged, level)) {
         Some((merged, nameBinding, sortUnifier, typeUnifier, scopeUnifier))
@@ -111,8 +113,61 @@ object Rule {
   }
 
   // Merge sort s1 with s2
-  def mergeScopes(s1: List[Scope], s2: List[Scope]) =
+  def mergeScopes(s1: List[Scope], s2: List[Scope]): Option[ScopeBinding] =
     s1.unify(s2)
+
+  // If p1 occurs as `As(p1, x)` in r.pattern, then (x unify p2) must be defined
+  def mergePatterns(r: Rule, p1: Pattern, p2: Pattern): Option[TermBinding] = {
+    // Find all As(p1, x) in r.pattern
+    val aliases = r.pattern.collect {
+      case As(`p1`, term) =>
+        List(term)
+      case _ =>
+        Nil
+    }
+
+    // Unify p2 with all of the found x's (TODO: I don't think the substitution is needed; just keep track of the unifier)
+    val unifier = aliases.foldLeft(Option((Map.empty[Var, Pattern], p2))) {
+      case (None, _) =>
+        None
+      case (Some((unifier, b)), a) =>
+        b.unify(a, unifier).map(unifier =>
+          (unifier, b.substitute(unifier))
+        )
+    }
+
+    unifier.map {
+      case (unifier, _) =>
+        unifier
+    }
+  }
+
+  /**
+    * Compute alpha-equivalence. r1 and r2 are alpha-equivalent if there exists
+    * a renaming r such that r(r1) == r2 and r1 == r(r2). We consider two rules
+    * equal if their patterns are equal, since everything else can be derived
+    * from the pattern.
+    *
+    * @param r1
+    * @param r2
+    * @return
+    */
+//  def equivalence(r1: Rule, r2: Rule): Boolean =
+//    subsumes(r1, r2).isDefined && subsumes(r2, r1).isDefined
+
+  /**
+    * Compute if r1 subsumes r2. r1 subsumes r2 if there exists a renaming r
+    * of all variables in r1.pattern such that s(r1.pattern) = r2.pattern.
+    *
+    * @param r1
+    * @param r2
+    * @return
+    */
+//  def subsumes(r1: Rule, r2: Rule): Option[Map[String, String]] = {
+//    Pattern.subsumes(r1.pattern, r2.pattern)/*.flatMap(renaming =>
+//      Resolution.subsumes(r1.state.resolution, r2.state.resolution, renaming)
+//    )*/
+//  }
 
   // Wrap state in a rule -- TODO: Nonsensical.. state vs. rule is a bad abstraction
   def fromState(state: State): Rule =

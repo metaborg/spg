@@ -20,7 +20,7 @@ class ResolutionSuite extends FunSuite {
   )
 
   // Define an implicit language with resolution params to do resolution on
-  implicit val language: Language = new Language(Nil, null, new Specification(resolutionParams, Nil), null, Nil)
+  implicit val language: Language = new Language(Nil, null, new Specification(resolutionParams, null, Nil), null, Nil)
 
   test("resolution") {
     val facts = List(
@@ -146,7 +146,7 @@ class ResolutionSuite extends FunSuite {
       wf = (Label('P') *) ~ (Epsilon() || (Label('S') ~ Label('I'))) ~ (Label('I') *)
     )
 
-    val language = new Language(Nil, null, new Specification(resolutionParams, Nil), null, Nil)
+    val language = new Language(Nil, null, new Specification(resolutionParams, null, Nil), null, Nil)
 
     val facts = List(
       CGRef(ConcreteName("C", "Foo", 1), ScopeAppl("s")),

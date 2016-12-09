@@ -9,7 +9,7 @@ import org.spoofax.interpreter.terms.{IStrategoAppl, IStrategoList, IStrategoStr
 import org.spoofax.terms.{StrategoAppl, StrategoList}
 
 // Representation of an NaBL2 specification
-class Specification(val params: ResolutionParams, val rules: List[Rule])
+class Specification(val params: ResolutionParams, val init: Rule, val rules: List[Rule])
 
 // Representation of NaBL2 resolution parameters
 class ResolutionParams(val labels: List[Label], val order: LabelOrdering, val wf: Regex[Label])
@@ -29,8 +29,9 @@ object Specification {
     val ordering = toOrdering(ast)
     val wf = toWF(ast)
     val params = new ResolutionParams(labels, ordering, wf)
+    val init = toInitRule(ast.getSubterm(1))
     val rules = toRules(ast.getSubterm(1)).map(inlineRecurse)
-    val specification = new Specification(params, rules)
+    val specification = new Specification(params, init, rules)
 
     specification
   }
@@ -156,6 +157,47 @@ object Specification {
   }
 
   /**
+    * Convert the Rules(_) block to an (init) Rule
+    */
+  def toInitRule(term: IStrategoTerm)(implicit signatures: Signatures): Rule = {
+    val rules = term.collectAll {
+      case appl: IStrategoAppl if appl.getConstructor.getName == "CGenInitRule" =>
+        true
+      case _ =>
+        false
+    }
+
+    rules.head match {
+      case appl: StrategoAppl =>
+        val scopes = toScopeAppls(appl.getSubterm(0).getSubterm(0))
+
+        val newScopesTerms: List[IStrategoTerm] = appl.getSubterm(2).collectAll {
+          case appl: IStrategoAppl if appl.getConstructor.getName == "NewScopes" =>
+            true
+          case _ =>
+            false
+        }
+
+        val newScopeNames = newScopesTerms.flatMap(term =>
+          term.getSubterm(0).getAllSubterms.toList.map(toNewScope)
+        )
+
+        // A scope is concrete if either:
+        //   a) it is marked as 'new ...'
+        //   b) it is a scope parameters
+        //
+        // Except for the init rule, where scope parameters are not implicitly
+        // concrete scopes.
+        implicit val concrete = newScopeNames ++ scopes.map(_.name)
+
+        Rule("Init", SortVar("y"), toTypeOption(-1, appl.getSubterm(1)), scopes, State(
+          pattern = Var("x"),
+          constraints = toConstraints(-1, appl.getSubterm(2))
+        ))
+    }
+  }
+
+  /**
     * Convert the Rules(_) block to a list of Rule
     */
   def toRules(term: IStrategoTerm)(implicit signatures: Signatures): List[Rule] = {
@@ -217,8 +259,12 @@ object Specification {
   }
 
   // Retrieve the sort for the given pattern from the signatures
-  def toSort(pattern: Pattern)(implicit signatures: Signatures): Sort =
-    signatures.forPattern(pattern).head.sort
+  def toSort(pattern: Pattern)(implicit signatures: Signatures): Sort = pattern match {
+    case As(_, term) =>
+      toSort(term)
+    case _ =>
+      signatures.forPattern(pattern).head.sort
+  }
 
   // Turn a CGenMatch into a Pattern
   def toPattern(term: IStrategoTerm): Pattern = term match {
@@ -423,6 +469,8 @@ object Specification {
     case appl: StrategoAppl if appl.getConstructor.getName == "CDistinct" =>
       Some(CDistinct(toNames(appl.getSubterm(0))))
     case _ =>
+      println("Constraint not supported by generator: " + constraint)
+
       None
   }
 

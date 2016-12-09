@@ -9,6 +9,9 @@ abstract class Sort extends Symbol {
   def substituteSort(binding: Map[SortVar, Sort]): Sort
 
   def unify(sort: Sort, binding: Map[SortVar, Sort] = Map.empty): Option[Map[SortVar, Sort]]
+
+  def unifiesWith(sort: Sort, binding: Map[SortVar, Sort] = Map.empty): Boolean =
+    unify(sort, binding).isDefined
 }
 
 object Sort {

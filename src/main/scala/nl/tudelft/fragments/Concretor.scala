@@ -49,7 +49,7 @@ case class Concretor(language: Language) {
 
     // Replace names in Eq constraints
     val r1 = rule.pattern.substitute(
-      nameEq(equalityConstraints, Map.empty, nameProvider).map {
+      nameEq(equalityConstraints, Map.empty, nameProvider).get.map {
         case (n1, n2) =>
           Var(n1) -> TermString(n2)
       }
@@ -63,8 +63,8 @@ case class Concretor(language: Language) {
     // Convert remaining TermVars based on their sort
     val result2 = r2.substitute(
       r2.vars.map(v => {
-        val sort = language.signatures.sortForPattern(r2, v)
-        val value = sort.map(generator.generate)
+        val sortOpt = language.signatures.sortForPattern(r2, v)
+        val value = sortOpt.map(generator.generate)
 
         v -> TermString(value.getOrElse(throw new RuntimeException("Could not determine Sort for TermVar")))
       }).toMap
@@ -83,16 +83,52 @@ case class Concretor(language: Language) {
     Strategy.topdown(Strategy.`try`(conssToCons))(result2).get
   }
 
-  // Generate a binding from SymbolicNames to String satisfying the equality constraints
-  def nameEq(eqs: List[Eq], binding: Map[String, String], nameProvider: NameProvider): Map[String, String] = eqs match {
-    case Eq(s1@SymbolicName(_, n1), s2@SymbolicName(_, n2)) :: tail =>
-      val name = binding.getOrElse(n1, binding.getOrElse(n2, "n" + nameProvider.next))
+  /**
+    * Solve naming constraints eqs. Every constraint must be solvable under
+    * every binding. Failure to solve one constraint means the system is
+    * inconsistent.
+    *
+    * @param eqs
+    * @param binding
+    * @param nameProvider
+    * @return
+    */
+  def nameEq(eqs: List[Eq], binding: Map[String, String], nameProvider: NameProvider): Option[Map[String, String]] = {
+    if (eqs.isEmpty) {
+      return Some(binding)
+    }
 
-      nameEq(tail, binding + (n1 -> name) + (n2 -> name), nameProvider)
-    case Eq(c1@ConcreteName(_, n1, _), c2@ConcreteName(_, n2, _)) :: tail if n1 == n2 =>
-      nameEq(tail, binding + (n1 -> n1), nameProvider)
-    case Nil =>
-      binding
+    for (eq <- eqs) {
+      eq match {
+        // x == y, s(x) undefined, s(y) undefined
+        case Eq(s1@SymbolicName(_, n1), s2@SymbolicName(_, n2)) if !binding.contains(n1) && !binding.contains(n2) =>
+          val name = "n" + nameProvider.next
+
+          return nameEq(eqs - eq, binding + (n1 -> name) + (n2 -> name), nameProvider)
+        // x == y, s(x) == s(y)
+        case Eq(s1@SymbolicName(_, n1), s2@SymbolicName(_, n2)) if binding.contains(n1) && binding.contains(n2) && binding(n1) == binding(n2) =>
+          return nameEq(eqs - eq, binding, nameProvider)
+        // x == y, s(x) exists, s(y) undefined
+        case Eq(s1@SymbolicName(_, n1), s2@SymbolicName(_, n2)) if binding.contains(n1) && !binding.contains(n2) =>
+          return nameEq(eqs - eq, binding + (n2 -> binding(n1)), nameProvider)
+        // x == y, s(x) undefined, s(y) exists
+        case Eq(s1@SymbolicName(_, n1), s2@SymbolicName(_, n2)) if !binding.contains(n1) && binding.contains(n2) =>
+          return nameEq(eqs - eq, binding + (n1 -> binding(n2)), nameProvider)
+        // x == "a", s(x) undefined
+        case Eq(s1@SymbolicName(_, n1), c2@ConcreteName(_, n2, _)) if !binding.contains(n1) =>
+          return nameEq(eqs - eq, binding + (n1 -> n2), nameProvider)
+        // x == "a", s(x) == "a"
+        case Eq(s1@SymbolicName(_, n1), c2@ConcreteName(_, n2, _)) if binding.contains(n1) && binding(n1) == n2 =>
+          return nameEq(eqs - eq, binding, nameProvider)
+        // "a" == "a"
+        case Eq(c1@ConcreteName(_, n1, _), c2@ConcreteName(_, n2, _)) if n1 == n2 =>
+          return nameEq(eqs - eq, binding + (n1 -> n1), nameProvider)
+        case _ =>
+          None
+      }
+    }
+
+    None
   }
 
   // Give each name in the DisEq a different name. This is a liberal solution; we can use names sparingly/randomly.

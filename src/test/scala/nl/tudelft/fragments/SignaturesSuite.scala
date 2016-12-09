@@ -113,4 +113,20 @@ class SignaturesSuite extends FunSuite {
       SortAppl("IterStar", List(SortAppl("MethodDecl", List())))
     ))
   }
+
+  test("get sort for pattern") {
+    val language = Language.load("/Users/martijn/Projects/metaborg-tiger/org.metaborg.lang.tiger", "org.metaborg:org.metaborg.lang.tiger:0.1.0-SNAPSHOT", "Tiger")
+    val sortOpt = language.signatures.sortForPattern(TermAppl("Mod", List(Var("e"))), Var("e"))
+
+    assert(sortOpt.isDefined)
+    assert(sortOpt.get unifiesWith SortAppl("Exp"))
+  }
+
+  test("get sort for pattern with alias") {
+    val language = Language.load("/Users/martijn/Projects/metaborg-tiger/org.metaborg.lang.tiger", "org.metaborg:org.metaborg.lang.tiger:0.1.0-SNAPSHOT", "Tiger")
+    val sortOpt = language.signatures.sortForPattern(TermAppl("Cons", List(Var("e"), As(Var("es"),TermAppl("Cons", List(Var("x10"), Var("x11")))))), Var("es"))
+
+    assert(sortOpt.isDefined)
+    assert(sortOpt.get unifiesWith SortAppl("List", List(SortVar("a"))))
+  }
 }

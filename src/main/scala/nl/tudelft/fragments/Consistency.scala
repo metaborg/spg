@@ -1,6 +1,6 @@
 package nl.tudelft.fragments
 
-import nl.tudelft.fragments.consistency.{ConservativeResolve, ConservativeSubtype, ResolveLight}
+import nl.tudelft.fragments.consistency.{ConservativeResolve, ConservativeSubtype, DeclarationAddability, ResolveLight}
 import nl.tudelft.fragments.spoofax.Language
 
 object Consistency {
@@ -12,7 +12,7 @@ object Consistency {
 
       if (level >= 1) {
         val consistencyCheck = states.exists(state =>
-          /*ResolveLight.isConsistent(state)*/ ConservativeResolve.isConsistent(state) && ConservativeSubtype.isConsistent(state)
+          DeclarationAddability.isConsistent(Rule.fromState(state)) && ResolveLight.isConsistent(state) /*ConservativeResolve.isConsistent(state)*/ && ConservativeSubtype.isConsistent(state)
         )
 
         states.nonEmpty && consistencyCheck
