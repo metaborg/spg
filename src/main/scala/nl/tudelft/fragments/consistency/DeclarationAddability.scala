@@ -62,9 +62,9 @@ object DeclarationAddability {
       for (rewrite <- rewrites.filter(rw => rule.mergex(recurse, rw, 0).isDefined)) {
         val merged = rule.mergex(recurse, rewrite, 0).get
         val ng = merged._1
-        val newRecurses = ng.recurse.diff(rule.recurse.substituteSort(merged._3).substitute(merged._5).substitute(merged._4))
+        val newRecurses = ng.recurse.diff(rule.recurse.substituteSort(merged._3).substituteScope(merged._5).substitute(merged._4))
 
-        for ((path, scope) <- paths(s.substitute(merged._5), ng)) {
+        for ((path, scope) <- paths(s.substituteScope(merged._5), ng)) {
           val nc = c.derive(path)
 
           if (nc.acceptsEmptyString) {

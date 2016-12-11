@@ -61,7 +61,7 @@ object Consistency {
       }
     case CAssoc(n@SymbolicName(_, _), s@Var(_)) if Graph(state.facts).associated(n).nonEmpty =>
       Left(Graph(state.facts).associated(n).map(scope =>
-        state.substitute(Map(s -> scope))
+        state.substituteScope(Map(s -> scope))
       ))
     case _ =>
       Left(Nil)

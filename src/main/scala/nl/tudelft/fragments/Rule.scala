@@ -20,7 +20,7 @@ case class Rule(name: String, sort: Sort, typ: Option[Pattern], scopes: List[Pat
     ) yield {
       val merged = copy(state = state.merge(recurse, freshRule.state))
         .substitute(typeUnifier)
-        .substitute(scopeUnifier)
+        .substituteScope(scopeUnifier)
         .substituteSort(sortUnifier)
         .substitute(patternUnifier)
 
@@ -60,6 +60,16 @@ case class Rule(name: String, sort: Sort, typ: Option[Pattern], scopes: List[Pat
 
   def substitute(binding: TermBinding): Rule =
     Rule(name, sort, typ.map(_.substitute(binding)), scopes.map(_.substitute(binding)), state.substitute(binding))
+
+  /**
+    * Substitute scopes. A specialized version of `substitute` that ignores the
+    * pattern during substitution.
+    *
+    * @param binding
+    * @return
+    */
+  def substituteScope(binding: TermBinding): Rule =
+    Rule(name, sort, typ.map(_.substituteScope(binding)), scopes.map(_.substituteScope(binding)), state.substituteScope(binding))
 
   def substituteSort(binding: SortBinding): Rule =
     Rule(name, sort.substituteSort(binding), typ, scopes, state.substituteSort(binding))
@@ -109,7 +119,7 @@ object Rule {
       None
   }
 
-  // Merge sort s1 with s2
+  // Merge list of scopes ss1 with list of scopes ss2 (TODO: Can't we just unify ss1 with ss2?)
   def mergeScopes(s1: List[Pattern], s2: List[Pattern]): Option[TermBinding] =
     s1.unify(s2)
 

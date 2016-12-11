@@ -189,6 +189,9 @@ case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Co
   def substitute(binding: TermBinding): State =
     copy(pattern.substitute(binding), constraints.substitute(binding), facts.substitute(binding), typeEnv.substitute(binding), resolution.substitute(binding), subtypeRelation.substitute(binding), inequalities.substitute(binding))
 
+  def substituteScope(binding: TermBinding): State =
+    copy(pattern, constraints.substituteScope(binding), facts.substituteScope(binding), typeEnv.substituteScope(binding), resolution, subtypeRelation, inequalities)
+
   def substituteSort(binding: SortBinding): State =
     copy(constraints = constraints.substituteSort(binding), facts = facts.substituteSort(binding))
 
@@ -247,6 +250,9 @@ case class TypeEnv(bindings: Map[Pattern, Pattern] = Map.empty) {
         name -> typ.substitute(termBinding)
       }
     )
+
+  def substituteScope(termBinding: TermBinding): TypeEnv =
+    substitute(termBinding)
 
   def freshen(nameBinding: Map[String, String]): (Map[String, String], TypeEnv) = {
     val freshBindings = bindings.toList.mapFoldLeft(nameBinding) { case (nameBinding, (name, typ)) =>
@@ -309,25 +315,6 @@ case class Resolution(bindings: Map[Pattern, Pattern] = Map.empty) {
   override def toString =
     "Resolution(Map(" + bindings.map { case (n1, n2) => s"Tuple2($n1, $n2)" }.mkString(", ") + "))"
 }
-
-/*
-object Resolution {
-  // r1 subsumes r2 if r2 can be created by renaming variables in r1 according to the given renaming
-  def subsumes(r1: Resolution, r2: Resolution, renaming: Map[String, String]): Option[Map[String, String]] = {
-    if (r1.bindings.size != r2.bindings.size) {
-      return None
-    }
-
-    r1.bindings.forall {
-      case (Var(x), Var(y)) =>
-        r2.bindings.contains(Var(renaming(x))) && r2.bindings(Var(renaming(x))) == Var(renaming(y))
-      case x =>
-        println(s"What to do with $x?")
-        true
-    }
-  }
-}
-*/
 
 case class SubtypeRelation(bindings: List[(Pattern, Pattern)] = Nil) {
   def contains(n: Pattern): Boolean =

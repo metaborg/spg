@@ -42,7 +42,7 @@ object Eliminate {
       }
     case CAssoc(n@SymbolicName(_, _), s@Var(_)) if Graph(state.facts).associated(n).nonEmpty =>
       Left(Graph(state.facts).associated(n).map(scope =>
-        state.substitute(Map(s -> scope))
+        state.substituteScope(Map(s -> scope))
       ))
     case CResolve(n1, n2@Var(_)) =>
       if (state.resolution.contains(n1)) {

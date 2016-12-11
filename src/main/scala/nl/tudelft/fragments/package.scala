@@ -98,6 +98,9 @@ package object fragments {
         pattern.freshen(nameBinding)
       }
 
+    def substitute(binding: TermBinding): List[Pattern] =
+      list.map(_.substitute(binding))
+
     def unify(types: List[Pattern]): Option[TermBinding] =
       if (list.length == types.length) {
         list.zip(types).foldLeftWhile(Map.empty[Var, Pattern]) {
@@ -117,6 +120,9 @@ package object fragments {
 
     def substitute(binding: TermBinding): List[Constraint] =
       list.map(_.substitute(binding))
+
+    def substituteScope(binding: TermBinding): List[Constraint] =
+      list.map(_.substituteScope(binding))
 
     def substituteSort(binding: SortBinding): List[Constraint] =
       list.map(_.substituteSort(binding))
