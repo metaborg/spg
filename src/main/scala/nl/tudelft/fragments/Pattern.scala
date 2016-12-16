@@ -11,6 +11,9 @@ abstract class Pattern {
 
   def substituteScope(binding: TermBinding): Pattern
 
+  def substituteType(binding: TermBinding): Pattern =
+    substituteScope(binding)
+
   def substituteSort(binding: SortBinding): Pattern
 
   def freshen(nameBinding: Map[String, String]): (Map[String, String], Pattern)

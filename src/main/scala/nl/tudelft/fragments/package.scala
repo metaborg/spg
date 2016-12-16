@@ -38,6 +38,10 @@ package object fragments {
   }
 
   implicit class RichList[T](list: List[T]) {
+    // Group by identity
+    def group[K]: Map[T, List[T]] =
+      list.groupBy[T](Predef.identity)
+
     // Group by with custom equivalence function
     def groupByWith[K](f: T => K, equivalence: (K, K) => Boolean): mutable.Map[K, List[T]] = {
       val m = mutable.Map.empty[K, List[T]]

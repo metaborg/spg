@@ -6,11 +6,7 @@ import nl.tudelft.fragments.spoofax.models.{Sort, SortAppl, SortVar}
 // Rule
 case class Rule(name: String, sort: Sort, typ: Option[Pattern], scopes: List[Pattern], state: State) {
   def mergex(recurse: CGenRecurse, rule: Rule, level: Int)(implicit language: Language): Option[(Rule, Map[String, String], SortBinding, TermBinding, TermBinding)] = {
-    if (recurse.name != rule.name) {
-      return None
-    }
-
-    val (nameBinding, freshRule) = rule.freshen()
+    val (nameBinding, freshRule) = rule.instantiate().freshen()
 
     val merged = for (
       sortUnifier <- Rule.mergeSorts(recurse.sort, freshRule.sort);
@@ -19,10 +15,10 @@ case class Rule(name: String, sort: Sort, typ: Option[Pattern], scopes: List[Pat
       patternUnifier <- Rule.mergePatterns(this, recurse.pattern, freshRule.pattern)
     ) yield {
       val merged = copy(state = state.merge(recurse, freshRule.state))
-        .substitute(typeUnifier)
+        .substituteType(typeUnifier)
         .substituteScope(scopeUnifier)
         .substituteSort(sortUnifier)
-        .substitute(patternUnifier)
+        .substitutePattern(patternUnifier)
 
       if (Consistency.check(merged, level)) {
         Some((merged, nameBinding, sortUnifier, typeUnifier, scopeUnifier))
@@ -58,8 +54,15 @@ case class Rule(name: String, sort: Sort, typ: Option[Pattern], scopes: List[Pat
   def pattern: Pattern =
     state.pattern
 
-  def substitute(binding: TermBinding): Rule =
-    Rule(name, sort, typ.map(_.substitute(binding)), scopes.map(_.substitute(binding)), state.substitute(binding))
+  /**
+    * Substitute scopes. A specialized version of `substitute` that only
+    * substitutes in the AST pattern.
+    *
+    * @param binding
+    * @return
+    */
+  def substitutePattern(binding: TermBinding): Rule =
+    Rule(name, sort, typ, scopes, state.substitutePattern(binding))
 
   /**
     * Substitute scopes. A specialized version of `substitute` that ignores the
@@ -70,6 +73,9 @@ case class Rule(name: String, sort: Sort, typ: Option[Pattern], scopes: List[Pat
     */
   def substituteScope(binding: TermBinding): Rule =
     Rule(name, sort, typ.map(_.substituteScope(binding)), scopes.map(_.substituteScope(binding)), state.substituteScope(binding))
+
+  def substituteType(binding: TermBinding): Rule =
+    Rule(name, sort, typ.map(_.substituteType(binding)), scopes, state.substituteType(binding))
 
   def substituteSort(binding: SortBinding): Rule =
     Rule(name, sort.substituteSort(binding), typ, scopes, state.substituteSort(binding))
@@ -93,6 +99,25 @@ case class Rule(name: String, sort: Sort, typ: Option[Pattern], scopes: List[Pat
   def withState(state: State) =
     this.copy(state = state)
 
+  /**
+    * Instantiate a rule by replacing all variables s that are marked as
+    * "new s" by a concrete scope with a fresh name.
+    */
+  def instantiate(): Rule = {
+    val newScopes = state.facts.collect {
+      case NewScope(variable) =>
+        variable
+    }
+
+    val substitution = newScopes.map(variable =>
+      (variable, TermAppl("s" + nameProvider.next))
+    ).toMap
+
+    substituteScope(substitution)
+
+    // TODO: Remove newScope constraints; they are not needed anymore..
+  }
+
   override def toString: String =
     s"""Rule("$name", $sort, $typ, $scopes, $state)"""
 }
@@ -104,7 +129,7 @@ object Rule {
       s1.unify(s2)
     case SortAppl(_, children) =>
       Sort
-        .injectionsClosure(language.signatures)(Set(s1)).view
+        .injectionsClosure(language.signatures, s1).view
         .flatMap(_.unify(s2))
         .headOption
   }
@@ -148,33 +173,6 @@ object Rule {
         unifier
     }
   }
-
-  /**
-    * Compute alpha-equivalence. r1 and r2 are alpha-equivalent if there exists
-    * a renaming r such that r(r1) == r2 and r1 == r(r2). We consider two rules
-    * equal if their patterns are equal, since everything else can be derived
-    * from the pattern.
-    *
-    * @param r1
-    * @param r2
-    * @return
-    */
-//  def equivalence(r1: Rule, r2: Rule): Boolean =
-//    subsumes(r1, r2).isDefined && subsumes(r2, r1).isDefined
-
-  /**
-    * Compute if r1 subsumes r2. r1 subsumes r2 if there exists a renaming r
-    * of all variables in r1.pattern such that s(r1.pattern) = r2.pattern.
-    *
-    * @param r1
-    * @param r2
-    * @return
-    */
-//  def subsumes(r1: Rule, r2: Rule): Option[Map[String, String]] = {
-//    Pattern.subsumes(r1.pattern, r2.pattern)/*.flatMap(renaming =>
-//      Resolution.subsumes(r1.state.resolution, r2.state.resolution, renaming)
-//    )*/
-//  }
 
   // Wrap state in a rule -- TODO: Nonsensical.. state vs. rule is a bad abstraction
   def fromState(state: State): Rule =

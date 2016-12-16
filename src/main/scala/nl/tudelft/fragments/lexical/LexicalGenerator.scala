@@ -69,6 +69,8 @@ class LexicalGenerator(productions: List[Production]) {
       val difference = ascii diff exclude
 
       difference.random.toChar.toString
+    case _ =>
+      ???
   }
 
   /**

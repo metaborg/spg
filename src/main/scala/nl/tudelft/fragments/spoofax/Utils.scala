@@ -6,7 +6,7 @@ import com.google.common.collect.Iterables
 import nl.tudelft.fragments.Spoofax
 import nl.tudelft.fragments.spoofax.models.{Sort, SortAppl}
 import org.apache.commons.io.IOUtils
-import org.metaborg.core.language.ILanguageImpl
+import org.metaborg.core.language.{ILanguageImpl, LanguageUtils}
 import org.metaborg.core.project.SimpleProjectService
 import org.metaborg.spoofax.core.syntax.SyntaxFacet
 import org.spoofax.interpreter.terms.{IStrategoString, IStrategoTerm}
@@ -20,13 +20,16 @@ object Utils {
     * Load the language implementation
     */
   def loadLanguage(path: String): ILanguageImpl = {
-    val languageLocation = s.resourceService.resolve(path)
-    val languageComponents = s.discoverLanguages(languageLocation)
+    val languageDiscoveryRequest = s.languageDiscoveryService.request(s.resourceService.resolve(path))
+    val lutComponents = s.languageDiscoveryService.discover(languageDiscoveryRequest)
 
-    val component = Iterables.get(languageComponents, 0)
-    val languageImpl = Iterables.get(component.contributesTo(), 0)
+    val languages = LanguageUtils.toImpls(lutComponents)
 
-    languageImpl
+    if (languages.size() == 0) {
+      throw new IllegalArgumentException("No language found at path '" + path + "'")
+    }
+
+    languages.iterator().next()
   }
 
   /**
@@ -40,6 +43,20 @@ object Utils {
 
     if (!parseResult.success()) {
       throw new RuntimeException(s"Unsuccessful parse of $filePath in language ${languageImpl.id()}.")
+    }
+
+    parseResult.ast()
+  }
+
+  /**
+    * Parse string to AST
+    */
+  def parseString(languageImpl: ILanguageImpl, content: String): IStrategoTerm = {
+    val inputUnit = s.unitService.inputUnit(content, languageImpl, null)
+    val parseResult = s.syntaxService.parse(inputUnit)
+
+    if (!parseResult.success()) {
+      throw new RuntimeException(s"Unsuccessful parse in language ${languageImpl.id()}.")
     }
 
     parseResult.ast()

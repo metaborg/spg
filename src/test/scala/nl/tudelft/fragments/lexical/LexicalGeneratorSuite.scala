@@ -92,7 +92,7 @@ class LexicalGeneratorSuite extends FunSuite {
   }
 
   test("generate Tiger strings") {
-    val language = Language.load("/Users/martijn/Projects/metaborg-tiger/org.metaborg.lang.tiger", "org.metaborg:org.metaborg.lang.tiger:0.1.0-SNAPSHOT", "Tiger")
+    val language = Language.load("/Users/martijn/Projects/metaborg-tiger/org.metaborg.lang.tiger")
 
     val generator = new LexicalGenerator(language.productions)
 

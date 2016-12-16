@@ -23,3 +23,5 @@ libraryDependencies += "org.metaborg" % "org.metaborg.util" % "2.1.0-SNAPSHOT"
 libraryDependencies += "org.metaborg" % "org.metaborg.spoofax.core" % "2.1.0-SNAPSHOT"
 
 libraryDependencies += "net.codingwell" %% "scala-guice" % "4.1.0"
+
+libraryDependencies += "io.reactivex" %% "rxscala" % "0.26.4"

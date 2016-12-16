@@ -1,12 +1,12 @@
 package nl.tudelft.fragments
 
-import java.io.{File, FileOutputStream, PrintWriter}
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
 import com.typesafe.scalalogging.Logger
 import nl.tudelft.fragments.spoofax.models.{SortAppl, SortVar}
 import nl.tudelft.fragments.spoofax.{Converter, Language}
+import org.metaborg.core.MetaborgException
 import org.slf4j.LoggerFactory
 
 import scala.util.Random
@@ -16,164 +16,66 @@ object Synergy {
   val verbose = false
   val interactive = false
 
-  // Make the language parts implicitly available
-  //implicit val language = Language.load("/Users/martijn/Projects/scopes-frames/L3", "org.metaborg:L3:0.1.0-SNAPSHOT", "L3")
-  implicit val language = Language.load("/Users/martijn/Projects/metaborg-tiger/org.metaborg.lang.tiger", "org.metaborg:org.metaborg.lang.tiger:0.1.0-SNAPSHOT", "Tiger")
-  //implicit val language = Language.load("/Users/martijn/Projects/MiniJava", "org.metaborg:MiniJava:0.1.0-SNAPSHOT", "MiniJava")
-  implicit val productions = language.productions
-  implicit val signatures = language.signatures
-  implicit val specification = language.specification
-  implicit val printer = language.printer
-  implicit val rules = specification.rules
+  /**
+    * Generate a single term.
+    *
+    * @param language
+    * @return
+    */
+  def generate(language: Language, config: Config): GenerationResult = {
+    implicit val l = language
 
-  def statistics(states: List[State])(implicit language: Language): Unit = {
-    // Count the number of occurrences of the given constructor in the states
-    val collect = (cons: String) => states.flatMap(_.pattern.collect {
-      case x@TermAppl(`cons`, _) =>
-        List(x)
-      case _ =>
-        Nil
-    })
-
-    // Term size
-    val termSizes = states.map(state => state.pattern.size)
-
-    // Number of name resolutions
-    val resolutionCounts = states.map(state => state.resolution.size)
-
-    // Count constructor occurrences
-    println("# Statistics")
-
-    println("Generated terms = " + states.size)
-    println("Average term size = " + termSizes.average)
-    println("Average resolution count = " + resolutionCounts.average)
-
-    // Constructor counts
-    println("## Constructor count (average)")
-
-    for (constructor <- language.constructors) {
-      println(s"'$constructor' constructors = " + collect(constructor).size / states.size.toFloat)
-    }
-
-    // Distribution of terms
-    println("## Distribution of terms")
-
-    val grouped = states.groupByWith(_.pattern, Pattern.equivalence).toList
-      // Bind the size of the group
-      .map {
-        case (pattern, states) =>
-          (states.size, pattern, states)
-      }
-      // Sort descending by size
-      .sortBy {
-        case (size, pattern, states) =>
-          -size
-      }
-
-    grouped.foreach { case (size, pattern, states) =>
-      println(s"${size}x $pattern")
-
-      /*
-      for (state <- states) {
-        println(s"-- $state")
-      }
-      */
-    }
-
-    println(s"${grouped.size} groups")
-  }
-
-  def main(args: Array[String]): Unit = {
-    val rules = Synergy.rules
-    val writer = new PrintWriter(new FileOutputStream(new File("results.log"), true))
-
-    val states = (0 to 20000).toList.flatMap(i => {
-      //bench()
-      println(i)
-
-      // Pick a random start rule
+    def generatePrivate(): Option[GenerationResult] = {
       val startRule = language.startRules.random
-
-      // First apply the init generation rule
-      val init = language.specification.init
-
-      // Merge the artificial `x` pattern in the init rule with a random start rule
+      val init = language.specification.init.instantiate()
       val start = init.merge(CGenRecurse("Default", init.state.pattern, init.scopes, init.typ, startRule.sort), startRule, 0).get
-
-      // Generate!
-      val result = synergize(rules)(start)
+      val result = synergize(language.specification.rules, config)(start)
 
       result match {
-        case None => {
-          // Synergize returned None meaning there was an inconsistency or the term diverged
-          if (verbose) {
-            println("Failed")
-          }
-
+        case None =>
           None
-        }
-        case Some(rule) => {
-          // Print rule
-          if (verbose) {
-            println(result)
-          }
-
-          // Solve remaining constraints
+        case Some(rule) =>
           val solvedStates = Solver.solve(rule.state)
 
           if (solvedStates.isEmpty) {
-            if (verbose) {
-              println("Unsolvable")
-            }
-
             None
           } else {
-            // State
             val state = solvedStates.random
-
-            // Concretize the tree
             val concrete = Concretor(language).concretize(rule, state)
-
-            // Convert back to IStrategoTerm
             val term = Converter.toTerm(concrete)
 
-            // Pretty-print IStrategoTerm to String
-            val source = printer(term)
+            try {
+              val source = language.printer(term)
 
-            // Print to stdout
-            if (verbose) {
-              println(source)
+              Some(GenerationResult(rule, source))
+            } catch {
+              case e: MetaborgException =>
+                throw GenerateException(s"Unable to print $term for concrete $concrete in state $state", e)
             }
-
-            // Append to results.log
-            writer.println("===============")
-            writer.println(DateTimeFormatter.ISO_DATE_TIME.format(ZonedDateTime.now()))
-            writer.println("---------------")
-            writer.println(source)
-            writer.flush()
-
-            //bench()
-
-            Some(state)
           }
-        }
       }
-    })
+    }
 
-    statistics(states)
+    // Repeat generatePrivate until it returns a Some
+    Iterator.continually(generatePrivate).dropWhile(_.isEmpty).next.get
   }
 
   // Expand rule with the best alternative from rules
-  def synergize(rules: List[Rule])(term: Rule): Option[Rule] = {
+  def synergize(rules: List[Rule], config: Config)(term: Rule)(implicit language: Language): Option[Rule] = {
     if (verbose) {
-      println(term)
+      //println(term)
     }
 
     // Prevent diverging
-    if (term.pattern.size > 40) {
+    if (term.pattern.size > config.sizeLimit) {
+      if (verbose) {
+        println(term)
+        println("Too large")
+      }
+
       return None
     }
-
+    
     // If the term is complete, return
     if (term.recurse.isEmpty) {
       return Some(term)
@@ -183,12 +85,26 @@ object Synergy {
     val recurse = term.recurse.random
 
     // Merge with every other rule and filter out inconsistent merges and too big rules
-    val options = rules.flatMap(term.merge(recurse, _, 2))
+    val options = step(term, recurse)
+
+    // Eliminate some constraints (and probabilistically solve CResolve constraints)
+    val options2 = options.flatMap(rule => Eliminate
+      .solve(rule.state)
+      .map(state => rule.withState(state))
+    )
+
+    // Compute a score for each rule
+    val scored = options2.map(rule => (rule, config.scoreFn(rule)))
 
     // For every option, solve constraints and compute its score
-    val scored = options.flatMap(score)
+    //val scored = options.flatMap(score)
 
     if (scored.isEmpty) {
+      if (verbose) {
+        println(term)
+        println("Inconsistency observed in " + recurse.pattern)
+      }
+
       return None
     }
 
@@ -200,40 +116,45 @@ object Synergy {
       return Some(rule)
     }
 
-    // Approach A: Backtrack among the best programs
-    /*
-    for (best <- bests) {
-      synergize(rules)(bests.random._1) match {
-        case r@Some(_) => return r
-        case _ =>
-      }
-    }
-
-    None
-    */
-
-    // Approach B: Continue with a random program among the best programs
+    // Continue with a random program among the best programs
     if (interactive) {
       println(s"Expand hole ${recurse.pattern}: $recurse")
       println("Which term would you like to continue with?")
       for (((rule, score), index) <- scored.zipWithIndex) {
-        println(s"[$index]: Score: $score, Rule: $rule")
+        println(s"Score($index, $score, $rule)")
       }
 
       val choice = scala.io.StdIn.readInt()
 
-      synergize(rules)(scored(choice)._1)
+      synergize(rules, config)(scored(choice)._1)
     } else {
-      synergize(rules)(bests.random._1)
+      synergize(rules, config)(bests.random._1)
     }
   }
 
+  /**
+    * Compute all possible expansions of recurse.
+    *
+    * @param term
+    * @param recurse
+    * @return
+    */
+  def step(term: Rule, recurse: CGenRecurse)(implicit language: Language): List[Rule] =
+    language.rules(recurse.name, recurse.sort).flatMap(rule =>
+      term.merge(recurse, rule, 2)
+    )
+
   // Compute the solved rule and its score for each possible solution
-  def score(rule: Rule): List[(Rule, Int)] = {
+  def score(rule: Rule)(implicit language: Language): List[(Rule, Int)] = {
     // Compute the score for a single constraint
     def constraintScore(constraint: Constraint) = constraint match {
       case _: CResolve => 3
-      case _: CGenRecurse => 6
+      case _: CGenRecurse =>
+        if (rule.pattern.size > 10) {
+          6
+        } else {
+          -6
+        }
       case _: CTrue => 0
       case _ => 1
     }

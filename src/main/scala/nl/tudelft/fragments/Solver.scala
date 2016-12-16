@@ -171,16 +171,6 @@ case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Co
     copy(inequalities = inequals ++ inequalities)
 
   /**
-    * Substitute a variable by a pattern.
-    *
-    * @param v
-    * @param p
-    * @return
-    */
-  def substitute(v: Var, p: Pattern): State =
-    copy(pattern.substitute(Map(v -> p)), constraints.substitute(Map(v -> p)), facts.substitute(Map(v -> p)), typeEnv.substitute(Map(v -> p)), resolution.substitute(Map(v -> p)), subtypeRelation.substitute(Map(v -> p)), inequalities.substitute(Map(v -> p)))
-
-  /**
     * Substitute the given map of variables to patterns.
     *
     * @param binding
@@ -188,6 +178,33 @@ case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Co
     */
   def substitute(binding: TermBinding): State =
     copy(pattern.substitute(binding), constraints.substitute(binding), facts.substitute(binding), typeEnv.substitute(binding), resolution.substitute(binding), subtypeRelation.substitute(binding), inequalities.substitute(binding))
+
+  /**
+    * Substitute the given type.
+    *
+    * @param binding
+    * @return
+    */
+  def substituteType(binding: TermBinding): State =
+    copy(pattern, constraints.substitute(binding), facts.substitute(binding), typeEnv.substitute(binding), resolution, subtypeRelation, inequalities)
+
+  /**
+    * Substitute the given map of variables to patterns.
+    *
+    * @param binding
+    * @return
+    */
+  def substituteName(binding: TermBinding): State =
+    copy(pattern, constraints.substitute(binding), facts.substitute(binding), typeEnv.substitute(binding), resolution, subtypeRelation, inequalities)
+
+  /**
+    * Substitute only in the pattern.
+    *
+    * @param binding
+    * @return
+    */
+  def substitutePattern(binding: TermBinding): State =
+    copy(pattern.substitute(binding), constraints.substitute(binding), facts, typeEnv, resolution, subtypeRelation, inequalities)
 
   def substituteScope(binding: TermBinding): State =
     copy(pattern, constraints.substituteScope(binding), facts.substituteScope(binding), typeEnv.substituteScope(binding), resolution, subtypeRelation, inequalities)

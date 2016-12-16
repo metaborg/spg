@@ -67,7 +67,7 @@ class SignaturesSuite extends FunSuite {
   }
 
   test("get injections closure") {
-    val injections = Sort.injectionsClosure(signatures)(Set(SortAppl("ResetExp")))
+    val injections = Sort.injectionsClosure(signatures, SortAppl("ResetExp"))
 
     assert(injections == Set(
       SortAppl("ResetExp"),
@@ -77,7 +77,7 @@ class SignaturesSuite extends FunSuite {
   }
 
   test("get injections closure for parametric sort") {
-    val injections = Sort.injectionsClosure(signatures)(Set(SortAppl("Iter", List(SortVar("x")))))
+    val injections = Sort.injectionsClosure(signatures, SortAppl("Iter", List(SortVar("x"))))
 
     assert(injections == Set(
       SortAppl("Iter", List(SortVar("x"))),
@@ -86,7 +86,7 @@ class SignaturesSuite extends FunSuite {
   }
 
   test("get injections closure for complex sort") {
-    val injections = Sort.injectionsClosure(signatures)(Set(SortAppl("Iter", List(SortAppl("Statement")))))
+    val injections = Sort.injectionsClosure(signatures, SortAppl("Iter", List(SortAppl("Statement"))))
 
     assert(injections == Set(
       SortAppl("Iter", List(SortAppl("Statement"))),
@@ -95,8 +95,8 @@ class SignaturesSuite extends FunSuite {
   }
 
   test("closure of ResultType in Pascal") {
-    val language = Language.load("/Users/martijn/Projects/metaborg-pascal/org.metaborg.lang.pascal", "org.metaborg:org.metaborg.lang.pascal:0.1.0-SNAPSHOT", "Pascal")
-    val injections = Sort.injectionsClosure(language.signatures)(Set(SortAppl("ResultType")))
+    val language = Language.load("/Users/martijn/Projects/metaborg-pascal/org.metaborg.lang.pascal")
+    val injections = Sort.injectionsClosure(language.signatures, SortAppl("ResultType"))
 
     assert(injections == Set(
       SortAppl("ResultType"),
@@ -105,8 +105,8 @@ class SignaturesSuite extends FunSuite {
   }
 
   test("closure of List(MethodDecl) in MiniJava") {
-    val language = Language.load("/Users/martijn/Projects/MiniJava", "org.metaborg:MiniJava:0.1.0-SNAPSHOT", "MiniJava")
-    val injections = Sort.injectionsClosure(language.signatures)(Set(SortAppl("IterStar", List(SortAppl("MethodDecl", List())))))
+    val language = Language.load("/Users/martijn/Projects/MiniJava")
+    val injections = Sort.injectionsClosure(language.signatures, SortAppl("IterStar", List(SortAppl("MethodDecl", List()))))
 
     assert(injections == Set(
       SortAppl("List", List(SortAppl("MethodDecl", List()))),
@@ -115,7 +115,7 @@ class SignaturesSuite extends FunSuite {
   }
 
   test("get sort for pattern") {
-    val language = Language.load("/Users/martijn/Projects/metaborg-tiger/org.metaborg.lang.tiger", "org.metaborg:org.metaborg.lang.tiger:0.1.0-SNAPSHOT", "Tiger")
+    val language = Language.load("/Users/martijn/Projects/metaborg-tiger/org.metaborg.lang.tiger")
     val sortOpt = language.signatures.sortForPattern(TermAppl("Mod", List(Var("e"))), Var("e"))
 
     assert(sortOpt.isDefined)
@@ -123,7 +123,7 @@ class SignaturesSuite extends FunSuite {
   }
 
   test("get sort for pattern with alias") {
-    val language = Language.load("/Users/martijn/Projects/metaborg-tiger/org.metaborg.lang.tiger", "org.metaborg:org.metaborg.lang.tiger:0.1.0-SNAPSHOT", "Tiger")
+    val language = Language.load("/Users/martijn/Projects/metaborg-tiger/org.metaborg.lang.tiger")
     val sortOpt = language.signatures.sortForPattern(TermAppl("Cons", List(Var("e"), As(Var("es"),TermAppl("Cons", List(Var("x10"), Var("x11")))))), Var("es"))
 
     assert(sortOpt.isDefined)

@@ -9,6 +9,8 @@ object Converter {
   val termFactory = new TermFactory
 
   def toTerm(term: Pattern): IStrategoTerm = term match {
+    case As(_, term) =>
+      toTerm(term)
     case TermAppl(cons, children) =>
       cons match {
         case "Cons" | "Nil" =>

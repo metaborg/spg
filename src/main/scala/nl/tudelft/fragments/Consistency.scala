@@ -1,6 +1,6 @@
 package nl.tudelft.fragments
 
-import nl.tudelft.fragments.consistency.{ConservativeResolve, ConservativeSubtype, DeclarationAddability, ResolveLight}
+import nl.tudelft.fragments.consistency.{ConservativeSubtype, DeclarationAddability, ResolveLight}
 import nl.tudelft.fragments.spoofax.Language
 
 object Consistency {
@@ -40,7 +40,7 @@ object Consistency {
       if (t1.unify(t2).isEmpty) {
         Right(s"Unable to unify $t1 with $t2")
       } else {
-        Left(List(state.substitute(t1.unify(t2).get)))
+        Left(List(state.substituteType(t1.unify(t2).get)))
       }
     case CInequal(t1, t2) if t1.vars.isEmpty && t2.vars.isEmpty =>
       if (t1 == t2) {

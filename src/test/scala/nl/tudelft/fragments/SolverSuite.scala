@@ -253,7 +253,7 @@ class SolverSuite extends FunSuite {
 
   test("xxy") {
     // TODO: Mock the parts of language that are necessary for the test? See ResolutionSuite for alternative solution.
-    val language = Language.load("/Users/martijn/Projects/MiniJava", "org.metaborg:MiniJava:0.1.0-SNAPSHOT", "MiniJava")
+    val language = Language.load("/Users/martijn/Projects/MiniJava")
 
     val s = State(
       pattern = Var("x"),

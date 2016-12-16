@@ -51,8 +51,19 @@ object Sort {
     * @param sorts
     * @return
     */
-  def injectionsClosure(signatures: Signatures)(sorts: Set[Sort]): Set[Sort] =
+  def injectionsClosure(signatures: Signatures, sorts: Set[Sort]): Set[Sort] =
     fixedPoint(injections(signatures, _: Set[Sort]), sorts)
+
+  /**
+    * Compute the transitive closure of the injection relation on the given
+    * sort.
+    *
+    * @param signatures
+    * @param sort
+    * @return
+    */
+  def injectionsClosure(signatures: Signatures, sort: Sort): Set[Sort] =
+    injectionsClosure(signatures, Set(sort))
 }
 
 case class SortAppl(name: String, children: List[Sort] = Nil) extends Sort {

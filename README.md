@@ -4,12 +4,19 @@ Fragments is a language-parametric test data generator. In goes a Spoofax projec
 programs. The input project is expected to contain a language specification in SDF3 (Syntax Definition Formalism) and
 NaBL2 (Name Binding Language).
 
-## Strategies
+## Usage
 
-### Main
+`Generator.generate` reutrns an `Observable[String]` of well-formed terms.
+How you use these terms depends on your use case. For eample:
 
-Apply rules, backtracking. This sucks.
+```
+$ sbt "run-main nl.tudelft.fragments.RichGenerator /Users/martijn/Projects/metaborg-tiger/org.metaborg.lang.tiger"
+```
 
-### Synergy
+will run the generator for Tiger. The `RichGenerator` outputs running averages
+on the generated terms.
 
-Build fragments. Score merges. Choose among best scores. This works.
+### Statistics
+
+The `Statistics` observer slurps well-formed terms and outputs running averages
+such as average use of each constructor.

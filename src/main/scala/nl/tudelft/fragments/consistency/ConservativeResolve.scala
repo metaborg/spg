@@ -40,12 +40,14 @@ object ConservativeResolve {
   // Solve a CResolve constraint by resolving a reference to any of the declarations
   def rewriteResolve(state: State, resolve: CResolve)(implicit language: Language): List[State] = {
     if (state.resolution.contains(resolve.n1)) {
-      List(state.substitute(resolve.n2.asInstanceOf[Var], state.resolution(resolve.n1)))
+      List(state.substituteName(Map(resolve.n2.asInstanceOf[Var] -> state.resolution(resolve.n1))))
     } else {
       val choices = Graph(state.facts).res(state.resolution)(resolve.n1)
 
       choices.map(dec =>
-        state.substitute(Map(resolve.n2.asInstanceOf[Var] -> dec)).copy(resolution = state.resolution + (resolve.n1 -> dec))
+        state
+          .substituteName(Map(resolve.n2.asInstanceOf[Var] -> dec))
+          .copy(resolution = state.resolution + (resolve.n1 -> dec))
       )
     }
   }

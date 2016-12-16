@@ -21,7 +21,7 @@ object Eliminate {
       if (t1.unify(t2).isEmpty) {
         Right(s"Unable to unify $t1 with $t2")
       } else {
-        Left(List(state.substitute(t1.unify(t2).get)))
+        Left(List(state.substituteType(t1.unify(t2).get)))
       }
     case CInequal(t1, t2) if t1.vars.isEmpty && t2.vars.isEmpty =>
       if (t1 == t2) {
@@ -46,7 +46,7 @@ object Eliminate {
       ))
     case CResolve(n1, n2@Var(_)) =>
       if (state.resolution.contains(n1)) {
-        Left(List(state.substitute(n2, state.resolution(n1))))
+        Left(List(state.substituteName(Map(n2 -> state.resolution(n1)))))
       } else {
         val choices = Graph(state.facts).res(state.resolution)(n1)
 
@@ -61,7 +61,7 @@ object Eliminate {
 
         Left(noResolve ++ choices.map(dec =>
           state
-            .substitute(Map(n2 -> dec))
+            .substituteName(Map(n2 -> dec))
             .copy(resolution = state.resolution + (n1 -> dec))
         ))
       }
