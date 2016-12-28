@@ -1,13 +1,13 @@
 package nl.tudelft.fragments.consistency
 
-import nl.tudelft.fragments.regex.{EmptySet, Regex}
+import nl.tudelft.fragments.regex.Regex
 import nl.tudelft.fragments.spoofax.Language
 import nl.tudelft.fragments.spoofax.models.Sort
 import nl.tudelft.fragments._
 
 /**
-  * Check whether for every reference (in isolation) there is either a reachable declaration or there exists a sequence
-  * of transformations that adds a reachable declaration for the reference.
+  * Check whether for every reference (in isolation) there is either a reachable scope var, reachable declaration or
+  * there exists a sequence of transformations that adds a reachable declaration for the reference.
   *
   * The ability to do so does not guarantee consistency, but the inability to do so does guarantee failure. This is
   * sound but not complete: we only eliminate inconsistent programs, but let some inconsistent programs get through.
@@ -17,8 +17,17 @@ object DeclarationAddability {
 
   def isConsistent(rule: Rule)(implicit language: Language): Boolean =
     rule.resolve.forall(resolve =>
-      existsDeclaration(rule, resolve) || canAddDeclaration(rule, resolve)
+      reachableScopeVar(rule, resolve) || existsDeclaration(rule, resolve) || canAddDeclaration(rule, resolve)
     )
+
+  /**
+    * Determine if there exists a reachable scope var
+    */
+  def reachableScopeVar(rule: Rule, resolve: CResolve)(implicit language: Language): Boolean = {
+    val graph = Graph(rule.state.facts)
+
+    graph.reachableVarScopes(rule.state.resolution)(graph.scope(resolve.n1)).nonEmpty
+  }
 
   /**
     * Determine if there exists a reachable declaration

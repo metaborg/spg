@@ -82,6 +82,20 @@ package object fragments {
         (z, Nil)
     }
 
+    // A fold that forks on every element in the accumulator list
+    def foldLeftMap[V](z: V)(f: (V, T) => List[V]): List[V] = list match {
+      case x :: xs =>
+        f(z, x).flatMap(v =>
+          xs.foldLeftMap(v)(f)
+        )
+      case _ =>
+        List(z)
+    }
+
+    // Zip with a function
+    def zipWith[U](f: T => U): List[(T, U)] =
+      (list, list.map(f)).zipped.toList
+
     // Shuffle elements of the list
     def shuffle: List[T] =
       Random.shuffle(list)

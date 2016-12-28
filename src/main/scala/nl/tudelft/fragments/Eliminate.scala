@@ -4,6 +4,9 @@ import nl.tudelft.fragments.spoofax.Language
 
 import scala.util.Random
 
+/**
+  * @deprecated
+  */
 object Eliminate {
   // Rewrite constraints, returning Left(None) if we cannot process the constraint, Left(Some(states)) if we can process the state, and Right if we find an inconsistency
   def rewrite(c: Constraint, state: State)(implicit language: Language): Either[List[State], String] = c match {

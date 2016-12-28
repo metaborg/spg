@@ -144,7 +144,7 @@ object Rule {
       None
   }
 
-  // Merge list of scopes ss1 with list of scopes ss2 (TODO: Can't we just unify ss1 with ss2?)
+  // Merge two lists of scopes
   def mergeScopes(s1: List[Pattern], s2: List[Pattern]): Option[TermBinding] =
     s1.unify(s2)
 

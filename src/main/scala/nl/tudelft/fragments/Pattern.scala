@@ -327,10 +327,11 @@ case class SymbolicName(namespace: String, name: String) extends Name {
   override def toString: String =
     s"""SymbolicName("$namespace", "$name")"""
 
+  override def size: Int =
+    1
 
-  override def size: Int = ???
-
-  override def names: List[SymbolicName] = ???
+  override def names: List[SymbolicName] =
+    ???
 
   override def substitute(binding: Map[Var, Pattern]): Pattern =
     this

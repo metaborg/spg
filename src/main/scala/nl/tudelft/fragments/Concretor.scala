@@ -26,7 +26,7 @@ case class Concretor(language: Language) {
   }
 
   // Replace TermVars in pattern by concrete names satisfying the solution
-  def concretize(rule: Rule, state: State): Pattern = {
+  def concretize(state: State): Pattern = {
     // Use a new name provider to keep the numbers low
     val nameProvider = NameProvider(0)
 
@@ -48,7 +48,7 @@ case class Concretor(language: Language) {
     val disequalityConstraints = filterDiseqs(constraints)
 
     // Replace names in Eq constraints
-    val r1 = rule.pattern.substitute(
+    val r1 = state.pattern.substitute(
       nameEq(equalityConstraints, Map.empty, nameProvider).get.map {
         case (n1, n2) =>
           Var(n1) -> TermString(n2)

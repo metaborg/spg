@@ -16,15 +16,15 @@ class RichGenerator {
     * @param limit
     * @return
     */
-  def generate(path: String, config: Config, limit: Int): Observable[mutable.Map[String, Int]] =
-    generate(Language.load(path), config, limit)
+  def generate(path: String, config: Config, limit: Int, verbose: Boolean): Observable[mutable.Map[String, Int]] =
+    generate(Language.load(path), config, limit, verbose)
 
-  def generate(language: Language, config: Config, limit: Int): Observable[mutable.Map[String, Int]] = {
+  def generate(language: Language, config: Config, limit: Int, verbose: Boolean): Observable[mutable.Map[String, Int]] = {
     val statistics = mutable.Map[String, Int](
       language.constructors.map(cons => (cons, 0)): _*
     )
 
-    new Generator().generate(language, config, limit).map(result => {
+    new Generator().generate(language, config, limit, verbose).map(result => {
       // Constructors
       val appls = result.rule.pattern.collect {
         case t@TermAppl(_, _) =>
@@ -100,13 +100,25 @@ object RichGenerator {
     */
   def main(args: Array[String]): Unit = {
     if (args.length == 0) {
-      println("Usage: Generator <path> [limit]")
+      println("Usage: Generator <path> [options]")
+      println("  -l --limit <n>   Generate at most n terms")
+      println("  -v --verbose     Verbose output")
     } else {
+      def parseOptions(options: List[String], config: Map[String, String] = Map.empty): Map[String, String] = options match {
+        case Nil =>
+          config
+        case "--limit" :: limit :: rest =>
+          parseOptions(rest, config + ("limit" -> limit))
+        case "--verbose" :: rest =>
+          parseOptions(rest, config + ("verbose" -> "true"))
+      }
+
       val path = args(0)
+      val options = parseOptions(args(1).split(' ').toList)
+      val limit = options.get("limit").map(_.toInt).getOrElse(-1)
+      val verbose = options.get("verbose").map(_.toBoolean).getOrElse(false)
 
-      val limit = args.lift(1).map(_.toInt).getOrElse(-1)
-
-      new RichGenerator().generate(path, DefaultConfig, limit).subscribe(stats => {
+      new RichGenerator().generate(path, DefaultConfig, limit, verbose).subscribe(stats => {
         print("\033[2J")
 
         for ((k, v) <- stats) {

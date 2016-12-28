@@ -1,6 +1,6 @@
 package nl.tudelft.fragments.spoofax.models
 
-import nl.tudelft.fragments.{Pattern, TermAppl}
+import nl.tudelft.fragments.{As, Pattern, TermAppl}
 
 abstract class Strategy extends (Pattern => Option[Pattern])
 
@@ -31,6 +31,8 @@ object Strategy {
         }
 
         childrenOpt.map(children => TermAppl(cons, children))
+      case As(_, term) =>
+        all(s)(term)
       case _ =>
         Some(p)
     }

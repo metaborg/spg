@@ -3,6 +3,7 @@ package nl.tudelft.fragments
 import nl.tudelft.fragments.spoofax.Language
 
 object Solver {
+  // TODO: If there is an inconsistency, now we just ignore it. Instead, we should abort. We can never recover from an inconsistency!
   def rewrite(c: Constraint, state: State)(implicit language: Language): List[State] = c match {
     case CTrue() =>
       state
@@ -10,7 +11,7 @@ object Solver {
       if (state.typeEnv.contains(n)) {
         state.addConstraint(CEqual(state.typeEnv(n), t))
       } else {
-        state.copy(typeEnv = state.typeEnv + (n -> t))
+        state.addBinding(n -> t)
       }
     case CEqual(t1, t2) =>
       t1.unify(t2).map(state.substitute)
@@ -102,6 +103,22 @@ object Solver {
 
     solvePrivate(sortedState)
   }
+
+  // Solve the given resolve constraint
+  def solveResolve(state: State, resolve: CResolve)(implicit language: Language): List[State] = resolve match {
+    case CResolve(n1, n2@Var(_)) =>
+      if (state.resolution.contains(n1)) {
+        List(state.substituteName(Map(n2 -> state.resolution(n1))))
+      } else {
+        val reachableDeclarations = Graph(state.facts).res(state.resolution)(n1)
+
+        reachableDeclarations.map(dec =>
+          state
+            .substituteName(Map(n2 -> dec))
+            .copy(resolution = state.resolution + (n1 -> dec))
+        )
+      }
+  }
 }
 
 /**
@@ -166,6 +183,9 @@ case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Co
 
   def addConstraint(constraint: Constraint): State =
     copy(constraints = constraint :: constraints)
+
+  def addBinding(nameType: (Pattern, Pattern)): State =
+    copy(typeEnv = typeEnv + nameType)
 
   def addInequalities(inequals: List[(Pattern, Pattern)]) =
     copy(inequalities = inequals ++ inequalities)
