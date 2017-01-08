@@ -252,7 +252,7 @@ object Specification {
       val heads = toPatternsList(appl.getSubterm(0))
       val tail = toPattern(appl.getSubterm(1))
 
-      heads.foldLeft(tail) { case (acc, x) =>
+      heads.foldRight(tail) { case (x, acc) =>
         TermAppl("Cons", List(x, acc))
       }
     case appl: StrategoAppl if appl.getConstructor.getName == "Var" =>
@@ -284,7 +284,7 @@ object Specification {
       val list = appl.getSubterm(0).getAllSubterms.toList.map(toType(ruleIndex, _))
 
       // Reduce the list to a Cons/Nil structure
-      list.foldLeft(TermAppl("Nil")) { case (acc, x) =>
+      list.foldRight(TermAppl("Nil")) { case (x, acc) =>
         TermAppl("Cons", List(x, acc))
       }
     // TListTail([Var("ty")],Var("tys"))
@@ -296,7 +296,7 @@ object Specification {
       val tail = toType(ruleIndex, appl.getSubterm(1))
 
       // Combine both in a Cons/Nil structure
-      headList.foldLeft(tail) { case (acc, x) =>
+      headList.foldRight(tail) { case (x, acc) =>
         TermAppl("Cons", List(x, acc))
       }
     case appl: StrategoAppl if appl.getConstructor.getName == "Op" =>
