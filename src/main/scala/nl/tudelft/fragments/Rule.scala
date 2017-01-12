@@ -46,10 +46,6 @@ case class Rule(name: String, sort: Sort, typ: Option[Pattern], scopes: List[Pat
   def constraints: List[Constraint] =
     state.constraints
 
-  // Get all facts
-  def facts: List[Constraint] =
-    state.facts
-
   // Get the pattern
   def pattern: Pattern =
     state.pattern
@@ -104,7 +100,7 @@ case class Rule(name: String, sort: Sort, typ: Option[Pattern], scopes: List[Pat
     * "new s" by a concrete scope with a fresh name.
     */
   def instantiate(): Rule = {
-    val newScopes = state.facts.collect {
+    val newScopes = state.constraints.collect {
       case NewScope(variable) =>
         variable
     }

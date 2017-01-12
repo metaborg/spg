@@ -258,14 +258,15 @@ class SolverSuite extends FunSuite {
     val s = State(
       pattern = Var("x"),
       constraints = List(
+        // Proper constraints
         CTypeOf(ConcreteName("M", "m", 3), TermAppl("TMethod", List(TermAppl("TInt"), TermAppl("TInt")))),
         CResolve(ConcreteName("C", "Foo", 1), Var("d1")),
         CAssoc(Var("d1"), Var("sigma")),
         CResolve(ConcreteName("M", "m", 4), Var("d2")),
         CTypeOf(Var("d2"), TermAppl("TMethod", List(Var("rty"), Var("tf")))),
-        CSubtype(TermAppl("TInt", List(TermAppl("TInt", List(TermAppl("TInt", Nil))))), Var("tf"))
-      ),
-      facts = List(
+        CSubtype(TermAppl("TInt", List(TermAppl("TInt", List(TermAppl("TInt", Nil))))), Var("tf")),
+
+        // Facts
         CGRef(ConcreteName("C", "Foo", 1), TermAppl("s")),
         CGDecl(TermAppl("s"), ConcreteName("C", "Foo", 2)),
         CGDirectEdge(TermAppl("cs"), Label('P'), TermAppl("s")),

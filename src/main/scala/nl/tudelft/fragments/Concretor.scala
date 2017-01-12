@@ -17,7 +17,7 @@ case class Concretor(language: Language) {
   def computeNamingConstraints(state: State): List[NamingConstraint] = {
     state.resolution.bindings.foldLeft(List.empty[NamingConstraint]) {
       case (namingConstraints, (ref, dec)) =>
-        val reachableDeclarations = Graph(state.facts)(language).res(state.resolution)(ref)
+        val reachableDeclarations = Graph(state.constraints)(language).res(state.resolution)(ref)
 
         Eq(ref, dec) :: namingConstraints ++ reachableDeclarations
           .filter(_ != dec)

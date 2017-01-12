@@ -3,13 +3,9 @@ package nl.tudelft.fragments
 /**
   * Representation of the solver state
   *
-  * TODO: Remove distinction between constraints and facts..
-  *
-  * @param constraints     The (remaining) proper constraints
-  * @param facts           The known facts
   * @param typeEnv         The typing environment
   */
-case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Constraint], typeEnv: TypeEnv, resolution: Resolution, subtypeRelation: SubtypeRelation, inequalities: List[(Pattern, Pattern)]) {
+case class State(pattern: Pattern, constraints: List[Constraint], typeEnv: TypeEnv, resolution: Resolution, subtypeRelation: SubtypeRelation, inequalities: List[(Pattern, Pattern)]) {
   /**
     * Get all wrapped constraints
     *
@@ -44,8 +40,6 @@ case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Co
         pattern.substitute(Map(recurse.pattern.asInstanceOf[Var] -> state.pattern)),
       constraints =
         (constraints ++ state.constraints) - recurse,
-      facts =
-        facts ++ state.facts,
       typeEnv =
         typeEnv ++ state.typeEnv,
       resolution =
@@ -76,7 +70,7 @@ case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Co
     * @return
     */
   def substitute(binding: TermBinding): State =
-  copy(pattern.substitute(binding), constraints.substitute(binding), facts.substitute(binding), typeEnv.substitute(binding), resolution.substitute(binding), subtypeRelation.substitute(binding), inequalities.substitute(binding))
+  copy(pattern.substitute(binding), constraints.substitute(binding), typeEnv.substitute(binding), resolution.substitute(binding), subtypeRelation.substitute(binding), inequalities.substitute(binding))
 
   /**
     * Substitute the given type.
@@ -85,7 +79,7 @@ case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Co
     * @return
     */
   def substituteType(binding: TermBinding): State =
-  copy(pattern, constraints.substitute(binding), facts.substitute(binding), typeEnv.substitute(binding), resolution, subtypeRelation, inequalities)
+  copy(pattern, constraints.substitute(binding), typeEnv.substitute(binding), resolution, subtypeRelation, inequalities)
 
   /**
     * Substitute the given map of variables to patterns.
@@ -94,7 +88,7 @@ case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Co
     * @return
     */
   def substituteName(binding: TermBinding): State =
-  copy(pattern, constraints.substitute(binding), facts.substitute(binding), typeEnv.substitute(binding), resolution, subtypeRelation, inequalities)
+  copy(pattern, constraints.substitute(binding), typeEnv.substitute(binding), resolution, subtypeRelation, inequalities)
 
   /**
     * Substitute only in the pattern.
@@ -103,23 +97,21 @@ case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Co
     * @return
     */
   def substitutePattern(binding: TermBinding): State =
-  copy(pattern.substitute(binding), constraints.substitute(binding), facts, typeEnv, resolution, subtypeRelation, inequalities)
+  copy(pattern.substitute(binding), constraints.substitute(binding), typeEnv, resolution, subtypeRelation, inequalities)
 
   def substituteScope(binding: TermBinding): State =
-    copy(pattern, constraints.substituteScope(binding), facts.substituteScope(binding), typeEnv.substituteScope(binding), resolution, subtypeRelation, inequalities)
+    copy(pattern, constraints.substituteScope(binding), typeEnv.substituteScope(binding), resolution, subtypeRelation, inequalities)
 
   def substituteSort(binding: SortBinding): State =
-    copy(constraints = constraints.substituteSort(binding), facts = facts.substituteSort(binding))
+    copy(constraints = constraints.substituteSort(binding))
 
   def freshen(nameBinding: Map[String, String]): (Map[String, String], State) =
     pattern.freshen(nameBinding).map { case (nameBinding, pattern) =>
       constraints.freshen(nameBinding).map { case (nameBinding, constraints) =>
-        facts.freshen(nameBinding).map { case (nameBinding, all) =>
-          typeEnv.freshen(nameBinding).map { case (nameBinding, typeEnv) =>
-            resolution.freshen(nameBinding).map { case (nameBinding, resolution) =>
-              subtypeRelation.freshen(nameBinding).map { case (nameBinding, subtypeRelation) =>
-                (nameBinding, copy(pattern, constraints, all, typeEnv, resolution, subtypeRelation))
-              }
+        typeEnv.freshen(nameBinding).map { case (nameBinding, typeEnv) =>
+          resolution.freshen(nameBinding).map { case (nameBinding, resolution) =>
+            subtypeRelation.freshen(nameBinding).map { case (nameBinding, subtypeRelation) =>
+              (nameBinding, copy(pattern, constraints, typeEnv, resolution, subtypeRelation))
             }
           }
         }
@@ -128,16 +120,11 @@ case class State(pattern: Pattern, constraints: List[Constraint], facts: List[Co
 }
 
 object State {
-  // TODO: This is legacy..
   def apply(pattern: Pattern, constraints: List[Constraint]): State = {
-    val (proper, facts) = constraints.partition(_.isProper)
-
-    State(pattern, proper, facts, TypeEnv(), Resolution(), SubtypeRelation(), Nil)
+    State(pattern, constraints, TypeEnv(), Resolution(), SubtypeRelation(), Nil)
   }
 
   def apply(constraints: List[Constraint]): State = {
-    val (proper, facts) = constraints.partition(_.isProper)
-
-    State(null, proper, facts, TypeEnv(), Resolution(), SubtypeRelation(), Nil)
+    State(null, constraints, TypeEnv(), Resolution(), SubtypeRelation(), Nil)
   }
 }

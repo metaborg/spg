@@ -32,7 +32,7 @@ object ConservativeResolve {
 
   // Can the resolve reach a scope var? Then we can assume it's part of type-dependent name resolution
   def reachableScopeVar(state: State, resolve: CResolve)(implicit language: Language): Boolean = {
-    val graph = Graph(state.facts)
+    val graph = Graph(state.constraints)
 
     graph.reachableVarScopes(state.resolution)(graph.scope(resolve.n1)).nonEmpty
   }
@@ -42,7 +42,7 @@ object ConservativeResolve {
     if (state.resolution.contains(resolve.n1)) {
       List(state.substituteName(Map(resolve.n2.asInstanceOf[Var] -> state.resolution(resolve.n1))))
     } else {
-      val choices = Graph(state.facts).res(state.resolution)(resolve.n1)
+      val choices = Graph(state.constraints).res(state.resolution)(resolve.n1)
 
       choices.map(dec =>
         state

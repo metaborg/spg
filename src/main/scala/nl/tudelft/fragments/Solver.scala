@@ -17,12 +17,12 @@ object Solver {
       t1.unify(t2).map(state.substitute)
     case CInequal(t1, t2) if t1.vars.isEmpty && t2.vars.isEmpty && t1 != t2 =>
       state
-    case CResolve(n1, n2@Var(_)) if Graph(state.facts).res(state.resolution)(n1).nonEmpty =>
+    case CResolve(n1, n2@Var(_)) if Graph(state.constraints).res(state.resolution)(n1).nonEmpty =>
       if (solveResolve) {
         if (state.resolution.contains(n1)) {
           state.substitute(Map(n2 -> state.resolution(n1)))
         } else {
-          val choices = Graph(state.facts).res(state.resolution)(n1)
+          val choices = Graph(state.constraints).res(state.resolution)(n1)
 
           choices.map { dec =>
             state
@@ -33,8 +33,8 @@ object Solver {
       } else {
         Nil
       }
-    case CAssoc(n@SymbolicName(_, _), s@Var(_)) if Graph(state.facts).associated(n).nonEmpty =>
-      Graph(state.facts).associated(n).map(scope =>
+    case CAssoc(n@SymbolicName(_, _), s@Var(_)) if Graph(state.constraints).associated(n).nonEmpty =>
+      Graph(state.constraints).associated(n).map(scope =>
         state.substitute(Map(s -> scope))
       )
     case FSubtype(t1, t2) if (t1.vars ++ t2.vars).isEmpty && !state.subtypeRelation.domain.contains(t1) && !state.subtypeRelation.isSubtype(t2, t1) =>
@@ -45,7 +45,7 @@ object Solver {
     case CSubtype(t1, t2) if (t1.vars ++ t2.vars).isEmpty && state.subtypeRelation.isSubtype(t1, t2) =>
       state
     case CDistinct(Declarations(scope, namespace)) if scope.vars.isEmpty /* TODO: vars.isEmpty does not ensure groundness! */ =>
-      val names = Graph(state.facts).declarations(scope, namespace)
+      val names = Graph(state.constraints).declarations(scope, namespace)
       val combis = for (List(a, b, _*) <- names.combinations(2).toList) yield (a, b)
 
       state.addInequalities(combis)
@@ -68,7 +68,7 @@ object Solver {
   }
 
   // Solve as many constraints as possible. Returns a List[State] of possible resuting states.
-  def solveAny(state: State)(implicit language: Language): List[State] = state.constraints match {
+  def solveAny(state: State)(implicit language: Language): List[State] = state.constraints.filter(_.isProper) match {
     case Nil =>
       List(state)
     case _ =>
@@ -84,7 +84,7 @@ object Solver {
   }
 
   // Solve all constraints. Returns `Nil` if it is not possible to solve all constraints.
-  def solvePrivate(state: State)(implicit language: Language): List[State] = state.constraints match {
+  def solvePrivate(state: State)(implicit language: Language): List[State] = state.constraints.filter(_.isProper) match {
     case Nil =>
       List(state)
     case _ =>
@@ -114,7 +114,7 @@ object Solver {
       if (state.resolution.contains(n1)) {
         List(state.substituteName(Map(n2 -> state.resolution(n1))))
       } else {
-        val reachableDeclarations = Graph(state.facts).res(state.resolution)(n1)
+        val reachableDeclarations = Graph(state.constraints).res(state.resolution)(n1)
 
         reachableDeclarations.map(dec =>
           state

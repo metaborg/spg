@@ -15,7 +15,7 @@ import nl.tudelft.fragments.{CGenRecurse, CResolve, Graph, Pattern, State}
   */
 object ResolveLight {
   def isConsistent(state: State)(implicit language: Language): Boolean = {
-    val graph = Graph(state.facts)
+    val graph = Graph(state.constraints)
     val recurse = state.recurse
 
     state.resolve.forall(resolve => {

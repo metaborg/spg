@@ -28,7 +28,7 @@ object DeclarationAddability {
     * Determine if there exists a reachable scope var
     */
   def reachableScopeVar(rule: Rule, resolve: CResolve)(implicit language: Language): Boolean = {
-    val graph = Graph(rule.state.facts)
+    val graph = Graph(rule.state.constraints)
 
     graph.reachableVarScopes(rule.state.resolution)(graph.scope(resolve.n1)).nonEmpty
   }
@@ -37,7 +37,7 @@ object DeclarationAddability {
     * Determine if there exists a reachable declaration
     */
   def existsDeclaration(rule: Rule, resolve: CResolve)(implicit language: Language): Boolean = {
-    val graph = Graph(rule.state.facts)
+    val graph = Graph(rule.state.constraints)
 
     graph.res(rule.state.resolution)(resolve.n1).nonEmpty
   }
@@ -47,9 +47,9 @@ object DeclarationAddability {
     */
   def canAddDeclaration(rule: Rule, resolve: CResolve)(implicit language: Language): Boolean = resolve.n1 match {
     case SymbolicName(ns, name) =>
-      declarationability(language.specification.rules, rule, Graph(rule.facts).scope(resolve.n1), ns, language.specification.params.wf)
+      declarationability(language.specification.rules, rule, Graph(rule.constraints).scope(resolve.n1), ns, language.specification.params.wf)
     case ConcreteName(ns, name, _) =>
-      declarationability(language.specification.rules, rule, Graph(rule.facts).scope(resolve.n1), ns, language.specification.params.wf)
+      declarationability(language.specification.rules, rule, Graph(rule.constraints).scope(resolve.n1), ns, language.specification.params.wf)
   }
 
   /**
@@ -147,7 +147,7 @@ object DeclarationAddability {
     * @return
     */
   def paths(s: Pattern, r: Rule)(implicit language: Language): List[(Path, Pattern)] =
-    (Nil, s) :: Graphx(r.facts).path(s, language.specification.params.wf)
+    (Nil, s) :: Graphx(r.constraints).path(s, language.specification.params.wf)
 
   /**
     * All declarations in the scope s in the graph g
@@ -156,7 +156,7 @@ object DeclarationAddability {
     * @return
     */
   def decls(r: Rule, s: Pattern): List[Pattern] =
-    Graphx(r.facts).decls(s)
+    Graphx(r.constraints).decls(s)
 }
 
 // TODO: Replace usage of class below by the Graph class, that supports label ordering and named imports

@@ -59,8 +59,8 @@ object Consistency {
 
         Left(List(state.copy(subtypeRelation = state.subtypeRelation ++ closure)))
       }
-    case CAssoc(n@SymbolicName(_, _), s@Var(_)) if Graph(state.facts).associated(n).nonEmpty =>
-      Left(Graph(state.facts).associated(n).map(scope =>
+    case CAssoc(n@SymbolicName(_, _), s@Var(_)) if Graph(state.constraints).associated(n).nonEmpty =>
+      Left(Graph(state.constraints).associated(n).map(scope =>
         state.substituteScope(Map(s -> scope))
       ))
     case _ =>
