@@ -11,6 +11,10 @@ import nl.tudelft.fragments._
   *
   * The ability to do so does not guarantee consistency, but the inability to do so does guarantee failure. This is
   * sound but not complete: we only eliminate inconsistent programs, but let some inconsistent programs get through.
+  *
+  * TODO: This check forgets that if we pass two scopes to the constraint generation function, it may connect
+  * these two scopes. This is the case for Let/3 in Tiger. The body of the let is not connected until it finishes
+  * generating all the declarations.
   */
 object DeclarationAddability {
   type Path = List[Label]

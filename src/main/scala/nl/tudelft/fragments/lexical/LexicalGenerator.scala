@@ -70,6 +70,7 @@ class LexicalGenerator(productions: List[Production]) {
 
       difference.random.toChar.toString
     case _ =>
+      println(symbol)
       ???
   }
 

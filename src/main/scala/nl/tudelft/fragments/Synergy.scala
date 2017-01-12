@@ -9,11 +9,12 @@ import nl.tudelft.fragments.spoofax.{Converter, Language}
 import org.metaborg.core.MetaborgException
 import org.slf4j.LoggerFactory
 
+import scala.annotation.tailrec
+import scala.io.StdIn
 import scala.util.Random
 
 object Synergy {
   val logger = Logger(LoggerFactory.getLogger(this.getClass))
-  val interactive = false
 
   /**
     * Generate a single term.
@@ -21,14 +22,14 @@ object Synergy {
     * @param language
     * @return
     */
-  def generate(language: Language, config: Config, verbose: Boolean): GenerationResult = {
+  def generate(language: Language, config: Config, interactive: Boolean, verbose: Boolean): GenerationResult = {
     implicit val l = language
 
     def generatePrivate(): Option[GenerationResult] = {
       val startRule = language.startRules.random
       val init = language.specification.init.instantiate()
       val start = init.merge(CGenRecurse("Default", init.state.pattern, init.scopes, init.typ, startRule.sort), startRule, 0).get
-      val result = synergize(language.specification.rules, config, verbose)(start)
+      val result = synergize(language.specification.rules, config, interactive, verbose)(start)
 
       result match {
         case None =>
@@ -37,6 +38,11 @@ object Synergy {
           val solvedStates = Solver.solve(rule.state)
 
           if (solvedStates.isEmpty) {
+            if (verbose) {
+              println(rule)
+              println("Still inconsistent")
+            }
+
             None
           } else {
             val state = solvedStates.random
@@ -60,14 +66,9 @@ object Synergy {
   }
 
   // Expand rule with the best alternative from rules
-  def synergize(rules: List[Rule], config: Config, verbose: Boolean)(term: Rule)(implicit language: Language): Option[Rule] = {
-    if (verbose) {
-      println(term)
-    }
-
+  def synergize(rules: List[Rule], config: Config, interactive: Boolean, verbose: Boolean)(term: Rule)(implicit language: Language): Option[Rule] = {
     if (term.pattern.size > config.sizeLimit) {
       if (verbose) {
-        println(term)
         println("Too large")
       }
 
@@ -79,19 +80,35 @@ object Synergy {
     }
 
     // Pick a random recurse constraint (position to expand the current rule)
-    val recurse = term.recurse.random
+    val recurse = if (interactive) {
+      println("Which recurse constraint to expand?")
+
+      for (hole <- term.recurse) {
+        println(hole)
+      }
+
+      term.recurse(readChoice(term.recurse))
+    } else {
+      term.recurse.random
+    }
 
     // Merge with every other rule and filter out inconsistent merges and too big rules
     val options = step(term, recurse)
 
     // For each option, solve constraints that we can already solve
-    val solvedOptions = options.flatMap(rule => Solver.solveAny(rule.state).map(rule.withState))
+    val solvedOptions = options.flatMap(rule =>
+      Solver.solveAny(rule.state).map(rule.withState)
+    )
 
     // For each solved option, probabilistically solve a resolve constraint
-    val resolvedOptions = solvedOptions.flatMap(rule => resolve(rule.state, config).map(rule.withState))
+    val resolvedOptions = solvedOptions.flatMap(rule =>
+      resolve(rule.state, config).map(rule.withState)
+    )
 
     // For each resolved option, solve constraints that we can already solve
-    val solvedResolvedOptions = resolvedOptions.flatMap(rule => Solver.solveAny(rule.state).map(rule.withState)).filter(rule => Consistency.check(rule))
+    val solvedResolvedOptions = resolvedOptions
+      .flatMap(rule => Solver.solveAny(rule.state).map(rule.withState))
+      .filter(Consistency.check(_, 2))
 
     // Filter the list of options by a language-dependent function
     val scoredSolvedResolvedOptions = config.choose(term, solvedResolvedOptions)
@@ -108,19 +125,36 @@ object Synergy {
     // Continue with a random program among the best programs
     if (interactive) {
       println(s"Expand hole ${recurse.pattern}: $recurse")
-      println("Which term would you like to continue with?")
 
       for ((rule, score) <- scoredSolvedResolvedOptions) {
         println(rule)
       }
 
-      val choice = scala.io.StdIn.readInt()
+      println("Which term would you like to continue with?")
+      val choice = readChoice(scoredSolvedResolvedOptions)
 
-      synergize(rules, config, verbose)(scoredSolvedResolvedOptions(choice)._1)
+      synergize(rules, config, interactive, verbose)(scoredSolvedResolvedOptions(choice)._1)
     } else {
       val distribution = Distribution(scoredSolvedResolvedOptions)
 
-      synergize(rules, config, verbose)(distribution.sample)
+      synergize(rules, config, interactive, verbose)(distribution.sample)
+    }
+  }
+
+  /**
+    * Have the user choose one of the options. Repeat the question if the
+    * input is invalid.
+    *
+    * @param options
+    * @return
+    */
+  @tailrec def readChoice[T](options: List[T]): Int = {
+    val choice = StdIn.readInt()
+
+    if (choice >= 0 && choice <= options.length-1) {
+      choice
+    } else {
+      readChoice(options)
     }
   }
 
@@ -148,37 +182,11 @@ object Synergy {
     state.resolve.foldLeftMap(state) {
       case (state, resolve) =>
         if (Random.nextInt(config.resolveProbability) == 0) {
-          Solver.solveResolve(state, resolve)
+          Solver.solveResolve(state.removeConstraint(resolve), resolve)
         } else {
           List(state)
         }
     }
-  }
-
-  /**
-    * Compute the solved rule and its score for each possible solution
-    *
-    * @deprecated
-    */
-  def score(rule: Rule)(implicit language: Language): List[(Rule, Int)] = {
-    // Compute the score for a single constraint
-    def constraintScore(constraint: Constraint) = constraint match {
-      case _: CResolve => 3
-      case _: CGenRecurse =>
-        if (rule.pattern.size > 10) {
-          6
-        } else {
-          -6
-        }
-      case _: CTrue => 0
-      case _ => 1
-    }
-
-    // Compute the score after eliminating constraints
-    Eliminate
-      .solve(rule.state)
-      .map(state => (rule.withState(state), state.constraints.map(constraintScore).sum))
-      .filter { case (rule, _) => Consistency.check(rule) }
   }
 
   // Print the time so we can bencmark
@@ -189,7 +197,7 @@ object Synergy {
 }
 
 // For parsing a printed rule
-class Binding[A, B](a: A, b: B) extends Tuple2[A, B](a, b)
+class Binding[A, B](val a: A, val b: B)
 
 object Binding {
   def apply[A, B](a: A, b: B): Binding[A, B] =

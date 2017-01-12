@@ -12,19 +12,22 @@ class RichGenerator {
   /**
     * Returns a cold observable that emits the running averages.
     *
-    * @param path
+    * @param projectPath
+    * @param semanticsPath
     * @param limit
+    * @param interactive
+    * @param verbose
     * @return
     */
-  def generate(path: String, config: Config, limit: Int, verbose: Boolean): Observable[mutable.Map[String, Int]] =
-    generate(Language.load(path), config, limit, verbose)
+  def generate(projectPath: String, semanticsPath: String, config: Config, limit: Int, interactive: Boolean, verbose: Boolean): Observable[mutable.Map[String, Int]] =
+    generate(Language.load(projectPath, semanticsPath), config, limit, interactive, verbose)
 
-  def generate(language: Language, config: Config, limit: Int, verbose: Boolean): Observable[mutable.Map[String, Int]] = {
+  def generate(language: Language, config: Config, limit: Int, interactive: Boolean, verbose: Boolean): Observable[mutable.Map[String, Int]] = {
     val statistics = mutable.Map[String, Int](
       language.constructors.map(cons => (cons, 0)): _*
     )
 
-    new Generator().generate(language, config, limit, verbose).map(result => {
+    new Generator().generate(language, config, limit, interactive, verbose).map(result => {
       // Constructors
       val appls = result.rule.pattern.collect {
         case t@TermAppl(_, _) =>
@@ -101,26 +104,33 @@ object RichGenerator {
   def main(args: Array[String]): Unit = {
     if (args.length == 0) {
       println("Usage: Generator <path> [options]")
-      println("  -l --limit <n>   Generate at most n terms")
-      println("  -v --verbose     Verbose output")
+      println("  --limit <n>   Generate at most n terms")
+      println("  --interactive Interactive mode")
+      println("  --verbose     Verbose output")
     } else {
       def parseOptions(options: List[String], config: Map[String, String] = Map.empty): Map[String, String] = options match {
-        case Nil =>
-          config
-        case "--limit" :: limit :: rest =>
-          parseOptions(rest, config + ("limit" -> limit))
+        case "--semantics" :: semantics :: rest =>
+          parseOptions(rest, config + ("semantics" -> semantics))
+        case "--limit" :: n :: rest =>
+          parseOptions(rest, config + ("limit" -> n))
+        case "--interactive" :: n :: rest =>
+          parseOptions(rest, config + ("interactive" -> n))
         case "--verbose" :: rest =>
           parseOptions(rest, config + ("verbose" -> "true"))
+        case Nil =>
+          config
+        case _ :: rest =>
+          parseOptions(rest, config)
       }
 
-      val path = args(0)
       val options = parseOptions(args(1).split(' ').toList)
+      val projectPath = args(0)
+      val semanticsPath = options.get("semantics").map(_.toString).getOrElse("trans/static-semantics.nabl2")
       val limit = options.get("limit").map(_.toInt).getOrElse(-1)
+      val interactive = options.get("interactive").map(_.toBoolean).getOrElse(false)
       val verbose = options.get("verbose").map(_.toBoolean).getOrElse(false)
 
-      new RichGenerator().generate(path, DefaultConfig, limit, verbose).subscribe(stats => {
-        print("\033[2J")
-
+      new RichGenerator().generate(projectPath, semanticsPath, DefaultConfig, limit, interactive, verbose).subscribe(stats => {
         for ((k, v) <- stats) {
           println(s"$k = $v")
         }

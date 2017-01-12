@@ -232,7 +232,13 @@ object Specification {
     case As(_, term) =>
       toSort(term)
     case _ =>
-      signatures.forPattern(pattern).head.sort
+      val signaturesForPattern = signatures.forPattern(pattern)
+
+      if (signaturesForPattern.length > 1) {
+        logger.warn(s"Multiple signatures match $pattern ($signaturesForPattern), determining sort possibly wrong.")
+      }
+
+      signaturesForPattern.head.sort
   }
 
   // Turn a CGenMatch into a Pattern
@@ -412,7 +418,7 @@ object Specification {
     case appl: StrategoAppl if appl.getConstructor.getName == "NewScopes" =>
       toNewScopes(appl)
     case _ =>
-      logger.error("Constraint not supported by generator: " + constraint)
+      logger.warn("Constraint not supported by generator: " + constraint)
 
       Nil
   }

@@ -86,11 +86,11 @@ object MiniJava {
       60
 
     override def resolveProbability: Int =
-      20
+      80
   }
 
   def main(args: Array[String]): Unit = {
-    new Generator().generate("/Users/martijn/Projects/MiniJava", miniJavaConfig, 100, false).subscribe(program => {
+    new Generator().generate("/Users/martijn/Projects/MiniJava", "trans/static-semantics.nabl2", miniJavaConfig, 100, false).subscribe(program => {
       println("===================================")
       println(DateTimeFormatter.ISO_DATE_TIME.format(ZonedDateTime.now()))
       println("-----------------------------------")

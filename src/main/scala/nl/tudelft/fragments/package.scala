@@ -24,6 +24,9 @@ package object fragments {
   // Implicitly convert State to List[State]. Allows returning a State when an List[State] is required.
   implicit def stateToList(s: State): List[State] = List(s)
 
+  // Implicitly convert Binding to Tuple
+  implicit def bindingToTuple[A, B](b: Binding[A, B]): (A, B) = Tuple2(b.a, b.b)
+
   // Implicitly define methods on any sequence
   implicit class RichSeq[T](seq: Seq[T]) {
     // Get random element from the sequence

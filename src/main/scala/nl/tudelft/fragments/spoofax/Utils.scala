@@ -3,18 +3,19 @@ package nl.tudelft.fragments.spoofax
 import java.nio.charset.StandardCharsets
 
 import com.google.common.collect.Iterables
-import nl.tudelft.fragments.Spoofax
+import nl.tudelft.fragments.{FragmentsModule}
 import nl.tudelft.fragments.spoofax.models.{Sort, SortAppl}
 import org.apache.commons.io.IOUtils
 import org.metaborg.core.language.{ILanguageImpl, LanguageUtils}
 import org.metaborg.core.project.SimpleProjectService
+import org.metaborg.spoofax.core.Spoofax
 import org.metaborg.spoofax.core.syntax.SyntaxFacet
 import org.spoofax.interpreter.terms.{IStrategoString, IStrategoTerm}
 
 import scala.collection.JavaConverters._
 
 object Utils {
-  val s = Spoofax
+  val s = new Spoofax(new FragmentsModule)
 
   /**
     * Load the language implementation

@@ -16,6 +16,11 @@ $ sbt "run-main nl.tudelft.fragments.RichGenerator /Users/martijn/Projects/metab
 will run the generator for Tiger. The `RichGenerator` outputs running averages
 on the generated terms.
 
+### Publishing Locally
+
+Use `sbt publish-local` to publish the artifact to the local Ivy repository. Use `sbt publish-m2`
+to publish the artifact to the local Maven repository.
+
 ### Statistics
 
 The `Statistics` observer slurps well-formed terms and outputs running averages

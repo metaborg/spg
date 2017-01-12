@@ -248,12 +248,12 @@ class SolverSuite extends FunSuite {
     val c = CSubtype(t1, t2)
     val s = State(Nil)
 
-    assert(Solver.rewrite(c, s)(null).isEmpty)
+    assert(Solver.rewrite(c, s, true)(null).isEmpty)
   }
 
   test("xxy") {
     // TODO: Mock the parts of language that are necessary for the test? See ResolutionSuite for alternative solution.
-    val language = Language.load("/Users/martijn/Projects/MiniJava")
+    val language = Language.load("/Users/martijn/Projects/MiniJava", "trans/static-semantics.nabl2")
 
     val s = State(
       pattern = Var("x"),

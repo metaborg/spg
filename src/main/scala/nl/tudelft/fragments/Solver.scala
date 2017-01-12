@@ -4,7 +4,7 @@ import nl.tudelft.fragments.spoofax.Language
 
 object Solver {
   // TODO: If there is an inconsistency, now we just ignore it. Instead, we should abort. We can never recover from an inconsistency!
-  def rewrite(c: Constraint, state: State)(implicit language: Language): List[State] = c match {
+  def rewrite(c: Constraint, state: State, solveResolve: Boolean)(implicit language: Language): List[State] = c match {
     case CTrue() =>
       state
     case CTypeOf(n, t) if n.vars.isEmpty =>
@@ -18,16 +18,20 @@ object Solver {
     case CInequal(t1, t2) if t1.vars.isEmpty && t2.vars.isEmpty && t1 != t2 =>
       state
     case CResolve(n1, n2@Var(_)) if Graph(state.facts).res(state.resolution)(n1).nonEmpty =>
-      if (state.resolution.contains(n1)) {
-        state.substitute(Map(n2 -> state.resolution(n1)))
-      } else {
-        val choices = Graph(state.facts).res(state.resolution)(n1)
+      if (solveResolve) {
+        if (state.resolution.contains(n1)) {
+          state.substitute(Map(n2 -> state.resolution(n1)))
+        } else {
+          val choices = Graph(state.facts).res(state.resolution)(n1)
 
-        choices.map { case dec =>
-          state
-            .substitute(Map(n2 -> dec))
-            .copy(resolution = state.resolution + (n1 -> dec))
+          choices.map { dec =>
+            state
+              .substitute(Map(n2 -> dec))
+              .copy(resolution = state.resolution + (n1 -> dec))
+          }
         }
+      } else {
+        Nil
       }
     case CAssoc(n@SymbolicName(_, _), s@Var(_)) if Graph(state.facts).associated(n).nonEmpty =>
       Graph(state.facts).associated(n).map(scope =>
@@ -69,7 +73,7 @@ object Solver {
       List(state)
     case _ =>
       for (c <- state.constraints) {
-        val result = rewrite(c, state.removeConstraint(c))
+        val result = rewrite(c, state.removeConstraint(c), solveResolve = false)
 
         if (result.nonEmpty) {
           return result.flatMap(solveAny)
@@ -85,7 +89,7 @@ object Solver {
       List(state)
     case _ =>
       for (constraint <- state.constraints) {
-        val result = rewrite(constraint, state.removeConstraint(constraint))
+        val result = rewrite(constraint, state.removeConstraint(constraint), solveResolve = true)
 
         if (result.nonEmpty) {
           return result.flatMap(solve)

@@ -5,7 +5,8 @@ package nl.tudelft.fragments
   */
 abstract class Config {
   /**
-    * Given a rule, assign it a score on the interval [1, infinity].
+    * Given a rule, assign it a score on the interval [1, infinity]. The lower
+    * the score, the higher the probability of choosing this rule.
     *
     * @param r
     * @return

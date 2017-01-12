@@ -115,18 +115,18 @@ object Language {
   val sdfPath = "zip:/Users/martijn/Projects/sdf/org.metaborg.meta.lang.template/target/org.metaborg.meta.lang.template-2.1.0-SNAPSHOT.spoofax-language!/"
   val nablPath = "zip:/Users/martijn/Projects/spoofax-releng/nabl/org.metaborg.meta.nabl2.lang/target/org.metaborg.meta.nabl2.lang-2.1.0-SNAPSHOT.spoofax-language!/"
 
-  def load(path: String): Language = {
-    logger.info("Loading language at path {}", path)
-    val implementation = Utils.loadLanguage(path)
+  def load(projectPath: String, semanticsPath: String): Language = {
+    logger.info("Loading language at path {}", projectPath)
+    val implementation = Utils.loadLanguage(projectPath)
 
     logger.info("Loading productions")
-    val productions = Productions.read(sdfPath, s"$path/syntax/${implementation.belongsTo().name()}.sdf3")
+    val productions = Productions.read(sdfPath, s"$projectPath/syntax/${implementation.belongsTo().name()}.sdf3")
 
     logger.info("Computing signatures")
     val signatures = Signatures(defaultSignatures ++ productions.map(_.toSignature))
 
     logger.info("Loading static semantics")
-    val specification = Specification.read(nablPath, s"$path/trans/static-semantics.nabl2")(signatures)
+    val specification = Specification.read(nablPath, s"$projectPath/$semanticsPath")(signatures)
 
     logger.info("Constructing printer")
     val printer = Utils.getPrinter(implementation)

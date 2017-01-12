@@ -21,8 +21,8 @@ case class Signatures(list: List[Signature]) {
   }
 
   /**
-    * Get the sort of p2 for its occurrence in p1. If p2 occurs multiple times,
-    * the sort for the first occurrence is returned.
+    * Get the sort of p2 for its occurrence in p1. If p2 occurs multiple times
+    * in p1, the sort for the first occurrence is returned.
     *
     * @param p1
     * @param p2
@@ -37,7 +37,7 @@ case class Signatures(list: List[Signature]) {
     case (As(Var(n1), term1), term2) =>
       sortForPattern(term1, term2)
     case (termAppl@TermAppl(_, children), _) =>
-      // TODO: What if `forPattern(p1) == Nil`?!
+      // If `forPattern(p1) == Nil` then we were unable to identify a signature for p1
       val signature = forPattern(p1).head
 
       val sorts = signature.typ match {
@@ -54,6 +54,8 @@ case class Signatures(list: List[Signature]) {
           sortForPattern(child, p2, Some(sort))
         case (_, (child, FunType(_, ConstType(sort)))) =>
           sortForPattern(child, p2, Some(sort))
+        case (None, _) =>
+          ???
       }
     case _ =>
       None

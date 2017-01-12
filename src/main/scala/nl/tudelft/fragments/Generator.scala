@@ -12,36 +12,34 @@ import scala.annotation.tailrec
 
 class Generator {
   /**
-    * Generate an Observable of programs that emits programs ad infinitum.
+    * Generate an Observable of programs that emits at most limit programs with
+    * interactive and verbose flags.
     *
-    * @param path
+    * @param projectPath
+    * @param semanticsPath
+    * @param limit
+    * @param interactive
+    * @param verbose
     * @return
     */
-  def generate(path: String, config: Config, verbose: Boolean): Observable[GenerationResult] =
-    generate(path, config, -1, verbose)
-
-  /**
-    * Generate an Observable of programs that emits at most n programs.
-    *
-    * @param path
-    * @param n
-    * @return
-    */
-  def generate(path: String, config: Config, n: Int, verbose: Boolean): Observable[GenerationResult] =
-    generate(Language.load(path), config, n, verbose)
+  def generate(projectPath: String, semanticsPath: String, config: Config, limit: Int = -1, interactive: Boolean = false, verbose: Boolean = false): Observable[GenerationResult] =
+    generate(Language.load(projectPath, semanticsPath), config, limit, interactive, verbose)
 
   /**
     * Generate a cold Observable of programs that emits at most n programs.
     *
     * @param language
-    * @param n
+    * @param config
+    * @param limit
+    * @param interactive
+    * @param verbose
     * @return
     */
-  def generate(language: Language, config: Config, n: Int, verbose: Boolean): Observable[GenerationResult] =
+  def generate(language: Language, config: Config, limit: Int, interactive: Boolean, verbose: Boolean): Observable[GenerationResult] =
     Observable(subscriber => {
-      repeat(n) {
+      repeat(limit) {
         if (!subscriber.isUnsubscribed) {
-          subscriber.onNext(Synergy.generate(language, config, verbose))
+          subscriber.onNext(Synergy.generate(language, config, interactive, verbose))
         }
       }
 
@@ -75,31 +73,43 @@ object Generator {
     */
   def main(args: Array[String]): Unit = {
     if (args.length == 0) {
-      println("Usage: Generator <path> [options]")
-      println("  -l --limit <n>   Generate at most n terms")
-      println("  -v --verbose     Verbose output")
+      println("Usage: Generator <project-path> [options]")
+      println("  --semantics <nabl2-path>   Path to the NaBL2 file (relative to the project)")
+      println("  --limit <n>                Generate at most n terms")
+      println("  --interactive              Interactive mode")
+      println("  --verbose                  Verbose output")
     } else {
       def parseOptions(options: List[String], config: Map[String, String] = Map.empty): Map[String, String] = options match {
-        case Nil =>
-          config
-        case "--limit" :: limit :: rest =>
-          parseOptions(rest, config + ("limit" -> limit))
+        case "--semantics" :: semantics :: rest =>
+          parseOptions(rest, config + ("semantics" -> semantics))
+        case "--limit" :: n :: rest =>
+          parseOptions(rest, config + ("limit" -> n))
+        case "--interactive" :: rest =>
+          parseOptions(rest, config + ("interactive" -> "true"))
         case "--verbose" :: rest =>
           parseOptions(rest, config + ("verbose" -> "true"))
+        case Nil =>
+          config
+        case _ :: rest =>
+          parseOptions(rest, config)
       }
 
-      val path = args(0)
       val options = parseOptions(args.drop(1).toList)
+      val projectPath = args(0)
+      val semanticsPath = options.get("semantics").map(_.toString).getOrElse("trans/static-semantics.nabl2")
       val limit = options.get("limit").map(_.toInt).getOrElse(-1)
+      val interactive = options.get("interactive").map(_.toBoolean).getOrElse(false)
       val verbose = options.get("verbose").map(_.toBoolean).getOrElse(false)
 
-      val writer = new PrintWriter(new FileOutputStream(new File("22-12-2016-morning.log"), true))
+      val writer = new PrintWriter(new FileOutputStream(new File("05-01-2017-mutant-3-1.log"), true))
 
-      new Generator().generate(path, /*DefaultConfig*/ Tiger.tigerConfig /*MiniJava.miniJavaConfig*/, limit, verbose).subscribe(program => {
+      new Generator().generate(projectPath, semanticsPath, /*DefaultConfig*/ Tiger.tigerConfig /*MiniJava.miniJavaConfig*/, limit, interactive, verbose).subscribe(program => {
         writer.println("===================================")
+        writer.println(program)
+        writer.println("---")
         writer.println(DateTimeFormatter.ISO_DATE_TIME.format(ZonedDateTime.now()))
         writer.println("-----------------------------------")
-        writer.println(program)
+        writer.println(program.text)
         writer.println("-----------------------------------")
         writer.flush()
 

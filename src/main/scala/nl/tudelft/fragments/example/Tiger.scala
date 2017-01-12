@@ -12,12 +12,16 @@ object Tiger {
     override def scoreFn(rule: Rule): Int = {
       def scoreConstraint(c: Constraint): Int = c match {
         case _: CResolve =>
-          3
+          0
         case _: CGenRecurse =>
-          if (rule.pattern.size < 20) {
+          if (rule.pattern.size < 10) {
             0
+          } else if (rule.pattern.size < 20) {
+            5
+          } else if (rule.pattern.size < 40) {
+            30
           } else {
-            10
+            40
           }
         case _ =>
           0
@@ -57,11 +61,11 @@ object Tiger {
       60
 
     override def resolveProbability: Int =
-      20
+      10
   }
 
   def main(args: Array[String]): Unit = {
-    new Generator().generate("/Users/martijn/Projects/metaborg-tiger/org.metaborg.lang.tiger", tigerConfig, false).subscribe(program => {
+    new Generator().generate("/Users/martijn/Projects/metaborg-tiger/org.metaborg.lang.tiger", "trans/static-semantics.nabl2", tigerConfig).subscribe(program => {
       println("===================================")
       println(DateTimeFormatter.ISO_DATE_TIME.format(ZonedDateTime.now()))
       println("-----------------------------------")
