@@ -12,7 +12,7 @@ object Consistency {
 
       if (level >= 1) {
         val consistencyCheck = states.exists(state =>
-          DeclarationAddability.isConsistent(Rule.fromState(state)) && ResolveLight.isConsistent(state) /*ConservativeResolve.isConsistent(state)*/ && ConservativeSubtype.isConsistent(state)
+          /*DeclarationAddability.isConsistent(Rule.fromState(state)) &&*/ ResolveLight.isConsistent(state) /*ConservativeResolve.isConsistent(state)*/ && ConservativeSubtype.isConsistent(state)
         )
 
         states.nonEmpty && consistencyCheck
