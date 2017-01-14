@@ -15,6 +15,8 @@ class Generator {
     * Generate an Observable of programs that emits at most limit programs with
     * interactive and verbose flags.
     *
+    * @param sdfPath
+    * @param nablPath
     * @param projectPath
     * @param semanticsPath
     * @param limit
@@ -22,8 +24,8 @@ class Generator {
     * @param verbose
     * @return
     */
-  def generate(projectPath: String, semanticsPath: String, config: Config, limit: Int = -1, interactive: Boolean = false, verbose: Boolean = false): Observable[GenerationResult] =
-    generate(Language.load(projectPath, semanticsPath), config, limit, interactive, verbose)
+  def generate(sdfPath: String, nablPath: String, projectPath: String, semanticsPath: String, config: Config, limit: Int = -1, interactive: Boolean = false, verbose: Boolean = false): Observable[GenerationResult] =
+    generate(Language.load(sdfPath, nablPath, projectPath, semanticsPath), config, limit, interactive, verbose)
 
   /**
     * Generate a cold Observable of programs that emits at most n programs.
@@ -73,7 +75,7 @@ object Generator {
     */
   def main(args: Array[String]): Unit = {
     if (args.length == 0) {
-      println("Usage: Generator <project-path> [options]")
+      println("Usage: Generator <sdf-path> <nabl-path> <project-path> [options]")
       println("  --semantics <nabl2-path>   Path to the NaBL2 file (relative to the project)")
       println("  --limit <n>                Generate at most n terms")
       println("  --interactive              Interactive mode")
@@ -95,7 +97,9 @@ object Generator {
       }
 
       val options = parseOptions(args.drop(1).toList)
-      val projectPath = args(0)
+      val sdfPath = args(0)
+      val nablPath = args(1)
+      val projectPath = args(2)
       val semanticsPath = options.get("semantics").map(_.toString).getOrElse("trans/static-semantics.nabl2")
       val limit = options.get("limit").map(_.toInt).getOrElse(-1)
       val interactive = options.get("interactive").map(_.toBoolean).getOrElse(false)
@@ -103,7 +107,7 @@ object Generator {
 
       val writer = new PrintWriter(new FileOutputStream(new File("05-01-2017-mutant-3-1.log"), true))
 
-      new Generator().generate(projectPath, semanticsPath, /*DefaultConfig*/ Tiger.tigerConfig /*MiniJava.miniJavaConfig*/, limit, interactive, verbose).subscribe(program => {
+      new Generator().generate(sdfPath, nablPath, projectPath, semanticsPath, /*DefaultConfig*/ Tiger.tigerConfig /*MiniJava.miniJavaConfig*/, limit, interactive, verbose).subscribe(program => {
         writer.println("===================================")
         writer.println(program)
         writer.println("---")

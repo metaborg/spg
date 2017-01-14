@@ -65,7 +65,18 @@ object Tiger {
   }
 
   def main(args: Array[String]): Unit = {
-    new Generator().generate("/Users/martijn/Projects/metaborg-tiger/org.metaborg.lang.tiger", "trans/static-semantics.nabl2", tigerConfig).subscribe(program => {
+    new Generator().generate(
+      sdfPath =
+        "zip:/Users/martijn/Projects/spoofax-releng/sdf/org.metaborg.meta.lang.template/target/org.metaborg.meta.lang.template-2.1.0.spoofax-language!/",
+      nablPath =
+        "zip:/Users/martijn/Projects/spoofax-releng/nabl/org.metaborg.meta.nabl2.lang/target/org.metaborg.meta.nabl2.lang-2.1.0.spoofax-language!/",
+      projectPath =
+        "/Users/martijn/Projects/metaborg-tiger/org.metaborg.lang.tiger",
+      semanticsPath =
+        "trans/static-semantics.nabl2",
+      config =
+        tigerConfig
+    ).subscribe(program => {
       println("===================================")
       println(DateTimeFormatter.ISO_DATE_TIME.format(ZonedDateTime.now()))
       println("-----------------------------------")

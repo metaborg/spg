@@ -112,10 +112,8 @@ class Language(val productions: List[Production], val signatures: Signatures, va
 
 object Language {
   val logger = Logger(LoggerFactory.getLogger(this.getClass))
-  val sdfPath = "zip:/Users/martijn/Projects/sdf/org.metaborg.meta.lang.template/target/org.metaborg.meta.lang.template-2.1.0-SNAPSHOT.spoofax-language!/"
-  val nablPath = "zip:/Users/martijn/Projects/spoofax-releng/nabl/org.metaborg.meta.nabl2.lang/target/org.metaborg.meta.nabl2.lang-2.1.0-SNAPSHOT.spoofax-language!/"
-
-  def load(projectPath: String, semanticsPath: String): Language = {
+  
+  def load(sdfPath: String, nablPath: String, projectPath: String, semanticsPath: String): Language = {
     logger.info("Loading language at path {}", projectPath)
     val implementation = Utils.loadLanguage(projectPath)
 

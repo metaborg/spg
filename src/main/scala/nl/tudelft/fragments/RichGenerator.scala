@@ -12,6 +12,8 @@ class RichGenerator {
   /**
     * Returns a cold observable that emits the running averages.
     *
+    * @param sdfPath
+    * @param nablPath
     * @param projectPath
     * @param semanticsPath
     * @param limit
@@ -19,8 +21,8 @@ class RichGenerator {
     * @param verbose
     * @return
     */
-  def generate(projectPath: String, semanticsPath: String, config: Config, limit: Int, interactive: Boolean, verbose: Boolean): Observable[mutable.Map[String, Int]] =
-    generate(Language.load(projectPath, semanticsPath), config, limit, interactive, verbose)
+  def generate(sdfPath: String, nablPath: String, projectPath: String, semanticsPath: String, config: Config, limit: Int, interactive: Boolean, verbose: Boolean): Observable[mutable.Map[String, Int]] =
+    generate(Language.load(sdfPath, nablPath, projectPath, semanticsPath), config, limit, interactive, verbose)
 
   def generate(language: Language, config: Config, limit: Int, interactive: Boolean, verbose: Boolean): Observable[mutable.Map[String, Int]] = {
     val statistics = mutable.Map[String, Int](
@@ -124,13 +126,15 @@ object RichGenerator {
       }
 
       val options = parseOptions(args(1).split(' ').toList)
-      val projectPath = args(0)
+      val sdfPath = args(0)
+      val nablPath = args(1)
+      val projectPath = args(2)
       val semanticsPath = options.get("semantics").map(_.toString).getOrElse("trans/static-semantics.nabl2")
       val limit = options.get("limit").map(_.toInt).getOrElse(-1)
       val interactive = options.get("interactive").map(_.toBoolean).getOrElse(false)
       val verbose = options.get("verbose").map(_.toBoolean).getOrElse(false)
 
-      new RichGenerator().generate(projectPath, semanticsPath, DefaultConfig, limit, interactive, verbose).subscribe(stats => {
+      new RichGenerator().generate(sdfPath, nablPath, projectPath, semanticsPath, DefaultConfig, limit, interactive, verbose).subscribe(stats => {
         for ((k, v) <- stats) {
           println(s"$k = $v")
         }

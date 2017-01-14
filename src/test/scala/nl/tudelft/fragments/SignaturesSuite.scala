@@ -95,7 +95,17 @@ class SignaturesSuite extends FunSuite {
   }
 
   test("closure of ResultType in Pascal") {
-    val language = Language.load("/Users/martijn/Projects/metaborg-pascal/org.metaborg.lang.pascal", "trans/static-semantics.nabl2")
+    val language = Language.load(
+      sdfPath =
+        "zip:/Users/martijn/Projects/spoofax-releng/sdf/org.metaborg.meta.lang.template/target/org.metaborg.meta.lang.template-2.1.0.spoofax-language!/",
+      nablPath =
+        "zip:/Users/martijn/Projects/spoofax-releng/nabl/org.metaborg.meta.nabl2.lang/target/org.metaborg.meta.nabl2.lang-2.1.0.spoofax-language!/",
+      projectPath =
+        "/Users/martijn/Projects/metaborg-pascal/org.metaborg.lang.pascal",
+      semanticsPath =
+        "trans/static-semantics.nabl2"
+    )
+
     val injections = Sort.injectionsClosure(language.signatures, SortAppl("ResultType"))
 
     assert(injections == Set(
@@ -105,7 +115,17 @@ class SignaturesSuite extends FunSuite {
   }
 
   test("closure of List(MethodDecl) in MiniJava") {
-    val language = Language.load("/Users/martijn/Projects/MiniJava", "trans/static-semantics.nabl2")
+    val language = Language.load(
+      sdfPath =
+        "zip:/Users/martijn/Projects/spoofax-releng/sdf/org.metaborg.meta.lang.template/target/org.metaborg.meta.lang.template-2.1.0.spoofax-language!/",
+      nablPath =
+        "zip:/Users/martijn/Projects/spoofax-releng/nabl/org.metaborg.meta.nabl2.lang/target/org.metaborg.meta.nabl2.lang-2.1.0.spoofax-language!/",
+      projectPath =
+        "/Users/martijn/Projects/MiniJava",
+      semanticsPath =
+        "trans/static-semantics.nabl2"
+    )
+
     val injections = Sort.injectionsClosure(language.signatures, SortAppl("IterStar", List(SortAppl("MethodDecl", List()))))
 
     assert(injections == Set(
@@ -115,7 +135,17 @@ class SignaturesSuite extends FunSuite {
   }
 
   test("get sort for pattern") {
-    val language = Language.load("/Users/martijn/Projects/metaborg-tiger/org.metaborg.lang.tiger", "trans/static-semantics.nabl2")
+    val language = Language.load(
+      sdfPath =
+        "zip:/Users/martijn/Projects/spoofax-releng/sdf/org.metaborg.meta.lang.template/target/org.metaborg.meta.lang.template-2.1.0.spoofax-language!/",
+      nablPath =
+        "zip:/Users/martijn/Projects/spoofax-releng/nabl/org.metaborg.meta.nabl2.lang/target/org.metaborg.meta.nabl2.lang-2.1.0.spoofax-language!/",
+      projectPath =
+        "/Users/martijn/Projects/metaborg-tiger/org.metaborg.lang.tiger",
+      semanticsPath =
+        "trans/static-semantics.nabl2"
+    )
+
     val sortOpt = language.signatures.sortForPattern(TermAppl("Mod", List(Var("e"))), Var("e"))
 
     assert(sortOpt.isDefined)
@@ -123,7 +153,17 @@ class SignaturesSuite extends FunSuite {
   }
 
   test("get sort for pattern with alias") {
-    val language = Language.load("/Users/martijn/Projects/metaborg-tiger/org.metaborg.lang.tiger", "trans/static-semantics.nabl2")
+    val language = Language.load(
+      sdfPath =
+        "zip:/Users/martijn/Projects/spoofax-releng/sdf/org.metaborg.meta.lang.template/target/org.metaborg.meta.lang.template-2.1.0.spoofax-language!/",
+      nablPath =
+        "zip:/Users/martijn/Projects/spoofax-releng/nabl/org.metaborg.meta.nabl2.lang/target/org.metaborg.meta.nabl2.lang-2.1.0.spoofax-language!/",
+      projectPath =
+        "/Users/martijn/Projects/metaborg-tiger/org.metaborg.lang.tiger",
+      semanticsPath =
+        "trans/static-semantics.nabl2"
+    )
+
     val sortOpt = language.signatures.sortForPattern(TermAppl("Cons", List(Var("e"), As(Var("es"),TermAppl("Cons", List(Var("x10"), Var("x11")))))), Var("es"))
 
     assert(sortOpt.isDefined)

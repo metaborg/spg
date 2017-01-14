@@ -253,7 +253,16 @@ class SolverSuite extends FunSuite {
 
   test("xxy") {
     // TODO: Mock the parts of language that are necessary for the test? See ResolutionSuite for alternative solution.
-    val language = Language.load("/Users/martijn/Projects/MiniJava", "trans/static-semantics.nabl2")
+    val language = Language.load(
+      sdfPath =
+        "zip:/Users/martijn/Projects/spoofax-releng/sdf/org.metaborg.meta.lang.template/target/org.metaborg.meta.lang.template-2.1.0.spoofax-language!/",
+      nablPath =
+        "zip:/Users/martijn/Projects/spoofax-releng/nabl/org.metaborg.meta.nabl2.lang/target/org.metaborg.meta.nabl2.lang-2.1.0.spoofax-language!/",
+      projectPath =
+        "/Users/martijn/Projects/MiniJava",
+      semanticsPath =
+        "trans/static-semantics.nabl2"
+    )
 
     val s = State(
       pattern = Var("x"),

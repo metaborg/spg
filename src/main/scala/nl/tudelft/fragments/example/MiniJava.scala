@@ -90,7 +90,22 @@ object MiniJava {
   }
 
   def main(args: Array[String]): Unit = {
-    new Generator().generate("/Users/martijn/Projects/MiniJava", "trans/static-semantics.nabl2", miniJavaConfig, 100, false).subscribe(program => {
+    new Generator().generate(
+      sdfPath =
+        "zip:/Users/martijn/Projects/spoofax-releng/sdf/org.metaborg.meta.lang.template/target/org.metaborg.meta.lang.template-2.1.0.spoofax-language!/",
+      nablPath =
+        "zip:/Users/martijn/Projects/spoofax-releng/nabl/org.metaborg.meta.nabl2.lang/target/org.metaborg.meta.nabl2.lang-2.1.0.spoofax-language!/",
+      projectPath =
+        "/Users/martijn/Projects/MiniJava",
+      semanticsPath =
+        "trans/static-semantics.nabl2",
+      config =
+        miniJavaConfig,
+      limit =
+        100,
+      verbose =
+        false
+    ).subscribe(program => {
       println("===================================")
       println(DateTimeFormatter.ISO_DATE_TIME.format(ZonedDateTime.now()))
       println("-----------------------------------")
