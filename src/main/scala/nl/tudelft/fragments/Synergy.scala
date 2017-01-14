@@ -116,7 +116,7 @@ object Synergy {
     if (scoredSolvedResolvedOptions.isEmpty) {
       if (verbose) {
         println(term)
-        println("Inconsistency observed in " + recurse.pattern)
+        println("No expansion for " + recurse.pattern)
       }
 
       return None
@@ -182,7 +182,7 @@ object Synergy {
     state.resolve.foldLeftMap(state) {
       case (state, resolve) =>
         if (Random.nextInt(config.resolveProbability) == 0) {
-          Solver.solveResolve(state.removeConstraint(resolve), resolve)
+          Solver.solveResolve(state, resolve)
         } else {
           List(state)
         }
