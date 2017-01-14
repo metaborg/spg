@@ -1,11 +1,12 @@
 package nl.tudelft.fragments.consistency
 
 import nl.tudelft.fragments.spoofax.Language
-import nl.tudelft.fragments.{CGenRecurse, CResolve, Graph, Pattern, State}
+import nl.tudelft.fragments.{CGenRecurse, CResolve, Consistency, Graph, Pattern, Rule, Solver, State}
 
 /**
   * Check that for every resolve, at least one of the following must be satisfied:
   * - there exists a reachable declaration (same namespace)
+  *  - and resolving to this declaration is consistent
   * - there exists a reachable scope such that there exists a recurse constraint that is parametrized with this scope.
   * - there exists a reachable scope that is a scope variable.
   *
@@ -21,11 +22,25 @@ object ResolveLight {
     state.resolve.forall(resolve => {
       val scope = graph.scope(resolve.n1)
 
-      declarationExists(state, resolve, graph, recurse) ||
+      /*if (declarationExists(state, resolve, graph, recurse) && !resolveableDeclarationExists(state, resolve, graph, recurse)) {
+        println(s"More stringent on $resolve in ${Rule.fromState(state)}")
+      }*/
+
+      //declarationExists(state, resolve, graph, recurse) ||
+      resolveableDeclarationExists(state, resolve, graph, recurse) ||
         reachableRecurse(state, resolve, graph, recurse, scope) ||
         scopeVarExists(state, resolve, graph, recurse, scope)
     })
   }
+
+  /**
+    * There exists a reachable declaration such that when we resolve to it, the
+    * resulting rule is also consistent (i.e. recursively invoke consistency).
+    */
+  def resolveableDeclarationExists(state: State, resolve: CResolve, graph: Graph, recurse: List[CGenRecurse])(implicit language: Language) =
+    Solver.solveResolve(state, resolve).exists(state =>
+      Consistency.check(Rule.fromState(state))
+    )
 
   /**
     * There exists a reachable declaration (same namespace).
