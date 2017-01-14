@@ -15,7 +15,7 @@ object Solver {
       }
     case CEqual(t1, t2) =>
       t1.unify(t2).map(state.substitute)
-    case CInequal(t1, t2) if t1.vars.isEmpty && t2.vars.isEmpty && t1 != t2 =>
+    case CInequal(t1, t2) if !Unifier.canUnify(t1, t2) =>
       state
     case CResolve(n1, n2@Var(_)) if Graph(state.constraints).res(state.resolution)(n1).nonEmpty =>
       if (solveResolve) {
@@ -118,6 +118,7 @@ object Solver {
 
         reachableDeclarations.map(dec =>
           state
+            .removeConstraint(resolve)
             .substituteName(Map(n2 -> dec))
             .copy(resolution = state.resolution + (n1 -> dec))
         )

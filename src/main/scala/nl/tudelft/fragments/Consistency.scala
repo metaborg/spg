@@ -42,11 +42,15 @@ object Consistency {
       } else {
         Left(List(state.substituteType(t1.unify(t2).get)))
       }
-    case CInequal(t1, t2) if t1.vars.isEmpty && t2.vars.isEmpty =>
-      if (t1 == t2) {
-        Right(s"Terms $t1 equals $t2 violating inequality")
-      } else {
+    case CInequal(t1, t2) =>
+      if (!Unifier.canUnify(t1, t2)) {
         Left(List(state))
+      } else {
+        if (t1 == t2) {
+          Right(s"Term $t1 equals $t2 violating inequality")
+        } else {
+          Left(Nil)
+        }
       }
     case FSubtype(t1, t2) if (t1.vars ++ t2.vars).isEmpty =>
       if (state.subtypeRelation.domain.contains(t1)) {
