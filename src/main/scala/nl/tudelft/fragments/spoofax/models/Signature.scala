@@ -88,12 +88,44 @@ case class OpDecl(name: String, typ: Type) extends Signature {
     case ConstType(sort) =>
       sort
   }
+
+  /**
+    * The Stratego representation of a signature.
+    *
+    * @return
+    */
+  override def toString: String =
+    s"$name : $typ"
 }
 
-case class OpDeclInj(typ: Type) extends Signature
+case class OpDeclInj(typ: Type) extends Signature {
+  /**
+    * The Stratego representation of a signature.
+    *
+    * @return
+    */
+  override def toString: String =
+    s"$typ"
+}
 
 abstract class Type
 
-case class FunType(children: List[Type], result: Type) extends Type
+case class FunType(children: List[Type], result: Type) extends Type {
+  /**
+    * The Stratego representation of a signature.
+    *
+    * @return
+    */
+  override def toString: String =
+    s"${children.mkString(" * ")} -> $result"
+}
 
-case class ConstType(sort: Sort) extends Type
+case class ConstType(sort: Sort) extends Type {
+  /**
+    * The Stratego representation of a signature.
+    *
+    * @return
+    */
+  override def toString: String =
+    sort.toString
+}

@@ -4,7 +4,7 @@ import java.io.{File, FileOutputStream, PrintWriter}
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
-import nl.tudelft.fragments.example.{MiniJava, Tiger}
+import nl.tudelft.fragments.example.{L1, L2, L3, MiniJava, Tiger}
 import nl.tudelft.fragments.spoofax.Language
 import rx.lang.scala.Observable
 
@@ -21,11 +21,11 @@ class Generator {
     * @param semanticsPath
     * @param limit
     * @param interactive
-    * @param verbose
+    * @param verbosity
     * @return
     */
-  def generate(sdfPath: String, nablPath: String, projectPath: String, semanticsPath: String, config: Config, limit: Int = -1, interactive: Boolean = false, verbose: Boolean = false): Observable[GenerationResult] =
-    generate(Language.load(sdfPath, nablPath, projectPath, semanticsPath), config, limit, interactive, verbose)
+  def generate(sdfPath: String, nablPath: String, projectPath: String, semanticsPath: String, config: Config, limit: Int = -1, interactive: Boolean = false, verbosity: Int = 0): Observable[GenerationResult] =
+    generate(Language.load(sdfPath, nablPath, projectPath, semanticsPath), config, limit, interactive, verbosity)
 
   /**
     * Generate a cold Observable of programs that emits at most n programs.
@@ -34,14 +34,14 @@ class Generator {
     * @param config
     * @param limit
     * @param interactive
-    * @param verbose
+    * @param verbosity
     * @return
     */
-  def generate(language: Language, config: Config, limit: Int, interactive: Boolean, verbose: Boolean): Observable[GenerationResult] =
+  def generate(language: Language, config: Config, limit: Int, interactive: Boolean, verbosity: Int): Observable[GenerationResult] =
     Observable(subscriber => {
       repeat(limit) {
         if (!subscriber.isUnsubscribed) {
-          subscriber.onNext(Synergy.generate(language, config, interactive, verbose))
+          subscriber.onNext(Synergy.generate(language, config, interactive, verbosity))
         }
       }
 
@@ -74,12 +74,14 @@ object Generator {
     * @param args
     */
   def main(args: Array[String]): Unit = {
+    // TODO: Replace this by a CLI runner?
+
     if (args.length == 0) {
       println("Usage: Generator <sdf-path> <nabl-path> <project-path> [options]")
       println("  --semantics <nabl2-path>   Path to the NaBL2 file (relative to the project)")
       println("  --limit <n>                Generate at most n terms")
       println("  --interactive              Interactive mode")
-      println("  --verbose                  Verbose output")
+      println("  --verbosity <n>            Verbosity of the output (n = 0, 1, 2)")
     } else {
       def parseOptions(options: List[String], config: Map[String, String] = Map.empty): Map[String, String] = options match {
         case "--semantics" :: semantics :: rest =>
@@ -88,8 +90,8 @@ object Generator {
           parseOptions(rest, config + ("limit" -> n))
         case "--interactive" :: rest =>
           parseOptions(rest, config + ("interactive" -> "true"))
-        case "--verbose" :: rest =>
-          parseOptions(rest, config + ("verbose" -> "true"))
+        case "--verbosity" :: n :: rest =>
+          parseOptions(rest, config + ("verbosity" -> n))
         case Nil =>
           config
         case _ :: rest =>
@@ -103,11 +105,30 @@ object Generator {
       val semanticsPath = options.get("semantics").map(_.toString).getOrElse("trans/static-semantics.nabl2")
       val limit = options.get("limit").map(_.toInt).getOrElse(-1)
       val interactive = options.get("interactive").map(_.toBoolean).getOrElse(false)
-      val verbose = options.get("verbose").map(_.toBoolean).getOrElse(false)
+      val verbosity = options.get("verbosity").map(_.toInt).getOrElse(0)
 
-      val writer = new PrintWriter(new FileOutputStream(new File("05-01-2017-mutant-3-1.log"), true))
+      val writer = new PrintWriter(
+        new FileOutputStream(new File("l3.log"), true)
+      )
 
-      new Generator().generate(sdfPath, nablPath, projectPath, semanticsPath, /*DefaultConfig*/ Tiger.tigerConfig /*MiniJava.miniJavaConfig*/, limit, interactive, verbose).subscribe(program => {
+      new Generator().generate(
+        sdfPath =
+          sdfPath,
+        nablPath =
+          nablPath,
+        projectPath =
+          projectPath,
+        semanticsPath =
+          semanticsPath,
+        config =
+          L3.l3Config,
+        limit =
+          limit,
+        interactive =
+          interactive,
+        verbosity =
+          verbosity
+      ).subscribe(program => {
         writer.println("===================================")
         writer.println(program)
         writer.println("---")

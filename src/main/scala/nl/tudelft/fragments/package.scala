@@ -30,8 +30,13 @@ package object fragments {
   // Implicitly define methods on any sequence
   implicit class RichSeq[T](seq: Seq[T]) {
     // Get random element from the sequence
-    def random: T =
-      seq(Random.nextInt(seq.length))
+    def random: T = {
+      if (seq.isEmpty) {
+        throw new IllegalArgumentException("Random element of empty sequence not defined.")
+      } else {
+        seq(Random.nextInt(seq.length))
+      }
+    }
 
     // Get random element from the sequence
     def randomOption: Option[T] = seq match {

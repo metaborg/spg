@@ -8,7 +8,7 @@ case class Distribution[T](elems: List[(T, Int)]) {
     *
     * @return
     */
-  def total = elems.map(_._2).sum
+  lazy val total = elems.map(_._2).sum
 
   /**
     * Sample an element from this distribution.
@@ -16,6 +16,8 @@ case class Distribution[T](elems: List[(T, Int)]) {
     * @return
     */
   def sample: T = {
+    assert(total > 0, s"Total weight must be positive, was negative in $elems")
+
     val randomInt = Random.nextInt(total)
     var p = 0
 

@@ -4,64 +4,37 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
 import nl.tudelft.fragments.spoofax.Language
-import nl.tudelft.fragments.{CGenRecurse, CResolve, Config, Constraint, Generator, Rule, TermAppl}
+import nl.tudelft.fragments.{CGenRecurse, CResolve, Config, Constraint, Generator, Rule}
 
-object MiniJava {
-  val miniJavaConfig = new Config {
+object L2 {
+  val l2Config = new Config {
     override def next(rule: Rule, recurses: List[CGenRecurse])(implicit language: Language): CGenRecurse =
       recurses.random
 
     override def scoreFn(rule: Rule): Int = {
-      def mainClassAssign(): Boolean = {
-        val mainClass = rule.pattern.collect {
-          case t@TermAppl("MainClass", _) =>
-            List(t)
-          case _ =>
-            Nil
-        }
-
-        val mainClassArrayAssign = () => mainClass.flatMap(_.collect {
-          case t@TermAppl("ArrayAssign", _) =>
-            List(t)
-          case _ =>
-            Nil
-        })
-
-        val mainClassAssign = () => mainClass.flatMap(_.collect {
-          case t@TermAppl("Assign", _) =>
-            List(t)
-          case _ =>
-            Nil
-        })
-
-        mainClassArrayAssign().nonEmpty || mainClassAssign().nonEmpty
-      }
-
       def scoreConstraint(c: Constraint): Int = c match {
         case _: CResolve =>
-          3
+          0
         case _: CGenRecurse =>
-          if (rule.pattern.size < 20) {
+          if (rule.pattern.size < 10) {
             0
-          } else {
-            // TODO: We are more interested in the _change_ in the number of recurse constraints, then their total amount. If there are 2 choices, and one adds twice as many recurse constraints, it's a lot worse, but this is not realized if 2 is negligible on the number of recurses we already have..
+          } else if (rule.pattern.size < 20) {
             10
+          } else if (rule.pattern.size < 40) {
+            30
+          } else {
+            40
           }
         case _ =>
           0
       }
 
-      // An ArrayAssign inside the MainClass is always inconsistent
-      if (mainClassAssign()) {
-        Integer.MAX_VALUE
-      } else {
-        1 + rule.constraints.map(scoreConstraint).sum
-      }
+      1 + rule.constraints.map(scoreConstraint).sum
     }
 
     override def choose(rule: Rule, rules: List[Rule]): List[(Rule, Int)] = {
       // Score every next move
-      val scoredRules = rules.zipWith(scoreFn).filter(_._2 < Integer.MAX_VALUE)
+      val scoredRules = rules.zipWith(scoreFn)
 
       if (scoredRules.isEmpty) {
         return Nil
@@ -73,11 +46,11 @@ object MiniJava {
       // Compute reciprocal of weight
       val weights = scoredRules.map {
         case (rule, score) =>
-          (rule, smallest.toFloat/score)
+          (rule, smallest.toFloat / score)
       }
 
       // Compute probability (solve for x)
-      val p = 1.toFloat/weights.map(_._2).sum
+      val p = 1.toFloat / weights.map(_._2).sum
 
       // Multiply weight by probability of smallest to get probability. Multiply by 100 for int scale.
       weights.map {
@@ -90,7 +63,7 @@ object MiniJava {
       60
 
     override def resolveProbability: Int =
-      80
+      1 // 10
   }
 
   def main(args: Array[String]): Unit = {
@@ -100,20 +73,16 @@ object MiniJava {
       nablPath =
         "zip:/Users/martijn/Projects/spoofax-releng/nabl/org.metaborg.meta.nabl2.lang/target/org.metaborg.meta.nabl2.lang-2.1.0.spoofax-language!/",
       projectPath =
-        "/Users/martijn/Projects/MiniJava",
+        "/Users/martijn/Projects/scopes-frames/L2",
       semanticsPath =
         "trans/static-semantics.nabl2",
       config =
-        miniJavaConfig,
-      limit =
-        100,
-      verbosity =
-        0
+        l2Config
     ).subscribe(program => {
       println("===================================")
       println(DateTimeFormatter.ISO_DATE_TIME.format(ZonedDateTime.now()))
       println("-----------------------------------")
-      println(program)
+      println(program.text)
     })
   }
 }

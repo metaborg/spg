@@ -189,6 +189,8 @@ object Specification {
     val rules = term.collectAll {
       case appl: IStrategoAppl if appl.getConstructor.getName == "CGenMatchRule" =>
         true
+      case appl: IStrategoAppl if appl.getConstructor.getName == "CGenMatchRuleNoConstraint" =>
+        true
       case _ =>
         false
     }
@@ -196,6 +198,8 @@ object Specification {
     rules.zipWithIndex.map {
       case (appl: IStrategoAppl, index) if appl.getConstructor.getName == "CGenMatchRule" =>
         toRule(index, appl)
+      case (appl: IStrategoAppl, index) if appl.getConstructor.getName == "CGenMatchRuleNoConstraint" =>
+        toRuleNoConstraint(index, appl)
     }
   }
 
@@ -207,15 +211,35 @@ object Specification {
       val name = toRuleName(appl.getSubterm(0))
       val pattern = toPattern(appl.getSubterm(1))
       val scopes = toVars(appl.getSubterm(2).getSubterm(0))
+      val typ = toTypeOption(ruleIndex, appl.getSubterm(3))
 
       Rule(
         name = name,
         sort = toSort(pattern),
-        typ = toTypeOption(ruleIndex, appl.getSubterm(3)),
+        typ = typ,
         scopes = scopes,
         state = State(
           pattern = pattern,
           constraints = toConstraints(ruleIndex, appl.getSubterm(4))
+        )
+      )
+  }
+
+  def toRuleNoConstraint(ruleIndex: Int, term: IStrategoTerm)(implicit signatures: Signatures): Rule = term match {
+    case appl: StrategoAppl =>
+      val name = toRuleName(appl.getSubterm(0))
+      val pattern = toPattern(appl.getSubterm(1))
+      val scopes = toVars(appl.getSubterm(2).getSubterm(0))
+      val typ = toTypeOption(ruleIndex, appl.getSubterm(3))
+
+      Rule(
+        name = name,
+        sort = toSort(pattern),
+        typ = typ,
+        scopes = scopes,
+        state = State(
+          pattern = pattern,
+          constraints = Nil
         )
       )
   }

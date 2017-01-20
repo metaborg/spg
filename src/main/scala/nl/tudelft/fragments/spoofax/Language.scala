@@ -9,17 +9,29 @@ import org.spoofax.interpreter.terms.IStrategoTerm
 
 import scala.collection.mutable
 
-class Language(val productions: List[Production], val signatures: Signatures, val specification: Specification, val printer: IStrategoTerm => String, val startSymbols: List[Sort], val implementation: ILanguageImpl) {
+/**
+  * Representation of a language consisting of productions, signatures,
+  * specification, printer, startSymbols, and implementation.
+  *
+  * @param productions
+  * @param signatures
+  * @param specification
+  * @param printer
+  * @param startSymbols
+  * @param implementation
+  */
+class Language(val productions: List[Production], val signatures: Signatures, val specification: Specification, val printer: IStrategoTerm => String, val startSymbols: Set[Sort], val implementation: ILanguageImpl) {
   val cache = mutable.Map[(String, Sort), List[Rule]]()
 
   /**
-    * Check if the given sort is a start symbol
+    * Check if the given sort is a start symbol. A sort is a start symbol if it
+    * is part of the transitive closure of the injection relation.
     *
     * @param sort
     * @return
     */
   def isStartSymbol(sort: Sort): Boolean =
-    startSymbols.contains(sort)
+    Sort.injectionsClosure(signatures, startSymbols).contains(sort)
 
   /**
     * Check if the given langauge is a start rule

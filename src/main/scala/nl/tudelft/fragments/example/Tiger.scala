@@ -3,12 +3,40 @@ package nl.tudelft.fragments.example
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
-import nl.tudelft.fragments.{CGenRecurse, CResolve, Config, Constraint, Generator, Rule}
-
-import scala.util.Random
+import nl.tudelft.fragments.consistency.ResolveLight
+import nl.tudelft.fragments.spoofax.Language
+import nl.tudelft.fragments.{CGenRecurse, CResolve, Config, Constraint, Generator, Graph, Rule}
 
 object Tiger {
   val tigerConfig = new Config {
+    override def next(rule: Rule, recurses: List[CGenRecurse])(implicit language: Language): CGenRecurse = {
+      // Get the recurse constraints that determine the solvability of a resolve constraint
+      def recurseDependsHole(recurses: List[CGenRecurse]): List[CGenRecurse] = {
+        val graph = Graph(rule.constraints)
+        val recurses = rule.recurse
+
+        rule.resolve.flatMap(resolve => {
+          val scope = graph.scope(resolve.n1)
+
+          if (ResolveLight.resolveableDeclarationExists(rule.state, resolve, graph, recurses) || ResolveLight.scopeVarExists(rule.state, resolve, graph, recurses, scope)) {
+            Nil
+          } else {
+            ResolveLight.reachableRecurses(rule.state, resolve, graph, recurses, scope)
+          }
+        })
+      }
+
+      val nextOptions = recurseDependsHole(recurses)
+
+      if (nextOptions.nonEmpty) {
+        nextOptions.random
+      } else {
+        recurses.random
+      }
+
+      // recurseDependsHole(recurses).randomOption.getOrElse(recurses.random)
+    }
+
     override def scoreFn(rule: Rule): Int = {
       def scoreConstraint(c: Constraint): Int = c match {
         case _: CResolve =>
@@ -17,7 +45,7 @@ object Tiger {
           if (rule.pattern.size < 10) {
             0
           } else if (rule.pattern.size < 20) {
-            5
+            10
           } else if (rule.pattern.size < 40) {
             30
           } else {
@@ -61,7 +89,8 @@ object Tiger {
       60
 
     override def resolveProbability: Int =
-      10
+      1
+      //10
   }
 
   def main(args: Array[String]): Unit = {

@@ -4,6 +4,11 @@ Fragments is a language-parametric test data generator. In goes a Spoofax projec
 programs. The input project is expected to contain a language specification in SDF3 (Syntax Definition Formalism) and
 NaBL2 (Name Binding Language).
 
+## Building
+
+The generator depends on NaBL2 at version 2.1.0. In particular, the code is not compatible with 2.2.0-SNAPSHOT. The
+path to NaBL2 is hardcoded in the source.
+
 ## Usage
 
 `Generator.generate` reutrns an `Observable[String]` of well-formed terms.

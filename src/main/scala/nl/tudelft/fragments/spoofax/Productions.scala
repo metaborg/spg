@@ -97,9 +97,9 @@ object Productions {
     case appl: IStrategoAppl if appl.getConstructor.getName == "IterStarSep" =>
       List(IterStarSep(toSort(appl.getSubterm(0)), toString(appl.getSubterm(1).getSubterm(0))))
     case appl: IStrategoAppl if appl.getConstructor.getName == "IterStar" =>
-      List(toSort(appl.getSubterm(0)))
+      List(IterStar(toSort(appl.getSubterm(0))))
     case appl: IStrategoAppl if appl.getConstructor.getName == "Iter" =>
-      List(toSort(appl.getSubterm(0)))
+      List(Iter(toSort(appl.getSubterm(0))))
     case appl: IStrategoAppl if appl.getConstructor.getName == "IterSep" =>
       List(IterSep(toSort(appl.getSubterm(0)), toString(appl.getSubterm(1).getSubterm(0))))
     case appl: IStrategoAppl if appl.getConstructor.getName == "Sort" =>

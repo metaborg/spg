@@ -1,9 +1,21 @@
 package nl.tudelft.fragments
 
+import nl.tudelft.fragments.spoofax.Language
+
 /**
   * Language-dependent generation configuration.
   */
 abstract class Config {
+  /**
+    * Given a rule and a list of CGenRecurse constraints, pick the recurse
+    * constraint to explore next.
+    *
+    * @param rule
+    * @param recurses
+    * @return
+    */
+  def next(rule: Rule, recurses: List[CGenRecurse])(implicit language: Language): CGenRecurse
+
   /**
     * Given a rule, assign it a score on the interval [1, infinity]. The lower
     * the score, the higher the probability of choosing this rule.
@@ -43,6 +55,9 @@ abstract class Config {
   * A config with some sane defaults
   */
 object DefaultConfig extends Config {
+  override def next(rule: Rule, recurses: List[CGenRecurse])(implicit language: Language): CGenRecurse =
+    recurses.random
+
   override def scoreFn(rule: Rule): Int = {
     def scoreConstraint(c: Constraint): Int = c match {
       case _: CResolve => 3

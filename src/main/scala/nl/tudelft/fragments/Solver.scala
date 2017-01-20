@@ -3,7 +3,16 @@ package nl.tudelft.fragments
 import nl.tudelft.fragments.spoofax.Language
 
 object Solver {
-  // TODO: If there is an inconsistency, now we just ignore it. Instead, we should abort. We can never recover from an inconsistency!
+  /**
+    * Gets a constraint and a state. Returns `Nil` if the constraint cannot be
+    * solved or a list of states if it can be solved in multiple ways.
+    *
+    * @param c
+    * @param state
+    * @param solveResolve
+    * @param language
+    * @return
+    */
   def rewrite(c: Constraint, state: State, solveResolve: Boolean)(implicit language: Language): List[State] = c match {
     case CTrue() =>
       state
@@ -44,27 +53,13 @@ object Solver {
       state.copy(subtypeRelation = state.subtypeRelation ++ closure)
     case CSubtype(t1, t2) if (t1.vars ++ t2.vars).isEmpty && state.subtypeRelation.isSubtype(t1, t2) =>
       state
-    case CDistinct(Declarations(scope, namespace)) if scope.vars.isEmpty /* TODO: vars.isEmpty does not ensure groundness! */ =>
+    case CDistinct(Declarations(scope, namespace)) if scope.vars.isEmpty =>
       val names = Graph(state.constraints).declarations(scope, namespace)
       val combis = for (List(a, b, _*) <- names.combinations(2).toList) yield (a, b)
 
       state.addInequalities(combis)
     case _ =>
       Nil
-  }
-
-  // Solve a resolve constraint (x |-> d) by resolving x to z
-  def resolve(rule: Rule, resolve: CResolve, z: Pattern): Rule = resolve match {
-    case CResolve(n1, n2) =>
-      val substitutedState = rule.state
-        .copy(constraints = rule.state.constraints - CResolve(n1, n2))
-        .substitute(Map(n2.asInstanceOf[Var] -> z))
-
-      val resolvedState = substitutedState.copy(
-        resolution = substitutedState.resolution + (n1 -> z)
-      )
-
-      rule.copy(state = resolvedState)
   }
 
   // Solve as many constraints as possible. Returns a List[State] of possible resuting states.
@@ -123,6 +118,17 @@ object Solver {
             .copy(resolution = state.resolution + (n1 -> dec))
         )
       }
+    case CResolve(n1, n2) =>
+      val decs = Graph(state.constraints).res(state.resolution)(n1)
+
+      decs.flatMap(dec =>
+        dec.unify(n2).map(termBinding =>
+          state
+            .removeConstraint(resolve)
+            .substitute(termBinding)
+            .copy(resolution = state.resolution + (n1 -> dec))
+        )
+      )
   }
 }
 

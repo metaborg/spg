@@ -20,6 +20,8 @@ abstract class Pattern {
 
   def unify(t: Pattern, termBinding: TermBinding = Map.empty): Option[TermBinding]
 
+  def contains(p: Pattern): Boolean
+
   def find(f: Pattern => Boolean): Option[Pattern]
 
   /**
@@ -118,17 +120,26 @@ case class Var(name: String) extends Pattern {
     }
 
   override def unify(typ: Pattern, termBinding: TermBinding): Option[TermBinding] = {
-    typ match {
-      case t@Var(_) if termBinding.contains(t) =>
-        unify(termBinding(t), termBinding)
-      case _ =>
-        if (termBinding.contains(this)) {
-          termBinding(this).unify(typ, termBinding)
-        } else {
-          Some(termBinding + (this -> typ))
-        }
+    if (this == typ) {
+      Some(termBinding)
+    } else if (typ.contains(this)) {
+      None
+    } else {
+      typ match {
+        case t@Var(_) if termBinding.contains(t) =>
+          unify(termBinding(t), termBinding)
+        case _ =>
+          if (termBinding.contains(this)) {
+            termBinding(this).unify(typ, termBinding)
+          } else {
+            Some(termBinding + (this -> typ))
+          }
+      }
     }
   }
+
+  override def contains(p: Pattern): Boolean =
+    false
 
   override def toString: String =
     s"""Var("$name")"""
@@ -189,6 +200,9 @@ case class As(alias: Var, term: Pattern) extends Term {
       None
   }
 
+  override def contains(p: Pattern): Boolean =
+    term.contains(p)
+
   override def find(f: (Pattern) => Boolean): Option[Pattern] =
     ???
 
@@ -226,17 +240,22 @@ case class TermAppl(cons: String, children: List[Pattern] = Nil) extends Term {
       (nameBinding, TermAppl(cons, args))
     }
 
-  override def unify(typ: Pattern, termBinding: TermBinding): Option[TermBinding] = typ match {
-    case c@TermAppl(`cons`, _) if children.length == c.children.length =>
-      children.zip(c.children).foldLeftWhile(termBinding) {
-        case (termBinding, (t1, t2)) =>
-          t1.unify(t2, termBinding)
-      }
-    case Var(_) =>
-      typ.unify(this, termBinding)
-    case _ =>
-      None
+  override def unify(typ: Pattern, termBinding: TermBinding): Option[TermBinding] = {
+    typ match {
+      case c@TermAppl(`cons`, _) if children.length == c.children.length =>
+        children.zip(c.children).foldLeftWhile(termBinding) {
+          case (termBinding, (t1, t2)) =>
+            t1.unify(t2, termBinding)
+        }
+      case Var(_) =>
+        typ.unify(this, termBinding)
+      case _ =>
+        None
+    }
   }
+
+  override def contains(p: Pattern): Boolean =
+    children.exists(child => child == p || child.contains(p))
 
   override def toString: String =
     s"""TermAppl("$cons", $children)"""
@@ -273,6 +292,9 @@ case class TermString(name: String) extends Term {
     1
 
   override def unify(t: Pattern, termBinding: TermBinding): Option[TermBinding] =
+    ???
+
+  override def contains(p: Pattern): Boolean =
     ???
 
   override def substitute(binding: Map[Var, Pattern]): Pattern =
@@ -321,6 +343,9 @@ case class SymbolicName(namespace: String, name: String) extends Name {
       None
   }
 
+  override def contains(p: Pattern): Boolean =
+    false
+
   override def vars: List[Var] =
     Nil
 
@@ -361,6 +386,9 @@ case class ConcreteName(namespace: String, name: String, position: Int) extends 
 
   override def unify(t: Pattern, termBinding: TermBinding): Option[TermBinding] =
     ???
+
+  override def contains(p: Pattern): Boolean =
+    false
 
   override def substitute(binding: Map[Var, Pattern]): Pattern =
     this

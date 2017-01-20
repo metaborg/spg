@@ -22,14 +22,14 @@ object Synergy {
     * @param language
     * @return
     */
-  def generate(language: Language, config: Config, interactive: Boolean, verbose: Boolean): GenerationResult = {
+  def generate(language: Language, config: Config, interactive: Boolean, verbosity: Int): GenerationResult = {
     implicit val l = language
 
     def generatePrivate(): Option[GenerationResult] = {
       val startRule = language.startRules.random
       val init = language.specification.init.instantiate()
       val start = init.merge(CGenRecurse("Default", init.state.pattern, init.scopes, init.typ, startRule.sort), startRule, 0).get
-      val result = synergize(language.specification.rules, config, interactive, verbose)(start)
+      val result = synergize(language.specification.rules, config, interactive, verbosity)(start)
 
       result match {
         case None =>
@@ -38,7 +38,7 @@ object Synergy {
           val solvedStates = Solver.solve(rule.state)
 
           if (solvedStates.isEmpty) {
-            if (verbose) {
+            if (verbosity >= 1) {
               println(rule)
               println("Still inconsistent")
             }
@@ -66,9 +66,13 @@ object Synergy {
   }
 
   // Expand rule with the best alternative from rules
-  def synergize(rules: List[Rule], config: Config, interactive: Boolean, verbose: Boolean)(term: Rule)(implicit language: Language): Option[Rule] = {
+  def synergize(rules: List[Rule], config: Config, interactive: Boolean, verbosity: Int)(term: Rule)(implicit language: Language): Option[Rule] = {
+    if (verbosity >= 2) {
+      println(term)
+    }
+
     if (term.pattern.size > config.sizeLimit) {
-      if (verbose) {
+      if (verbosity >= 1) {
         println("Too large")
       }
 
@@ -79,7 +83,7 @@ object Synergy {
       return Some(term)
     }
 
-    // Pick a random recurse constraint (position to expand the current rule)
+    // Pick a recurse constraint (position to expand the current rule)
     val recurse = if (interactive) {
       println("Which recurse constraint to expand?")
 
@@ -89,7 +93,7 @@ object Synergy {
 
       term.recurse(readChoice(term.recurse))
     } else {
-      term.recurse.random
+      config.next(term, term.recurse)
     }
 
     // Merge with every other rule and filter out inconsistent merges and too big rules
@@ -114,7 +118,7 @@ object Synergy {
     val scoredSolvedResolvedOptions = config.choose(term, solvedResolvedOptions)
 
     if (scoredSolvedResolvedOptions.isEmpty) {
-      if (verbose) {
+      if (verbosity >= 1) {
         println(term)
         println("No expansion for " + recurse.pattern)
       }
@@ -133,11 +137,11 @@ object Synergy {
       println("Which term would you like to continue with?")
       val choice = readChoice(scoredSolvedResolvedOptions)
 
-      synergize(rules, config, interactive, verbose)(scoredSolvedResolvedOptions(choice)._1)
+      synergize(rules, config, interactive, verbosity)(scoredSolvedResolvedOptions(choice)._1)
     } else {
       val distribution = Distribution(scoredSolvedResolvedOptions)
 
-      synergize(rules, config, interactive, verbose)(distribution.sample)
+      synergize(rules, config, interactive, verbosity)(distribution.sample)
     }
   }
 

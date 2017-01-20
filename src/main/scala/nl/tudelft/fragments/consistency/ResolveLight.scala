@@ -66,6 +66,20 @@ object ResolveLight {
   }
 
   /**
+    * Get the recurse constraints that are parametrized with one of the
+    * reachable ground scopes.
+    */
+  def reachableRecurses(state: State, resolve: CResolve, graph: Graph, recurses: List[CGenRecurse], scope: Pattern): List[CGenRecurse] = {
+    val reachable = graph.reachableScopes(state.resolution)(scope)
+
+    recurses.filter(recurse =>
+      recurse.scopes.exists(scope =>
+        reachable.contains(scope)
+      )
+    )
+  }
+
+  /**
     * There exists a reachable scope var.
     */
   def scopeVarExists(state: State, resolve: CResolve, graph: Graph, recurse: List[CGenRecurse], scope: Pattern) = {

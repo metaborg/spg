@@ -3,7 +3,7 @@ package nl.tudelft.fragments.spoofax
 import java.nio.charset.StandardCharsets
 
 import com.google.common.collect.Iterables
-import nl.tudelft.fragments.{FragmentsModule}
+import nl.tudelft.fragments.FragmentsModule
 import nl.tudelft.fragments.spoofax.models.{Sort, SortAppl}
 import org.apache.commons.io.IOUtils
 import org.metaborg.core.language.{ILanguageImpl, LanguageUtils}
@@ -84,10 +84,10 @@ object Utils {
   /**
     * Compute all start symbols
     */
-  def startSymbols(languageImpl: ILanguageImpl): List[Sort] =
+  def startSymbols(languageImpl: ILanguageImpl): Set[Sort] =
     languageImpl
       .facets(classOf[SyntaxFacet]).asScala
       .flatMap(_.startSymbols.asScala)
       .map(SortAppl(_))
-      .toList
+      .toSet
 }
