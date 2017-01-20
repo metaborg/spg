@@ -100,7 +100,7 @@ object Solver {
 
     solvePrivate(sortedState)
   }
-  
+
   // Solve the given resolve constraint
   def solveResolve(state: State, resolve: CResolve)(implicit language: Language): List[State] = resolve match {
     case CResolve(n1, n2) =>

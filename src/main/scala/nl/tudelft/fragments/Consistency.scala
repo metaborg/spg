@@ -73,7 +73,7 @@ object Consistency {
 
   // Solve constraints by type. Returns `None` if constraints contain a consistency or `Some(state)` with the resulting state.
   def solve(state: State)(implicit language: Language): List[State] = {
-    for (constraint <- state.constraints diff state.wrapped) {
+    for (constraint <- state.constraints) {
       val result = rewrite(constraint, state.removeConstraint(constraint))
 
       result match {

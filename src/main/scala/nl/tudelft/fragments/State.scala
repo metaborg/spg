@@ -7,20 +7,11 @@ package nl.tudelft.fragments
   */
 case class State(pattern: Pattern, constraints: List[Constraint], typeEnv: TypeEnv, resolution: Resolution, subtypeRelation: SubtypeRelation, inequalities: List[(Pattern, Pattern)]) {
   /**
-    * Get all wrapped constraints
-    *
-    * @return
-    */
-  def wrapped(): List[Constraint] =
-  constraints.filter(_.isInstanceOf[WrappedConstraint])
-
-  /**
     * Get all CResolve constraints
     *
     * @return
     */
-  def resolve =
-  constraints
+  def resolve = constraints
     .filter(_.isInstanceOf[CResolve])
     .asInstanceOf[List[CResolve]]
 
@@ -29,8 +20,7 @@ case class State(pattern: Pattern, constraints: List[Constraint], typeEnv: TypeE
     *
     * @return
     */
-  def recurse =
-  constraints
+  def recurse = constraints
     .filter(_.isInstanceOf[CGenRecurse])
     .asInstanceOf[List[CGenRecurse]]
 

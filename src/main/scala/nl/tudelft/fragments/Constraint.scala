@@ -31,27 +31,6 @@ abstract class Constraint {
   def priority: Int = 99
 }
 
-// WrappedConstraint
-case class WrappedConstraint(c: Constraint) extends Constraint {
-  override def substitute(binding: TermBinding): Constraint =
-    WrappedConstraint(c.substitute(binding))
-
-  override def substituteScope(binding: TermBinding): Constraint =
-    WrappedConstraint(c.substituteScope(binding))
-
-  override def substituteType(binding: TermBinding): Constraint =
-    WrappedConstraint(c.substituteType(binding))
-
-  override def substituteSort(binding: SortBinding): Constraint =
-    WrappedConstraint(c.substituteSort(binding))
-
-  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
-    c.freshen(nameBinding).map {
-      case (nameBinding, c) =>
-        (nameBinding, WrappedConstraint(c))
-    }
-}
-
 // Facts
 case class CTrue() extends Constraint {
   override def substitute(binding: TermBinding): Constraint =
