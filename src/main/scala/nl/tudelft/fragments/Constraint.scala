@@ -266,7 +266,7 @@ case class CResolve(n1: Pattern, n2: Pattern) extends Constraint {
     true
 
   override def priority =
-    4
+    999
 }
 
 /**
@@ -440,6 +440,9 @@ case class CGenRecurse(name: String, pattern: Pattern, scopes: List[Pattern], ty
 
   override def isProper =
     true
+
+  override def priority: Int =
+    999
 
   override def toString: String =
     s"""CGenRecurse("$name", $pattern, $scopes, $typ, $sort)"""

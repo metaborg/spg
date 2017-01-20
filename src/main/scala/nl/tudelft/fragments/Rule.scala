@@ -20,11 +20,7 @@ case class Rule(name: String, sort: Sort, typ: Option[Pattern], scopes: List[Pat
         .substituteSort(sortUnifier)
         .substitutePattern(patternUnifier)
 
-      if (Consistency.check(merged, level)) {
-        Some((merged, nameBinding, sortUnifier, typeUnifier, scopeUnifier))
-      } else {
-        None
-      }
+      Some((merged, nameBinding, sortUnifier, typeUnifier, scopeUnifier))
     }
 
     merged.flatten
@@ -45,6 +41,10 @@ case class Rule(name: String, sort: Sort, typ: Option[Pattern], scopes: List[Pat
   // Get all constraints
   def constraints: List[Constraint] =
     state.constraints
+
+  // Get all proper constraints
+  lazy val properConstraints: List[Constraint] =
+    state.constraints.filter(_.isProper)
 
   // Get the pattern
   def pattern: Pattern =
@@ -97,21 +97,34 @@ case class Rule(name: String, sort: Sort, typ: Option[Pattern], scopes: List[Pat
 
   /**
     * Instantiate a rule by replacing all variables s that are marked as
-    * "new s" by a concrete scope with a fresh name.
+    * "new s" by a concrete scope with a fresh name and removing the NewScope
+    * constraints.
     */
   def instantiate(): Rule = {
-    val newScopes = state.constraints.collect {
+    val newScopeConstraints = state.constraints.filter {
+      case NewScope(_) =>
+        true
+      case _ =>
+        false
+    }
+
+    val newScopeVariables = newScopeConstraints.map {
       case NewScope(variable) =>
         variable
     }
 
-    val substitution = newScopes.map(variable =>
+    val substitution = newScopeVariables.map(variable =>
       (variable, TermAppl("s" + nameProvider.next))
     ).toMap
 
-    substituteScope(substitution)
+    // Remove NewScope constraints
+    val ruleWithoutNewScopes = newScopeConstraints.foldLeft(this) {
+      case (rule, c@NewScope(_)) =>
+        rule.withState(rule.state - c)
+    }
 
-    // TODO: Remove newScope constraints; they are not needed anymore..
+    // Apply the substitution
+    ruleWithoutNewScopes.substituteScope(substitution)
   }
 
   override def toString: String =
@@ -141,8 +154,9 @@ object Rule {
   }
 
   // Merge two lists of scopes
-  def mergeScopes(s1: List[Pattern], s2: List[Pattern]): Option[TermBinding] =
+  def mergeScopes(s1: List[Pattern], s2: List[Pattern]): Option[TermBinding] = {
     s1.unify(s2)
+  }
 
   // If p1 occurs as `As(p1, x)` in r.pattern, then (x unify p2) must be defined
   def mergePatterns(r: Rule, p1: Pattern, p2: Pattern): Option[TermBinding] = {

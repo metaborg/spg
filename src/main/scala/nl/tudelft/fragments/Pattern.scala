@@ -337,6 +337,8 @@ case class SymbolicName(namespace: String, name: String) extends Name {
   override def unify(t: Pattern, termBinding: TermBinding = Map.empty): Option[TermBinding] = t match {
     case SymbolicName(`namespace`, `name`) =>
       Some(Map())
+    case ConcreteName(`namespace`, name, _) =>
+      ???
     case v@Var(_) =>
       v.unify(this, termBinding)
     case _ =>
@@ -384,8 +386,16 @@ case class ConcreteName(namespace: String, name: String, position: Int) extends 
   override def size: Int =
     ???
 
-  override def unify(t: Pattern, termBinding: TermBinding): Option[TermBinding] =
-    ???
+  override def unify(t: Pattern, termBinding: TermBinding): Option[TermBinding] = t match {
+    case ConcreteName(`namespace`, `name`, _) =>
+      Some(termBinding)
+    case s@SymbolicName(`namespace`, name) =>
+      Some(termBinding)
+    case Var(_) =>
+      t.unify(this, termBinding)
+    case _ =>
+      None
+  }
 
   override def contains(p: Pattern): Boolean =
     false

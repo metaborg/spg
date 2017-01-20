@@ -58,6 +58,8 @@ object Sort {
     * Compute the transitive closure of the injection relation on the given
     * sort.
     *
+    * TODO: This should be cached, because it is highly inefficient!
+    *
     * @param signatures
     * @param sort
     * @return

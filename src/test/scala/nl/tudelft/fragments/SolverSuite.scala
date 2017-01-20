@@ -248,49 +248,6 @@ class SolverSuite extends FunSuite {
     val c = CSubtype(t1, t2)
     val s = State(Nil)
 
-    assert(Solver.rewrite(c, s, true)(null).isEmpty)
-  }
-
-  test("xxy") {
-    // TODO: Mock the parts of language that are necessary for the test? See ResolutionSuite for alternative solution.
-    val language = Language.load(
-      sdfPath =
-        "zip:/Users/martijn/Projects/spoofax-releng/sdf/org.metaborg.meta.lang.template/target/org.metaborg.meta.lang.template-2.1.0.spoofax-language!/",
-      nablPath =
-        "zip:/Users/martijn/Projects/spoofax-releng/nabl/org.metaborg.meta.nabl2.lang/target/org.metaborg.meta.nabl2.lang-2.1.0.spoofax-language!/",
-      projectPath =
-        "/Users/martijn/Projects/MiniJava",
-      semanticsPath =
-        "trans/static-semantics.nabl2"
-    )
-
-    val s = State(
-      pattern = Var("x"),
-      constraints = List(
-        // Proper constraints
-        CTypeOf(ConcreteName("M", "m", 3), TermAppl("TMethod", List(TermAppl("TInt"), TermAppl("TInt")))),
-        CResolve(ConcreteName("C", "Foo", 1), Var("d1")),
-        CAssoc(Var("d1"), Var("sigma")),
-        CResolve(ConcreteName("M", "m", 4), Var("d2")),
-        CTypeOf(Var("d2"), TermAppl("TMethod", List(Var("rty"), Var("tf")))),
-        CSubtype(TermAppl("TInt", List(TermAppl("TInt", List(TermAppl("TInt", Nil))))), Var("tf")),
-
-        // Facts
-        CGRef(ConcreteName("C", "Foo", 1), TermAppl("s")),
-        CGDecl(TermAppl("s"), ConcreteName("C", "Foo", 2)),
-        CGDirectEdge(TermAppl("cs"), Label('P'), TermAppl("s")),
-        CGAssoc(ConcreteName("C", "Foo", 2), TermAppl("cs")),
-        CGDecl(TermAppl("cs"), ConcreteName("M", "m", 3)),
-        CGDirectEdge(TermAppl("ms"), Label('P'), TermAppl("cs")),
-        CGRef(ConcreteName("M", "m", 4), TermAppl("s'")),
-        CGDirectEdge(TermAppl("s'"), Label('I'), Var("sigma"))
-      ),
-      typeEnv = TypeEnv(),
-      resolution = Resolution(),
-      subtypeRelation = SubtypeRelation(),
-      inequalities = Nil
-    )
-
-    assert(Solver.solve(s)(language).isEmpty)
+    assert(Solver.rewrite(c, s)(null).isEmpty)
   }
 }

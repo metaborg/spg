@@ -29,7 +29,7 @@ case class State(pattern: Pattern, constraints: List[Constraint], typeEnv: TypeE
       pattern =
         pattern.substitute(Map(recurse.pattern.asInstanceOf[Var] -> state.pattern)),
       constraints =
-        (constraints ++ state.constraints) - recurse,
+        (constraints - recurse) ++ state.constraints,
       typeEnv =
         typeEnv ++ state.typeEnv,
       resolution =
@@ -41,10 +41,22 @@ case class State(pattern: Pattern, constraints: List[Constraint], typeEnv: TypeE
     )
   }
 
-  def removeConstraint(constraint: Constraint): State =
+  /**
+    * Create a new state in which the given constraint is removed.
+    *
+    * @param constraint
+    * @return
+    */
+  def `-`(constraint: Constraint): State =
     copy(constraints = constraints - constraint)
 
-  def addConstraint(constraint: Constraint): State =
+  /**
+    * Create a new state to which the given constraint is added.
+    *
+    * @param constraint
+    * @return
+    */
+  def `+`(constraint: Constraint): State =
     copy(constraints = constraint :: constraints)
 
   def addBinding(nameType: (Pattern, Pattern)): State =
@@ -60,7 +72,7 @@ case class State(pattern: Pattern, constraints: List[Constraint], typeEnv: TypeE
     * @return
     */
   def substitute(binding: TermBinding): State =
-  copy(pattern.substitute(binding), constraints.substitute(binding), typeEnv.substitute(binding), resolution.substitute(binding), subtypeRelation.substitute(binding), inequalities.substitute(binding))
+    copy(pattern.substitute(binding), constraints.substitute(binding), typeEnv.substitute(binding), resolution.substitute(binding), subtypeRelation.substitute(binding), inequalities.substitute(binding))
 
   /**
     * Substitute the given type.
@@ -69,7 +81,7 @@ case class State(pattern: Pattern, constraints: List[Constraint], typeEnv: TypeE
     * @return
     */
   def substituteType(binding: TermBinding): State =
-  copy(pattern, constraints.substitute(binding), typeEnv.substitute(binding), resolution, subtypeRelation, inequalities)
+    copy(pattern, constraints.substitute(binding), typeEnv.substitute(binding), resolution, subtypeRelation, inequalities)
 
   /**
     * Substitute the given map of variables to patterns.
@@ -78,7 +90,7 @@ case class State(pattern: Pattern, constraints: List[Constraint], typeEnv: TypeE
     * @return
     */
   def substituteName(binding: TermBinding): State =
-  copy(pattern, constraints.substitute(binding), typeEnv.substitute(binding), resolution, subtypeRelation, inequalities)
+    copy(pattern, constraints.substitute(binding), typeEnv.substitute(binding), resolution, subtypeRelation, inequalities)
 
   /**
     * Substitute only in the pattern.
@@ -87,7 +99,7 @@ case class State(pattern: Pattern, constraints: List[Constraint], typeEnv: TypeE
     * @return
     */
   def substitutePattern(binding: TermBinding): State =
-  copy(pattern.substitute(binding), constraints.substitute(binding), typeEnv, resolution, subtypeRelation, inequalities)
+    copy(pattern.substitute(binding), constraints.substitute(binding), typeEnv, resolution, subtypeRelation, inequalities)
 
   def substituteScope(binding: TermBinding): State =
     copy(pattern, constraints.substituteScope(binding), typeEnv.substituteScope(binding), resolution, subtypeRelation, inequalities)

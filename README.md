@@ -31,11 +31,11 @@ Options
 
 Arguments
 
-   <sdfPath>   : Path to the SDF language implementation archive
-   <nablPath>  : Path to the NaBL2 language implementation archive
+   <sdfPath>     : Path to the SDF language implementation archive
+   <nablPath>    : Path to the NaBL2 language implementation archive
    <projectPath> : Path to the Spoofax project of the language to generate terms for
 ```
 
 ### Application Programming Interface
 
-`Generator.generate` returns an `Observable[GenerationResult]`.
+`Generator.generate` returns an `Observable[String]` that emits well-formed terms.

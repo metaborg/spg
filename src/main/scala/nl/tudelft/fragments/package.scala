@@ -17,8 +17,18 @@ package object fragments {
 
   // Implicitly convert Option[State] to List[State]
   implicit def optionToList(o: Option[State]): List[State] = o match {
-    case None => Nil
-    case Some(x) => List(x)
+    case Some(x) =>
+      List(x)
+    case None =>
+      Nil
+  }
+
+  // Implicitly convert an Option[List[State]] to List[State]
+  implicit def listToOption(o: Option[List[State]]): List[State] = o match {
+    case Some(l) =>
+      l
+    case None =>
+      Nil
   }
 
   // Implicitly convert State to List[State]. Allows returning a State when an List[State] is required.
@@ -111,11 +121,6 @@ package object fragments {
     // Remove element from list
     def -(elem: T): List[T] =
       list diff List(elem)
-  }
-
-  implicit class RichIntList[T <: Int](list: List[T]) extends RichList[T](list) {
-    def average(implicit num: Numeric[T]): Float =
-      list.sum.toFloat / list.size
   }
 
   implicit class RichPatternList[T <: Pattern](list: List[T]) extends RichList[T](list) {

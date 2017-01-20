@@ -1,24 +1,25 @@
 package nl.tudelft.fragments
 
 import nl.tudelft.fragments.spoofax.Language
+import nl.tudelft.fragments.spoofax.models.{Sort, SortAppl, SortVar}
 
 object Solver {
   /**
-    * Gets a constraint and a state. Returns `Nil` if the constraint cannot be
-    * solved or a list of states if it can be solved in multiple ways.
+    * Solves the given constraint by rewriting it and returning a new state.
+    * Since a constraint may be solvable in multiple ways, a list of states is
+    * returned. If the constraint cannot be solved, an empty list is returned.
     *
-    * @param c
+    * @param constraint
     * @param state
-    * @param solveResolve
     * @param language
     * @return
     */
-  def rewrite(c: Constraint, state: State, solveResolve: Boolean)(implicit language: Language): List[State] = c match {
+  def rewrite(constraint: Constraint, state: State)(implicit language: Language): List[State] = constraint match {
     case CTrue() =>
       state
     case CTypeOf(n, t) if n.vars.isEmpty =>
       if (state.typeEnv.contains(n)) {
-        state.addConstraint(CEqual(state.typeEnv(n), t))
+        state + CEqual(state.typeEnv(n), t)
       } else {
         state.addBinding(n -> t)
       }
@@ -27,19 +28,15 @@ object Solver {
     case CInequal(t1, t2) if !Unifier.canUnify(t1, t2) =>
       state
     case CResolve(n1, n2) =>
-      if (solveResolve) {
-        val declarations = Graph(state.constraints).res(state.resolution)(n1)
+      val declarations = Graph(state.constraints).res(state.resolution)(n1)
 
-        declarations.flatMap(declaration =>
-          declaration.unify(n2).map(unifier =>
-            state
-              .substitute(unifier)
-              .copy(resolution = state.resolution + (n1 -> declaration))
-          )
+      declarations.flatMap(declaration =>
+        declaration.unify(n2).map(unifier =>
+          state
+            .substitute(unifier)
+            .copy(resolution = state.resolution + (n1 -> declaration))
         )
-      } else {
-        Nil
-      }
+      )
     case CAssoc(n@SymbolicName(_, _), s@Var(_)) if Graph(state.constraints).associated(n).nonEmpty =>
       Graph(state.constraints).associated(n).map(scope =>
         state.substitute(Map(s -> scope))
@@ -56,63 +53,51 @@ object Solver {
       val combis = for (List(a, b, _*) <- names.combinations(2).toList) yield (a, b)
 
       state.addInequalities(combis)
-    case _ =>
-      Nil
-  }
+    case constraint@CGenRecurse(name, _, scopes, typ, sort) =>
+      language.rules(name, sort).flatMap(rule => {
+        val (_, freshRule) = rule.instantiate().freshen()
 
-  // Solve as many constraints as possible. Returns a List[State] of possible resuting states.
-  def solveAny(state: State)(implicit language: Language): List[State] = state.constraints.filter(_.isProper) match {
-    case Nil =>
-      List(state)
-    case _ =>
-      for (c <- state.constraints) {
-        val result = rewrite(c, state.removeConstraint(c), solveResolve = false)
+        // TODO: Merging in the presence of aliases is harder (try Tiger)
+        val newState = state.merge(constraint, freshRule.state)
 
-        if (result.nonEmpty) {
-          return result.flatMap(solveAny)
-        }
-      }
-
-      List(state)
-  }
-
-  // Solve all constraints. Returns `Nil` if it is not possible to solve all constraints.
-  def solvePrivate(state: State)(implicit language: Language): List[State] = state.constraints.filter(_.isProper) match {
-    case Nil =>
-      List(state)
-    case _ =>
-      for (constraint <- state.constraints) {
-        val result = rewrite(constraint, state.removeConstraint(constraint), solveResolve = true)
-
-        if (result.nonEmpty) {
-          return result.flatMap(solve)
-        }
-      }
-
-      Nil
-  }
-
-  // Solve constraints after sorting on priority
-  def solve(state: State)(implicit language: Language): List[State] = {
-    val sortedState = state.copy(
-      constraints = state.constraints.sortBy(_.priority)
-    )
-
-    solvePrivate(sortedState)
-  }
-
-  // Solve the given resolve constraint
-  def solveResolve(state: State, resolve: CResolve)(implicit language: Language): List[State] = resolve match {
-    case CResolve(n1, n2) =>
-      val declarations = Graph(state.constraints).res(state.resolution)(n1)
-
-      declarations.flatMap(declaration =>
-        declaration.unify(n2).map(unifier =>
-          state
-            .removeConstraint(resolve)
-            .substitute(unifier)
-            .copy(resolution = state.resolution + (n1 -> declaration))
+        mergeSorts(newState)(sort, freshRule.sort).map(newState =>
+          mergeTypes(newState)(typ, freshRule.typ).flatMap(newState =>
+            mergeScopes(newState)(scopes, freshRule.scopes)
+          )
         )
-      )
+      })
+    case _ =>
+      Nil
+  }
+
+  def mergeSorts(state: State)(s1: Sort, s2: Sort)(implicit language: Language): Option[State] = s1 match {
+    case SortVar(_) =>
+      s1.unify(s2).map(state.substituteSort)
+    case SortAppl(_, children) =>
+      Sort
+        .injectionsClosure(language.signatures, s1).view
+        .flatMap(_.unify(s2))
+        .headOption
+        .map(state.substituteSort)
+  }
+
+  def mergeTypes(state: State)(t1: Option[Pattern], t2: Option[Pattern])(implicit language: Language): List[State] = (t1, t2) match {
+    case (None, None) =>
+      state
+    case (Some(_), Some(_)) =>
+      rewrite(CEqual(t1.get, t2.get), state)
+    case _ =>
+      Nil
+  }
+
+  def mergeScopes(state: State)(ss1: List[Pattern], ss2: List[Pattern])(implicit language: Language): List[State] = {
+    if (ss1.length == ss2.length) {
+      ss1.zip(ss2).foldLeftMap(state) {
+        case (state, (s1, s2)) =>
+          rewrite(CEqual(s1, s2), state)
+      }
+    } else {
+      Nil
+    }
   }
 }
