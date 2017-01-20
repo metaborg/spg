@@ -1,32 +1,41 @@
-# Fragments
+# Generator
 
-Fragments is a language-parametric test data generator. In goes a Spoofax project, out comes a stream of well-formed
-programs. The input project is expected to contain a language specification in SDF3 (Syntax Definition Formalism) and
-NaBL2 (Name Binding Language).
+Generator is a language-parametric generator of well-formed terms. In takes a
+language specification in the form of a Spoofax project and returns an
+observable of well-formed terms.
 
 ## Building
 
-The generator depends on NaBL2 at version 2.1.0. In particular, the code is not compatible with 2.2.0-SNAPSHOT. The
-path to NaBL2 is hardcoded in the source.
+### Publishing Locally
+
+Use `sbt publish-local` to publish the artifact to your local Ivy repository.
+Use `sbt publish-m2` to publish the artifact to your local Maven repository.
 
 ## Usage
 
-`Generator.generate` reutrns an `Observable[String]` of well-formed terms.
-How you use these terms depends on your use case. For eample:
+The generator can be invoked either through its CLI or API.
+
+### Command Line Interface
 
 ```
-$ sbt "run-main nl.tudelft.fragments.RichGenerator /Users/martijn/Projects/metaborg-tiger/org.metaborg.lang.tiger"
+Usage
+
+ generator [options] <sdfPath> <nablPath> <projectPath> : Generate random well-formed terms
+
+Options
+
+   --interactive           : Run generator in interactive mode (default: false)
+   --limit=NUM             : Number of terms to generate (default: -1)
+   --semantics-path=STRING : Path to the static semantics specification (default: trans/static-semantics.nabl2)
+   --verbosity=NUM         : Verbosity of the output (default: 0)
+
+Arguments
+
+   <sdfPath>   : Path to the SDF language implementation archive
+   <nablPath>  : Path to the NaBL2 language implementation archive
+   <projectPath> : Path to the Spoofax project of the language to generate terms for
 ```
 
-will run the generator for Tiger. The `RichGenerator` outputs running averages
-on the generated terms.
+### Application Programming Interface
 
-### Publishing Locally
-
-Use `sbt publish-local` to publish the artifact to the local Ivy repository. Use `sbt publish-m2`
-to publish the artifact to the local Maven repository.
-
-### Statistics
-
-The `Statistics` observer slurps well-formed terms and outputs running averages
-such as average use of each constructor.
+`Generator.generate` returns an `Observable[GenerationResult]`.

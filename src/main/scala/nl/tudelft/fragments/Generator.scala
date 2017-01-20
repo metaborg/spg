@@ -6,6 +6,7 @@ import java.time.format.DateTimeFormatter
 
 import nl.tudelft.fragments.example.{L1, L2, L3, MiniJava, Tiger}
 import nl.tudelft.fragments.spoofax.Language
+import org.backuity.clist.{Cli, Command => BaseCommand, arg, opt}
 import rx.lang.scala.Observable
 
 import scala.annotation.tailrec
@@ -74,60 +75,20 @@ object Generator {
     * @param args
     */
   def main(args: Array[String]): Unit = {
-    // TODO: Replace this by a CLI runner?
-
-    if (args.length == 0) {
-      println("Usage: Generator <sdf-path> <nabl-path> <project-path> [options]")
-      println("  --semantics <nabl2-path>   Path to the NaBL2 file (relative to the project)")
-      println("  --limit <n>                Generate at most n terms")
-      println("  --interactive              Interactive mode")
-      println("  --verbosity <n>            Verbosity of the output (n = 0, 1, 2)")
-    } else {
-      def parseOptions(options: List[String], config: Map[String, String] = Map.empty): Map[String, String] = options match {
-        case "--semantics" :: semantics :: rest =>
-          parseOptions(rest, config + ("semantics" -> semantics))
-        case "--limit" :: n :: rest =>
-          parseOptions(rest, config + ("limit" -> n))
-        case "--interactive" :: rest =>
-          parseOptions(rest, config + ("interactive" -> "true"))
-        case "--verbosity" :: n :: rest =>
-          parseOptions(rest, config + ("verbosity" -> n))
-        case Nil =>
-          config
-        case _ :: rest =>
-          parseOptions(rest, config)
-      }
-
-      val options = parseOptions(args.drop(1).toList)
-      val sdfPath = args(0)
-      val nablPath = args(1)
-      val projectPath = args(2)
-      val semanticsPath = options.get("semantics").map(_.toString).getOrElse("trans/static-semantics.nabl2")
-      val limit = options.get("limit").map(_.toInt).getOrElse(-1)
-      val interactive = options.get("interactive").map(_.toBoolean).getOrElse(false)
-      val verbosity = options.get("verbosity").map(_.toInt).getOrElse(0)
-
+    Cli.parse(args).withCommand(new Command)(options => {
       val writer = new PrintWriter(
         new FileOutputStream(new File("l3.log"), true)
       )
 
       new Generator().generate(
-        sdfPath =
-          sdfPath,
-        nablPath =
-          nablPath,
-        projectPath =
-          projectPath,
-        semanticsPath =
-          semanticsPath,
-        config =
-          L3.l3Config,
-        limit =
-          limit,
-        interactive =
-          interactive,
-        verbosity =
-          verbosity
+        options.sdfPath,
+        options.nablPath,
+        options.projectPath,
+        options.semanticsPath,
+        L3.l3Config,
+        options.limit,
+        options.interactive,
+        options.verbosity
       ).subscribe(program => {
         writer.println("===================================")
         writer.println(program)
@@ -141,6 +102,40 @@ object Generator {
         println(program.text)
         println("-----------------------------------")
       })
-    }
+    })
   }
+}
+
+class Command extends BaseCommand(name = "generator", description = "Generate random well-formed terms") {
+  var semanticsPath = opt[String](
+    description = "Path to the static semantics specification (default: trans/static-semantics.nabl2)",
+    default = "trans/static-semantics.nabl2"
+  )
+
+  var limit = opt[Int](
+    description = "Number of terms to generate (default: -1)",
+    default = -1
+  )
+
+  var interactive = opt[Boolean](
+    description = "Run generator in interactive mode (default: false)",
+    default = false
+  )
+
+  var verbosity = opt[Int](
+    description = "Verbosity of the output (default: 0)",
+    default = 0
+  )
+
+  var sdfPath = arg[String](
+    description = "Path to the SDF language implementation archive"
+  )
+
+  var nablPath = arg[String](
+    description = "Path to the NaBL2 language implementation archive"
+  )
+
+  var projectPath = arg[String](
+    description = "Path to the Spoofax project of the language to generate terms for"
+  )
 }

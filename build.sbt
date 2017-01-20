@@ -30,6 +30,6 @@ libraryDependencies += "net.codingwell" %% "scala-guice" % "4.1.0"
 // Observables
 libraryDependencies += "io.reactivex" %% "rxscala" % "0.26.4"
 
-//// For parsing CLI options
-//libraryDependencies += "org.backuity.clist" %% "clist-core"   % "3.2.2"
-//libraryDependencies += "org.backuity.clist" %% "clist-macros" % "3.2.2" % "provided"
+// For parsing CLI options
+libraryDependencies += "org.backuity.clist" %% "clist-core"   % "3.2.2"
+libraryDependencies += "org.backuity.clist" %% "clist-macros" % "3.2.2" % "provided"
