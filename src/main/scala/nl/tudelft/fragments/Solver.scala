@@ -26,19 +26,17 @@ object Solver {
       t1.unify(t2).map(state.substitute)
     case CInequal(t1, t2) if !Unifier.canUnify(t1, t2) =>
       state
-    case CResolve(n1, n2@Var(_)) if Graph(state.constraints).res(state.resolution)(n1).nonEmpty =>
+    case CResolve(n1, n2) =>
       if (solveResolve) {
-        if (state.resolution.contains(n1)) {
-          state.substitute(Map(n2 -> state.resolution(n1)))
-        } else {
-          val choices = Graph(state.constraints).res(state.resolution)(n1)
+        val declarations = Graph(state.constraints).res(state.resolution)(n1)
 
-          choices.map { dec =>
+        declarations.flatMap(declaration =>
+          declaration.unify(n2).map(unifier =>
             state
-              .substitute(Map(n2 -> dec))
-              .copy(resolution = state.resolution + (n1 -> dec))
-          }
-        }
+              .substitute(unifier)
+              .copy(resolution = state.resolution + (n1 -> declaration))
+          )
+        )
       } else {
         Nil
       }
@@ -102,179 +100,19 @@ object Solver {
 
     solvePrivate(sortedState)
   }
-
+  
   // Solve the given resolve constraint
   def solveResolve(state: State, resolve: CResolve)(implicit language: Language): List[State] = resolve match {
-    case CResolve(n1, n2@Var(_)) =>
-      if (state.resolution.contains(n1)) {
-        List(state.substituteName(Map(n2 -> state.resolution(n1))))
-      } else {
-        val reachableDeclarations = Graph(state.constraints).res(state.resolution)(n1)
-
-        reachableDeclarations.map(dec =>
-          state
-            .removeConstraint(resolve)
-            .substituteName(Map(n2 -> dec))
-            .copy(resolution = state.resolution + (n1 -> dec))
-        )
-      }
     case CResolve(n1, n2) =>
-      val decs = Graph(state.constraints).res(state.resolution)(n1)
+      val declarations = Graph(state.constraints).res(state.resolution)(n1)
 
-      decs.flatMap(dec =>
-        dec.unify(n2).map(termBinding =>
+      declarations.flatMap(declaration =>
+        declaration.unify(n2).map(unifier =>
           state
             .removeConstraint(resolve)
-            .substitute(termBinding)
-            .copy(resolution = state.resolution + (n1 -> dec))
+            .substitute(unifier)
+            .copy(resolution = state.resolution + (n1 -> declaration))
         )
       )
   }
-}
-
-/**
-  * Representation of a typing environment
-  *
-  * @param bindings Bindings from names to types
-  */
-case class TypeEnv(bindings: Map[Pattern, Pattern] = Map.empty) {
-  def contains(n: Pattern): Boolean =
-    bindings.contains(n)
-
-  def apply(n: Pattern) =
-    bindings(n)
-
-  def +(e: (Pattern, Pattern)) =
-    TypeEnv(bindings + e)
-
-  def ++(typeEnv: TypeEnv) =
-    TypeEnv(bindings ++ typeEnv.bindings)
-
-  def substitute(termBinding: TermBinding): TypeEnv =
-    TypeEnv(
-      bindings.map { case (name, typ) =>
-        name -> typ.substitute(termBinding)
-      }
-    )
-
-  def substituteScope(termBinding: TermBinding): TypeEnv =
-    substitute(termBinding)
-
-  def freshen(nameBinding: Map[String, String]): (Map[String, String], TypeEnv) = {
-    val freshBindings = bindings.toList.mapFoldLeft(nameBinding) { case (nameBinding, (name, typ)) =>
-      name.freshen(nameBinding).map { case (nameBinding, name) =>
-        typ.freshen(nameBinding).map { case (nameBinding, typ) =>
-          (nameBinding, name -> typ)
-        }
-      }
-    }
-
-    freshBindings.map { case (nameBinding, bindings) =>
-      (nameBinding, TypeEnv(bindings.toMap))
-    }
-  }
-
-  override def toString =
-    "TypeEnv(Map(" + bindings.map { case (name, typ) => s"""Binding($name, $typ)""" }.mkString(", ") + "))"
-}
-
-case class Resolution(bindings: Map[Pattern, Pattern] = Map.empty) {
-  def contains(n: Pattern): Boolean =
-    bindings.contains(n)
-
-  def apply(n: Pattern) =
-    bindings(n)
-
-  def get(n: Pattern) =
-    bindings.get(n)
-
-  def +(e: (Pattern, Pattern)) =
-    Resolution(bindings + e)
-
-  def ++(resolution: Resolution) =
-    Resolution(bindings ++ resolution.bindings)
-
-  def substitute(binding: TermBinding): Resolution =
-    Resolution(
-      bindings.map { case (t1, t2) =>
-        t1.substitute(binding) -> t2.substitute(binding)
-      }
-    )
-
-  def size =
-    bindings.size
-
-  def freshen(nameBinding: Map[String, String]): (Map[String, String], Resolution) = {
-    val freshBindings = bindings.toList.mapFoldLeft(nameBinding) { case (nameBinding, (n1, n2)) =>
-      n1.freshen(nameBinding).map { case (nameBinding, n1) =>
-        n2.freshen(nameBinding).map { case (nameBinding, n2) =>
-          (nameBinding, n1 -> n2)
-        }
-      }
-    }
-
-    freshBindings.map { case (nameBinding, bindings) =>
-      (nameBinding, Resolution(bindings.toMap))
-    }
-  }
-
-  override def toString =
-    "Resolution(Map(" + bindings.map { case (n1, n2) => s"Tuple2($n1, $n2)" }.mkString(", ") + "))"
-}
-
-case class SubtypeRelation(bindings: List[(Pattern, Pattern)] = Nil) {
-  def contains(n: Pattern): Boolean =
-    bindings.exists(_._1 == n)
-
-  def domain: List[Pattern] =
-    bindings.map(_._1)
-
-  def ++(subtypeRelation: SubtypeRelation) =
-    SubtypeRelation(bindings ++ subtypeRelation.bindings)
-
-  def ++(otherBindings: List[(Pattern, Pattern)]) =
-    SubtypeRelation(bindings ++ otherBindings)
-
-  def +(pair: (Pattern, Pattern)) =
-    SubtypeRelation(pair :: bindings)
-
-  // Returns all t2 such that t1 <= t2
-  def supertypeOf(t1: Pattern): List[Pattern] =
-    t1 :: bindings.filter(_._1 == t1).map(_._2)
-
-  // Returns all t1 such that t1 <= t2
-  def subtypeOf(t2: Pattern): List[Pattern] =
-    t2 :: bindings.filter(_._2 == t2).map(_._1)
-
-  // Get all t2 such that t1 <: t2
-  def get(ty: Pattern): List[Pattern] =
-    bindings.filter(_._1 == ty).map(_._2)
-
-  // Checks whether t1 <= t2
-  def isSubtype(ty1: Pattern, ty2: Pattern): Boolean =
-    ty1 == ty2 || get(ty1).contains(ty2)
-
-  def substitute(termBinding: TermBinding): SubtypeRelation =
-    SubtypeRelation(
-      bindings.map { case (t1, t2) =>
-        t1.substitute(termBinding) -> t2.substitute(termBinding)
-      }
-    )
-
-  def freshen(nameBinding: Map[String, String]): (Map[String, String], SubtypeRelation) = {
-    val freshBindings = bindings.mapFoldLeft(nameBinding) { case (nameBinding, (t1, t2)) =>
-      t1.freshen(nameBinding).map { case (nameBinding, t1) =>
-        t2.freshen(nameBinding).map { case (nameBinding, t2) =>
-          (nameBinding, t1 -> t2)
-        }
-      }
-    }
-
-    freshBindings.map { case (nameBinding, bindings) =>
-      (nameBinding, SubtypeRelation(bindings))
-    }
-  }
-
-  override def toString =
-    "SubtypeRelation(List(" + bindings.map { case (n1, n2) => s"""Binding($n1, $n2)""" }.mkString(", ") + "))"
 }
