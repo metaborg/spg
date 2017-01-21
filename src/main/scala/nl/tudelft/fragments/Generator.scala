@@ -43,6 +43,10 @@ object Generator {
           logger.debug("Rule pattern too large: {}", rule)
 
           None
+        case InconsistencyException(rule) =>
+          logger.debug("Inconsistency observed in rule: {}", rule)
+
+          None
         case e: MetaborgException =>
           None
       }
@@ -60,6 +64,10 @@ object Generator {
 
     if (rule.pattern.size > config.sizeLimit) {
       throw PatternSizeException(rule)
+    }
+
+    if (!Consistency.check(rule)) {
+      throw InconsistencyException(rule)
     }
 
     if (rule.properConstraints.isEmpty) {
