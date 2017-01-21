@@ -2,20 +2,9 @@ package nl.tudelft.fragments
 
 /**
   * Language-dependent generation configuration.
+  *
+  * @param limit Maximum number of terms to generate.
+  * @param fuel Fuel provided to the backtracker.
+  * @param sizeLimit Maximum size of a term.
   */
-abstract class Config {
-  /**
-    * Limit at which to abandon a term.
-    *
-    * @return
-    */
-  def sizeLimit: Int
-}
-
-/**
-  * A config with some sane defaults
-  */
-object DefaultConfig extends Config {
-  override def sizeLimit: Int =
-    60
-}
+case class Config(limit: Int, fuel: Int, sizeLimit: Int)

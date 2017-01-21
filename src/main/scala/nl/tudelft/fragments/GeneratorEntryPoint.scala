@@ -20,11 +20,11 @@ class GeneratorEntryPoint {
     * @param nablPath
     * @param projectPath
     * @param semanticsPath
-    * @param limit
+    * @param config
     * @return
     */
-  def generate(sdfPath: String, nablPath: String, projectPath: String, semanticsPath: String, limit: Int = -1, config: Config): Observable[String] = {
-    generate(Language.load(sdfPath, nablPath, projectPath, semanticsPath), limit, config)
+  def generate(sdfPath: String, nablPath: String, projectPath: String, semanticsPath: String, config: Config): Observable[String] = {
+    generate(Language.load(sdfPath, nablPath, projectPath, semanticsPath), config)
   }
 
   /**
@@ -32,12 +32,11 @@ class GeneratorEntryPoint {
     *
     * @param language
     * @param config
-    * @param limit
     * @return
     */
-  def generate(language: Language, limit: Int, config: Config): Observable[String] = {
+  def generate(language: Language, config: Config): Observable[String] = {
     Observable(subscriber => {
-      repeat(limit) {
+      repeat(config.limit) {
         if (!subscriber.isUnsubscribed) {
           subscriber.onNext(Generator.generate(language, config))
         }
@@ -59,7 +58,7 @@ class GeneratorEntryPoint {
     */
   @tailrec final def repeat[A](n: Int)(f: => A): Unit = n match {
     case 0 =>
-    // Stop
+      // Noop
     case _ =>
       f; repeat(n - 1)(f)
   }
@@ -94,18 +93,22 @@ object GeneratorEntryPoint {
         options.nablPath,
         options.projectPath,
         options.semanticsPath,
-        options.limit,
-        DefaultConfig
+        Config(
+          options.limit,
+          options.fuel,
+          options.sizeLimit
+        )
       ).subscribe(program => {
         writer.println("===================================")
-        writer.println(program)
-        writer.println("---")
         writer.println(DateTimeFormatter.ISO_DATE_TIME.format(ZonedDateTime.now()))
         writer.println("-----------------------------------")
+        writer.println(program)
         writer.flush()
 
-        println(program)
+        println("===================================")
+        println(DateTimeFormatter.ISO_DATE_TIME.format(ZonedDateTime.now()))
         println("-----------------------------------")
+        println(program)
       })
     })
   }
@@ -120,6 +123,16 @@ class Command extends BaseCommand(name = "generator", description = "Generate ra
   var limit = opt[Int](
     description = "Number of terms to generate (default: -1)",
     default = -1
+  )
+
+  var fuel = opt[Int](
+    description = "Fuel provided to the backtracker (default: 400)",
+    default = 400
+  )
+
+  var sizeLimit = opt[Int](
+    description = "Maximum size of terms to generate (default: 60)",
+    default = 60
   )
 
   var verbosity = opt[Int](
