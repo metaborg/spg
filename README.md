@@ -40,3 +40,31 @@ Arguments
 ### Application Programming Interface
 
 `Generator.generate` returns an `Observable[String]` that emits well-formed terms.
+
+## Examples
+
+The `examples/` directory contains Spoofax implementations for the following
+languages in the form of git submodules: `L1`, `L2`, `L3`, `MiniJava`, and
+`Tiger`.
+
+First, download the submodules:
+
+```
+git submodule update --init --recursive --remote
+```
+
+Second, build the language. For example, in case of `Tiger`:
+
+```
+(cd examples/tiger/org.metaborg.lang.tiger/correct && mvn clean verify)
+```
+Third, run the generator. For example, in case of `Tiger`:
+
+```
+sbt "run-main nl.tudelft.fragments.GeneratorEntryPoint <sdf-path> <nabl-path> examples/tiger/org.metaborg.lang.tiger/correct"
+```
+
+Note: Bash uses an exclamation mark for [history
+expansions](http://unix.stackexchange.com/a/33340/92581). If your SDF or NaBL
+path contains an exclamation mark you may need to escape it or disable history
+expansions.

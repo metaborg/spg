@@ -1,0 +1,12 @@
+[submodule "examples/tiger"]
+	path = examples/tiger
+    url = git@github.com:MartijnDwars/metaborg-tiger.git
+    branch = generation
+[submodule "examples/scopes-frames"]
+	path = examples/scopes-frames
+    url = git@github.com:MartijnDwars/metaborg-scopes-frames.git
+    branch = generation
+[submodule "examples/minijava"]
+	path = examples/minijava
+    url = git@github.com:MartijnDwars/metaborg-mini-java.git
+    branch = generation
