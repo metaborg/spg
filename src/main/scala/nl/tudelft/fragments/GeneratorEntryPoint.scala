@@ -74,15 +74,7 @@ object GeneratorEntryPoint {
   def main(args: Array[String]): Unit = {
     Cli.parse(args).withCommand(new Command)(options => {
       val rootLogger = LoggerFactory.getLogger("ROOT").asInstanceOf[Logger]
-
-      options.verbosity match {
-        case 2 =>
-          rootLogger.setLevel(Level.DEBUG)
-        case 1 =>
-          rootLogger.setLevel(Level.INFO)
-        case _ =>
-          rootLogger.setLevel(Level.WARN)
-      }
+      rootLogger.setLevel(Level.toLevel(options.verbosity))
 
       val writer = new PrintWriter(
         new FileOutputStream(new File("l2.log"), true)
@@ -135,9 +127,9 @@ class Command extends BaseCommand(name = "generator", description = "Generate ra
     default = 60
   )
 
-  var verbosity = opt[Int](
-    description = "Verbosity of the output (default: 0)",
-    default = 0
+  var verbosity = opt[String](
+    description = "Verbosity of the output as log level (default: ERROR)",
+    default = "ERROR"
   )
 
   var sdfPath = arg[String](

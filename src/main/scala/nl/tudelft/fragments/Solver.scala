@@ -25,7 +25,7 @@ object Solver {
       }
     case CEqual(t1, t2) =>
       t1.unify(t2).map(state.substitute)
-    case CInequal(t1, t2) if !Unifier.canUnify(t1, t2) =>
+    case CInequal(t1, t2) if t1.unify(t2).isEmpty =>
       state
     case CResolve(n1, n2) =>
       val declarations = Graph(state.constraints).res(state.resolution)(n1)

@@ -97,7 +97,11 @@ object Generator {
     }
 
     if (!Consistency.check(rule)) {
-      throw InconsistencyException(rule)
+      // Returning None causes backtracking
+      return None
+
+      // Throwing InconsistencyException causes abandoning the term
+      //throw InconsistencyException(rule)
     }
 
     if (rule.properConstraints.isEmpty) {
