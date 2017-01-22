@@ -77,7 +77,7 @@ object GeneratorEntryPoint {
       rootLogger.setLevel(Level.toLevel(options.verbosity))
 
       val writer = new PrintWriter(
-        new FileOutputStream(new File("l2.log"), true)
+        new FileOutputStream(new File("mj.log"), true)
       )
 
       new GeneratorEntryPoint().generate(
