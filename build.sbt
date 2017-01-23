@@ -1,4 +1,4 @@
-name := "fragments-4"
+name := "spg"
 
 organization := "org.metaborg"
 

@@ -1,0 +1,2 @@
+# Prevent the coffee cup icon appearing in the Dock
+-J-Dapple.awt.UIElement=true

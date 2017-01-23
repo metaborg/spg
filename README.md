@@ -1,8 +1,8 @@
-# Generator
+# SPG
 
-Generator is a language-parametric generator of well-formed terms. In takes a
-language specification in the form of a Spoofax project and returns an
-observable of well-formed terms.
+SPG (SPoofax Generator) is a language-parametric generator of well-formed
+terms. It takes a language specification in the form of a Spoofax project and
+returns an observable of well-formed terms.
 
 ## Building
 
@@ -47,15 +47,20 @@ The `examples/` directory contains Spoofax implementations for the following
 languages in the form of git submodules: `L1`, `L2`, `L3`, `MiniJava`, and
 `Tiger`.
 
-First, download the submodules:
+First, download the submodules (the `--remote` flag will fetch the latest
+changes from upstream in each submodule):
 
 ```
 git submodule update --init --recursive --remote
 ```
 
-Second, build the language. For example, in case of `Tiger`:
+Second, build some or all of the example languages using:
 
 ```
+(cd examples/scopes-frames/L1 && mvn clean verify)
+(cd examples/scopes-frames/L2 && mvn clean verify)
+(cd examples/scopes-frames/L3 && mvn clean verify)
+(cd examples/minijava && mvn clean verify)
 (cd examples/tiger/org.metaborg.lang.tiger/correct && mvn clean verify)
 ```
 Third, run the generator. For example, in case of `Tiger`:
