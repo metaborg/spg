@@ -13,10 +13,10 @@ import org.spoofax.interpreter.terms.{IStrategoAppl, IStrategoList, IStrategoStr
 import org.spoofax.terms.{StrategoAppl, StrategoList}
 
 // Representation of an NaBL2 specification
-class Specification(val params: ResolutionParams, val init: Rule, val rules: List[Rule])
+case class Specification(params: ResolutionParams, rules: List[Rule])
 
 // Representation of NaBL2 resolution parameters
-class ResolutionParams(val labels: List[Label], val order: LabelOrdering, val wf: Regex[Label])
+case class ResolutionParams(labels: List[Label], order: LabelOrdering, wf: Regex[Label])
 
 // Companion object
 object Specification {
@@ -34,10 +34,10 @@ object Specification {
     val labels = toLabels(ast)
     val ordering = toOrdering(ast)
     val wf = toWF(ast)
-    val params = new ResolutionParams(labels, ordering, wf)
+    val params = ResolutionParams(labels, ordering, wf)
     val init = toInitRule(ast.getSubterm(1))
     val rules = toRules(ast.getSubterm(1)).map(inlineRecurse)
-    val specification = new Specification(params, init, rules)
+    val specification = Specification(params, init :: rules)
 
     specification
   }
@@ -46,16 +46,12 @@ object Specification {
     * Add sort to the Recurse constraints based on the position
     */
   def inlineRecurse(rule: Rule)(implicit signatures: Signatures) = {
-    rule.recurse.foldLeft(rule) {
-      case (rule, r@CGenRecurse(name, variable, scopes, typ, null)) =>
+    rule.recurses.foldLeft(rule) {
+      case (rule, recurse@CGenRecurse(name, variable, scopes, typ, null)) =>
         val sortOpt = signatures.sortForPattern(rule.pattern, variable)
         val sort = sortOpt.getOrElse(throw new IllegalStateException("Could not find sort for " + variable + " in " + rule.pattern))
 
-        rule.copy(
-          state = rule.state.copy(
-            constraints = CGenRecurse(name, variable, scopes, typ, sort) :: rule.state.constraints - r
-          )
-        )
+        rule - recurse + CGenRecurse(name, variable, scopes, typ, sort)
     }
   }
 
@@ -177,10 +173,20 @@ object Specification {
       case appl: StrategoAppl =>
         val scopes = toVars(appl.getSubterm(0).getSubterm(0))
 
-        Rule("Init", SortVar("y"), toTypeOption(-1, appl.getSubterm(1)), scopes, State(
-          pattern = Var("x"),
-          constraints = toConstraints(-1, appl.getSubterm(2))
-        ))
+        Rule(
+          name =
+            "Init",
+          sort =
+            SortVar("y"),
+          pattern =
+            Var("x"),
+          scopes =
+            scopes,
+          typ =
+            toTypeOption(-1, appl.getSubterm(1)),
+          constraints =
+            toConstraints(-1, appl.getSubterm(2))
+        )
     }
   }
 
@@ -216,14 +222,18 @@ object Specification {
       val typ = toTypeOption(ruleIndex, appl.getSubterm(3))
 
       Rule(
-        name = name,
-        sort = toSort(pattern),
-        typ = typ,
-        scopes = scopes,
-        state = State(
-          pattern = pattern,
-          constraints = toConstraints(ruleIndex, appl.getSubterm(4))
-        )
+        name =
+          name,
+        sort =
+          toSort(pattern),
+        pattern =
+          pattern,
+        typ =
+          typ,
+        scopes =
+          scopes,
+        constraints =
+          toConstraints(ruleIndex, appl.getSubterm(4))
       )
   }
 
@@ -235,14 +245,18 @@ object Specification {
       val typ = toTypeOption(ruleIndex, appl.getSubterm(3))
 
       Rule(
-        name = name,
-        sort = toSort(pattern),
-        typ = typ,
-        scopes = scopes,
-        state = State(
-          pattern = pattern,
-          constraints = Nil
-        )
+        name =
+          name,
+        sort =
+          toSort(pattern),
+        pattern =
+          pattern,
+        typ =
+          typ,
+        scopes =
+          scopes,
+        constraints =
+          Nil
       )
   }
 

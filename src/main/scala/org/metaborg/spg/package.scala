@@ -1,6 +1,6 @@
 package org.metaborg
 
-import org.metaborg.spg.solver.{Constraint, State}
+import org.metaborg.spg.solver.Constraint
 import org.metaborg.spg.spoofax.models.{Sort, SortVar}
 
 import scala.annotation.tailrec
@@ -144,6 +144,22 @@ package object spg {
       list.map { case (p1, p2) =>
         (p1.substitute(binding), p2.substitute(binding))
       }
+  }
+
+  implicit class RichPatternOption(o: Option[Pattern]) {
+    def substitute(binding: TermBinding): Option[Pattern] = {
+      o.map(_.substitute(binding))
+    }
+
+    def freshen(nameBinding: Map[String, String]): (Map[String, String], Option[Pattern]) = o match {
+      case Some(p) =>
+        p.freshen(nameBinding).map {
+          case (nameBinding, p) =>
+            (nameBinding, Some(p))
+        }
+      case None =>
+        (nameBinding, None)
+    }
   }
 
   // CPS for Tuple2

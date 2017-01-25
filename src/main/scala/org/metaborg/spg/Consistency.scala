@@ -8,20 +8,20 @@ object Consistency {
   /**
     * Unsound and complete check if the partial program can be completed.
     *
-    * @param rule
+    * @param program
     * @return
     */
-  def check(rule: Rule)(implicit l: Language): Boolean = {
-    constraintsCheck(rule) && resolveCheck(rule)
+  def check(program: Program)(implicit l: Language): Boolean = {
+    constraintsCheck(program) && resolveCheck(program)
   }
 
   /**
     * Check the satisfiability of the constraints.
     *
-    * @param rule
+    * @param program
     * @return
     */
-  def constraintsCheck(rule: Rule) = rule.constraints.forall {
+  def constraintsCheck(program: Program): Boolean = program.constraints.forall {
     case CFalse() =>
       false
     case CEqual(t1, t2) =>
@@ -29,8 +29,8 @@ object Consistency {
     case CInequal(t1, t2) =>
       t1.unify(t2).isEmpty
     case FSubtype(t1, t2) if t1.vars ++ t2.vars == Nil =>
-      lazy val supertypeExists = rule.state.subtypeRelation.domain.contains(t1)
-      lazy val cyclicSubtype = rule.state.subtypeRelation.isSubtype(t2, t1)
+      lazy val supertypeExists = program.subtypes.domain.contains(t1)
+      lazy val cyclicSubtype = program.subtypes.isSubtype(t2, t1)
 
       !supertypeExists && !cyclicSubtype
     case _ =>
@@ -43,29 +43,29 @@ object Consistency {
     *  - there is a reachable scope variable
     *  - there is a reachable scope that is the parameter to a scope variable
     *
-    * @param rule
+    * @param program
     * @param l
     * @return
     */
-  private def resolveCheck(rule: Rule)(implicit l: Language) = {
-    def reachableDeclaration(graph: Graph, rule: Rule, ref: Pattern) = {
-      graph.res(rule.state.resolution)(ref).nonEmpty
+  private def resolveCheck(program: Program)(implicit l: Language) = {
+    def reachableDeclaration(graph: Graph, rule: Program, ref: Pattern) = {
+      graph.res(rule.resolution)(ref).nonEmpty
     }
 
-    def reachableScopeVar(graph: Graph, rule: Rule, scope: Pattern) = {
-      graph.reachableVarScopes(rule.state.resolution)(scope).nonEmpty
+    def reachableScopeVar(graph: Graph, rule: Program, scope: Pattern) = {
+      graph.reachableVarScopes(rule.resolution)(scope).nonEmpty
     }
 
-    def reachableRecurse(graph: Graph, rule: Rule, scope: Pattern) = {
-      (rule.recurse.flatMap(_.scopes) intersect graph.reachableScopes(rule.state.resolution)(scope)).nonEmpty
+    def reachableRecurse(graph: Graph, rule: Program, scope: Pattern) = {
+      (rule.recurse.flatMap(_.scopes) intersect graph.reachableScopes(rule.resolution)(scope)).nonEmpty
     }
 
-    val graph = Graph(rule.constraints)
+    val graph = Graph(program.constraints)
 
-    rule.resolve.forall(resolve => {
+    program.resolve.forall(resolve => {
       val scope = graph.scope(resolve.n1)
 
-      reachableDeclaration(graph, rule, resolve.n1) || reachableScopeVar(graph, rule, scope) || reachableRecurse(graph, rule, scope)
+      reachableDeclaration(graph, program, resolve.n1) || reachableScopeVar(graph, program, scope) || reachableRecurse(graph, program, scope)
     })
   }
 }

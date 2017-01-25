@@ -9,22 +9,22 @@ import org.metaborg.spg.spoofax.models.Strategy
 case class Concretor(language: Language) {
   val generator = new LexicalGenerator(language.productions)
 
-  def computeNamingConstraints(state: State): List[NamingConstraint] = {
+  def computeNamingConstraints(state: Program)(implicit language: Language): List[NamingConstraint] = {
     val graph = Graph(state.constraints)
 
     graph.namingConstraints(state.resolution)
   }
 
   // Replace TermVars in pattern by concrete names satisfying the solution
-  def concretize(state: State): Pattern = {
+  def concretize(program: Program)(implicit language: Language): Pattern = {
     // Use a new name provider to keep the numbers low
     val nameProvider = NameProvider(0)
 
     // Compute equality constraints
-    val namingConstraints = computeNamingConstraints(state)
+    val namingConstraints = computeNamingConstraints(program)
 
     // Compute inequality constraints
-    val inequalityConsraints = state.inequalities.map { case (p1, p2) =>
+    val inequalityConsraints = program.inequalities.map { case (p1, p2) =>
       Diseq(p1, p2)
     }
 
@@ -38,7 +38,7 @@ case class Concretor(language: Language) {
     val disequalityConstraints = filterDiseqs(constraints)
 
     // Replace names in Eq constraints
-    val r1 = state.pattern.substitute(
+    val r1 = program.pattern.substitute(
       nameEq(equalityConstraints, Map.empty, nameProvider).get.map {
         case (n1, n2) =>
           Var(n1) -> TermString(n2)

@@ -35,7 +35,7 @@ class Language(val productions: List[Production], val signatures: Signatures, va
   }
 
   /**
-    * Check if the given langauge is a start rule
+    * Check if the given language is a start rule.
     *
     * @param rule
     * @return
@@ -45,7 +45,17 @@ class Language(val productions: List[Production], val signatures: Signatures, va
   }
 
   /**
-    * Get the start rules for the language
+    * Check if the given rule is an init rule.
+    *
+    * @param rule
+    * @return
+    */
+  def isInitRule(rule: Rule): Boolean = {
+    rule.name == "Init"
+  }
+
+  /**
+    * Get the start rules for the language.
     *
     * @return
     */
@@ -54,7 +64,16 @@ class Language(val productions: List[Production], val signatures: Signatures, va
   }
 
   /**
-    * Get all the sorts of the language
+    * Get the init rule for the language.
+    *
+    * @return
+    */
+  def initRule: Rule = {
+    specification.rules.find(isInitRule).get
+  }
+
+  /**
+    * Get all the sorts of the language.
     *
     * @return
     */

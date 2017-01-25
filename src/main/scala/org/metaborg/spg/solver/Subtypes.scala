@@ -2,21 +2,21 @@ package org.metaborg.spg.solver
 
 import org.metaborg.spg.{Pattern, _}
 
-case class SubtypeRelation(bindings: List[(Pattern, Pattern)] = Nil) {
+case class Subtypes(bindings: List[(Pattern, Pattern)] = Nil) {
   def contains(n: Pattern): Boolean =
     bindings.exists(_._1 == n)
 
   def domain: List[Pattern] =
     bindings.map(_._1)
 
-  def ++(subtypeRelation: SubtypeRelation) =
-    SubtypeRelation(bindings ++ subtypeRelation.bindings)
+  def ++(subtypeRelation: Subtypes) =
+    Subtypes(bindings ++ subtypeRelation.bindings)
 
   def ++(otherBindings: List[(Pattern, Pattern)]) =
-    SubtypeRelation(bindings ++ otherBindings)
+    Subtypes(bindings ++ otherBindings)
 
   def +(pair: (Pattern, Pattern)) =
-    SubtypeRelation(pair :: bindings)
+    Subtypes(pair :: bindings)
 
   // Returns all t2 such that t1 <= t2
   def supertypeOf(t1: Pattern): List[Pattern] =
@@ -34,14 +34,14 @@ case class SubtypeRelation(bindings: List[(Pattern, Pattern)] = Nil) {
   def isSubtype(ty1: Pattern, ty2: Pattern): Boolean =
   ty1 == ty2 || get(ty1).contains(ty2)
 
-  def substitute(termBinding: TermBinding): SubtypeRelation =
-    SubtypeRelation(
+  def substitute(termBinding: TermBinding): Subtypes =
+    Subtypes(
       bindings.map { case (t1, t2) =>
         t1.substitute(termBinding) -> t2.substitute(termBinding)
       }
     )
 
-  def freshen(nameBinding: Map[String, String]): (Map[String, String], SubtypeRelation) = {
+  def freshen(nameBinding: Map[String, String]): (Map[String, String], Subtypes) = {
     val freshBindings = bindings.mapFoldLeft(nameBinding) { case (nameBinding, (t1, t2)) =>
       t1.freshen(nameBinding).map { case (nameBinding, t1) =>
         t2.freshen(nameBinding).map { case (nameBinding, t2) =>
@@ -51,7 +51,7 @@ case class SubtypeRelation(bindings: List[(Pattern, Pattern)] = Nil) {
     }
 
     freshBindings.map { case (nameBinding, bindings) =>
-      (nameBinding, SubtypeRelation(bindings))
+      (nameBinding, Subtypes(bindings))
     }
   }
 

@@ -22,7 +22,7 @@ class GraphSuite extends FunSuite {
   )
 
   // Define an implicit language with resolution params to do resolution on
-  implicit val language: Language = new Language(Nil, null, new Specification(resolutionParams, null, Nil), null, Set(), null)
+  implicit val language: Language = new Language(Nil, null, Specification(resolutionParams, Nil), null, Set(), null)
 
   test("resolve reference in context of existing resolution") {
     val facts = List(
@@ -148,7 +148,7 @@ class GraphSuite extends FunSuite {
       wf = (Label('P') *) ~ (Epsilon() || (Label('S') ~ Label('I'))) ~ (Label('I') *)
     )
 
-    val language = new Language(Nil, null, new Specification(resolutionParams, null, Nil), null, Set(), null)
+    val language = new Language(Nil, null, new Specification(resolutionParams, Nil), null, Set(), null)
 
     val facts = List(
       CGRef(ConcreteName("C", "Foo", 1), TermAppl("s")),

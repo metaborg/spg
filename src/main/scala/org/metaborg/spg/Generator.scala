@@ -2,7 +2,7 @@ package org.metaborg.spg
 
 import com.typesafe.scalalogging.Logger
 import org.metaborg.spg.solver.{CGenRecurse, Solver}
-import org.metaborg.spg.spoofax.{Converter, Language}
+import org.metaborg.spg.spoofax.Converter
 import org.metaborg.spg.spoofax.Language
 import org.slf4j.LoggerFactory
 
@@ -30,15 +30,16 @@ object Generator {
     * @return
     */
   private def generateTry(implicit language: Language, config: Config): Option[String] = {
-    val startRule = language.startRules.random
-    val init = language.specification.init.instantiate()
-    val start = init.merge(CGenRecurse("Default", init.state.pattern, init.scopes, init.typ, startRule.sort), startRule, 0).get
+    val init = language.initRule.instantiate()
+    val start = language.startRules.random
+    val recurse = CGenRecurse(start.name, init.pattern, init.scopes, init.typ, start.sort)
+    val program = Program.fromRule(init) + recurse
 
     try {
-      val termOpt = generateFueled(language, config)(start)
+      val termOpt = generateFueled(language, config)(program)
 
       termOpt.map(term => {
-        val concretePattern = Concretor(language).concretize(term.state)
+        val concretePattern = Concretor(language).concretize(term)
         val strategoTerm = Converter.toTerm(concretePattern)
 
         language.printer(strategoTerm)
@@ -53,7 +54,7 @@ object Generator {
 
         None
       case InconsistencyException(rule) =>
-        logger.debug("Inconsistency observed in rule: {}", rule)
+        logger.debug("Inconsistency observed in program: {}", rule)
 
         None
     }
@@ -68,10 +69,10 @@ object Generator {
     * @param config
     * @return
     */
-  private def generateFueled(language: Language, config: Config): Rule => Option[Rule] = {
+  private def generateFueled(language: Language, config: Config): Program => Option[Program] = {
     var mutableFuel = config.fuel
 
-    lazy val self: Rule => Option[Rule] = (rule: Rule) => mutableFuel match {
+    lazy val self: Program => Option[Program] = (rule: Program) => mutableFuel match {
       case 0 =>
         throw OutOfFuelException(rule)
       case _ =>
@@ -81,41 +82,40 @@ object Generator {
     self
   }
 
-
   /**
     * Generate a term.
     *
     * @param generate
-    * @param rule
+    * @param program
     * @param language
     * @param config
     * @return
     */
-  private def generate(generate: Rule => Option[Rule])(rule: Rule)(implicit language: Language, config: Config): Option[Rule] = {
-    logger.trace("Generate with rule: {}", rule)
+  private def generate(generate: Program => Option[Program])(program: Program)(implicit language: Language, config: Config): Option[Program] = {
+    logger.trace("Generate with program: {}", program)
 
-    if (rule.pattern.size > config.sizeLimit) {
-      throw PatternSizeException(rule)
+    if (program.pattern.size > config.sizeLimit) {
+      throw PatternSizeException(program)
     }
 
-    if (!Consistency.check(rule)) {
+    if (!Consistency.check(program)) {
       // Returning None causes backtracking
       return None
 
       // Throwing InconsistencyException causes abandoning the term
-      //throw InconsistencyException(rule)
+      //throw InconsistencyException(program)
     }
 
-    if (rule.properConstraints.isEmpty) {
-      logger.debug("All constraints solved: {}", rule)
+    if (program.properConstraints.isEmpty) {
+      logger.debug("All constraints solved: {}", program)
 
-      Some(rule)
+      Some(program)
     } else {
-      for (constraint <- rule.properConstraints.shuffle.sortBy(_.priority)) {
-        val states = Solver.rewrite(constraint, rule.state - constraint)
+      for (constraint <- program.properConstraints.shuffle.sortBy(_.priority)) {
+        val programs = Solver.rewrite(constraint, program - constraint)
 
-        for (state <- states.shuffle) {
-          val result = generate(rule.withState(state))
+        for (program <- programs.shuffle) {
+          val result = generate(program)
 
           if (result.isDefined) {
             return result

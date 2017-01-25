@@ -23,7 +23,7 @@ class ConcretorSuite extends FunSuite {
   val language: Language = new Language(Nil, null, new Specification(resolutionParams, null, Nil), null, Set(), null)
 
   test("fails to concretize on inconsistent resolution") {
-    val state = State(
+    val state = Program(
       pattern =
         TermAppl("x"),
       constraints = List(
@@ -40,12 +40,12 @@ class ConcretorSuite extends FunSuite {
         SymbolicName("Class", "a") -> SymbolicName("Class", "b"),
         SymbolicName("Class", "b") -> SymbolicName("Class", "c")
       )),
-      subtypeRelation =
-        SubtypeRelation(),
+      subtypes =
+        Subtypes(),
       inequalities =
         Nil
     )
 
-    println(Concretor(language).concretize(state))
+    println(Concretor(language).concretize(state)(language))
   }
 }

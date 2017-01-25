@@ -1,136 +1,118 @@
 package org.metaborg.spg
 
-import org.metaborg.spg.solver.{CGenRecurse, Constraint, NewScope, State}
-import org.metaborg.spg.spoofax.models.{SortAppl, SortVar}
+import org.metaborg.spg.solver.{CGenRecurse, Constraint, NewScope}
 import org.metaborg.spg.spoofax.Language
-import org.metaborg.spg.spoofax.models.{Sort, SortAppl}
+import org.metaborg.spg.spoofax.models.{Sort, SortAppl, SortVar}
 
-// Rule
-case class Rule(name: String, sort: Sort, typ: Option[Pattern], scopes: List[Pattern], state: State) {
-  def mergex(recurse: CGenRecurse, rule: Rule, level: Int)(implicit language: Language): Option[(Rule, Map[String, String], SortBinding, TermBinding, TermBinding)] = {
-    val (nameBinding, freshRule) = rule.instantiate().freshen()
-
-    val merged = for (
-      sortUnifier <- Rule.mergeSorts(recurse.sort, freshRule.sort);
-      typeUnifier <- Rule.mergeTypes(recurse.typ, freshRule.typ);
-      scopeUnifier <- Rule.mergeScopes(recurse.scopes, freshRule.scopes);
-      patternUnifier <- Rule.mergePatterns(this, recurse.pattern, freshRule.pattern)
-    ) yield {
-      val merged = copy(state = state.merge(recurse, freshRule.state))
-        .substituteType(typeUnifier)
-        .substituteScope(scopeUnifier)
-        .substituteSort(sortUnifier)
-        .substitutePattern(patternUnifier)
-
-      Some((merged, nameBinding, sortUnifier, typeUnifier, scopeUnifier))
-    }
-
-    merged.flatten
-  }
-
-  // Shortcut when only the merged rule should be returned
-  def merge(recurse: CGenRecurse, rule: Rule, level: Int)(implicit language: Language): Option[Rule] =
-    mergex(recurse, rule, level).map(_._1)
-
-  // Get all recurse constraints
-  def recurse: List[CGenRecurse] =
-    state.recurse
-
-  // Get all resolve constraints
-  def resolve =
-    state.resolve
-
-  // Get all constraints
-  def constraints: List[Constraint] =
-    state.constraints
-
-  // Get all proper constraints
-  lazy val properConstraints: List[Constraint] =
-    state.constraints.filter(_.isProper)
-
-  // Get the pattern
-  def pattern: Pattern =
-    state.pattern
-
+/**
+  * Representation of a constraint generation rule.
+  *
+  * @param name
+  * @param pattern
+  * @param sort
+  * @param typ
+  * @param scopes
+  * @param constraints
+  */
+case class Rule(name: String, sort: Sort, pattern: Pattern, scopes: List[Pattern], typ: Option[Pattern], constraints: List[Constraint]) {
   /**
-    * Substitute scopes. A specialized version of `substitute` that only
-    * substitutes in the AST pattern.
+    * Alpha-rename variables to avoid name clashes.
     *
-    * @param binding
+    * @param nameBinding
     * @return
     */
-  def substitutePattern(binding: TermBinding): Rule =
-    Rule(name, sort, typ, scopes, state.substitutePattern(binding))
-
-  /**
-    * Substitute scopes. A specialized version of `substitute` that ignores the
-    * pattern during substitution.
-    *
-    * @param binding
-    * @return
-    */
-  def substituteScope(binding: TermBinding): Rule =
-    Rule(name, sort, typ.map(_.substituteScope(binding)), scopes.map(_.substituteScope(binding)), state.substituteScope(binding))
-
-  def substituteType(binding: TermBinding): Rule =
-    Rule(name, sort, typ.map(_.substituteType(binding)), scopes, state.substituteType(binding))
-
-  def substituteSort(binding: SortBinding): Rule =
-    Rule(name, sort.substituteSort(binding), typ, scopes, state.substituteSort(binding))
-
-  def freshen(nameBinding: Map[String, String] = Map.empty): (Map[String, String], Rule) = {
-    scopes.freshen(nameBinding).map { case (nameBinding, scopes) =>
-      state.freshen(nameBinding).map { case (nameBinding, state) =>
-        val newTyp = typ.map(_.freshen(nameBinding))
-
-        newTyp
-          .map { case (nameBinding, typ) =>
-            (nameBinding, Rule(name, sort, Some(typ), scopes, state))
+  def freshen(nameBinding: Map[String, String] = Map.empty): Rule = {
+    pattern.freshen(nameBinding).map { case (nameBinding, pattern) =>
+      scopes.freshen(nameBinding).map { case (nameBinding, scopes) =>
+        typ.freshen(nameBinding).map { case (nameBinding, typ) =>
+          constraints.freshen(nameBinding).map { case (nameBinding, constraints) =>
+            Rule(name, sort, pattern, scopes, typ, constraints)
           }
-          .getOrElse(
-            (nameBinding, Rule(name, sort, typ, scopes, state))
-          )
+        }
       }
     }
   }
 
-  def withState(state: State) =
-    this.copy(state = state)
-
   /**
-    * Instantiate a rule by replacing all variables s that are marked as
-    * "new s" by a concrete scope with a fresh name and removing the NewScope
-    * constraints.
+    * Replace all variables (scopes) that are marked as "new" by a concrete
+    * scope with a fresh name and remove the NewScope constraints.
     */
-  def instantiate(): Rule = {
-    val newScopeConstraints = state.constraints.filter {
-      case NewScope(_) =>
-        true
-      case _ =>
-        false
-    }
-
-    val newScopeVariables = newScopeConstraints.map {
-      case NewScope(variable) =>
-        variable
-    }
-
-    val substitution = newScopeVariables.map(variable =>
-      (variable, TermAppl("s" + nameProvider.next))
-    ).toMap
-
-    // Remove NewScope constraints
-    val ruleWithoutNewScopes = newScopeConstraints.foldLeft(this) {
-      case (rule, c@NewScope(_)) =>
-        rule.withState(rule.state - c)
-    }
-
-    // Apply the substitution
-    ruleWithoutNewScopes.substituteScope(substitution)
+  def instantiate(): Rule = newScopes.foldLeft(this) {
+    case (rule, c@NewScope(s)) =>
+      (rule - c).substitute(s, TermAppl("s" + nameProvider.next))
   }
 
-  override def toString: String =
-    s"""Rule("$name", $sort, $typ, $scopes, $state)"""
+  /**
+    * Apply given substitution to the rule.
+    *
+    * @param substitution
+    * @return
+    */
+  def substitute(substitution: TermBinding): Rule = {
+    Rule(
+      name =
+        name,
+      sort =
+        sort,
+      pattern =
+        pattern.substitute(substitution),
+      typ =
+        typ.map(_.substitute(substitution)),
+      scopes =
+        scopes.map(_.substitute(substitution)),
+      constraints =
+        constraints.map(_.substitute(substitution))
+    )
+  }
+
+  /**
+    * Substitute the first parameter by the second parameter.
+    *
+    * @param a
+    * @param b
+    * @return
+    */
+  def substitute(a: Var, b: Pattern): Rule = {
+    substitute(Map(a -> b))
+  }
+
+  /**
+    * Create a new rule with the given constraint removed.
+    *
+    * @param constraint
+    */
+  def -(constraint: Constraint) = {
+    Rule(name, sort, pattern, scopes, typ, constraints - constraint)
+  }
+
+  /**
+    * Create a new rule with the given constraint added.
+    *
+    * @param constraint
+    */
+  def +(constraint: Constraint) = {
+    Rule(name, sort, pattern, scopes, typ, constraint :: constraints)
+  }
+
+  /**
+    * Collect all NewScope constraints.
+    */
+  lazy val newScopes = constraints.collect {
+    case c: NewScope =>
+      c
+  }
+
+  /**
+    * Get all recurse constraints.
+    */
+  lazy val recurses = constraints.collect {
+    case c: CGenRecurse =>
+      c
+  }
+
+  override def toString: String = {
+    s"""Rule("$name", $sort, $pattern, $typ, $scopes, $constraints)"""
+  }
 }
 
 object Rule {
@@ -161,7 +143,7 @@ object Rule {
   }
 
   // If p1 occurs as `As(p1, x)` in r.pattern, then (x unify p2) must be defined
-  def mergePatterns(r: Rule, p1: Pattern, p2: Pattern): Option[TermBinding] = {
+  def mergePatterns(r: Program, p1: Pattern, p2: Pattern): Option[TermBinding] = {
     // Find all As(p1, x) in r.pattern
     val aliases = r.pattern.collect {
       case As(`p1`, term) =>
@@ -185,8 +167,4 @@ object Rule {
         unifier
     }
   }
-
-  // Wrap state in a rule -- TODO: Nonsensical.. state vs. rule is a bad abstraction
-  def fromState(state: State): Rule =
-    Rule("Default", SortAppl("Module"), None, Nil, state)
 }
