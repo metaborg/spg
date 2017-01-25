@@ -1,5 +1,7 @@
-package org.metaborg.spg
+package org.metaborg.spg.solver
 
+import org.metaborg.spg._
+import org.metaborg.spg.resolution.Label
 import org.metaborg.spg.spoofax.models.Sort
 
 // Constraint
@@ -537,14 +539,10 @@ case class Declarations(scope: Pattern, namespace: String) extends Names {
     s"""Declarations($scope, "$namespace")"""
 }
 
-// Naming constraints (TODO: does this need to subclass Constraint?)
-
-abstract class NamingConstraint extends Constraint {
-  override def freshen(nameBinding: Map[String, String]): (Map[String, String], NamingConstraint)
-}
+abstract class NamingConstraint extends Constraint
 
 case class Diseq(n1: Pattern, n2: Pattern) extends NamingConstraint {
-  override def substitute(binding: TermBinding): NamingConstraint =
+  override def substitute(binding: TermBinding): Constraint =
     Diseq(n1.substitute(binding), n2.substitute(binding))
 
   override def substituteScope(binding: TermBinding): Constraint =
@@ -556,7 +554,7 @@ case class Diseq(n1: Pattern, n2: Pattern) extends NamingConstraint {
   override def substituteSort(binding: SortBinding): Constraint =
     this
 
-  override def freshen(nameBinding: Map[String, String]): (Map[String, String], NamingConstraint) =
+  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
     n1.freshen(nameBinding).map { case (nameBinding, n1) =>
       n2.freshen(nameBinding).map { case (nameBinding, n2) =>
         (nameBinding, Diseq(n1, n2))
@@ -565,7 +563,7 @@ case class Diseq(n1: Pattern, n2: Pattern) extends NamingConstraint {
 }
 
 case class Eq(n1: Pattern, n2: Pattern) extends NamingConstraint {
-  override def substitute(binding: TermBinding): NamingConstraint =
+  override def substitute(binding: TermBinding): Constraint =
     Eq(n1.substitute(binding), n2.substitute(binding))
 
   override def substituteScope(binding: TermBinding): Constraint =
@@ -577,7 +575,7 @@ case class Eq(n1: Pattern, n2: Pattern) extends NamingConstraint {
   override def substituteSort(binding: SortBinding): Constraint =
     this
 
-  override def freshen(nameBinding: Map[String, String]): (Map[String, String], NamingConstraint) =
+  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
     n1.freshen(nameBinding).map { case (nameBinding, n1) =>
       n2.freshen(nameBinding).map { case (nameBinding, n2) =>
         (nameBinding, Eq(n1, n2))

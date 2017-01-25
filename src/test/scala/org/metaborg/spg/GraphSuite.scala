@@ -1,7 +1,9 @@
 package org.metaborg.spg
 
-import org.metaborg.spg.LabelImplicits._
+import org.metaborg.spg.resolution.LabelImplicits._
 import org.metaborg.spg.regex._
+import org.metaborg.spg.resolution.{Graph, Label, LabelOrdering}
+import org.metaborg.spg.solver._
 import org.metaborg.spg.spoofax.{Language, ResolutionParams, Specification}
 import org.scalatest.FunSuite
 
@@ -159,10 +161,21 @@ class GraphSuite extends FunSuite {
       CGDirectEdge(TermAppl("s'"), Label('I'), Var("sigma"))
     )
 
-    assert(Graph(facts)(language).res(Resolution())(ConcreteName("C", "Foo", 1)).length == 1)
+    assert(Graph(facts)(language).res(Resolution())(ConcreteName("C", "Foo", 1)).size == 1)
   }
 
-  test("existing resolution a |-> this excludes this |-> b as possibility") {
+  test("foo cannot resolve to bar") {
+    val facts = List(
+      CGRef(ConcreteName("Class", "foo", 1), TermAppl("s")),
+      CGDecl(TermAppl("s"), ConcreteName("Class", "bar", 2))
+    )
+
+    val result = Graph(facts).res(Resolution())(ConcreteName("Class", "foo", 1))
+
+    assert(result.isEmpty)
+  }
+
+  test("existing resolution `a |-> this` excludes `this |-> b` as possibility") {
     val facts = List(
       CGRef(SymbolicName("Class", "a"), TermAppl("s")),
       CGRef(ConcreteName("Class", "this", 4), TermAppl("s")),
@@ -176,6 +189,9 @@ class GraphSuite extends FunSuite {
       SymbolicName("Class", "a") -> ConcreteName("Class", "this", 5)
     ))
 
-    assert(Graph(facts).res(resolution)(ConcreteName("Class", "this", 4)) == Nil)
+    val result = Graph(facts).res(resolution)(ConcreteName("Class", "this", 4))
+
+    assert(result.size == 1)
+    assert(result.head._2 == ConcreteName("Class", "this", 5))
   }
 }

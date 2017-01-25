@@ -1,5 +1,6 @@
 package org.metaborg
 
+import org.metaborg.spg.solver.{Constraint, State}
 import org.metaborg.spg.spoofax.models.{Sort, SortVar}
 
 import scala.annotation.tailrec
@@ -9,30 +10,9 @@ import scala.util.Random
 package object spg {
   type TermBinding = Map[Var, Pattern]
   type SortBinding = Map[SortVar, Sort]
-  type SeenImport = List[Pattern]
-  type SeenScope = List[Pattern]
 
   // An instance of the NameProvider made globally available
   val nameProvider = NameProvider(100)
-
-  // Implicitly convert Option[State] to List[State]
-  implicit def optionToList(o: Option[State]): List[State] = o match {
-    case Some(x) =>
-      List(x)
-    case None =>
-      Nil
-  }
-
-  // Implicitly convert an Option[List[State]] to List[State]
-  implicit def listToOption(o: Option[List[State]]): List[State] = o match {
-    case Some(l) =>
-      l
-    case None =>
-      Nil
-  }
-
-  // Implicitly convert State to List[State]. Allows returning a State when an List[State] is required.
-  implicit def stateToList(s: State): List[State] = List(s)
 
   // Implicitly convert Binding to Tuple
   implicit def bindingToTuple[A, B](b: Binding[A, B]): (A, B) = Tuple2(b.a, b.b)

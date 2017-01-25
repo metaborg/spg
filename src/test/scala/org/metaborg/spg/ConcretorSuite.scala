@@ -1,6 +1,8 @@
 package org.metaborg.spg
 
-import org.metaborg.spg.LabelImplicits._
+import org.metaborg.spg.resolution.{Label, LabelOrdering}
+import org.metaborg.spg.resolution.LabelImplicits._
+import org.metaborg.spg.solver._
 import org.metaborg.spg.spoofax.{Language, ResolutionParams, Specification}
 import org.scalatest.FunSuite
 

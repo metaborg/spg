@@ -1,5 +1,6 @@
 package org.metaborg.spg
 
+import org.metaborg.spg.resolution.{Label, LabelOrdering}
 import org.scalatest.FunSuite
 
 class LabelSuite extends FunSuite {

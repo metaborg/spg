@@ -1,4 +1,4 @@
-package org.metaborg.spg
+package org.metaborg.spg.resolution
 
 import org.metaborg.spg.regex.Character
 

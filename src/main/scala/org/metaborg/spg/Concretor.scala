@@ -1,29 +1,18 @@
 package org.metaborg.spg
 
 import org.metaborg.spg.lexical.LexicalGenerator
+import org.metaborg.spg.resolution.Graph
+import org.metaborg.spg.solver._
 import org.metaborg.spg.spoofax.Language
 import org.metaborg.spg.spoofax.models.Strategy
 
 case class Concretor(language: Language) {
   val generator = new LexicalGenerator(language.productions)
 
-  /**
-    * The rule's resolution may not be valid due to shadowing. This method computes Eq and Diseq
-    * constraints for names that should be equal (or inequal) when made concrete.
-    *
-    * For every resolution x |-> y, we create an Eq(x, y), and for all other names y that are
-    * reachable from x, we create a Diseq(x, y).
-    */
   def computeNamingConstraints(state: State): List[NamingConstraint] = {
-    state.resolution.bindings.foldLeft(List.empty[NamingConstraint]) {
-      case (namingConstraints, (ref, dec)) =>
-        //val reachableDeclarations = Graph(state.constraints)(language).res(state.resolution)(ref)
-        val reachableDeclarations = Graph(state.constraints)(language).res(Resolution())(ref)
+    val graph = Graph(state.constraints)
 
-        Eq(ref, dec) :: namingConstraints ++ reachableDeclarations
-          .filter(_ != dec)
-          .map(newDec => Diseq(dec, newDec))
-    }
+    graph.namingConstraints(state.resolution)
   }
 
   // Replace TermVars in pattern by concrete names satisfying the solution

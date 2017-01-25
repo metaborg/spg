@@ -1,5 +1,6 @@
 package org.metaborg.spg
 
+import org.metaborg.spg.solver.{CGenRecurse, Constraint, NewScope, State}
 import org.metaborg.spg.spoofax.models.{SortAppl, SortVar}
 import org.metaborg.spg.spoofax.Language
 import org.metaborg.spg.spoofax.models.{Sort, SortAppl}

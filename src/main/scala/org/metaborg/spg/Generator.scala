@@ -1,6 +1,7 @@
 package org.metaborg.spg
 
 import com.typesafe.scalalogging.Logger
+import org.metaborg.spg.solver.{CGenRecurse, Solver}
 import org.metaborg.spg.spoofax.{Converter, Language}
 import org.metaborg.spg.spoofax.Language
 import org.slf4j.LoggerFactory

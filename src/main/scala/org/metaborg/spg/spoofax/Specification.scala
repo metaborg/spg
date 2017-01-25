@@ -3,12 +3,14 @@ package org.metaborg.spg.spoofax
 import com.typesafe.scalalogging.Logger
 import org.metaborg.spg._
 import org.metaborg.spg.regex._
+import org.metaborg.spg.resolution.{Label, LabelOrdering}
+import org.metaborg.spg.resolution.LabelImplicits._
+import org.metaborg.spg.solver._
 import org.metaborg.spg.spoofax.SpoofaxScala._
 import org.metaborg.spg.spoofax.models._
 import org.slf4j.LoggerFactory
 import org.spoofax.interpreter.terms.{IStrategoAppl, IStrategoList, IStrategoString, IStrategoTerm}
 import org.spoofax.terms.{StrategoAppl, StrategoList}
-import LabelImplicits._
 
 // Representation of an NaBL2 specification
 class Specification(val params: ResolutionParams, val init: Rule, val rules: List[Rule])

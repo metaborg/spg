@@ -1,11 +1,22 @@
-package org.metaborg.spg
+package org.metaborg.spg.resolution
 
-import org.metaborg.spg.LabelImplicits._
+import LabelImplicits._
+import org.metaborg.spg.collection.DisjointSet
 import org.metaborg.spg.regex.Regex
 import org.metaborg.spg.spoofax.Language
+import org.metaborg.spg.{ConcreteName, Name, Pattern, SymbolicName, Var}
+import org.metaborg.spg.solver._
 
-// Resolution algorithm
+/**
+  * Name resolution on a scope graph.
+  *
+  * @param facts
+  * @param language
+  */
 case class Graph(facts: List[Constraint])(implicit language: Language) {
+  type SeenImport = List[Pattern]
+  type SeenScope = List[Pattern]
+
   // Get scope for reference
   def scope(n: Pattern): Pattern = facts
     .collect { case CGRef(`n`, s) => s }
@@ -42,21 +53,105 @@ case class Graph(facts: List[Constraint])(implicit language: Language) {
     .collect { case CGDirectEdge(`s`, l, s2) => (l, s2) }
 
   // Set of declarations to which the reference can resolve
-  def res(R: Resolution)(x: Pattern): List[Pattern] =
+  def res(R: Resolution)(x: Pattern): Set[(List[NamingConstraint], Pattern)] =
     res(Nil, R)(x)
 
   // Set of declarations to which the reference can resolve
-  def res(I: SeenImport, R: Resolution)(x: Pattern): List[Pattern] =
-    if (R.contains(x)) {
-      List(R(x))
-    } else {
-      val D = env(language.specification.params.wf, x :: I, Nil, R)(scope(x))
+  def res(I: SeenImport, R: Resolution)(reference: Pattern): Set[(List[NamingConstraint], Pattern)] = R.get(reference) match {
+    case Some(declaration) =>
+      Set((Nil, declaration))
+    case None =>
+      // TODO: We can compute `env` given `E`, which allows us to discard some declarations earlier instead of filtering afterwards
+      val E = namingConstraints(R)
+      val D = env(language.specification.params.wf, reference :: I, Nil, R)(scope(reference))
 
-      D.declarations.filter(y =>
-        x.isInstanceOf[Name] && y.isInstanceOf[Name] && x.asInstanceOf[Name].namespace == y.asInstanceOf[Name].namespace
-      )
+      D.declarations.map {
+        case (cs, declaration) =>
+          (Eq(reference, declaration) :: cs ++ E, declaration)
+      }.filter {
+        case (_, declaration) =>
+          reference.isInstanceOf[Name] && declaration.isInstanceOf[Name] && reference.asInstanceOf[Name].namespace == declaration.asInstanceOf[Name].namespace
+      }.filter {
+        case (cs, declaration) =>
+          consistent(cs)
+      }
+  }
+
+  // Derive constraints on the names that must be satisfied to achieve the given resolution in the current graph
+  def namingConstraints(resolution: Resolution): List[NamingConstraint] = {
+    resolution.bindings.foldLeft(List[NamingConstraint]()) {
+      case (constraints, (reference, declaration)) => {
+        val D = env(language.specification.params.wf, List(reference), Nil, resolution)(scope(reference))
+
+        D.declarations.find(_._2 == declaration).map {
+          case (cs, _) =>
+            Eq(reference, declaration) :: cs ++ constraints
+        }.get
+      }
     }
-  
+  }
+
+  /**
+    * Check if the naming constraints are consistent.
+    *
+    * @param cs
+    * @return
+    */
+  def consistent(cs: List[NamingConstraint]): Boolean = {
+    val names = cs.flatMap {
+      case Eq(n1, n2) =>
+        List(n1, n2)
+      case Diseq(n1, n2) =>
+        List(n1, n2)
+    }.distinct
+
+    val (eqs, diseqs) = cs.partition {
+      case _: Eq =>
+        true
+      case _: Diseq =>
+        false
+    }
+
+    // Put all names in distinct sets
+    val disjointSet = DisjointSet(names: _*)
+
+    // Union sets of names that are supposed to be equal
+    eqs.foreach {
+      case Eq(n1, n2) =>
+        disjointSet.union(n1, n2)
+    }
+
+    // Union concrete names
+    names.filter(_.isInstanceOf[ConcreteName]).groupBy {
+      case ConcreteName(namespace, name, _) =>
+        (namespace, name)
+    }.foreach {
+      case ((ns, name), concreteNames) =>
+        concreteNames.combinations(2).foreach {
+          case List(n1, n2) =>
+            disjointSet.union(n1, n2)
+        }
+    }
+
+    // All names that must be unequal should be in distinct sets
+    lazy val c1 = diseqs.forall {
+      case Diseq(n1, n2) =>
+        disjointSet(n1) != disjointSet(n2)
+    }
+
+    // No set may contain two names of distinct names
+    lazy val c2 = disjointSet.sets.forall(set =>
+      set.toList.combinations(2).forall {
+        case List(ConcreteName(ns1, name1, _), ConcreteName(ns2, name2, _)) if ns1 == ns2 =>
+          name1 == name2
+        case _ =>
+          false
+      }
+    )
+
+    c1 && c2
+  }
+
   // Set of declarations that are reachable from S with path satisfying re
   def env(re: Regex[Label], I: SeenImport, S: SeenScope, R: Resolution)(s: Pattern): Environment =
     if (S.contains(s) || re.rejectsAll) {
@@ -85,7 +180,7 @@ case class Graph(facts: List[Constraint])(implicit language: Language) {
     if (!re.acceptsEmptyString) {
       Environment()
     } else {
-      Environment(declarations(s))
+      Environment(declarations(s).map((Nil, _)))
     }
 
   // Set of declarations accessible from scope s through an l-labeled edge

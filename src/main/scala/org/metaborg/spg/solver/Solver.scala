@@ -1,8 +1,9 @@
-package org.metaborg.spg
+package org.metaborg.spg.solver
 
-import org.metaborg.spg.spoofax.models.{SortAppl, SortVar}
+import org.metaborg.spg.resolution.Graph
 import org.metaborg.spg.spoofax.Language
-import org.metaborg.spg.spoofax.models.Sort
+import org.metaborg.spg.spoofax.models.{Sort, SortAppl, SortVar}
+import org.metaborg.spg.{Pattern, SymbolicName, Var}
 
 object Solver {
   /**
@@ -31,13 +32,14 @@ object Solver {
     case CResolve(n1, n2) =>
       val declarations = Graph(state.constraints).res(state.resolution)(n1)
 
-      declarations.flatMap(declaration =>
-        declaration.unify(n2).map(unifier =>
-          state
-            .substitute(unifier)
-            .copy(resolution = state.resolution + (n1 -> declaration))
-        )
-      )
+      declarations.toList.flatMap {
+        case (_, declaration) =>
+          declaration.unify(n2).map(unifier =>
+            state
+              .substitute(unifier)
+              .copy(resolution = state.resolution + (n1 -> declaration))
+          )
+      }
     case CAssoc(n@SymbolicName(_, _), s@Var(_)) if Graph(state.constraints).associated(n).nonEmpty =>
       Graph(state.constraints).associated(n).map(scope =>
         state.substitute(Map(s -> scope))
@@ -49,22 +51,22 @@ object Solver {
       state.copy(subtypeRelation = state.subtypeRelation ++ closure)
     case CSubtype(t1, t2) if (t1.vars ++ t2.vars).isEmpty && state.subtypeRelation.isSubtype(t1, t2) =>
       state
-    // TODO: These inequalities are barely used;
+    // TODO: We can only solve this if the graph is complete w.r.t. the scope
     case CDistinct(Declarations(scope, namespace)) if scope.vars.isEmpty =>
       val names = Graph(state.constraints).declarations(scope, namespace)
       val combis = for (List(a, b, _*) <- names.combinations(2).toList) yield (a, b)
 
       state.addInequalities(combis)
-    case constraint@CGenRecurse(name, _, scopes, typ, sort) =>
+    case constraint@CGenRecurse(name, pattern, scopes, typ, sort) =>
       language.rules(name, sort).flatMap(rule => {
         val (_, freshRule) = rule.instantiate().freshen()
-
-        // TODO: Merging in the presence of aliases is harder (try Tiger)
-        val newState = state.merge(constraint, freshRule.state)
+        val newState = state ++ freshRule.state
 
         mergeSorts(newState)(sort, freshRule.sort).map(newState =>
-          mergeTypes(newState)(typ, freshRule.typ).flatMap(newState =>
-            mergeScopes(newState)(scopes, freshRule.scopes)
+          mergePatterns(newState)(pattern, freshRule.pattern).flatMap(newState =>
+            mergeTypes(newState)(typ, freshRule.typ).flatMap(newState =>
+              mergeScopes(newState)(scopes, freshRule.scopes)
+            )
           )
         )
       })
@@ -81,6 +83,10 @@ object Solver {
         .flatMap(_.unify(s2))
         .headOption
         .map(state.substituteSort)
+  }
+
+  def mergePatterns(state: State)(p1: Pattern, p2: Pattern)(implicit language: Language): List[State] = {
+    rewrite(CEqual(p1, p2), state)
   }
 
   def mergeTypes(state: State)(t1: Option[Pattern], t2: Option[Pattern])(implicit language: Language): List[State] = (t1, t2) match {

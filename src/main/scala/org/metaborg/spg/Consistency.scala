@@ -1,5 +1,7 @@
 package org.metaborg.spg
 
+import org.metaborg.spg.resolution.Graph
+import org.metaborg.spg.solver.{CEqual, CFalse, CInequal, FSubtype}
 import org.metaborg.spg.spoofax.Language
 
 object Consistency {

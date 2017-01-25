@@ -1,4 +1,6 @@
-package org.metaborg.spg
+package org.metaborg.spg.solver
+
+import org.metaborg.spg._
 
 /**
   * Representation of the solver state
@@ -56,8 +58,19 @@ case class State(pattern: Pattern, constraints: List[Constraint], typeEnv: TypeE
     * @param constraint
     * @return
     */
-  def `+`(constraint: Constraint): State =
+  def `+`(constraint: Constraint): State = {
     copy(constraints = constraint :: constraints)
+  }
+
+  /**
+    * Create a new state that contains constraints from both states.
+    *
+    * @param state
+    * @return
+    */
+  def `++`(state: State): State = {
+    copy(constraints = constraints ++ state.constraints)
+  }
 
   def addBinding(nameType: (Pattern, Pattern)): State =
     copy(typeEnv = typeEnv + nameType)

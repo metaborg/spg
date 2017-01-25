@@ -1,4 +1,6 @@
-package org.metaborg.spg
+package org.metaborg.spg.solver
+
+import org.metaborg.spg.{Pattern, _}
 
 case class SubtypeRelation(bindings: List[(Pattern, Pattern)] = Nil) {
   def contains(n: Pattern): Boolean =

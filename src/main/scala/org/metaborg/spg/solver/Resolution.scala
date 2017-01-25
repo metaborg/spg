@@ -1,4 +1,6 @@
-package org.metaborg.spg
+package org.metaborg.spg.solver
+
+import org.metaborg.spg.{Pattern, _}
 
 case class Resolution(bindings: Map[Pattern, Pattern] = Map.empty) {
   def contains(n: Pattern): Boolean =

@@ -1,4 +1,6 @@
-package org.metaborg.spg
+package org.metaborg.spg.solver
+
+import org.metaborg.spg.{Pattern, _}
 
 /**
   * Representation of a typing environment
