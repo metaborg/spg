@@ -56,7 +56,7 @@ case class Graph(facts: List[Constraint])(implicit language: Language) {
         x.isInstanceOf[Name] && y.isInstanceOf[Name] && x.asInstanceOf[Name].namespace == y.asInstanceOf[Name].namespace
       )
     }
-
+  
   // Set of declarations that are reachable from S with path satisfying re
   def env(re: Regex[Label], I: SeenImport, S: SeenScope, R: Resolution)(s: Pattern): Environment =
     if (S.contains(s) || re.rejectsAll) {
@@ -101,7 +101,7 @@ case class Graph(facts: List[Constraint])(implicit language: Language) {
   def IS(l: Label, I: SeenImport, R: Resolution)(s: Pattern): List[Pattern] =
     (imports(l, s) diff I)
       .flatMap(R.get)
-      .flatMap(associated(_))
+      .flatMap(associated)
 
   // Scopes that are accessible through a nominal edge
   def IS(I: SeenImport, R: Resolution)(s: Pattern): List[(Label, Pattern)] =

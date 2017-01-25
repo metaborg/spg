@@ -22,7 +22,7 @@ class GraphSuite extends FunSuite {
   // Define an implicit language with resolution params to do resolution on
   implicit val language: Language = new Language(Nil, null, new Specification(resolutionParams, null, Nil), null, Set(), null)
 
-  test("resolution") {
+  test("resolve reference in context of existing resolution") {
     val facts = List(
       CGRef(SymbolicName("Var", "x"), Var("s1")),
       CGDecl(Var("s1"), SymbolicName("Var", "y")),
@@ -34,11 +34,11 @@ class GraphSuite extends FunSuite {
     ))
 
     assert(Graph(facts).res(resolution)(SymbolicName("Var", "x")) == List(
-      (SymbolicName("Var", "y"), Nil)
+      SymbolicName("Var", "y")
     ))
   }
 
-  test("resolution with a direct edge") {
+  test("resolve reference in context of existing resolution with parent edge") {
     val facts = List(
       CGRef(SymbolicName("Var", "x"), Var("s1")),
       CGDirectEdge(Var("s1"), Label('P'), Var("s2")),
@@ -51,7 +51,7 @@ class GraphSuite extends FunSuite {
     ))
 
     assert(Graph(facts).res(resolution)(SymbolicName("Var", "x")) == List(
-      (SymbolicName("Var", "y"), Nil)
+      SymbolicName("Var", "y")
     ))
   }
 
@@ -68,7 +68,7 @@ class GraphSuite extends FunSuite {
     val resolution = Resolution()
 
     assert(Graph(facts).res(resolution)(SymbolicName("Class", "x836")) == List(
-      (SymbolicName("Class", "x"), List(Eq(SymbolicName("Class", "x836"), SymbolicName("Class", "x"))))
+      SymbolicName("Class", "x")
     ))
   }
 
@@ -160,5 +160,22 @@ class GraphSuite extends FunSuite {
     )
 
     assert(Graph(facts)(language).res(Resolution())(ConcreteName("C", "Foo", 1)).length == 1)
+  }
+
+  test("existing resolution a |-> this excludes this |-> b as possibility") {
+    val facts = List(
+      CGRef(SymbolicName("Class", "a"), TermAppl("s")),
+      CGRef(ConcreteName("Class", "this", 4), TermAppl("s")),
+      CGDirectEdge(TermAppl("s"), Label('P'), TermAppl("s'")),
+      CGDecl(TermAppl("s'"), SymbolicName("Class", "b")),
+      CGDirectEdge(TermAppl("s'"), Label('P'), TermAppl("s''")),
+      CGDecl(TermAppl("s''"), ConcreteName("Class", "this", 5))
+    )
+
+    val resolution = Resolution(Map(
+      SymbolicName("Class", "a") -> ConcreteName("Class", "this", 5)
+    ))
+
+    assert(Graph(facts).res(resolution)(ConcreteName("Class", "this", 4)) == Nil)
   }
 }

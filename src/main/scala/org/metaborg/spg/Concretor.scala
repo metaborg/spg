@@ -1,7 +1,6 @@
 package org.metaborg.spg
 
 import org.metaborg.spg.lexical.LexicalGenerator
-import org.metaborg.spg.spoofax.models._
 import org.metaborg.spg.spoofax.Language
 import org.metaborg.spg.spoofax.models.Strategy
 
@@ -18,7 +17,8 @@ case class Concretor(language: Language) {
   def computeNamingConstraints(state: State): List[NamingConstraint] = {
     state.resolution.bindings.foldLeft(List.empty[NamingConstraint]) {
       case (namingConstraints, (ref, dec)) =>
-        val reachableDeclarations = Graph(state.constraints)(language).res(state.resolution)(ref)
+        //val reachableDeclarations = Graph(state.constraints)(language).res(state.resolution)(ref)
+        val reachableDeclarations = Graph(state.constraints)(language).res(Resolution())(ref)
 
         Eq(ref, dec) :: namingConstraints ++ reachableDeclarations
           .filter(_ != dec)

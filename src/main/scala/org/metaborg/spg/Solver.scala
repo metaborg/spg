@@ -49,6 +49,7 @@ object Solver {
       state.copy(subtypeRelation = state.subtypeRelation ++ closure)
     case CSubtype(t1, t2) if (t1.vars ++ t2.vars).isEmpty && state.subtypeRelation.isSubtype(t1, t2) =>
       state
+    // TODO: These inequalities are barely used;
     case CDistinct(Declarations(scope, namespace)) if scope.vars.isEmpty =>
       val names = Graph(state.constraints).declarations(scope, namespace)
       val combis = for (List(a, b, _*) <- names.combinations(2).toList) yield (a, b)
