@@ -4,7 +4,7 @@ import LabelImplicits._
 import org.metaborg.spg.collection.DisjointSet
 import org.metaborg.spg.regex.Regex
 import org.metaborg.spg.spoofax.Language
-import org.metaborg.spg.{ConcreteName, Name, Pattern, SymbolicName, Var}
+import org.metaborg.spg.{ConcreteName, Name, Pattern, Var}
 import org.metaborg.spg.solver._
 
 /**
@@ -139,13 +139,13 @@ case class Graph(facts: List[Constraint])(implicit language: Language) {
         disjointSet(n1) != disjointSet(n2)
     }
 
-    // No set may contain two names of distinct names
+    // No set may contain two names that must be distinct
     lazy val c2 = disjointSet.sets.forall(set =>
       set.toList.combinations(2).forall {
         case List(ConcreteName(ns1, name1, _), ConcreteName(ns2, name2, _)) if ns1 == ns2 =>
           name1 == name2
         case _ =>
-          false
+          true
       }
     )
 
