@@ -5,12 +5,14 @@ import java.nio.charset.StandardCharsets
 import com.google.common.collect.Iterables
 import org.metaborg.spg.FragmentsModule
 import org.apache.commons.io.IOUtils
+import org.apache.commons.vfs2.FileObject
 import org.metaborg.core.language.{ILanguageImpl, LanguageUtils}
 import org.metaborg.core.project.SimpleProjectService
 import org.metaborg.spg.spoofax.models.{Sort, SortAppl}
 import org.metaborg.spoofax.core.Spoofax
 import org.metaborg.spoofax.core.syntax.SyntaxFacet
 import org.spoofax.interpreter.terms.{IStrategoString, IStrategoTerm}
+
 import scala.collection.JavaConverters._
 
 object Utils {
@@ -63,21 +65,36 @@ object Utils {
   }
 
   /**
-    * Get a pretty-printer for the language
+    * Get a pretty-printer for the language.
+    *
+    * @param languageImpl
+    * @return
     */
   def getPrinter(languageImpl: ILanguageImpl): (IStrategoTerm => String) = {
     val languageLocation = Iterables.get(languageImpl.locations(), 0)
     val component = Iterables.get(languageImpl.components(), 0)
 
-    val projectService = s.injector.getInstance(classOf[SimpleProjectService])
-    projectService.create(languageLocation)
-
-    val project = s.projectService.get(languageLocation)
+    val project = getOrCreateProject(languageLocation)
     val context = s.contextService.getTemporary(languageLocation, project, languageImpl)
     val runtime = s.strategoRuntimeService.runtime(component, context, false)
 
-    (term: IStrategoTerm) => s.strategoCommon.invoke(runtime, term, "pp-debug")
-      .asInstanceOf[IStrategoString].stringValue()
+    (term: IStrategoTerm) => {
+      s.strategoCommon.invoke(runtime, term, "pp-debug")
+        .asInstanceOf[IStrategoString].stringValue()
+    }
+  }
+
+  /**
+    * Get existing project or create new project at given resource.
+    *
+    * @param resource
+    */
+  def getOrCreateProject(resource: FileObject) = {
+    val projectService = s.injector.getInstance(classOf[SimpleProjectService])
+
+    Option(projectService.get(resource)).getOrElse(
+      projectService.create(resource)
+    )
   }
 
   /**

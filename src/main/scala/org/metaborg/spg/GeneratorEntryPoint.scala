@@ -56,7 +56,7 @@ class GeneratorEntryPoint {
     * @param f
     * @tparam A
     */
-  @tailrec final def repeat[A](n: Int)(f: => A): Unit = n match {
+  @tailrec final private def repeat[A](n: Int)(f: => A): Unit = n match {
     case 0 =>
       // Noop
     case _ =>
@@ -77,7 +77,7 @@ object GeneratorEntryPoint {
       rootLogger.setLevel(Level.toLevel(options.verbosity))
 
       val writer = new PrintWriter(
-        new FileOutputStream(new File("mj.log"), true)
+        new FileOutputStream(new File("l1.log"), true)
       )
 
       new GeneratorEntryPoint().generate(
@@ -88,7 +88,9 @@ object GeneratorEntryPoint {
         Config(
           options.limit,
           options.fuel,
-          options.sizeLimit
+          options.sizeLimit,
+          options.consistency,
+          options.throwOnUnresolvable
         )
       ).subscribe(program => {
         writer.println("===================================")
@@ -125,6 +127,16 @@ class Command extends BaseCommand(name = "generator", description = "Generate ra
   var sizeLimit = opt[Int](
     description = "Maximum size of terms to generate (default: 60)",
     default = 60
+  )
+
+  var consistency = opt[Boolean](
+    description = "Whether or not to perform the consistency check (default: true)",
+    default = true
+  )
+
+  var throwOnUnresolvable = opt[Boolean](
+    description = "Whether or not to throw an exception when a reference can never be resolved (default: false)",
+    default = false
   )
 
   var verbosity = opt[String](

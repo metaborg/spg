@@ -102,8 +102,8 @@ object Solver {
   def mergeScopes(program: Program)(ss1: List[Pattern], ss2: List[Pattern])(implicit language: Language): List[Program] = {
     if (ss1.length == ss2.length) {
       ss1.zip(ss2).foldLeftMap(program) {
-        case (state, (s1, s2)) =>
-          rewrite(CEqual(s1, s2), state)
+        case (program, (s1, s2)) =>
+          rewrite(CEqual(s1, s2), program)
       }
     } else {
       Nil

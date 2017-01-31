@@ -21,6 +21,17 @@ case class Signatures(list: List[Signature]) {
   }
 
   /**
+    * Try to detect the signature for a given pattern based on its constructor
+    * name and its children.
+    *
+    * @param pattern
+    * @return
+    */
+  def detectSignature(pattern: Pattern): List[OpDecl] = {
+    ???
+  }
+
+  /**
     * Get the sort of p2 for its occurrence in p1. If p2 occurs multiple times
     * in p1, the sort for the first occurrence is returned.
     *

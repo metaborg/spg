@@ -11,8 +11,19 @@ object Consistency {
     * @param program
     * @return
     */
-  def check(program: Program)(implicit l: Language): Boolean = {
-    constraintsCheck(program) && resolveCheck(program)
+  def check(program: Program)(implicit l: Language, c: Config): Boolean = {
+    lazy val c1 = constraintsCheck(program)
+    lazy val c2 = resolveCheck(program)
+
+    if (c.consistency) {
+      if (c.throwOnUnresolvable && !c2) {
+        throw InconsistencyException(program)
+      }
+
+      c1 && c2
+    } else {
+      c1
+    }
   }
 
   /**

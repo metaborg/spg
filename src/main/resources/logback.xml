@@ -8,7 +8,8 @@
     <!-- Hide logs lower than INFO for org.metaborg (i.e. TRACE & DEBUG) -->
     <logger name="org.metaborg" level="INFO"/>
 
-    <root level="DEBUG">
+    <!-- Show logs ALL and more severe, i.e. TRACE, DEBUG, INFO, WARN, ERROR.-->
+    <root level="ERROR">
         <appender-ref ref="STDOUT" />
     </root>
 </configuration>

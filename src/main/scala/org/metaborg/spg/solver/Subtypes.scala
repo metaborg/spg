@@ -56,5 +56,5 @@ case class Subtypes(bindings: List[(Pattern, Pattern)] = Nil) {
   }
 
   override def toString =
-    "SubtypeRelation(List(" + bindings.map { case (n1, n2) => s"""Binding($n1, $n2)""" }.mkString(", ") + "))"
+    "Subtypes(List(" + bindings.map { case (n1, n2) => s"""Binding($n1, $n2)""" }.mkString(", ") + "))"
 }

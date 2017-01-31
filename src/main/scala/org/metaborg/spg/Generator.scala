@@ -1,7 +1,8 @@
 package org.metaborg.spg
 
 import com.typesafe.scalalogging.Logger
-import org.metaborg.spg.solver.{CGenRecurse, Solver}
+import org.metaborg.spg.resolution.Label
+import org.metaborg.spg.solver._
 import org.metaborg.spg.spoofax.Converter
 import org.metaborg.spg.spoofax.Language
 import org.slf4j.LoggerFactory
@@ -46,15 +47,15 @@ object Generator {
       })
     } catch {
       case OutOfFuelException(rule) =>
-        logger.debug("Out of fuel: {}", rule)
+        logger.info("Out of fuel: {}", rule)
 
         None
       case PatternSizeException(rule) =>
-        logger.debug("Rule pattern too large: {}", rule)
+        logger.info("Rule pattern too large: {}", rule)
 
         None
       case InconsistencyException(rule) =>
-        logger.debug("Inconsistency observed in program: {}", rule)
+        logger.info("Inconsistency observed in program: {}", rule)
 
         None
     }
@@ -92,22 +93,18 @@ object Generator {
     * @return
     */
   private def generate(generate: Program => Option[Program])(program: Program)(implicit language: Language, config: Config): Option[Program] = {
-    logger.trace("Generate with program: {}", program)
+    logger.debug("Generate with program: {}", program)
 
     if (program.pattern.size > config.sizeLimit) {
       throw PatternSizeException(program)
     }
 
     if (!Consistency.check(program)) {
-      // Returning None causes backtracking
       return None
-
-      // Throwing InconsistencyException causes abandoning the term
-      //throw InconsistencyException(program)
     }
 
     if (program.properConstraints.isEmpty) {
-      logger.debug("All constraints solved: {}", program)
+      logger.info("All constraints solved: {}", program)
 
       Some(program)
     } else {
