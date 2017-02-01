@@ -1,0 +1,15 @@
+module runtime/framework/scope
+
+imports
+  runtime/framework/scope.api
+
+signature
+
+  constructors
+    SID : Int -> ScopeId {implicit}
+ 
+  constructors
+    PE : Label * ScopeId * Path -> Path
+    PD : Decl -> Path
+
+  

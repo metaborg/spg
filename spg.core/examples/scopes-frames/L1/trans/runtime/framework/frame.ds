@@ -1,0 +1,81 @@
+module runtime/framework/frame
+
+imports
+  runtime/framework/frame.api
+  runtime/framework/scope.api
+  runtime/framework/scope
+
+signature
+
+  constructors
+    FID : Int -> FrameId {implicit}
+    F : ScopeId * Map(Label, Map(ScopeId, FrameId)) * Map(Decl, Val) -> Frame 
+    Heap : Map(FrameId, Frame) -> H {implicit}
+
+//////////////////////////////
+// VANILLA FRAMES AND HEAPS //
+//////////////////////////////
+
+rules
+
+  // Operations on frames
+
+  initFrame(s, ks, slots) :: H Heap(x) --> ff:FrameId :: H { ff |--> F(s, ks, slots), x }
+  where
+    fresh => ff.
+    
+  // Dynamic address lookup  
+  
+  lookup(f, _, PD(d)) --> Addr(f, d).
+  
+  lookup(f1, h, PE(l, s, p)) --> Addr(f3, d)
+  where
+    linksOf(h, f1) --> ks;
+    ks[l][s] => f2;
+    lookup(f2, h, p) --> Addr(f3, d).
+    
+  // Fetching and mutating slot values
+    
+  get(f, h, d) --> v
+  where
+    slotsOf(h, f) --> slots;
+    slots[d] => v.
+
+  set(f, Heap(x), d, v) --> Heap({f |--> F(s, ks, {d |--> v, slots}), x})
+  where
+    x[f] => F(s, ks, slots).
+    
+rules
+  
+  linksOf(Heap(x), f) --> ks
+  where
+    x[f] => F(_, ks, _).
+    
+  slotsOf(Heap(x), f) --> slots
+  where
+    x[f] => F(_, _, slots).
+
+//////////////////////////////
+// DEFAULT FRAMES AND HEAPS //
+//////////////////////////////
+
+signature
+  
+  constructors
+    DefaultSlots : List(Decl) --> Map(Decl, Val)
+
+rules
+
+  initDefault(s, ks) :: H Heap(x) --> ff:FrameId :: H { ff |--> F(s, ks, slots), x }
+  where
+    fresh => ff;
+    declsofScope(s) --> ds;
+    DefaultSlots(ds) --> slots.
+  
+  DefaultSlots([]) --> {}.
+  
+  DefaultSlots([d|ds]) --> { d |--> v, slots }
+  where
+    typeofDecl(d) --> t;
+    t -defaultv-> v;
+    DefaultSlots(ds) --> slots.

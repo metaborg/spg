@@ -1,0 +1,358 @@
+module Tiger
+
+context-free start-symbols Module
+
+context-free syntax
+
+  Module.Mod = Exp
+
+context-free priorities
+
+  Exp.Or 
+  > Exp.Array
+  > Exp.Assign ,
+  
+  {Exp.Uminus
+   LValue.FieldVar
+   LValue.Subscript} 
+  > {left :
+    Exp.Times
+    Exp.Divide} 
+
+// module Types
+
+sorts Type 
+
+context-free syntax // type declarations
+   
+  Dec.TypeDecs = <<{TypeDec "\n"}+>> {longest-match}
+  
+  TypeDec.TypeDec = <type <Id> = <Type>> 
+  
+context-free syntax // type expressions
+
+  Type = TypeId 
+  TypeId.Tid  = Id 
+  
+sorts Ty
+context-free syntax // semantic types
+
+  Ty.INT      = <INT> 
+  Ty.STRING   = <STRING> 
+  Ty.NIL      = <NIL> 
+  Ty.UNIT     = <UNIT> 
+  Ty.NAME     = <NAME <Id>> 
+  Ty.RECORD   = <RECORD <Id>>
+  Ty.ARRAY    = <ARRAY <Ty> <Id>> 
+  Ty.FUN      = <FUN ( <{Ty ","}*> ) <Ty>> 
+
+// module Variables
+
+
+sorts Var
+
+context-free syntax
+  
+  Dec.VarDec = <var <Id> : <Type> := <Exp>> 
+  
+  Dec.VarDecNoType = <var <Id> := <Exp>> 
+
+  Var.Var = Id 
+  
+  LValue = Var 
+  
+  Exp = LValue   
+
+  Exp.Assign = <<LValue> := <Exp>> 
+
+// module Whitespace
+
+lexical syntax
+
+  LAYOUT         = [\ \t\n\r] 
+  CommentChar    = [\*] 
+  LAYOUT         = "/*" InsideComment* "*/" 
+  InsideComment  = ~[\*] 
+  InsideComment  = CommentChar 
+  LAYOUT         = SingleLineComment
+  SingleLineComment = "//" ~[\n\r]* NewLineEOF 
+  NewLineEOF     = [\n\r] 
+  NewLineEOF     = EOF 
+  EOF            = 
+  
+lexical restrictions
+
+  // Ensure greedy matching for lexicals
+  
+  CommentChar   -/- [\/]
+  EOF -/- ~[]
+  
+context-free restrictions
+
+  // Ensure greedy matching for comments
+  
+  LAYOUT? -/- [\ \t\n\r]
+  LAYOUT? -/- [\/].[\/]
+  LAYOUT? -/- [\/].[\*]
+
+// module Arrays
+
+
+context-free syntax // arrays
+
+  Type.ArrayTy = <array of <TypeId>> 
+  
+  Exp.Array = <<TypeId>[<Exp>] of <Exp>> 
+  
+  LValue.Subscript = <<LValue>[<Index>]> 
+  
+  Index = Exp 
+
+// module Bindings
+
+
+sorts Declarations
+
+context-free syntax
+
+  Exp.Let = <
+    let 
+      <{Dec "\n"}*> 
+     in 
+      <{Exp ";\n"}*> 
+    end
+  >  
+  
+  Declarations.Declarations = <
+    declarations <{Dec "\n"}*>
+  > 
+
+// module Control-Flow
+
+context-free syntax
+  
+  Exp.Seq = <
+    ( 
+      <{Exp ";\n"}*> 
+    )
+  > 
+  
+  Exp.If = <
+    if <Exp> then 
+      <Exp> 
+    else 
+      <Exp>
+  > 
+  
+  Exp.IfThen = <
+    if <Exp> then 
+      <Exp>
+  > 
+  
+  Exp.While = <
+    while <Exp> do 
+      <Exp>
+  > 
+  
+  Exp.For = <
+    for <Var> := <Exp> to <Exp> do 
+      <Exp>
+  > 
+  
+  Exp.Break = <break> 
+
+context-free priorities
+
+  Exp.Assign 
+  > {right :
+    Exp.If
+    Exp.If
+    Exp.While
+    Exp.For}
+
+// module Functions
+
+
+context-free syntax
+
+  Dec.FunDecs = <<{FunDec "\n"}+>> {longest-match}
+  
+  FunDec.ProcDec = <
+    function <Id>(<{FArg ", "}*>) = 
+      <Exp>
+  >
+  
+  FunDec.FunDec = <
+    function <Id>(<{FArg ", "}*>) : <Type> = 
+      <Exp>
+  >
+  
+  FArg.FArg = <<Id> : <Type>>
+  
+  Exp.Call = <<Id>(<{Exp ", "}*>)>
+
+// module Identifiers
+
+lexical syntax
+
+  Id = [a-zA-Z] [a-zA-Z0-9\_]* 
+
+lexical restrictions
+
+  Id -/- [a-zA-Z0-9\_]
+
+lexical syntax
+
+  Id = "nil" {reject}
+  Id = "let" {reject}
+  Id = "in" {reject}
+  Id = "end" {reject}
+  Id = "if" {reject}
+  Id = "then" {reject}
+  Id = "else" {reject}
+  Id = "var" {reject}
+  Id = "for" {reject}
+  Id = "to" {reject}
+  Id = "do" {reject}
+  Id = "break" {reject}
+  Id = "label" {reject}
+  Id = "goto" {reject}
+  Id = "array" {reject}
+  Id = "of" {reject}
+  Id = "declarations" {reject}
+  Id = "var" {reject}
+  Id = "type" {reject}
+  Id = "function" {reject}
+  Id = "true" {reject}
+  Id = "false" {reject}
+
+// module Numbers
+
+lexical syntax
+
+  IntConst = [0-9]+ 
+  
+lexical syntax
+
+  RealConst.RealConstNoExp = IntConst "." IntConst 
+  RealConst.RealConst = IntConst "." IntConst "e" Sign IntConst 
+  Sign = "+" 
+  Sign = "-" 
+  
+context-free syntax
+
+  Exp.Int     = IntConst  
+
+  Exp.Uminus  = [- [Exp]] 
+  Exp.Times   = [[Exp] * [Exp]]    {left}
+  Exp.Divide  = [[Exp] / [Exp]]    {left}
+  Exp.Plus    = [[Exp] + [Exp]]    {left}
+  Exp.Minus   = [[Exp] - [Exp]]    {left}
+  
+  Exp.Eq      = [[Exp] = [Exp]]    {non-assoc}
+  Exp.Neq     = [[Exp] <> [Exp]] {non-assoc}
+  Exp.Gt      = [[Exp] > [Exp]]   {non-assoc}
+  Exp.Lt      = [[Exp] < [Exp]]   {non-assoc}
+  Exp.Geq     = [[Exp] >= [Exp]]  {non-assoc}
+  Exp.Leq     = [[Exp] <= [Exp]]  {non-assoc}
+  
+  Exp.And     = [[Exp] & [Exp]] {left}
+  Exp.Or      = [[Exp] | [Exp]] {left}
+
+  Exp = [([Exp])] {bracket, avoid}
+
+context-free priorities
+
+  // Precedence of operators: Unary minus has the highest
+  // precedence. The operators *, / have the next highest
+  // (tightest binding) precedence, followed by +, -, then
+  // by =, <>, >, <, >=, <=, then by &, then by |.
+  
+  // Associativity of operators: The operators *, /, +, -
+  // are all left associative. The comparison operators do
+  // not associate, so a = b = c is not a legal expression,
+  // a = (b = c) is legal.
+
+  {Exp.Uminus} 
+  > {left :
+    Exp.Times
+    Exp.Divide} 
+  > {left :
+    Exp.Plus
+    Exp.Minus} 
+  > {non-assoc :
+    Exp.Eq
+    Exp.Neq
+    Exp.Gt
+    Exp.Lt
+    Exp.Geq
+    Exp.Leq} 
+  > Exp.And 
+  > Exp.Or 
+
+// module Operators
+
+context-free syntax
+
+  BinOp.PLUS = <+> 
+  BinOp.MUL = <*> 
+  BinOp.POW = <**> 
+  BinOp.MINUS = <-> 
+  BinOp.DIV = </> 
+  BinOp.AND = <&> 
+  BinOp.OR = <|> 
+  BinOp.LSHIFT = <\<\<> 
+  BinOp.RSHIFT = <\>\>> 
+  BinOp.ARSHIFT = <~\>\>> 
+  BinOp.XOR = <\>\<> 
+  RelOp.EQ = <=> 
+  RelOp.NE = <\<\>> 
+  RelOp.LT = <\<> 
+  RelOp.GT = <\>> 
+  RelOp.LE = <\<=> 
+  RelOp.GE = <\>=> 
+  RelOp.ULT = <`\<> 
+  RelOp.ULE = <`\<=> 
+  RelOp.UGT = <`\>> 
+  RelOp.UGE = <`\>=> 
+
+// module Records
+
+
+context-free syntax // records
+
+  Type.RecordTy = <
+    { 
+       <{Field ", \n"}*> 
+    }
+  > 
+  
+  Field.Field = <<Id> : <TypeId>> 
+   
+  Exp.NilExp = <nil> 
+  
+  Exp.Record = <<TypeId>{ <{InitField ", "}*> }> 
+  
+  InitField.InitField = <<Id> = <Exp>> 
+  
+  LValue.FieldVar = <<LValue>.<Id>>
+
+// module Strings
+
+sorts StrConst
+
+lexical syntax 
+
+  StrConst = "\"" StrChar* "\"" 
+  StrChar = ~[\\\"\n]
+  StrChar = [\\] [n]
+  StrChar = [\\] [t]
+  StrChar = [\\] [\^] [A-Z]
+  StrChar = [\\] [0-9] [0-9] [0-9]
+  StrChar = [\\] [\\]
+  StrChar = [\\] [\"]
+  StrChar = [\\] [\ \t\n]+ [\\]
+  
+context-free syntax // records
+  
+  Exp.String = StrConst

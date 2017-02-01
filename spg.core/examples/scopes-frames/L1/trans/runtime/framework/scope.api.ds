@@ -1,0 +1,24 @@
+module runtime/framework/scope.api
+
+signature // Scope graphs -- these definitions should come from the NaBL2 API
+  
+  sorts Ref Decl
+  
+  sorts Label constructors
+    P : Label
+    I : Label
+  
+  sorts Path
+  
+  sorts ScopeId
+  
+  sorts T
+
+  variables
+    s : ScopeId
+  
+  constructors
+    pathofRef : Ref --> Path
+    declsofScope : ScopeId --> List(Decl)
+    linksofScope : ScopeId --> Map(Label, ScopeId)
+    typeofDecl : Decl --> T

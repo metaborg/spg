@@ -1,0 +1,12 @@
+/.cache
+/bin
+/src-gen
+/target
+
+/.classpath
+/.project
+/.settings
+
+*.aterm
+/analysis.txt
+*.analysis.txt

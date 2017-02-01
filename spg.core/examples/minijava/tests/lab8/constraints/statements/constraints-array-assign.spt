@@ -1,0 +1,68 @@
+module constraints-array-assign
+
+language MiniJava
+start symbol Program
+
+fixture [[
+	class Main {
+		public static void main(String[] args) {
+			{}
+		}
+}
+
+class A{
+	public boolean fac2() {
+		return true;
+	}
+	public int fac() {
+		int i;
+		boolean b;
+		A o;
+		int[] a;
+		a=a;
+		
+		[[...]]
+    return 1;
+  }
+}
+]]
+
+test use integer in subscript [[ 
+	a[42] = 42;
+]] 0 errors
+
+test use boolean in subscript [[ 
+	a[false] = 42 ;
+]] 1 errors
+
+test use array in subscript [[ 
+	a[new int[42] ] = 42;
+]] 1 errors
+
+test use object in subscript [[ 
+	a[new A()] = 42;
+]] 1 errors
+
+test use integer in variable [[ 
+	i[42] = 42;
+]] 1 errors
+
+test use boolean in variable [[ 
+	b[42] = 42;
+]] 1 errors
+
+test use class in type variable [[ 
+	o[42] = 42;
+]] 1 errors
+
+test use boolean in expression [[ 
+	a[42] = true;
+]] 1 errors
+
+test use array in expression [[ 
+	a[42] = new int[1];
+]] 1 errors
+
+test use object in expression [[ 
+	a[42] = new A();
+]] 1 errors

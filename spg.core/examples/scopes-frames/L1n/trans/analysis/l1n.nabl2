@@ -1,0 +1,84 @@
+module analysis/l1n
+
+imports
+  signatures/-
+  
+signature
+
+  constraint generator
+    [[ Exp ^ (s) : * ]]
+    Exps     [[ List(Exp) ^ (s) : * ]]
+    FParams  [[ Param ^ (s) : * ]]
+    Type     [[ SyntType ^ () : * ]]
+    FunTypes [[ List(SyntType) ^ () : * ]]
+
+  types
+    TInt()
+    TFun(type, type)
+    TCons(type, type)
+    TNil()
+  
+rules
+
+  init ^ (s) : ty := new s.
+
+/////////////////
+// Expressions //
+/////////////////
+    
+  [[ IntValue(_) ^ (_) : TInt() ]] :=
+    true.
+  
+  [[ Var(x) ^ (s) : t ]] :=
+    {x} -> s,
+    {x} |-> d,
+    d : t.
+  
+  [[ Add(e1, e2) ^ (s) : TInt() ]] :=
+    [[ e1 ^ (s) : TInt() ]],
+    [[ e2 ^ (s) : TInt() ]].
+
+  [[ Fun(fps, e) ^ (s) : TFun(t1s, t2) ]] :=
+    FParams [[ fps ^ (s') : t1s ]],
+    [[ e ^ (s') : t2 ]],
+    s' -P-> s,
+    new s'.
+
+  [[ App(e1, e2s) ^ (s) : t2 ]] :=
+    [[ e1 ^ (s) : TFun(t1s, t2) ]],
+    Exps [[ e2s ^ (s) : t1s ]].
+  
+  Exps [[ [] ^ (s) : TNil() ]] := true.
+  
+  Exps [[ [e|es] ^ (s) : TCons(t, ts) ]] :=
+    [[ e ^ (s) : t ]],
+    Exps [[ es ^ (s) : ts ]].
+
+/////////////////////////
+// Function parameters //
+/////////////////////////
+
+  FParams [[ [] ^ (s) : TNil() ]] := true.
+
+  FParams [[ [FParam(x , t)|fps] ^ (s) : TCons(t', ts') ]] :=
+    {x} <- s,
+    {x} : t',
+    Type [[ t ^ () : t' ]],
+    FParams [[ fps ^ (s) : ts' ]].
+
+///////////
+// Types //
+///////////
+
+  Type [[ IntType() ^ () : TInt() ]] :=
+    true.
+  
+  Type [[ FunType(t1s, t2) ^ () : TFun(t1s', t2') ]] :=
+    FunTypes [[ t1s ^ () : t1s' ]],
+    Type [[ t2 ^ () : t2' ]].
+
+  FunTypes [[ [ t | ts ] ^ () : TCons(t', ts') ]] :=
+  	Type [[ t ^ () : t' ]],
+  	FunTypes [[ ts ^ () : ts' ]].
+
+  FunTypes [[ [] ^ () : TNil() ]] := true.

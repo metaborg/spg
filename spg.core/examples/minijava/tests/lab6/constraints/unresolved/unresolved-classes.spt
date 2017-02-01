@@ -1,0 +1,60 @@
+module unresolved-classes
+
+language MiniJava
+start symbol Program
+
+fixture [[
+	class Main {
+		public static void main(String[] args) {
+			System.out.println(1);
+		}
+	}
+
+	[[...]]
+]]
+
+test unresolved class in field decl [[
+	class Foobar {
+    	[[Foo]] x;
+  	}
+]] 1 error
+
+test unresolved class in var decl [[
+	class Foobar {
+    	public int method() {
+    		[[Foo]] x;
+    		return 1;
+    	}
+  	}
+]] 1 error
+
+test unresolved class in param decl [[
+	class Foobar {
+    	public int method([[Foo]] x) {
+    		return 1;
+    	}
+  	}
+]] 1 error
+
+test unresolved class in extends [[
+  	class Foobar extends [[Foo]] {
+  	}
+]] 1 error
+
+test unresolved class in newObject [[
+	class Foo {
+		public int method(){
+			int x;
+			x = new [[Bar]]();
+			return 1;
+		}
+	}
+]] 1 error
+
+test unresolved class in return type [[
+	class Foo {
+		public [[Bar]] method(){
+			return 1;
+		}
+	}
+]] 1 error

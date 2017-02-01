@@ -1,0 +1,33 @@
+module hiding-variables
+
+language MiniJava
+start symbol Program
+
+fixture [[
+	class Main {
+		public static void main(String[] args) {
+			System.out.println(1);
+		}
+	}
+
+  [[...]]
+]]
+
+test hiding variable local var [[
+  	class Foo {
+    	int x;
+    	public int getX() {
+      		int [[x]];
+      		return x;
+    	}
+  	}
+]] 1 warning
+
+test hiding variable parameter [[
+  	class Foo {
+    	int x;
+    	public int getX(int [[x]]) {
+      		return x;
+    	}
+  	}
+]] 1 warning

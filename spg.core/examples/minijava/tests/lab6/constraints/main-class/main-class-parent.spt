@@ -1,0 +1,15 @@
+module main-class-parent
+
+language MiniJava
+start symbol Program
+
+test subclass main class [[
+	class Main {
+		public static void main(String[] args) {
+			System.out.println(1);
+		}
+	}
+
+	class Foo extends [[Main]] {
+	}
+]] 1 error

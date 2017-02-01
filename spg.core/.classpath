@@ -1,0 +1,177 @@
+<classpath>
+  <classpathentry kind="src" path="src/main/scala"/>
+  <classpathentry kind="src" path="src/main/resources"/>
+  <classpathentry kind="src" path="src/test/scala"/>
+  <classpathentry kind="src" path="src/test/resources"/>
+  <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/>
+  <classpathentry sourcepath="/Users/martijn/.ivy2/cache/com.typesafe.scala-logging/scala-logging_2.11/srcs/scala-logging_2.11-3.5.0-sources.jar" kind="lib" path="/Users/martijn/.ivy2/cache/com.typesafe.scala-logging/scala-logging_2.11/bundles/scala-logging_2.11-3.5.0.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:/Users/martijn/.ivy2/cache/com.typesafe.scala-logging/scala-logging_2.11/docs/scala-logging_2.11-3.5.0-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry sourcepath="/Users/martijn/.ivy2/cache/org.slf4j/slf4j-api/srcs/slf4j-api-1.7.21-sources.jar" kind="lib" path="/Users/martijn/.ivy2/cache/org.slf4j/slf4j-api/jars/slf4j-api-1.7.21.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:/Users/martijn/.ivy2/cache/org.slf4j/slf4j-api/docs/slf4j-api-1.7.21-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry sourcepath="/Users/martijn/.ivy2/cache/ch.qos.logback/logback-classic/srcs/logback-classic-1.1.7-sources.jar" kind="lib" path="/Users/martijn/.ivy2/cache/ch.qos.logback/logback-classic/jars/logback-classic-1.1.7.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:/Users/martijn/.ivy2/cache/ch.qos.logback/logback-classic/docs/logback-classic-1.1.7-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry sourcepath="/Users/martijn/.ivy2/cache/ch.qos.logback/logback-core/srcs/logback-core-1.1.7-sources.jar" kind="lib" path="/Users/martijn/.ivy2/cache/ch.qos.logback/logback-core/jars/logback-core-1.1.7.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:/Users/martijn/.ivy2/cache/ch.qos.logback/logback-core/docs/logback-core-1.1.7-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry sourcepath="/Users/martijn/.m2/repository/org/metaborg/org.metaborg.core/2.1.0/org.metaborg.core-2.1.0-sources.jar" kind="lib" path="/Users/martijn/.m2/repository/org/metaborg/org.metaborg.core/2.1.0/org.metaborg.core-2.1.0.jar"/>
+  <classpathentry sourcepath="/Users/martijn/.m2/repository/org/metaborg/org.metaborg.util/2.1.0/org.metaborg.util-2.1.0-sources.jar" kind="lib" path="/Users/martijn/.m2/repository/org/metaborg/org.metaborg.util/2.1.0/org.metaborg.util-2.1.0.jar"/>
+  <classpathentry sourcepath="/Users/martijn/.ivy2/cache/org.apache.commons/commons-vfs2/srcs/commons-vfs2-2.1-sources.jar" kind="lib" path="/Users/martijn/.ivy2/cache/org.apache.commons/commons-vfs2/jars/commons-vfs2-2.1.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:/Users/martijn/.ivy2/cache/org.apache.commons/commons-vfs2/docs/commons-vfs2-2.1-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry sourcepath="/Users/martijn/.ivy2/cache/commons-logging/commons-logging/srcs/commons-logging-1.2-sources.jar" kind="lib" path="/Users/martijn/.ivy2/cache/commons-logging/commons-logging/jars/commons-logging-1.2.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:/Users/martijn/.ivy2/cache/commons-logging/commons-logging/docs/commons-logging-1.2-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry sourcepath="/Users/martijn/.ivy2/cache/commons-io/commons-io/srcs/commons-io-2.5-sources.jar" kind="lib" path="/Users/martijn/.ivy2/cache/commons-io/commons-io/jars/commons-io-2.5.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:/Users/martijn/.ivy2/cache/commons-io/commons-io/docs/commons-io-2.5-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry sourcepath="/Users/martijn/.ivy2/cache/com.netflix.rxjava/rxjava-core/srcs/rxjava-core-0.20.7-sources.jar" kind="lib" path="/Users/martijn/.ivy2/cache/com.netflix.rxjava/rxjava-core/jars/rxjava-core-0.20.7.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:/Users/martijn/.ivy2/cache/com.netflix.rxjava/rxjava-core/docs/rxjava-core-0.20.7-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry sourcepath="/Users/martijn/.ivy2/cache/javax.inject/javax.inject/srcs/javax.inject-1-sources.jar" kind="lib" path="/Users/martijn/.ivy2/cache/javax.inject/javax.inject/jars/javax.inject-1.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:/Users/martijn/.ivy2/cache/javax.inject/javax.inject/docs/javax.inject-1-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry sourcepath="/Users/martijn/.ivy2/cache/aopalliance/aopalliance/srcs/aopalliance-1.0-sources.jar" kind="lib" path="/Users/martijn/.ivy2/cache/aopalliance/aopalliance/jars/aopalliance-1.0.jar"/>
+  <classpathentry sourcepath="/Users/martijn/.ivy2/cache/junit/junit/srcs/junit-4.12-sources.jar" kind="lib" path="/Users/martijn/.ivy2/cache/junit/junit/jars/junit-4.12.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:/Users/martijn/.ivy2/cache/junit/junit/docs/junit-4.12-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry sourcepath="/Users/martijn/.ivy2/cache/org.hamcrest/hamcrest-core/srcs/hamcrest-core-1.3-sources.jar" kind="lib" path="/Users/martijn/.ivy2/cache/org.hamcrest/hamcrest-core/jars/hamcrest-core-1.3.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:/Users/martijn/.ivy2/cache/org.hamcrest/hamcrest-core/docs/hamcrest-core-1.3-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry sourcepath="/Users/martijn/.ivy2/cache/org.apache.commons/commons-lang3/srcs/commons-lang3-3.4-sources.jar" kind="lib" path="/Users/martijn/.ivy2/cache/org.apache.commons/commons-lang3/jars/commons-lang3-3.4.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:/Users/martijn/.ivy2/cache/org.apache.commons/commons-lang3/docs/commons-lang3-3.4-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry sourcepath="/Users/martijn/.ivy2/cache/org.apache.commons/commons-configuration2/srcs/commons-configuration2-2.0-sources.jar" kind="lib" path="/Users/martijn/.ivy2/cache/org.apache.commons/commons-configuration2/jars/commons-configuration2-2.0.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:/Users/martijn/.ivy2/cache/org.apache.commons/commons-configuration2/docs/commons-configuration2-2.0-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry sourcepath="/Users/martijn/.ivy2/cache/com.virtlink.commons/commons-configuration2-jackson/srcs/commons-configuration2-jackson-0.6.1-sources.jar" kind="lib" path="/Users/martijn/.ivy2/cache/com.virtlink.commons/commons-configuration2-jackson/jars/commons-configuration2-jackson-0.6.1.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:/Users/martijn/.ivy2/cache/com.virtlink.commons/commons-configuration2-jackson/docs/commons-configuration2-jackson-0.6.1-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry sourcepath="/Users/martijn/.ivy2/cache/com.fasterxml.jackson.core/jackson-core/srcs/jackson-core-2.7.5-sources.jar" kind="lib" path="/Users/martijn/.ivy2/cache/com.fasterxml.jackson.core/jackson-core/bundles/jackson-core-2.7.5.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:/Users/martijn/.ivy2/cache/com.fasterxml.jackson.core/jackson-core/docs/jackson-core-2.7.5-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry sourcepath="/Users/martijn/.ivy2/cache/com.fasterxml.jackson.core/jackson-databind/srcs/jackson-databind-2.7.5-sources.jar" kind="lib" path="/Users/martijn/.ivy2/cache/com.fasterxml.jackson.core/jackson-databind/bundles/jackson-databind-2.7.5.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:/Users/martijn/.ivy2/cache/com.fasterxml.jackson.core/jackson-databind/docs/jackson-databind-2.7.5-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry sourcepath="/Users/martijn/.ivy2/cache/com.fasterxml.jackson.core/jackson-annotations/srcs/jackson-annotations-2.7.5-sources.jar" kind="lib" path="/Users/martijn/.ivy2/cache/com.fasterxml.jackson.core/jackson-annotations/bundles/jackson-annotations-2.7.5.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:/Users/martijn/.ivy2/cache/com.fasterxml.jackson.core/jackson-annotations/docs/jackson-annotations-2.7.5-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry sourcepath="/Users/martijn/.ivy2/cache/com.fasterxml.jackson.dataformat/jackson-dataformat-yaml/srcs/jackson-dataformat-yaml-2.7.5-sources.jar" kind="lib" path="/Users/martijn/.ivy2/cache/com.fasterxml.jackson.dataformat/jackson-dataformat-yaml/bundles/jackson-dataformat-yaml-2.7.5.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:/Users/martijn/.ivy2/cache/com.fasterxml.jackson.dataformat/jackson-dataformat-yaml/docs/jackson-dataformat-yaml-2.7.5-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry sourcepath="/Users/martijn/.ivy2/cache/org.yaml/snakeyaml/srcs/snakeyaml-1.17-sources.jar" kind="lib" path="/Users/martijn/.ivy2/cache/org.yaml/snakeyaml/bundles/snakeyaml-1.17.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:/Users/martijn/.ivy2/cache/org.yaml/snakeyaml/docs/snakeyaml-1.17-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry sourcepath="/Users/martijn/.ivy2/cache/it.unimi.dsi/fastutil/srcs/fastutil-7.0.12-sources.jar" kind="lib" path="/Users/martijn/.ivy2/cache/it.unimi.dsi/fastutil/jars/fastutil-7.0.12.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:/Users/martijn/.ivy2/cache/it.unimi.dsi/fastutil/docs/fastutil-7.0.12-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry sourcepath="/Users/martijn/.m2/repository/org/metaborg/org.metaborg.spoofax.core/2.1.0/org.metaborg.spoofax.core-2.1.0-sources.jar" kind="lib" path="/Users/martijn/.m2/repository/org/metaborg/org.metaborg.spoofax.core/2.1.0/org.metaborg.spoofax.core-2.1.0.jar"/>
+  <classpathentry sourcepath="/Users/martijn/.m2/repository/org/metaborg/org.spoofax.terms/2.1.0/org.spoofax.terms-2.1.0-sources.jar" kind="lib" path="/Users/martijn/.m2/repository/org/metaborg/org.spoofax.terms/2.1.0/org.spoofax.terms-2.1.0.jar"/>
+  <classpathentry sourcepath="/Users/martijn/.m2/repository/org/metaborg/org.metaborg.scopegraph/2.1.0/org.metaborg.scopegraph-2.1.0-sources.jar" kind="lib" path="/Users/martijn/.m2/repository/org/metaborg/org.metaborg.scopegraph/2.1.0/org.metaborg.scopegraph-2.1.0.jar"/>
+  <classpathentry sourcepath="/Users/martijn/.m2/repository/org/metaborg/org.spoofax.interpreter.core/2.1.0/org.spoofax.interpreter.core-2.1.0-sources.jar" kind="lib" path="/Users/martijn/.m2/repository/org/metaborg/org.spoofax.interpreter.core/2.1.0/org.spoofax.interpreter.core-2.1.0.jar"/>
+  <classpathentry sourcepath="/Users/martijn/.m2/repository/org/metaborg/org.spoofax.jsglr/2.1.0/org.spoofax.jsglr-2.1.0-sources.jar" kind="lib" path="/Users/martijn/.m2/repository/org/metaborg/org.spoofax.jsglr/2.1.0/org.spoofax.jsglr-2.1.0.jar"/>
+  <classpathentry sourcepath="/Users/martijn/.m2/repository/org/metaborg/org.strategoxt.strj/2.1.0/org.strategoxt.strj-2.1.0-sources.jar" kind="lib" path="/Users/martijn/.m2/repository/org/metaborg/org.strategoxt.strj/2.1.0/org.strategoxt.strj-2.1.0.jar"/>
+  <classpathentry sourcepath="/Users/martijn/.m2/repository/org/metaborg/org.spoofax.interpreter.library.xml/2.1.0/org.spoofax.interpreter.library.xml-2.1.0-sources.jar" kind="lib" path="/Users/martijn/.m2/repository/org/metaborg/org.spoofax.interpreter.library.xml/2.1.0/org.spoofax.interpreter.library.xml-2.1.0.jar"/>
+  <classpathentry sourcepath="/Users/martijn/.m2/repository/org/metaborg/org.spoofax.interpreter.library.java/2.1.0/org.spoofax.interpreter.library.java-2.1.0-sources.jar" kind="lib" path="/Users/martijn/.m2/repository/org/metaborg/org.spoofax.interpreter.library.java/2.1.0/org.spoofax.interpreter.library.java-2.1.0.jar"/>
+  <classpathentry sourcepath="/Users/martijn/.m2/repository/org/metaborg/org.spoofax.interpreter.library.index/2.1.0/org.spoofax.interpreter.library.index-2.1.0-sources.jar" kind="lib" path="/Users/martijn/.m2/repository/org/metaborg/org.spoofax.interpreter.library.index/2.1.0/org.spoofax.interpreter.library.index-2.1.0.jar"/>
+  <classpathentry sourcepath="/Users/martijn/.m2/repository/org/metaborg/org.spoofax.interpreter.library.jsglr/2.1.0/org.spoofax.interpreter.library.jsglr-2.1.0-sources.jar" kind="lib" path="/Users/martijn/.m2/repository/org/metaborg/org.spoofax.interpreter.library.jsglr/2.1.0/org.spoofax.interpreter.library.jsglr-2.1.0.jar"/>
+  <classpathentry kind="lib" path="/Users/martijn/.m2/repository/org/metaborg/strategoxt-min-jar/2.1.0/strategoxt-min-jar-2.1.0.jar"/>
+  <classpathentry sourcepath="/Users/martijn/.m2/repository/org/metaborg/org.metaborg.runtime.task/2.1.0/org.metaborg.runtime.task-2.1.0-sources.jar" kind="lib" path="/Users/martijn/.m2/repository/org/metaborg/org.metaborg.runtime.task/2.1.0/org.metaborg.runtime.task-2.1.0.jar"/>
+  <classpathentry sourcepath="/Users/martijn/.m2/repository/org/metaborg/org.spoofax.terms.typesmart/2.1.0/org.spoofax.terms.typesmart-2.1.0-sources.jar" kind="lib" path="/Users/martijn/.m2/repository/org/metaborg/org.spoofax.terms.typesmart/2.1.0/org.spoofax.terms.typesmart-2.1.0.jar"/>
+  <classpathentry sourcepath="/Users/martijn/.ivy2/cache/net.codingwell/scala-guice_2.11/srcs/scala-guice_2.11-4.1.0-sources.jar" kind="lib" path="/Users/martijn/.ivy2/cache/net.codingwell/scala-guice_2.11/jars/scala-guice_2.11-4.1.0.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:/Users/martijn/.ivy2/cache/net.codingwell/scala-guice_2.11/docs/scala-guice_2.11-4.1.0-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry sourcepath="/Users/martijn/.ivy2/cache/com.google.inject/guice/srcs/guice-4.1.0-sources.jar" kind="lib" path="/Users/martijn/.ivy2/cache/com.google.inject/guice/jars/guice-4.1.0.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:/Users/martijn/.ivy2/cache/com.google.inject/guice/docs/guice-4.1.0-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry sourcepath="/Users/martijn/.ivy2/cache/com.google.guava/guava/srcs/guava-19.0-sources.jar" kind="lib" path="/Users/martijn/.ivy2/cache/com.google.guava/guava/bundles/guava-19.0.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:/Users/martijn/.ivy2/cache/com.google.guava/guava/docs/guava-19.0-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry sourcepath="/Users/martijn/.ivy2/cache/com.google.inject.extensions/guice-multibindings/srcs/guice-multibindings-4.1.0-sources.jar" kind="lib" path="/Users/martijn/.ivy2/cache/com.google.inject.extensions/guice-multibindings/jars/guice-multibindings-4.1.0.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:/Users/martijn/.ivy2/cache/com.google.inject.extensions/guice-multibindings/docs/guice-multibindings-4.1.0-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry sourcepath="/Users/martijn/.ivy2/cache/com.google.code.findbugs/jsr305/srcs/jsr305-3.0.1-sources.jar" kind="lib" path="/Users/martijn/.ivy2/cache/com.google.code.findbugs/jsr305/jars/jsr305-3.0.1.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:/Users/martijn/.ivy2/cache/com.google.code.findbugs/jsr305/docs/jsr305-3.0.1-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry sourcepath="/Users/martijn/.ivy2/cache/io.reactivex/rxscala_2.11/srcs/rxscala_2.11-0.26.4-sources.jar" kind="lib" path="/Users/martijn/.ivy2/cache/io.reactivex/rxscala_2.11/jars/rxscala_2.11-0.26.4.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:/Users/martijn/.ivy2/cache/io.reactivex/rxscala_2.11/docs/rxscala_2.11-0.26.4-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry sourcepath="/Users/martijn/.ivy2/cache/io.reactivex/rxjava/srcs/rxjava-1.2.2-sources.jar" kind="lib" path="/Users/martijn/.ivy2/cache/io.reactivex/rxjava/jars/rxjava-1.2.2.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:/Users/martijn/.ivy2/cache/io.reactivex/rxjava/docs/rxjava-1.2.2-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry sourcepath="/Users/martijn/.ivy2/cache/org.backuity.clist/clist-core_2.11/srcs/clist-core_2.11-3.2.2-sources.jar" kind="lib" path="/Users/martijn/.ivy2/cache/org.backuity.clist/clist-core_2.11/jars/clist-core_2.11-3.2.2.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:/Users/martijn/.ivy2/cache/org.backuity.clist/clist-core_2.11/docs/clist-core_2.11-3.2.2-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry sourcepath="/Users/martijn/.ivy2/cache/org.scalatest/scalatest_2.11/srcs/scalatest_2.11-2.2.6-sources.jar" kind="lib" path="/Users/martijn/.ivy2/cache/org.scalatest/scalatest_2.11/bundles/scalatest_2.11-2.2.6.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:/Users/martijn/.ivy2/cache/org.scalatest/scalatest_2.11/docs/scalatest_2.11-2.2.6-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry sourcepath="/Users/martijn/.ivy2/cache/org.scala-lang.modules/scala-xml_2.11/srcs/scala-xml_2.11-1.0.2-sources.jar" kind="lib" path="/Users/martijn/.ivy2/cache/org.scala-lang.modules/scala-xml_2.11/bundles/scala-xml_2.11-1.0.2.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:/Users/martijn/.ivy2/cache/org.scala-lang.modules/scala-xml_2.11/docs/scala-xml_2.11-1.0.2-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry kind="lib" path="/Users/martijn/.ivy2/cache/org.backuity.clist/clist-macros_2.11/jars/clist-macros_2.11-3.2.2.jar"/>
+  <classpathentry kind="lib" path="/Users/martijn/.ivy2/cache/org.osgi/org.osgi.core/jars/org.osgi.core-4.3.0.jar"/>
+  <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+  <classpathentry kind="output" path="bin"/>
+</classpath>

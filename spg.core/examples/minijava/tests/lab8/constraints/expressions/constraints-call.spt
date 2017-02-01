@@ -1,0 +1,133 @@
+module constraints-call
+
+language MiniJava
+start symbol Program
+
+fixture [[
+	class Main {
+		public static void main(String[] args) {
+	 		System.out.println(1);
+		}
+	}	
+	
+	class C {}
+	
+	class D {}
+	
+	class Callee {
+		public int m() {
+			return 1;
+		}
+		
+		public int mInt(int i) {
+			return 1;
+		}
+		
+		public int mBool(boolean b) {
+			return 1;
+		}
+		
+		public int mArray(int[] a) {
+			return 1;
+		}
+		
+		public int mObject(C o) {
+			return 1;
+		}
+		
+		public int mIntBool(int i, boolean b) {
+			return 1;
+		}
+	}
+	
+	[[...]]
+]]
+
+//test method call with no arguments [[
+//	class Caller {
+//		public int m(Callee c) {
+//			return c.m();
+//		}
+//	}
+//]] 0 errors
+//
+//test method call with additional argument [[
+//  class Caller {
+//    public int m(Callee c) {
+//      return c.[[m(42)]];
+//    }
+//  }
+//]] 1 errors
+//
+//test method call with additional arguments [[
+//  class Caller {
+//    public int m(Callee c) {
+//      return c.[[m(42, true)]];
+//    }
+//  }
+//]] 1 errors
+//
+//test method call with integer argument [[
+//  class Caller {
+//    public int m(Callee c) {
+//      return c.mInt(42);
+//    }
+//  }
+//]] 0 errors
+//
+//test method call with integer and additional argument [[
+//  class Caller {
+//    public int m(Callee c) {
+//      return c.[[mInt(42, true)]];
+//    }
+//  }
+//]] 1 errors
+//
+//test method call with integer and additional arguments [[
+//  class Caller {
+//    public int m(Callee c) {
+//      return c.[[mInt(42, true, 42)]];
+//    }
+//  }
+//]] 1 errors
+//
+//test method call with missing integer argument [[
+//  class Caller {
+//    public int m(Callee c) {
+//      return c.[[mInt()]];
+//    }
+//  }
+//]] 1 errors
+
+test method call with boolean instead of integer argument [[
+  class Caller {
+    public int m(Callee c) {
+      return c.[[mInt(true)]];
+    }
+  }
+]] 1 errors
+
+//test method call with array instead of integer argument [[
+//  class Caller {
+//    public int m(Callee c) {
+//      return c.[[mInt(new int[1])]];
+//    }
+//  }
+//]] 1 errors
+
+//test method call with object instead of integer argument [[
+//  class Caller {
+//    public int m(Callee c) {
+//      return c.[[mInt(new C())]];
+//    }
+//  }
+//]] 1 errors
+
+//test method call with boolean argument [[
+//  class Caller {
+//    public int m(Callee c) {
+//      return c.mBool(true);
+//    }
+//  }
+//]] 0 errors
+

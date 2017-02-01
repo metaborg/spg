@@ -1,0 +1,31 @@
+module variables
+
+imports ds-signatures/Tiger-sig
+imports dynamics/base
+imports dynamics/bindings
+imports dynamics/store
+imports dynamics/arrays
+
+rules
+
+  VarDec(x, _, v) --> bindVar(x, v).
+  
+  VarDecNoType(x, v) --> bindVar(x, v).
+  
+  Var(x) -lval-> lookup(x).
+  
+  Subscript(p, q) -lval-> map[i]
+  where
+    getIndex(q) --> i;
+    read(p) --> ArrayV(map, _).
+  
+  lv : LValue --> read(lv).
+  
+  __LValue2Exp__(lv) --> v
+  where 
+    lv -lval-> a; read(a) --> v.
+  
+  Assign(lv, v) --> UnitV()
+  where
+    write(lv, v) --> _.
+

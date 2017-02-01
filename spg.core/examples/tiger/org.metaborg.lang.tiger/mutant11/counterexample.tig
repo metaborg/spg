@@ -1,0 +1,5 @@
+x + let
+  var x := 1
+in
+  1
+end

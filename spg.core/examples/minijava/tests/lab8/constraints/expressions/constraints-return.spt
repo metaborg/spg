@@ -1,0 +1,160 @@
+module constraints-return
+
+language MiniJava
+start symbol Program
+
+fixture [[
+	class Main {
+		public static void main(String[] args) {
+			System.out.println(1);
+		}
+	}
+	
+	[[...]]
+]]
+
+test return type match int [[
+	class Foo {
+		public int run(){
+  		return 1;
+  	}
+	}
+]] 0 errors
+
+test return type match bool [[
+	class Foo {
+		public boolean run(){
+  		return true;
+  	}
+	}
+]] 0 errors
+
+test return type match object [[
+	class Foo {
+		public Foo run(){
+  		return new Foo();
+  	}
+	}
+]] 0 errors
+
+test return type match array [[
+	class Foo {
+		public int[] run(){
+  		return new int[1];
+  	}
+	}
+]] 0 errors
+
+//--------------------------------------------int---------------------------------------------------
+
+test return type mismatch int bool [[
+	class Foo {
+		public int run(){
+  		return true;
+  	}
+	}
+]] 1 errors
+
+test return type mismatch int object [[
+	class Foo {
+		public int run(){
+  		return new Foo();
+  	}
+	}
+]] 1 errors
+
+test return type mismatch int array [[
+	class Foo {
+		public int run(){
+  		return new int[1];
+  	}
+	}
+]] 1 errors
+
+//--------------------------------------------bool---------------------------------------------------
+
+test return type mismatch bool int [[
+	class Foo {
+		public boolean run(){
+  		return 1;
+  	}
+	}
+]] 1 errors
+
+test return type mismatch bool object [[
+	class Foo {
+		public boolean run(){
+  		return new Foo();
+  	}
+	}
+]] 1 errors
+
+test return type mismatch bool array [[
+	class Foo {
+		public boolean run(){
+  		return new int[1];
+  	}
+	}
+]] 1 errors
+
+//--------------------------------------------object---------------------------------------------------
+
+test return type mismatch object int [[
+	class Foo {
+		public Foo run(){
+  		return 1;
+  	}
+	}
+]] 1 errors
+
+test return type mismatch object bool [[
+	class Foo {
+		public Foo run(){
+  		return true;
+  	}
+	}
+]] 1 errors
+
+test return type mismatch object array [[
+	class Foo {
+		public Foo run(){
+  		return new int[1];
+  	}
+	}
+]] 1 errors
+
+test return type mismatch object (different class) [[
+	class Foo {
+		public Foo run(){
+  		return new Bar();
+  	}
+	}
+	
+	class Bar {}
+]] 1 errors
+
+//--------------------------------------------array---------------------------------------------------
+
+test return type mismatch array int [[
+	class Foo {
+		public int[] run(){
+  		return 1;
+  	}
+	}
+]] 1 errors
+
+test return type mismatch array bool [[
+	class Foo {
+		public int[] run(){
+  		return true;
+  	}
+	}
+]] 1 errors
+
+test return type mismatch array object [[
+	class Foo {
+		public int[] run(){
+  		return new Foo();
+  	}
+	}
+]] 1 errors

@@ -1,0 +1,19 @@
+module minijava
+
+imports
+  
+  completion
+  pp
+  outline
+  analysis
+  
+  nabl2/runtime/analysis/-
+  nabl2/runtime/pp
+  
+rules // Debugging
+  
+  debug-show-aterm:
+    (node, _, _, path, project-path) -> (filename, result)
+    with
+      filename := <guarantee-extension(|"aterm")> path
+    ; result   := node

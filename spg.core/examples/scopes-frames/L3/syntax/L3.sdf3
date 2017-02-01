@@ -1,0 +1,127 @@
+module L3
+
+context-free start-symbols
+  
+  Start Exp Declaration Field Type
+
+context-free syntax
+  
+  Start.Program = <<{Declaration "\n\n"}*>
+
+begin
+  <Exp>
+end>
+
+context-free syntax // Exp
+
+  Exp.IntValue = INT
+  
+  Exp.Add = <<Exp> + <Exp>> {left}
+  
+  Exp.Fun = <fun(<ID>: <Type>) {
+  <Exp>
+}>
+
+  Exp.App = <<Exp>(<ResetExp>)>
+  
+  // Hack to allow e.g. addition as argument to an application
+  ResetExp = Exp
+  
+  Exp = Lhs
+  
+  Exp.NewObject = <new <ID>>
+  
+  Exp.Assign = <<Lhs> := <Exp>> {right}
+  
+  Exp.Seq = <<Exp>; <Exp>> {left}
+  
+  Exp.Null = <null>
+  
+  Lhs.Var = ID
+  
+  Lhs.QVar = <<Exp>.<ID>> {left}
+  
+  Exp = <(<Exp>)> {bracket}
+
+context-free syntax // Declaration
+  
+  Declaration.Class = <class <ID><Parent> {
+  <{Field "\n"}*>
+}>
+  
+  Parent.Parent = < extends <ID>>
+  
+  Parent.None = <>
+  
+context-free syntax // Field
+
+  Field.Field = <<ID>: <Type> := <Exp>>
+  
+  Field.FieldOverride = <override <ID> := <Exp>>
+
+context-free syntax // Types
+
+  Type.IntType = <Int>
+  
+  Type.FunType = <<Type> -\> <Type>> {right}
+
+  Type.ClassType = ID
+  
+  // TODO: What is the meaning of ClassDefType? And how come this does not give ambiguity with ClassType?
+  Type.ClassDefType = ID
+  
+context-free priorities
+
+  Lhs.QVar > Exp.Assign > Exp.App > Exp.Add > Exp.Seq,
+  Lhs.QVar > Exp.Seq
+  
+lexical syntax
+
+  ID             = [a-zA-Z] [a-zA-Z0-9]* 
+  INT            = "-"? [0-9]+ 
+  STRING         = "\"" StringChar* "\"" 
+  StringChar     = ~[\"\n] 
+  StringChar     = "\\\"" 
+  StringChar     = BackSlashChar 
+  BackSlashChar  = "\\" 
+  LAYOUT         = [\ \t\n\r] 
+  CommentChar    = [\*] 
+  LAYOUT         = "/*" InsideComment* "*/" 
+  InsideComment  = ~[\*] 
+  InsideComment  = CommentChar 
+  LAYOUT         = "//" ~[\n\r]* NewLineEOF 
+  NewLineEOF     = [\n\r] 
+  NewLineEOF     = EOF 
+  EOF            =  
+
+lexical restrictions
+
+  // Ensure greedy matching for lexicals
+  
+  CommentChar   -/- [\/]
+  INT           -/- [0-9]
+  ID            -/- [a-zA-Z0-9\_]
+  
+  // EOF may not be followed by any char
+  
+  EOF           -/- ~[]
+  
+  // Backslash chars in strings may not be followed by " 
+  
+  BackSlashChar -/- [\"]
+
+context-free restrictions
+
+  // Ensure greedy matching for comments
+  
+  LAYOUT? -/- [\ \t\n\r]
+  LAYOUT? -/- [\/].[\/]
+  LAYOUT? -/- [\/].[\*]
+
+lexical syntax
+
+  // Reserved characters
+  
+  ID = "Int" {reject}
+  ID = "null" {reject}
+  

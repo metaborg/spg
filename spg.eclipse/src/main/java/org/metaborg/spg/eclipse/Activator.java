@@ -10,6 +10,9 @@ public class Activator extends AbstractUIPlugin {
     public static final String PLUGIN_ID = "spg";
     private static Activator plugin;
 
+    public Activator() {
+    }
+
     public void start(BundleContext context) throws Exception {
         super.start(context);
         
@@ -25,7 +28,7 @@ public class Activator extends AbstractUIPlugin {
     public static Activator getDefault() {
         return plugin;
     }
-    
+
     public static ImageDescriptor getImageDescriptor(String path) {
         return imageDescriptorFromPlugin(PLUGIN_ID, path);
     }

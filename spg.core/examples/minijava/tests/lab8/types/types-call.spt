@@ -1,0 +1,162 @@
+module types-call
+
+language MiniJava
+start symbol Program
+
+fixture [[
+	class Main {
+		public static void main(String[] args) {
+	 		System.out.println(1);
+		}
+	}	
+	
+	[[...]]
+]]
+
+test local method call yields an integer [[
+	class Foobar {
+    int x;
+	  
+  	public int getX() {
+  		return x;
+  	}
+  
+  	public int getX2() {
+  		return [[new Foobar().getX()]];
+  	}
+	}
+]] run get-type on #1 to TInt()
+
+test local method call yields a boolean [[
+	class Foobar {
+    boolean x;
+	  
+  	public boolean getX() {
+  		return x;
+  	}
+  
+  	public boolean getX2() {
+  		return [[new Foobar().getX()]];
+  	}
+	}
+]] run get-type on #1 to TBool()
+
+test local method call yields an integer array [[
+	class Foobar {
+    int[] x;
+	  
+  	public int[] getX() {
+  		return x;
+  	}
+  
+  	public int[] getX2() {
+  		return [[new Foobar().getX()]];
+  	}
+	}
+]] run get-type on #1 to TIntArray()
+
+test local method call yields an object (same class) [[
+	class Foobar {
+    Foobar x;
+	  
+  	public Foobar getX() {
+  		return x;
+  	}
+  
+  	public Foobar getX2() {
+  		return [[new Foobar().getX()]];
+  	}
+	}
+]] run get-type on #1 to TClass(Occurrence(_, "Foobar", _))
+
+test local method call yields an object (other class) [[
+	class Foo {}
+	
+	class Foobar {
+    Foo x;
+	  
+  	public Foo getX() {
+  		return x;
+  	}
+  
+  	public Foo getX2() {
+  		return [[new Foobar().getX()]];
+  	}
+	}
+]] run get-type on #1 to TClass(Occurrence(_, "Foo", _))
+
+test method call yields an integer [[
+	class Foobar {  	  
+  	public int getX2() {
+  		return [[new Foo().getX()]];
+  	}
+  }
+  
+  class Foo {
+    int x;
+  	public int getX() {
+  		return x;
+  	}
+	}
+]] run get-type on #1 to TInt()
+
+test method call yields a boolean [[
+	class Foobar {
+    public boolean getX2() {
+  		return [[new Foo().getX()]];
+  	}
+  }
+  
+  class Foo {
+	  boolean x;
+  	public boolean getX() {
+  		return x;
+  	}
+	}
+]] run get-type on #1 to TBool()
+
+test method call yields an integer array [[
+	class Foobar {
+    public int[] getX2() {
+  		return [[new Foo().getX()]];
+  	}
+	}
+	class Foo {
+		int[] x;
+  	public int[] getX() {
+  		return x;
+  	}    
+	}
+]] run get-type on #1 to TIntArray()
+
+test method call yields an object (same class) [[
+	class Foobar {
+    public Foo getX2() {
+  		return [[new Foo().getX()]];
+  	}
+	}
+	class Foo {  
+		Foo x;
+  	public Foo getX() {
+  		return x;
+  	}
+	}
+]] run get-type on #1 to TClass(Occurrence(_, "Foo", _))
+
+test method call yields an object (other class) [[
+	class Foo {}
+	
+	class Foobar {
+    public Foo getX2() {
+  		return [[new Bar().getX()]];
+  	}	  
+	}
+	
+	class Bar {
+		Foo x;
+	  
+  	public Foo getX() {
+  		return x;
+  	}  
+	}
+]] run get-type on #1 to TClass(Occurrence(_, "Foo", _))

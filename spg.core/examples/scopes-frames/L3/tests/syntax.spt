@@ -1,0 +1,62 @@
+module syntax
+
+language L3
+start symbol Start
+
+test program without classes [[
+  begin
+    5
+  end
+]] parse succeeds
+
+test class without fields [[
+  class foo {
+  }
+  
+  begin
+    5
+  end
+]] parse succeeds
+
+test class with single field [[
+  class foo {
+    bar: Int := 5
+  }
+  
+  begin
+    5
+  end
+]] parse succeeds
+
+test class with multiple fields [[
+  class foo {
+    bar: Int := 5
+    baz: Int -> Int := fun (x: Int) {
+      x
+    }
+  }
+  
+  begin
+    5
+  end
+]] parse succeeds
+
+test override field [[
+  class foo {
+    override bar := 5
+  }
+  
+  begin
+    foo.bar := 5
+  end
+]] parse succeeds
+
+test sequence of assignments [[
+  class foo {
+  }
+  
+  begin
+    foo.bar := 5;
+    foo.baz := 6
+  end
+]] parse succeeds

@@ -1,0 +1,27 @@
+module expression-errors
+language MiniJava
+start symbol Program
+
+test integer constant [[
+	class Main {
+		public static void main(String[] args) {
+	 		System.out.println(3);
+		}
+	}
+]] 0 errors
+
+test true literal [[
+	class Main {
+		public static void main(String[] args) {
+	 		if (true) {} else {}
+		}
+	}
+]] 0 errors
+
+test false literal [[
+	class Main {
+		public static void main(String[] args) {
+	 		if (false) {} else {}
+		}
+	}
+]] 0 errors

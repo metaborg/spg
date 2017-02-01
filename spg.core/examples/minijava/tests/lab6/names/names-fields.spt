@@ -1,0 +1,230 @@
+module names-fields
+
+language MiniJava
+start symbol Program
+
+fixture [[
+	class Main {
+		public static void main(String[] args) {
+			System.out.println(1);
+		}
+	}
+	
+	[[...]]
+]]
+
+test field name resolution in return exp [[
+  	class Foobar {
+    	int [[x]];
+    	public int getX() {
+      		return [[x]];
+    	}
+  	}
+]] resolve #2 to #1
+
+test field name resolution in assignment [[
+  	class Foobar {
+    	int [[x]];
+    	public int method() {
+      		int y;
+      		[[x]] = 3;
+      		return 1;
+    	}
+  	}
+]] resolve #2 to #1
+
+test field name resolution in array assignment [[
+  	class Foobar {
+    	int[] [[x]];
+    	public int method() {
+      		int y;
+      		[[x]][0] = 3;
+      		return 1;
+    	}
+  	}
+]] resolve #2 to #1
+
+test field name resolution in array index [[
+  	class Foobar {
+    	int[] arr;
+    	int [[x]];
+    	
+    	public int method() {
+      		int y;
+      		
+      		x = 0 ;
+      		arr[ [[x]] ] = 3;
+      		return 1;
+    	}
+  	}
+]] resolve #2 to #1
+
+
+test field name resolution in exp [[
+  	class Foobar {
+    	int [[x]];
+    	public int method() {
+      		int y;
+      		y = [[x]] + 3;
+      		return 1;
+    	}
+  	}
+]] resolve #2 to #1
+
+test field name resolution in if [[
+  	class Foobar {
+    	int [[x]];
+    	public int method() {
+      		int y;
+      		if( [[x]] < 3 )
+      			y = 0;
+      		else
+      			y = 1;
+      		return 1;
+    	}
+  	}
+]] resolve #2 to #1
+
+test field name resolution in while [[
+  	class Foobar {
+    	int [[x]];
+    	public int method() {
+      		int y;
+      		while( [[x]] < 3 ){
+      			y = 0;
+      			x = 5;
+      		}
+      		return 1;
+    	}
+  	}
+]] resolve #2 to #1
+
+test field name resolution in methodcall [[
+	class Foobar {
+    	int [[x]];
+    	
+    	public int m(int a){
+    		return 0;
+    	}
+    	
+    	public int method() {
+      		int y;
+      		y = this.m( [[x]] );
+      		return 1;
+    	}
+  	}
+]] resolve #2 to #1
+
+//---------------------------------homonyms---------------------------------
+
+test field reference other class field homonym before [[
+	class Foo {
+		int field;
+	}
+
+	class Bar {
+		int [[field]];
+		public int test2() {
+			return [[field]];
+		}
+	}
+]] resolve #2 to #1
+
+test field reference other class field homonym after [[
+	class Bar {
+		int [[field]];
+		public int test2() {
+			return [[field]];
+		}
+	}
+	
+	class Foo {
+		int field;
+	}
+]] resolve #2 to #1
+
+test field reference other class homonym before [[
+	class Foo {
+	}
+
+	class Bar {
+		int [[Foo]];
+		public int test2() {
+			return [[Foo]];
+		}
+	}
+]] resolve #2 to #1
+
+test field reference other class homonym after [[
+	class Bar {
+		int [[Foo]];
+		public int test2() {
+			return [[Foo]];
+		}
+	}
+	
+	class Foo {
+	}
+]] resolve #2 to #1
+
+test field reference other class var homonym before [[
+	class Foo {
+		public int method(){
+			int field;
+			return 0;	
+		}
+	}
+
+	class Bar {
+		int [[field]];
+		public int test2() {
+			return [[field]];
+		}
+	}
+]] resolve #2 to #1
+
+test field reference other class var homonym after [[
+	class Bar {
+		int [[field]];
+		public int test2() {
+			return [[field]];
+		}
+	}
+	
+	class Foo {
+		public int method(){
+			int field;
+			return 0;	
+		}
+	}
+]] resolve #2 to #1
+
+test field reference other class param homonym before [[
+	class Foo {
+		public int method(int field){
+			return 0;	
+		}
+	}
+
+	class Bar {
+		int [[field]];
+		public int test2() {
+			return [[field]];
+		}
+	}
+]] resolve #2 to #1
+
+test field reference other class param homonym after [[
+	class Bar {
+		int [[field]];
+		public int test2() {
+			return [[field]];
+		}
+	}
+	
+	class Foo {
+		public int method(int field){
+			return 0;	
+		}
+	}
+]] resolve #2 to #1

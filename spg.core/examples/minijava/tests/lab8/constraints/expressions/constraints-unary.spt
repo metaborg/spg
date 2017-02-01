@@ -1,0 +1,113 @@
+module expression-errors
+language MiniJava
+start symbol Program
+
+test array instantiation with integer [[
+	class Main {
+		public static void main(String[] args) {
+	 		System.out.println(new int[3].length);
+		}
+	}
+]] 0 errors
+
+test array instantiation with integer array [[
+	class Main {
+		public static void main(String[] args) {
+	 		System.out.println(new int[ new int[3] ].length);
+		}
+	}
+]] 1 errors
+
+test array instantiation with boolean [[
+	class Main {
+		public static void main(String[] args) {
+	 		System.out.println(new int[true].length);
+		}
+	}
+]] 1 errors
+
+test array instantiation with object [[
+	class Main {
+		public static void main(String[] args) {
+	 		System.out.println(new A().length);
+		}
+	}
+	
+	class A {}
+]] 1 errors
+
+test array length with array [[
+	class Main {
+		public static void main(String[] args) {
+	 		System.out.println(new int[3].length);
+		}
+	}
+]] 0 errors
+
+test array length with integer [[
+	class Main {
+		public static void main(String[] args) {
+	 		System.out.println(3.length);
+		}
+	}
+]] 1 errors
+
+test array length with boolean [[
+	class Main {
+		public static void main(String[] args) {
+	 		System.out.println(true.length);
+		}
+	}
+]] 1 errors
+
+test array length with object [[
+	class Main {
+		public static void main(String[] args) {
+	 		System.out.println(new A().length);
+		}
+	}
+	
+	class A {}
+]] 1 errors
+
+test negation with boolean [[
+	class Main {
+		public static void main(String[] args) {
+	 		if (!true) {} else {}
+		}
+	}
+]] 0 errors
+
+test negation with integer [[
+	class Main {
+		public static void main(String[] args) {
+	 		if (!1) {} else {}
+		}
+	}
+]] 1 errors
+
+test negation with integer [[
+	class Main {
+		public static void main(String[] args) {
+	 		if (!1) {} else {}
+		}
+	}
+]] 1 errors
+
+test negation with array [[
+	class Main {
+		public static void main(String[] args) {
+	 		if (!new int[1]) {} else {}
+		}
+	}
+]] 1 errors
+
+test negation with object [[
+	class Main {
+		public static void main(String[] args) {
+	 		if (!new A()) {} else {}
+		}
+	}
+	
+	class A {}
+]] 1 errors
