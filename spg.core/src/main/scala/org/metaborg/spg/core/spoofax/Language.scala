@@ -1,10 +1,8 @@
 package org.metaborg.spg.core.spoofax
 
-import com.typesafe.scalalogging.Logger
 import org.metaborg.core.language.ILanguageImpl
 import org.metaborg.spg.core.spoofax.models._
 import org.metaborg.spg.core.{Pattern, Rule, TermAppl}
-import org.slf4j.LoggerFactory
 import org.spoofax.interpreter.terms.IStrategoTerm
 
 import scala.collection.mutable
@@ -20,7 +18,7 @@ import scala.collection.mutable
   * @param startSymbols
   * @param implementation
   */
-class Language(val productions: List[Production], val signatures: Signatures, val specification: Specification, val printer: IStrategoTerm => String, val startSymbols: Set[Sort], val implementation: ILanguageImpl) {
+case class Language(productions: List[Production], signatures: Signatures, specification: Specification, printer: IStrategoTerm => String, startSymbols: Set[Sort], implementation: ILanguageImpl) {
   val cache = mutable.Map[(String, Sort), List[Rule]]()
 
   /**
@@ -141,88 +139,4 @@ class Language(val productions: List[Production], val signatures: Signatures, va
       name == rule.name && Sort.injectionsClosure(signatures, sort).flatMap(_.unify(rule.sort)).nonEmpty
     ))
   }
-}
-
-object Language {
-  val logger = Logger(LoggerFactory.getLogger(this.getClass))
-
-  def load(sdfPath: String, nablPath: String, projectPath: String, semanticsPath: String): Language = {
-    logger.info("Loading language at path {}", projectPath)
-    val implementation = Utils.loadLanguage(projectPath)
-
-    logger.info("Loading productions")
-    val productions = Productions.read(sdfPath, s"$projectPath/syntax/${implementation.belongsTo().name()}.sdf3")
-
-    logger.info("Computing signatures")
-    val signatures = Signatures(defaultSignatures ++ productions.map(_.toSignature))
-
-    logger.info("Loading static semantics")
-    val specification = Specification.read(nablPath, s"$projectPath/$semanticsPath")(signatures)
-
-    logger.info("Constructing printer")
-    val printer = Utils.getPrinter(implementation)
-
-    logger.info("Read start symbols")
-    val startSymbols = Utils.startSymbols(implementation)
-
-    new Language(productions, signatures, specification, printer, startSymbols, implementation)
-  }
-
-  /**
-    * These signatures are defined in the standard library and do not appear in
-    * the signature file. Hence, we add them ourselves.
-    *
-    * The last two signatures define the sort Iter(a) and IterStar(a):
-    *  - Iter(a) is a list with at least one element. This is not supported in
-    * Stratego.
-    *  - IterStar(a) is a list with zero or more elements. It is the same as
-    * List(a), so we define an injection to it.
-    *
-    * @return
-    */
-  def defaultSignatures: List[Signature] = List(
-    // Cons : a * Lits(a) -> List(a)
-    OpDecl("Cons", FunType(
-      List(
-        ConstType(SortVar("a")),
-        ConstType(SortAppl("List", List(SortVar("a"))))
-      ),
-      ConstType(SortAppl("List", List(SortVar("a"))))
-    )),
-
-    // Nil : List(a)
-    OpDecl("Nil", ConstType(
-      SortAppl("List", List(SortVar("a")))
-    )),
-
-    // Some : Option(a)
-    OpDecl("Some", FunType(
-      List(
-        ConstType(SortVar("a"))
-      ),
-      ConstType(SortAppl("Option", List(SortVar("a"))))
-    )),
-
-    // None : Option(a)
-    OpDecl("None", ConstType(
-      SortAppl("Option", List(SortVar("a")))
-    )),
-
-    // Conss : a * List(a) -> Iter(a)
-    OpDecl("Conss", FunType(
-      List(
-        ConstType(SortVar("a")),
-        ConstType(SortAppl("List", List(SortVar("a"))))
-      ),
-      ConstType(SortAppl("Iter", List(SortVar("a"))))
-    )),
-
-    // : List(a) -> IterStar(a)
-    OpDeclInj(FunType(
-      List(
-        ConstType(SortAppl("List", List(SortVar("a"))))
-      ),
-      ConstType(SortAppl("IterStar", List(SortVar("a"))))
-    ))
-  )
 }

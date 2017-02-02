@@ -27,7 +27,6 @@ public class GenerateHandler extends AbstractHandler {
 			
 	        Activator.logInfo("Run SPG on project " + project);
 	        
-			//LanguageIdentifier languageIdentifier = LanguageIdentifier.parse("org.metaborg:org.metaborg.meta.nabl2.lang:2.1.0");
 			//ILanguageImpl nablLanguage = getLanguage("org.metaborg:org.metaborg.meta.nabl2.lang:2.1.0");
 			
 	        Job job = new GenerateJob(spoofax, project);

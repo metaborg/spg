@@ -1,14 +1,54 @@
 package org.metaborg.spg.core
 
-import com.typesafe.scalalogging.Logger
-import org.metaborg.spg.core.resolution.Label
+import com.google.inject.Inject
+import com.typesafe.scalalogging.LazyLogging
+import org.metaborg.core.language.{ILanguageImpl, LanguageIdentifier, LanguageService => BaseLanguageService}
+import org.metaborg.core.project.IProject
 import org.metaborg.spg.core.solver._
-import org.metaborg.spg.core.spoofax.Converter
-import org.metaborg.spg.core.spoofax.Language
-import org.slf4j.LoggerFactory
+import org.metaborg.spg.core.spoofax.{Converter, Language, LanguageService}
+import rx.lang.scala.Observable
 
-object Generator {
-  val logger = Logger(LoggerFactory.getLogger(this.getClass))
+import scala.annotation.tailrec
+
+@Inject
+class Generator(val languageService: LanguageService, baseLanguageService: BaseLanguageService) extends LazyLogging {
+  /**
+    * Create a cold Observable that emits programs for the given language
+    * implementation and generation configuration.
+    *
+    * @param lut
+    * @param config
+    * @return
+    */
+  def generate(lut: ILanguageImpl, project: IProject, config: Config): Observable[String] = {
+    val templateLang = getLanguage("org.metaborg:org.metaborg.meta.lang.template:2.1.0")
+    val nablLang = getLanguage("org.metaborg:org.metaborg.meta.nabl2.lang:2.1.0")
+    val language = languageService.load(templateLang, nablLang, lut, project, config.semanticsPath)
+
+    generate(language, config)
+  }
+
+  /**
+    * Create a cold Observable that emits programs for the given language
+    * and generation configuration.
+    *
+    * @param lut
+    * @param config
+    * @return
+    */
+  private def generate(lut: Language, config: Config): Observable[String] = {
+    Observable(subscriber => {
+      repeat(config.limit) {
+        if (!subscriber.isUnsubscribed) {
+          subscriber.onNext(generateSingle(lut, config))
+        }
+      }
+
+      if (!subscriber.isUnsubscribed) {
+        subscriber.onCompleted()
+      }
+    })
+  }
 
   /**
     * Generate a single term by repeatedly invoking generateTry until it
@@ -18,7 +58,7 @@ object Generator {
     * @param config
     * @return
     */
-  def generate(implicit language: Language, config: Config): String = {
+  private def generateSingle(implicit language: Language, config: Config): String = {
     Iterator.continually(generateTry).dropWhile(_.isEmpty).next.get
   }
 
@@ -122,5 +162,31 @@ object Generator {
 
       None
     }
+  }
+
+  /**
+    * Repeat the function `f` for `n` times. If `n` is negative, the function
+    * is repeated ad infinitum.
+    *
+    * @param n
+    * @param f
+    * @tparam A
+    */
+  @tailrec final private def repeat[A](n: Int)(f: => A): Unit = n match {
+    case 0 =>
+      // Noop
+    case _ =>
+      f; repeat(n - 1)(f)
+  }
+
+  /**
+    * Get a language implementation based on its identifier.
+    *
+    * @param identifier
+    */
+  private def getLanguage(identifier: String) = {
+    val languageIdentifier = LanguageIdentifier.parse(identifier)
+
+    baseLanguageService.getImpl(languageIdentifier)
   }
 }

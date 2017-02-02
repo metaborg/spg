@@ -1,14 +1,41 @@
 package org.metaborg.spg.core.spoofax
 
-import org.metaborg.spg.core.spoofax.models._
+import java.nio.charset.StandardCharsets
+
+import com.google.inject.Inject
+import org.apache.commons.io.IOUtils
+import org.apache.commons.vfs2.FileObject
+import org.metaborg.core.language.ILanguageImpl
+import org.metaborg.core.resource.IResourceService
 import org.metaborg.spg.core.spoofax.models._
 import org.metaborg.spg.core.spoofax.SpoofaxScala._
+import org.metaborg.spoofax.core.syntax.ISpoofaxSyntaxService
+import org.metaborg.spoofax.core.unit.ISpoofaxUnitService
 import org.spoofax.interpreter.terms.{IStrategoAppl, IStrategoString, IStrategoTerm}
 
-object Productions {
-  def read(sdfPath: String, productionsPath: String): List[Production] = {
-    val nablImpl = Utils.loadLanguage(sdfPath)
-    val ast = Utils.parseFile(nablImpl, productionsPath)
+@Inject
+class ProductionService(val resourceService: IResourceService, val unitService: ISpoofaxUnitService, val syntaxService: ISpoofaxSyntaxService) {
+  /**
+    * Parse an SDF file and extract a list of productions.
+    *
+    * @param templateLangImpl
+    * @param syntax
+    * @return
+    */
+  def read(templateLangImpl: ILanguageImpl, syntax: FileObject): List[Production] = {
+    def parseFile(languageImpl: ILanguageImpl): IStrategoTerm = {
+      val text = IOUtils.toString(syntax.getContent.getInputStream, StandardCharsets.UTF_8)
+      val inputUnit = unitService.inputUnit(syntax, text, languageImpl, null)
+      val parseResult = syntaxService.parse(inputUnit)
+
+      if (!parseResult.success()) {
+        throw new RuntimeException(s"Unsuccessful parse of $syntax in language ${languageImpl.id()}.")
+      }
+
+      parseResult.ast()
+    }
+
+    val ast = parseFile(templateLangImpl)
 
     toProductions(ast)
   }
