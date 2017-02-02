@@ -14,8 +14,8 @@ Use `sbt publish-m2` to publish the artifact to your local Maven repository.
 The `spg.eclipse` project relies on this project, and Tycho resolves POM
 dependencies, but only if they are OSGi bundles. The `sbt-osgi` plugin adds
 the `osgiBundle` task which creates an OSGi bundle for the project and changes
-the `publish` task to publish an OSGi bundle instead of a raw JAR archive. In
-Maven speak, this is the equivalent of `maven-bundle-plugin`.
+the `publish` task to publish an OSGi bundle instead of a raw JAR archive. Like
+`maven-bundle-plugin`, `sbt-osgi` is a wrapper for the `Bnd` tool.
 
 When developing an Eclipse plugin, Eclipse resolves its dependencies (MANIFEST.MF)
 in the Target platform. To get the osgi-ified `spg.eclipse` in Eclipse, first

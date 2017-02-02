@@ -10,34 +10,4 @@
     <artifactId>parent.eclipse.plugin</artifactId>
     <version>2.1.0</version>
   </parent>
-  
-  <dependencies>
-    <dependency>
-      <groupId>org.metaborg</groupId>
-      <artifactId>org.metaborg.spg.core</artifactId>
-      <version>2.1.0</version>
-    </dependency>
-  </dependencies>
-  
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>lt.velykis.maven</groupId>
-        <artifactId>pde-target-maven-plugin</artifactId>
-        <version>1.0.0</version>
-        <executions>
-          <execution>
-            <id>pde-target</id>
-            <goals>
-              <goal>add-pom-dependencies</goal>
-            </goals>
-            <configuration>
-              <baseDefinition>${project.basedir}/org.metaborg.spg.eclipse.target</baseDefinition>
-              <outputFile>${project.build.directory}/target-definition.target</outputFile>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-    </plugins>
-  </build>
 </project>

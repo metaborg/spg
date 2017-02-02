@@ -19,6 +19,19 @@ osgiSettings
 
 OsgiKeys.exportPackage := Seq("org.metaborg.spg.core")
 
+OsgiKeys.importPackage := Seq(
+  "!sun.misc",
+  "!sun.nio.cs",
+  "!org.junit",
+  "!javax*",
+  "!org.xml*",
+  "org.spoofax*",
+  "org.metaborg*",
+  "org.strategoxt.*",
+  "org.apache.tools.ant",
+  "*;provider=metaborg"
+)
+
 OsgiKeys.bundleSymbolicName := "org.metaborg.spg.core"
 
 // Add resolvers

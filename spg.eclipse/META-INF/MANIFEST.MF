@@ -5,18 +5,22 @@ Bundle-SymbolicName: org.metaborg.spg.eclipse;singleton:=true
 Bundle-Version: 2.1.0
 Bundle-Activator: org.metaborg.spg.eclipse.Activator
 Bundle-Vendor: Metaborg
-Require-Bundle: org.eclipse.ui,
+Require-Bundle: org.metaborg.spoofax.eclipse.externaldeps,
+ org.metaborg.spoofax.eclipse,
+ org.metaborg.spoofax.eclipse.util,
+ org.eclipse.ui,
+ org.eclipse.ui.console,
  org.eclipse.core.runtime,
  org.metaborg.spg.core,
  org.metaborg.mbt.core,
  org.metaborg.spt.core,
  org.metaborg.spoofax.core,
  org.metaborg.spoofax.eclipse,
- org.metaborg.spoofax.eclipse.externaldeps,
  org.metaborg.core,
  org.metaborg.util,
  org.spoofax.terms,
- org.eclipse.jdt.core
+ org.eclipse.jdt.core,
+ org.eclipse.core.resources
 Bundle-RequiredExecutionEnvironment: JavaSE-1.7
 Bundle-ActivationPolicy: lazy
 Export-Package: org.metaborg.spg.eclipse

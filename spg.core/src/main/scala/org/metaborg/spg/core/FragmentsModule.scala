@@ -1,18 +1,12 @@
 package org.metaborg.spg.core
 
-import javax.inject.Singleton
-
+import com.google.inject.Singleton
 import net.codingwell.scalaguice.ScalaModule
 import org.metaborg.core.editor.{IEditorRegistry, NullEditorRegistry}
-import org.metaborg.core.project.{IProjectService, SimpleProjectService}
 import org.metaborg.spoofax.core.SpoofaxModule
 
 class FragmentsModule extends SpoofaxModule with ScalaModule {
-  override def bindProject() {
-    bind[SimpleProjectService].in[Singleton]
-    bind[IProjectService].to[SimpleProjectService]
-  }
-
+  // Only needed in CLI to prevent a warning/error in output
   override def bindEditor() {
     bind[IEditorRegistry].to[NullEditorRegistry].in[Singleton]
   }

@@ -6,9 +6,6 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="con" path="org.eclipse.pde.core.requiredPlugins"/>
-	<classpathentry kind="src" path="src/main/java"/>
-	<classpathentry kind="lib" path="/Users/martijn/rxscala_2.11-0.26.4.jar"/>
-	<classpathentry kind="lib" path="/Users/martijn/scala-library-2.11.8.jar"/>
-	<classpathentry kind="lib" path="/Users/martijn/rxjava-1.2.2.jar"/>
+	<classpathentry kind="src" path="src/main/java/"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>

@@ -16,7 +16,7 @@
    <extension
          point="org.eclipse.ui.commands">
       <command
-            defaultHandler="org.metaborg.spg.eclipse.GeneratorHandler"
+            defaultHandler="org.metaborg.spg.eclipse.GenerateHandler"
             id="org.metaborg.spg.eclipse.command.generate"
             name="Generate terms">
       </command>
