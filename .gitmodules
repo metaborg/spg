@@ -1,12 +1,12 @@
-[submodule "examples/tiger"]
-	path = examples/tiger
+[submodule "spg.cmd/examples/minijava"]
+	path = spg.cmd/examples/minijava
+    url = git@github.com:MartijnDwars/metaborg-mini-java.git
+    branch = generation
+[submodule "spg.cmd/examples/tiger"]
+	path = spg.cmd/examples/tiger
     url = git@github.com:MartijnDwars/metaborg-tiger.git
     branch = generation
-[submodule "examples/scopes-frames"]
-	path = examples/scopes-frames
+[submodule "spg.cmd/examples/scopes-frames"]
+	path = spg.cmd/examples/scopes-frames
     url = git@github.com:MartijnDwars/metaborg-scopes-frames.git
-    branch = generation
-[submodule "examples/minijava"]
-	path = examples/minijava
-    url = git@github.com:MartijnDwars/metaborg-mini-java.git
     branch = generation

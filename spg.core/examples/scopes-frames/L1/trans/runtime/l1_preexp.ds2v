@@ -1,3 +1,0 @@
-[Import("trans/runtime/framework/frame.api.ds2v"),
- NativeOpAlias("plusI", 2, "plus"),
- Timeouts([("eval", SimpleSort("Exp"))])]

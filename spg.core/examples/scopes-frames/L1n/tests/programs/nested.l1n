@@ -1,5 +1,0 @@
-fun (x: Int) {
-	fun (y: Int) {
-		x
-	}
-}(1)

@@ -1,9 +1,0 @@
-module values
-
-signature
-  sorts V
-  constructors
-    UnitV  : V   // Unit subtype of V?
-    UndefV : V
-  variables 
-    v : V   

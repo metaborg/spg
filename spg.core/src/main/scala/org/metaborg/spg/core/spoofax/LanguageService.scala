@@ -1,5 +1,6 @@
 package org.metaborg.spg.core.spoofax
 
+import com.google.inject.Inject
 import com.typesafe.scalalogging.LazyLogging
 import org.metaborg.core.language.{ILanguageImpl, LanguageService => BaseLanguageService}
 import org.metaborg.core.project.IProject
@@ -9,7 +10,7 @@ import org.metaborg.spoofax.core.syntax.SyntaxFacet
 
 import scala.collection.JavaConverters._
 
-class LanguageService(val baseLanguageService: BaseLanguageService, val resourceSerivce: ResourceService, val productionService: ProductionService, val specificationService: SpecificationService, val printerService: PrinterService) extends LazyLogging {
+class LanguageService @Inject() (val baseLanguageService: BaseLanguageService, val resourceSerivce: ResourceService, val productionService: ProductionService, val specificationService: SpecificationService, val printerService: PrinterService) extends LazyLogging {
   /**
     * Load a language for generation.
     *

@@ -5,8 +5,8 @@ The Spoofax generator.
 ## Building
 
 The project uses sbt as build tool. Use `sbt publish-local` to publish the
-artifact to your local Ivy repository. Use `sbt publish-m2` to publish the
-artifact to your local Maven repository.
+artifact to your local Ivy repository and `sbt publish-m2` to publish o your
+local Maven repository.
 
 Note: The `spg.eclipse` project relies on this project, and Tycho resolves POM
 dependencies, but only if they are OSGi bundles. The `sbt-osgi` plugin adds

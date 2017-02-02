@@ -12,6 +12,9 @@ moduleName := name.value
 // Disable using the Scala version in output paths and artifacts
 crossPaths := false
 
+// Allow overwriting non-SNAPSHOT build (http://stackoverflow.com/a/26089552/368220)
+isSnapshot := true
+
 // Publish as package OSGi settings
 enablePlugins(SbtOsgi)
 
