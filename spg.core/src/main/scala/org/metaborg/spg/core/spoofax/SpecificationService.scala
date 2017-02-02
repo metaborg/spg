@@ -21,8 +21,7 @@ import org.metaborg.spoofax.core.unit.ISpoofaxUnitService
 import org.spoofax.interpreter.terms.{IStrategoAppl, IStrategoList, IStrategoString, IStrategoTerm}
 import org.spoofax.terms.{StrategoAppl, StrategoList}
 
-@Inject
-class SpecificationService(val resourceService: IResourceService, val unitService: ISpoofaxUnitService, val syntaxService: ISpoofaxSyntaxService) extends LazyLogging {
+class SpecificationService @Inject() (val resourceService: IResourceService, val unitService: ISpoofaxUnitService, val syntaxService: ISpoofaxSyntaxService) extends LazyLogging {
 
   // Start at 9 so we do not clash with names in the rules
   val nameProvider = NameProvider(9)

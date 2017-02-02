@@ -9,8 +9,15 @@ import org.eclipse.core.runtime.SubMonitor;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.ui.console.MessageConsole;
 import org.eclipse.ui.console.MessageConsoleStream;
+import org.metaborg.core.MetaborgException;
+import org.metaborg.core.config.ConfigRequest;
+import org.metaborg.core.config.ILanguageComponentConfig;
+import org.metaborg.core.config.ILanguageComponentConfigService;
+import org.metaborg.core.language.ILanguageImpl;
+import org.metaborg.core.language.LanguageIdentifier;
+import org.metaborg.core.project.IProject;
 import org.metaborg.spg.core.Config;
-import org.metaborg.spg.core.GeneratorEntryPoint;
+import org.metaborg.spg.core.Generator;
 import org.metaborg.spoofax.core.Spoofax;
 import org.metaborg.spoofax.eclipse.util.ConsoleUtils;
 
@@ -39,16 +46,15 @@ public class GenerateJob extends Job {
 		final SubMonitor subMonitor = SubMonitor.convert(monitor, TERM_LIMIT);
 		
 		// Generate infinite terms (10) with fuel (500) and limit size (100). Make these configurable with a dialog?
-		Config config = new Config(TERM_LIMIT, 500, 100, true, true);
+		Config config = new Config("trans/static-semantics.nabl2", TERM_LIMIT, 500, 100, true, true);
+		
+		Generator generator = spoofax.injector.getInstance(Generator.class);
 
-		Observable<? extends String> programs = new GeneratorEntryPoint()
-			.generate(
-				"zip:/Users/martijn/Projects/spoofax-releng/sdf/org.metaborg.meta.lang.template/target/org.metaborg.meta.lang.template-2.1.0.spoofax-language!/",
-				"zip:/Users/martijn/Projects/spoofax-releng/nabl/org.metaborg.meta.nabl2.lang/target/org.metaborg.meta.nabl2.lang-2.1.0.spoofax-language!/",
-				spoofax.resourceService.localPath(project).toString(),
-				"trans/static-semantics.nabl2",
-				config
-			)
+		IProject project = spoofax.projectService.get(this.project);
+		ILanguageImpl language = getLanguage(project);
+		
+		Observable<? extends String> programs = generator
+			.generate(language, project, config)
 			.asJavaObservable();
 		
 		programs.subscribe(new Action1<String>() {
@@ -76,4 +82,20 @@ public class GenerateJob extends Job {
         
         return Status.OK_STATUS;
     };
+
+    /**
+     * Get language for given project.
+     * 
+     * @param path
+     * @return
+     * @throws MetaborgException
+     */
+    protected ILanguageImpl getLanguage(IProject project) {
+		ILanguageComponentConfigService configService = spoofax.injector.getInstance(ILanguageComponentConfigService.class);
+		ConfigRequest<ILanguageComponentConfig> projectConfig = configService.get(project.location());
+		LanguageIdentifier identifier = projectConfig.config().identifier();
+		ILanguageImpl languageImpl = spoofax.languageService.getImpl(identifier);
+    	
+    	return languageImpl;
+    }
 }

@@ -8,8 +8,7 @@ import org.metaborg.core.project.IProject
 import org.metaborg.spoofax.core.stratego.{IStrategoCommon, IStrategoRuntimeService}
 import org.spoofax.interpreter.terms.{IStrategoString, IStrategoTerm}
 
-@Inject
-class PrinterService(val strategoCommon: IStrategoCommon, val strategoRuntimeService: IStrategoRuntimeService, val contextService: IContextService) {
+class PrinterService @Inject() (val strategoCommon: IStrategoCommon, val strategoRuntimeService: IStrategoRuntimeService, val contextService: IContextService) {
   /**
     * Get a pretty printer for ATerms in the given language.
     *

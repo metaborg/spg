@@ -27,8 +27,6 @@ public class GenerateHandler extends AbstractHandler {
 			
 	        Activator.logInfo("Run SPG on project " + project);
 	        
-			//ILanguageImpl nablLanguage = getLanguage("org.metaborg:org.metaborg.meta.nabl2.lang:2.1.0");
-			
 	        Job job = new GenerateJob(spoofax, project);
 	        job.setPriority(Job.SHORT);
 	        job.setUser(true);
@@ -72,25 +70,11 @@ public class GenerateHandler extends AbstractHandler {
 		Object selectedObject = treePath.getLastSegment();
 
 		if (!(selectedObject instanceof IResource)) {
-			Activator.logWarn("Project of type " + selectedObject.getClass() + " not recognized.");
-			
 			throw new ProjectNotFoundException("Selected object is not an Eclipse resource.");
 		}
 
 		return spoofax.injector
 			.getInstance(IEclipseResourceService.class)
 			.resolve((IResource) selectedObject);
-	}
-	
-	/**
-	 * Get a language implementation based on its identifier.
-	 * 
-	 * @param identifier
-	 * @return
-	 */
-	protected ILanguageImpl getLanguage(String identifier) {
-		LanguageIdentifier languageIdentifier = LanguageIdentifier.parse(identifier);
-		
-		return spoofax.languageService.getImpl(languageIdentifier);
 	}
 }

@@ -50,7 +50,7 @@ changes from upstream in each submodule):
 3. Run the generator. For example, in case of `Tiger`:
 
   ```
-  sbt "run-main org.metaborg.spg.Generator <sdf-path> <nabl-path> examples/tiger/org.metaborg.lang.tiger/correct"
+  sbt "run-main org.metaborg.spg.cmd.Main <sdf-path> <nabl-path> examples/tiger/org.metaborg.lang.tiger/correct"
   ```
 
 Note: Bash uses an exclamation mark for [history

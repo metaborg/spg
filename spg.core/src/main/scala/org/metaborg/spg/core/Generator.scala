@@ -10,13 +10,13 @@ import rx.lang.scala.Observable
 
 import scala.annotation.tailrec
 
-@Inject
-class Generator(val languageService: LanguageService, baseLanguageService: BaseLanguageService) extends LazyLogging {
+class Generator @Inject() (val languageService: LanguageService, baseLanguageService: BaseLanguageService) extends LazyLogging {
   /**
     * Create a cold Observable that emits programs for the given language
     * implementation and generation configuration.
     *
     * @param lut
+    * @param project
     * @param config
     * @return
     */

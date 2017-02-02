@@ -13,8 +13,7 @@ import org.metaborg.spoofax.core.syntax.ISpoofaxSyntaxService
 import org.metaborg.spoofax.core.unit.ISpoofaxUnitService
 import org.spoofax.interpreter.terms.{IStrategoAppl, IStrategoString, IStrategoTerm}
 
-@Inject
-class ProductionService(val resourceService: IResourceService, val unitService: ISpoofaxUnitService, val syntaxService: ISpoofaxSyntaxService) {
+class ProductionService @Inject() (val resourceService: IResourceService, val unitService: ISpoofaxUnitService, val syntaxService: ISpoofaxSyntaxService) {
   /**
     * Parse an SDF file and extract a list of productions.
     *
