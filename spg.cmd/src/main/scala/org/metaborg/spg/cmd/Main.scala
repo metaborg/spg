@@ -4,12 +4,13 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
 import ch.qos.logback.classic.{Level, Logger}
+import net.codingwell.scalaguice.InjectorExtensions._
 import org.backuity.clist.Cli
 import org.metaborg.core.language.LanguageUtils
-import org.metaborg.spg.core.Config
+import org.metaborg.core.project.{IProject, SimpleProjectService}
+import org.metaborg.spg.core.{Config, Generator}
 import org.metaborg.spoofax.core.Spoofax
 import org.slf4j.LoggerFactory
-import org.metaborg.spg.core.Generator
 
 object Main extends App {
   val spoofax = new Spoofax(new SPGModule)
@@ -33,14 +34,17 @@ object Main extends App {
   }
 
   /**
-    * Get project at given path.
+    * Get project at given path or create a new project if none exists.
     *
     * @param path
     */
-  def getProject(path: String) = {
-    val file = spoofax.resourceService.resolve(path)
+  def getOrCreateProject(path: String): IProject = {
+    val simpleProjectService = spoofax.injector.instance[SimpleProjectService]
+    val resource = spoofax.resourceService.resolve(path)
 
-    spoofax.projectService.get(file)
+    Option(simpleProjectService.get(resource)).getOrElse(
+      simpleProjectService.create(resource)
+    )
   }
 
   /**
@@ -54,22 +58,19 @@ object Main extends App {
     loadLanguage(options.sdfPath)
     loadLanguage(options.nablPath)
 
-    val generator = spoofax.injector
-      .getInstance(classOf[Generator])
-
-    val config = Config(
-      options.semanticsPath,
-      options.limit,
-      options.fuel,
-      options.sizeLimit,
-      options.consistency,
-      options.throwOnUnresolvable
-    )
+    val generator = spoofax.injector.getInstance(classOf[Generator])
 
     val programs = generator.generate(
       loadLanguage(options.projectPath),
-      getProject(options.projectPath),
-      config
+      getOrCreateProject(options.projectPath),
+      Config(
+        options.semanticsPath,
+        options.limit,
+        options.fuel,
+        options.sizeLimit,
+        options.consistency,
+        options.throwOnUnresolvable
+      )
     )
 
     programs.subscribe(program => {

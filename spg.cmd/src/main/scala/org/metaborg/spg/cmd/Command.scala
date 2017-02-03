@@ -34,7 +34,7 @@ class Command extends BaseCommand(name = "generator", description = "Generate ra
   )
 
   var verbosity = opt[String](
-    description = "Verbosity of the output as log level (default: ERROR)",
+    description = "Verbosity of the output as log level, i.e. ERROR, WARN, INFO, etc (default: ERROR)",
     default = "ERROR"
   )
 

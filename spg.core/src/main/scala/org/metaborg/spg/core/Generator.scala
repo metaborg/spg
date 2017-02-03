@@ -2,7 +2,7 @@ package org.metaborg.spg.core
 
 import com.google.inject.Inject
 import com.typesafe.scalalogging.LazyLogging
-import org.metaborg.core.language.{ILanguageImpl, LanguageIdentifier, LanguageService => BaseLanguageService}
+import org.metaborg.core.language.{ILanguageImpl, ILanguageService, LanguageIdentifier}
 import org.metaborg.core.project.IProject
 import org.metaborg.spg.core.solver._
 import org.metaborg.spg.core.spoofax.{Converter, Language, LanguageService}
@@ -10,7 +10,7 @@ import rx.lang.scala.Observable
 
 import scala.annotation.tailrec
 
-class Generator @Inject() (val languageService: LanguageService, baseLanguageService: BaseLanguageService) extends LazyLogging {
+class Generator @Inject() (val languageService: LanguageService, val baseLanguageService: ILanguageService) extends LazyLogging {
   /**
     * Create a cold Observable that emits programs for the given language
     * implementation and generation configuration.
@@ -87,15 +87,15 @@ class Generator @Inject() (val languageService: LanguageService, baseLanguageSer
       })
     } catch {
       case OutOfFuelException(rule) =>
-        logger.info("Out of fuel: {}", rule)
+        logger.trace("Out of fuel: {}", rule)
 
         None
       case PatternSizeException(rule) =>
-        logger.info("Rule pattern too large: {}", rule)
+        logger.trace("Rule pattern too large: {}", rule)
 
         None
       case InconsistencyException(rule) =>
-        logger.info("Inconsistency observed in program: {}", rule)
+        logger.trace("Inconsistency observed in program: {}", rule)
 
         None
     }
@@ -133,7 +133,7 @@ class Generator @Inject() (val languageService: LanguageService, baseLanguageSer
     * @return
     */
   private def generate(generate: Program => Option[Program])(program: Program)(implicit language: Language, config: Config): Option[Program] = {
-    logger.debug("Generate with program: {}", program)
+    logger.trace("Generate with program: {}", program)
 
     if (program.pattern.size > config.sizeLimit) {
       throw PatternSizeException(program)
@@ -144,7 +144,7 @@ class Generator @Inject() (val languageService: LanguageService, baseLanguageSer
     }
 
     if (program.properConstraints.isEmpty) {
-      logger.info("All constraints solved: {}", program)
+      logger.trace("All constraints solved: {}", program)
 
       Some(program)
     } else {

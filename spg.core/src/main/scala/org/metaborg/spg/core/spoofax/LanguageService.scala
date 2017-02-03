@@ -2,7 +2,7 @@ package org.metaborg.spg.core.spoofax
 
 import com.google.inject.Inject
 import com.typesafe.scalalogging.LazyLogging
-import org.metaborg.core.language.{ILanguageImpl, LanguageService => BaseLanguageService}
+import org.metaborg.core.language.ILanguageImpl
 import org.metaborg.core.project.IProject
 import org.metaborg.core.resource.ResourceService
 import org.metaborg.spg.core.spoofax.models._
@@ -10,7 +10,7 @@ import org.metaborg.spoofax.core.syntax.SyntaxFacet
 
 import scala.collection.JavaConverters._
 
-class LanguageService @Inject() (val baseLanguageService: BaseLanguageService, val resourceSerivce: ResourceService, val productionService: ProductionService, val specificationService: SpecificationService, val printerService: PrinterService) extends LazyLogging {
+class LanguageService @Inject()(val resourceSerivce: ResourceService, val productionService: ProductionService, val specificationService: SpecificationService, val printerService: PrinterService) extends LazyLogging {
   /**
     * Load a language for generation.
     *
@@ -22,19 +22,19 @@ class LanguageService @Inject() (val baseLanguageService: BaseLanguageService, v
     * @return
     */
   def load(templateLangImpl: ILanguageImpl, nablLangImpl: ILanguageImpl, lutLangImpl: ILanguageImpl, project: IProject, semanticsPath: String): Language = {
-    logger.info("Loading productions")
+    logger.trace("Loading productions")
     val productions = productionService.read(templateLangImpl, resourceSerivce.resolve(project.location(), s"syntax/${lutLangImpl.belongsTo().name()}.sdf3"))
 
-    logger.info("Computing signatures")
+    logger.trace("Computing signatures")
     val signatures = Signatures(defaultSignatures ++ productions.map(_.toSignature))
 
-    logger.info("Loading static semantics")
+    logger.trace("Loading static semantics")
     val specification = specificationService.read(nablLangImpl, resourceSerivce.resolve(project.location(), semanticsPath))(signatures)
 
-    logger.info("Constructing printer")
+    logger.trace("Constructing printer")
     val printer = printerService.getPrinter(lutLangImpl, project)
 
-    logger.info("Read start symbols")
+    logger.trace("Read start symbols")
     val start = startSymbols(lutLangImpl)
 
     Language(productions, signatures, specification, printer, start, lutLangImpl)
