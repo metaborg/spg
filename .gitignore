@@ -3,4 +3,8 @@ project/
 target/
 *.log
 .cache-main
+.cache-tests
+.classpath
+.project
+.settings
 .tmpBin/

@@ -11,8 +11,6 @@ import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.ITreeSelection;
 import org.eclipse.jface.viewers.TreePath;
 import org.eclipse.ui.handlers.HandlerUtil;
-import org.metaborg.core.language.ILanguageImpl;
-import org.metaborg.core.language.LanguageIdentifier;
 import org.metaborg.spoofax.core.Spoofax;
 import org.metaborg.spoofax.eclipse.SpoofaxPlugin;
 import org.metaborg.spoofax.eclipse.resource.IEclipseResourceService;
@@ -25,12 +23,11 @@ public class GenerateHandler extends AbstractHandler {
 		try {
 			FileObject project = getProject(event);
 			
-	        Activator.logInfo("Run SPG on project " + project);
-	        
-	        Job job = new GenerateJob(spoofax, project);
-	        job.setPriority(Job.SHORT);
-	        job.setUser(true);
-	        job.schedule();
+	        GenerateJob generateJob = spoofax.injector.getInstance(GenerateJob.class);
+	        generateJob.setProject(project);
+	        generateJob.setPriority(Job.SHORT);
+	        generateJob.setUser(true);
+	        generateJob.schedule();
 		} catch (ProjectNotFoundException e) {
 			MessageDialog.openError(null, "Project not found", "Cannot find a Spoofax project for generation.");
 		}
