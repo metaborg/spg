@@ -18,6 +18,7 @@ import org.metaborg.core.project.IProject;
 import org.metaborg.core.project.IProjectService;
 import org.metaborg.core.resource.IResourceService;
 import org.metaborg.core.language.ILanguageService;
+import org.metaborg.core.messages.IMessage;
 import org.metaborg.spg.core.Config;
 import org.metaborg.spg.core.Generator;
 import org.metaborg.spoofax.eclipse.util.ConsoleUtils;
@@ -80,6 +81,7 @@ public class GenerateJob extends Job {
 				.generate(language, project, config)
 				.asJavaObservable();
 			
+			// TODO: Can we use Java 8?
 			programs.subscribe(new Action1<String>() {
 				@Override
 				public void call(String program) {
@@ -117,7 +119,11 @@ public class GenerateJob extends Job {
 		ConfigRequest<ILanguageComponentConfig> projectConfig = configService.get(project.location());
 		
 		if (Iterables.size(projectConfig.errors()) != 0) {
-			throw new ProjectNotFoundException("Unable to find config at " + project.location());
+			for (IMessage message : projectConfig.errors()) {
+				Activator.logError(message.message(), message.exception());
+			}
+			
+			throw new ProjectNotFoundException("One or more errors occurred while retrieving config at " + project.location());
 		}
 		
 		ILanguageComponentConfig config = projectConfig.config();

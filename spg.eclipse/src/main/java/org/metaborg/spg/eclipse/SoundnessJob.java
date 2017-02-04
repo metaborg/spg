@@ -20,12 +20,11 @@ import org.metaborg.core.language.ILanguageService;
 import org.metaborg.core.project.IProject;
 import org.metaborg.core.project.IProjectService;
 import org.metaborg.core.resource.IResourceService;
-import org.metaborg.core.source.ISourceTextService;
 import org.metaborg.spg.core.Config;
 import org.metaborg.spg.core.Generator;
+import org.metaborg.spg.eclipse.rx.MapWithIndex;
+import org.metaborg.spg.eclipse.rx.MapWithIndex.Indexed;
 
-import com.github.davidmoten.rx.Transformers;
-import com.github.davidmoten.rx.util.MapWithIndex.Indexed;
 import com.google.inject.Inject;
 
 import rx.Observable;
@@ -33,16 +32,12 @@ import rx.functions.Action1;
 
 public class SoundnessJob extends GenerateJob {
 	public static int TIMEOUT = 5;
-	public static String CLIENT = "/Users/martijn/Projects/metaborg-tiger/org.metaborg.lang.tiger.interpreter/tiger-client";
+	public static String CLIENT = "/Users/martijn/Projects/scopes-frames/L1.interpreter/L1-client";
 	public static Charset UTF_8 = StandardCharsets.UTF_8;
-	
-	protected ISourceTextService textService;
-	
+
 	@Inject
-	public SoundnessJob(IResourceService resourceService, IProjectService projectService, ILanguageService languageService, ILanguageComponentConfigService configService, ISourceTextService textService, Generator generator) {
+	public SoundnessJob(IResourceService resourceService, IProjectService projectService, ILanguageService languageService, ILanguageComponentConfigService configService, Generator generator) {
 		super(resourceService, projectService, languageService, configService, generator);
-		
-		this.textService = textService;
 	}
 
 	@Override
@@ -50,6 +45,8 @@ public class SoundnessJob extends GenerateJob {
 		final SubMonitor subMonitor = SubMonitor.convert(monitor, TERM_LIMIT);
 		
 		final IProject project = projectService.get(this.project);
+		
+		Activator.logInfo("RUn");
 
 		// TODO: Start server for interpreter
 		
@@ -63,8 +60,9 @@ public class SoundnessJob extends GenerateJob {
 				.asJavaObservable();
 			
 			Observable<Indexed<String>> indexedPrograms = programs
-				.compose(Transformers.<String>mapWithIndex());
+				.compose(MapWithIndex.<String>instance());
 			
+			// TODO: Can we use Java 8?
 			indexedPrograms.subscribe(new Action1<Indexed<String>>() {
 				@Override
 				public void call(Indexed<String> indexed) {
@@ -72,10 +70,14 @@ public class SoundnessJob extends GenerateJob {
 					stream.println("--------------------------------------------");
 					
 					try {
-						String fileName = indexed.index() + ".tig";
+						// TODO: Get language extension
+						String fileName = indexed.index() + ".l1";
 						FileObject programFile = storeProgram(indexed.value(), fileName);
 						
 						ProcessOutput processOutput = run(resourceService.localFile(programFile).getAbsolutePath());
+						
+						stream.println(processOutput.getOutput());
+						stream.println(processOutput.getError());
 						
 						if (processOutput.getError().contains("ReductionFailure")) {
 							Activator.logInfo("Found a counterexample: " + indexed.value());
@@ -110,7 +112,7 @@ public class SoundnessJob extends GenerateJob {
 	 * @throws IOException
 	 */
 	protected FileObject storeProgram(String program, String name) throws IOException {
-		FileObject fileObject = resourceService.resolve(project, "1.tig");
+		FileObject fileObject = resourceService.resolve(project, name);
 		FileContent fileContent = fileObject.getContent();
 		
 		try (OutputStream outputStream = fileContent.getOutputStream()) {
