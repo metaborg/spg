@@ -66,7 +66,7 @@ public class GenerateJob extends Job {
 	}
 	
 	@Override
-	protected IStatus run(final IProgressMonitor monitor) {
+	protected IStatus run(IProgressMonitor monitor) {
 		final SubMonitor subMonitor = SubMonitor.convert(monitor, TERM_LIMIT);
 		
 		IProject project = projectService.get(this.project);

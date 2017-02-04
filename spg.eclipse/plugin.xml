@@ -1,24 +1,47 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?eclipse version="3.4"?>
 <plugin>
-   <extension point="org.eclipse.ui.menus">
-      <menuContribution
-            allPopups="true"
-            locationURI="menu:org.metaborg.spoofax.eclipse.meta.menu.main?after=additions">
-         <command
-               commandId="org.metaborg.spg.eclipse.command.generate"
-               label="Generate terms"
-               style="push">
-         </command>
-      </menuContribution>
-   </extension>
-   
-   <extension
-         point="org.eclipse.ui.commands">
+  <extension
+      point="org.eclipse.ui.menus">
+    <menuContribution
+        allPopups="true"
+        locationURI="menu:org.metaborg.spoofax.eclipse.meta.menu.main?after=additions">
       <command
-            defaultHandler="org.metaborg.spg.eclipse.GenerateHandler"
-            id="org.metaborg.spg.eclipse.command.generate"
-            name="Generate terms">
+          commandId="org.metaborg.spg.eclipse.command.generate"
+          label="Generate terms"
+          style="push">
       </command>
-   </extension>
+    </menuContribution>
+  </extension>
+   
+  <extension
+      point="org.eclipse.ui.menus">
+    <menuContribution
+        allPopups="true"
+        locationURI="menu:org.metaborg.spoofax.eclipse.meta.menu.main?after=additions">
+      <command
+          commandId="org.metaborg.spg.eclipse.command.soundness"
+          label="Test type soundness"
+          style="push">
+      </command>
+    </menuContribution>
+  </extension>
+  
+  <extension
+      point="org.eclipse.ui.commands">
+    <command
+        defaultHandler="org.metaborg.spg.eclipse.GenerateHandler"
+        id="org.metaborg.spg.eclipse.command.generate"
+        name="Generate terms">
+    </command>
+  </extension>
+  
+  <extension
+      point="org.eclipse.ui.commands">
+    <command
+        defaultHandler="org.metaborg.spg.eclipse.SoundnessHandler"
+        id="org.metaborg.spg.eclipse.command.soundness"
+        name="Generate terms">
+    </command>
+  </extension>
 </plugin>
