@@ -1,4 +1,4 @@
-package org.metaborg.spg.eclipse;
+package org.metaborg.spg.eclipse.models;
 
 public interface ProcessOutput {
 	public String getOutput();

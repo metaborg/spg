@@ -1,4 +1,4 @@
-package org.metaborg.spg.eclipse;
+package org.metaborg.spg.eclipse.commands;
 
 import org.apache.commons.vfs2.FileObject;
 import org.eclipse.core.commands.AbstractHandler;
@@ -9,6 +9,7 @@ import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.ITreeSelection;
 import org.eclipse.jface.viewers.TreePath;
 import org.eclipse.ui.handlers.HandlerUtil;
+import org.metaborg.spg.eclipse.ProjectNotFoundException;
 import org.metaborg.spoofax.core.Spoofax;
 import org.metaborg.spoofax.eclipse.SpoofaxPlugin;
 import org.metaborg.spoofax.eclipse.resource.IEclipseResourceService;

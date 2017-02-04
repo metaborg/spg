@@ -1,4 +1,4 @@
-package org.metaborg.spg.eclipse;
+package org.metaborg.spg.eclipse.jobs;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -23,8 +23,12 @@ import org.metaborg.core.project.IProjectService;
 import org.metaborg.core.resource.IResourceService;
 import org.metaborg.spg.core.Config;
 import org.metaborg.spg.core.Generator;
+import org.metaborg.spg.eclipse.Activator;
+import org.metaborg.spg.eclipse.ProjectNotFoundException;
+import org.metaborg.spg.eclipse.models.ProcessOutput;
+import org.metaborg.spg.eclipse.models.TerminateOutput;
+import org.metaborg.spg.eclipse.models.TimeoutOutput;
 import org.metaborg.spg.eclipse.rx.MapWithIndex;
-import org.metaborg.spg.eclipse.rx.MapWithIndex.Indexed;
 
 import com.google.common.collect.Iterables;
 import com.google.inject.Inject;
@@ -35,15 +39,21 @@ public class SoundnessJob extends GenerateJob {
 	public static int TIMEOUT = 5;
 	public static String CLIENT = "/Users/martijn/Projects/scopes-frames/L1.interpreter/L1-client";
 	public static Charset UTF_8 = StandardCharsets.UTF_8;
+	
+	protected Integer termLimit;
 
 	@Inject
 	public SoundnessJob(IResourceService resourceService, IProjectService projectService, ILanguageService languageService, ILanguageComponentConfigService configService, Generator generator) {
 		super(resourceService, projectService, languageService, configService, generator);
 	}
+	
+	public void setTermLimit(Integer termLimit) {
+		this.termLimit = termLimit;
+	}
 
 	@Override
 	protected IStatus run(IProgressMonitor monitor) {
-		final SubMonitor subMonitor = SubMonitor.convert(monitor, TERM_LIMIT);
+		final SubMonitor subMonitor = SubMonitor.convert(monitor, termLimit);
 		final IProject project = projectService.get(this.project);
 		
 		// TODO: Start server for interpreter
@@ -52,21 +62,18 @@ public class SoundnessJob extends GenerateJob {
 			ILanguageImpl language = getLanguage(project);
 			String extension = getExtension(language);
 			
-			Config config = new Config(SEMANTICS_PATH, TERM_LIMIT, FUEL, TERM_SIZE, true, true);
+			Config config = new Config(SEMANTICS_PATH, termLimit, FUEL, TERM_SIZE, true, true);
 			
 			Observable<? extends String> programs = generator
 				.generate(language, project, config)
 				.asJavaObservable();
 			
-			Observable<Indexed<String>> indexedPrograms = programs
-				.compose(MapWithIndex.<String>instance());
-			
-			indexedPrograms.subscribe(indexed -> {
+			Observable<ProcessOutput> outputs = programs.compose(MapWithIndex.<String>instance()).map(indexed -> {
 				stream.println(indexed.value());
 				stream.println("--------------------------------------------");
 				
 				try {
-					String fileName = indexed.index() + "." + extension;
+					String fileName = getName(indexed.index(), extension);
 					FileObject programFile = storeProgram(indexed.value(), fileName);
 					
 					ProcessOutput processOutput = run(resourceService.localFile(programFile).getAbsolutePath());
@@ -74,14 +81,26 @@ public class SoundnessJob extends GenerateJob {
 					stream.println(processOutput.getOutput());
 					stream.println(processOutput.getError());
 					
-					if (processOutput.getError().contains("ReductionFailure")) {
-						Activator.logInfo("Found a counterexample: " + indexed.value());
-					}
-					
-					subMonitor.split(1);
+					return processOutput;
 				} catch (IOException | InterruptedException e) {
-					Activator.logError("An error occurred while running a generated term.", e);
+					Activator.logError("An error occurred while interpreting a generated term.", e);
+					
+					return new TerminateOutput("", "");
 				}
+			});
+			
+			Observable<ProcessOutput> finite = outputs.takeWhileWithIndex((output, index) -> {
+				if (output.getError().contains("ReductionFailure") || output.getError().contains("IllegalStateException")) {
+					stream.println("Found counterexample after " + (index + 1) + " terms.");
+					
+					return false;
+				}
+				
+				return true;
+			});
+			
+			finite.subscribe(output -> {
+				subMonitor.split(1);
 			}, exception -> {
 				if (exception instanceof OperationCanceledException) {
 					// Swallow cancellation exceptions
@@ -94,6 +113,17 @@ public class SoundnessJob extends GenerateJob {
 		}
 		
 		return Status.OK_STATUS;
+	}
+	
+	/**
+	 * Compute the name for the program at given index and extension.
+	 * 
+	 * @param index
+	 * @param extension
+	 * @return
+	 */
+	protected String getName(long index, String extension) {
+		return String.format("%05d", index) + "." + extension;
 	}
 
 	/**
@@ -149,20 +179,19 @@ public class SoundnessJob extends GenerateJob {
 	    outputStream.flush();
 
 	    if (!process.waitFor(TIMEOUT, TimeUnit.SECONDS)) {
-	      process.destroyForcibly();
-
-	      String out = IOUtils.toString(process.getInputStream(), UTF_8);
-	      String err = IOUtils.toString(process.getErrorStream(), UTF_8);
-	      
-	      return new TimeoutOutput(out, err);
+    		process.destroyForcibly();
+			
+    		String out = IOUtils.toString(process.getInputStream(), UTF_8);
+    		String err = IOUtils.toString(process.getErrorStream(), UTF_8);
+    		
+    		return new TimeoutOutput(out, err);
 	    } else {
-	      // For some reason, without this call waitFor sometimes hangs
-	      int exitValue = process.exitValue();
+	    	process.exitValue();
+	    	
+			String out = IOUtils.toString(process.getInputStream(), UTF_8);
+  			String err = IOUtils.toString(process.getErrorStream(), UTF_8);
 
-	      String out = IOUtils.toString(process.getInputStream(), UTF_8);
-	      String err = IOUtils.toString(process.getErrorStream(), UTF_8);
-
-	      return new TerminateOutput(out, err);
+  			return new TerminateOutput(out, err);
 	    }
 	}
 	

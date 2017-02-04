@@ -1,4 +1,4 @@
-package org.metaborg.spg.eclipse;
+package org.metaborg.spg.eclipse.jobs;
 
 import org.apache.commons.vfs2.FileObject;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -21,6 +21,8 @@ import org.metaborg.core.language.ILanguageService;
 import org.metaborg.core.messages.IMessage;
 import org.metaborg.spg.core.Config;
 import org.metaborg.spg.core.Generator;
+import org.metaborg.spg.eclipse.Activator;
+import org.metaborg.spg.eclipse.ProjectNotFoundException;
 import org.metaborg.spoofax.eclipse.util.ConsoleUtils;
 
 import com.google.common.collect.Iterables;
