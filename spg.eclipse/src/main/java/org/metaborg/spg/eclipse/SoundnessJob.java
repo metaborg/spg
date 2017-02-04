@@ -17,6 +17,7 @@ import org.eclipse.core.runtime.SubMonitor;
 import org.metaborg.core.config.ILanguageComponentConfigService;
 import org.metaborg.core.language.ILanguageImpl;
 import org.metaborg.core.language.ILanguageService;
+import org.metaborg.core.language.ResourceExtensionFacet;
 import org.metaborg.core.project.IProject;
 import org.metaborg.core.project.IProjectService;
 import org.metaborg.core.resource.IResourceService;
@@ -25,10 +26,10 @@ import org.metaborg.spg.core.Generator;
 import org.metaborg.spg.eclipse.rx.MapWithIndex;
 import org.metaborg.spg.eclipse.rx.MapWithIndex.Indexed;
 
+import com.google.common.collect.Iterables;
 import com.google.inject.Inject;
 
 import rx.Observable;
-import rx.functions.Action1;
 
 public class SoundnessJob extends GenerateJob {
 	public static int TIMEOUT = 5;
@@ -43,15 +44,13 @@ public class SoundnessJob extends GenerateJob {
 	@Override
 	protected IStatus run(IProgressMonitor monitor) {
 		final SubMonitor subMonitor = SubMonitor.convert(monitor, TERM_LIMIT);
-		
 		final IProject project = projectService.get(this.project);
 		
-		Activator.logInfo("RUn");
-
 		// TODO: Start server for interpreter
 		
 		try {
 			ILanguageImpl language = getLanguage(project);
+			String extension = getExtension(language);
 			
 			Config config = new Config(SEMANTICS_PATH, TERM_LIMIT, FUEL, TERM_SIZE, true, true);
 			
@@ -62,40 +61,32 @@ public class SoundnessJob extends GenerateJob {
 			Observable<Indexed<String>> indexedPrograms = programs
 				.compose(MapWithIndex.<String>instance());
 			
-			// TODO: Can we use Java 8?
-			indexedPrograms.subscribe(new Action1<Indexed<String>>() {
-				@Override
-				public void call(Indexed<String> indexed) {
-					stream.println(indexed.value());
-					stream.println("--------------------------------------------");
+			indexedPrograms.subscribe(indexed -> {
+				stream.println(indexed.value());
+				stream.println("--------------------------------------------");
+				
+				try {
+					String fileName = indexed.index() + "." + extension;
+					FileObject programFile = storeProgram(indexed.value(), fileName);
 					
-					try {
-						// TODO: Get language extension
-						String fileName = indexed.index() + ".l1";
-						FileObject programFile = storeProgram(indexed.value(), fileName);
-						
-						ProcessOutput processOutput = run(resourceService.localFile(programFile).getAbsolutePath());
-						
-						stream.println(processOutput.getOutput());
-						stream.println(processOutput.getError());
-						
-						if (processOutput.getError().contains("ReductionFailure")) {
-							Activator.logInfo("Found a counterexample: " + indexed.value());
-						}
-						
-						subMonitor.split(1);
-					} catch (IOException | InterruptedException e) {
-						Activator.logError("An error occurred while running a generated term.", e);
+					ProcessOutput processOutput = run(resourceService.localFile(programFile).getAbsolutePath());
+					
+					stream.println(processOutput.getOutput());
+					stream.println(processOutput.getError());
+					
+					if (processOutput.getError().contains("ReductionFailure")) {
+						Activator.logInfo("Found a counterexample: " + indexed.value());
 					}
+					
+					subMonitor.split(1);
+				} catch (IOException | InterruptedException e) {
+					Activator.logError("An error occurred while running a generated term.", e);
 				}
-			}, new Action1<Throwable>() {
-				@Override
-				public void call(Throwable e) {
-					if (e instanceof OperationCanceledException) {
-						// Swallow cancellation exceptions
-					} else {
-						Activator.logError("An error occurred while generating terms.", e);
-					}
+			}, exception -> {
+				if (exception instanceof OperationCanceledException) {
+					// Swallow cancellation exceptions
+				} else {
+					Activator.logError("An error occurred while generating terms.", exception);
 				}
 			});
 		} catch (ProjectNotFoundException e) {
@@ -103,6 +94,24 @@ public class SoundnessJob extends GenerateJob {
 		}
 		
 		return Status.OK_STATUS;
+	}
+
+	/**
+	 * Get extension for given language implementation.
+	 * 
+	 * @param languageImpl
+	 * @return
+	 */
+	protected String getExtension(ILanguageImpl languageImpl) {
+		Iterable<String> extensions = languageImpl
+			.facet(ResourceExtensionFacet.class)
+			.extensions();
+		
+		if (Iterables.isEmpty(extensions)) {
+			throw new RuntimeException("The language does not have any extensions.");
+		}
+		
+		return Iterables.getFirst(extensions, null);
 	}
 	
 	/**

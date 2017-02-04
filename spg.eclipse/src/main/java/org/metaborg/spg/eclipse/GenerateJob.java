@@ -27,7 +27,6 @@ import com.google.common.collect.Iterables;
 import com.google.inject.Inject;
 
 import rx.Observable;
-import rx.functions.Action1;
 
 public class GenerateJob extends Job {
 	public static String SEMANTICS_PATH = "trans/static-semantics.nabl2";
@@ -69,8 +68,7 @@ public class GenerateJob extends Job {
 	@Override
 	protected IStatus run(IProgressMonitor monitor) {
 		final SubMonitor subMonitor = SubMonitor.convert(monitor, TERM_LIMIT);
-		
-		IProject project = projectService.get(this.project);
+		final IProject project = projectService.get(this.project);
 
 		try {
 			ILanguageImpl language = getLanguage(project);
@@ -81,23 +79,16 @@ public class GenerateJob extends Job {
 				.generate(language, project, config)
 				.asJavaObservable();
 			
-			// TODO: Can we use Java 8?
-			programs.subscribe(new Action1<String>() {
-				@Override
-				public void call(String program) {
-					stream.println(program);
-					stream.println("--------------------------------------------");
-					
-					subMonitor.split(1);
-				}
-			}, new Action1<Throwable>() {
-				@Override
-				public void call(Throwable e) {
-					if (e instanceof OperationCanceledException) {
-						// Swallow cancellation exceptions
-					} else {
-						Activator.logError("An error occurred while generating terms.", e);
-					}
+			programs.subscribe(program -> {
+				stream.println(program);
+				stream.println("--------------------------------------------");
+				
+				subMonitor.split(1);
+			}, exception -> {
+				if (exception instanceof OperationCanceledException) {
+					// Swallow cancellation exceptions
+				} else {
+					Activator.logError("An error occurred while generating terms.", exception);
 				}
 			});
 		} catch (ProjectNotFoundException e) {
