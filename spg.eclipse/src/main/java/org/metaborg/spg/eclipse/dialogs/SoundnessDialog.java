@@ -10,8 +10,6 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 
 public class SoundnessDialog extends GenerateDialog {
-	public static String DEFAULT_TIMEOUT = "4";
-	
     private Text txtTimeout; 
     
     private String timeout;
@@ -29,7 +27,7 @@ public class SoundnessDialog extends GenerateDialog {
 		group.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
         group.setLayout(new GridLayout(2, false));
 
-        txtTimeout = createField(group, "Timeout:", DEFAULT_TIMEOUT);
+        txtTimeout = createField(group, "Timeout:", getDefaultTimeout());
 
         return area;
     }
@@ -44,6 +42,15 @@ public class SoundnessDialog extends GenerateDialog {
     @Override
     protected boolean isResizable() {
         return true;
+    }
+    
+    @Override
+    protected String getDefaultTermLimit() {
+    	return "-1";
+    }
+    
+    protected String getDefaultTimeout() {
+    	return "4";
     }
     
     public Integer getTimeout() {

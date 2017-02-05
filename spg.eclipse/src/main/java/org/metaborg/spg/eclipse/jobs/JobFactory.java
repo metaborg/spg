@@ -44,7 +44,7 @@ public class JobFactory implements IJobFactory {
     }
     
 	@Override
-	public SoundnessJob createSoundnessJob(FileObject project, int termLimit, int termSize, int fuel, int timeout) {
+	public SoundnessJob createSoundnessJob(FileObject project, int termLimit, int termSize, int fuel, int timeout, boolean store) {
 		return new SoundnessJob(
 			// Dependencies
 			resourceService,
@@ -58,7 +58,8 @@ public class JobFactory implements IJobFactory {
 			termLimit,
 			termSize,
 			fuel,
-			timeout
+			timeout,
+			store
 		);
 	}
 }

@@ -61,8 +61,9 @@ public class SoundnessJob extends Job {
 	protected int termSize;
 	protected int fuel;
 	protected int timeout;
+	protected boolean store;
 
-	public SoundnessJob(IResourceService resourceService, IProjectService projectService, ILanguageService languageService, ILanguageComponentConfigService configService, Generator generator, FileObject project, int termLimit, int termSize, int fuel, int timeout) {
+	public SoundnessJob(IResourceService resourceService, IProjectService projectService, ILanguageService languageService, ILanguageComponentConfigService configService, Generator generator, FileObject project, int termLimit, int termSize, int fuel, int timeout, boolean store) {
 		super("Soundness");
 		
 		this.resourceService = resourceService;
@@ -76,6 +77,7 @@ public class SoundnessJob extends Job {
 		this.termSize = termSize;
 		this.fuel = fuel;
 		this.timeout = timeout;
+		this.store = store;
 	}
 
 	@Override
@@ -119,6 +121,9 @@ public class SoundnessJob extends Job {
 			Observable<ProcessOutput> finite = outputs.takeWhileWithIndex((output, index) -> {
 				if (output.getError().contains("ReductionFailure") || output.getError().contains("IllegalStateException")) {
 					stream.println("Found counterexample after " + (index + 1) + " terms.");
+					
+					subMonitor.setWorkRemaining(0);
+					subMonitor.done();
 					
 					return false;
 				}
@@ -182,7 +187,7 @@ public class SoundnessJob extends Job {
 		FileContent fileContent = fileObject.getContent();
 		
 		try (OutputStream outputStream = fileContent.getOutputStream()) {
-			IOUtils.write(program, outputStream, UTF_8);
+			outputStream.write(program.getBytes(UTF_8));
 		}
 	    
 	    return fileObject;
@@ -200,10 +205,11 @@ public class SoundnessJob extends Job {
 	protected ProcessOutput run(String path) throws IOException, InterruptedException {
 		ProcessBuilder processBuilder = new ProcessBuilder(CLIENT, path);
 	    Process process = processBuilder.start();
-
-	    OutputStream outputStream = process.getOutputStream();
-	    outputStream.write(randomString().getBytes(UTF_8));
-	    outputStream.flush();
+	    
+	    try (OutputStream outputStream = process.getOutputStream()) {
+	    	outputStream.write(randomString().getBytes(UTF_8));
+	    	outputStream.flush();
+	    }
 
 	    if (!process.waitFor(timeout, TimeUnit.SECONDS)) {
     		process.destroyForcibly();

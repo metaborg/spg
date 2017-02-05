@@ -25,5 +25,5 @@ public interface IJobFactory {
 	 * @param timeout
 	 * @return
 	 */
-	public SoundnessJob createSoundnessJob(FileObject project, int termLimit, int termSize, int fuel, int timeout);
+	public SoundnessJob createSoundnessJob(FileObject project, int termLimit, int termSize, int fuel, int timeout, boolean store);
 }

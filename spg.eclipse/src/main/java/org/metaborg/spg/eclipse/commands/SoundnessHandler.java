@@ -27,7 +27,8 @@ public class SoundnessHandler extends SpgHandler {
 					soundnessDialog.getTermLimit(),
 					soundnessDialog.getTermSize(),
 					soundnessDialog.getFuel(),
-					soundnessDialog.getTimeout()
+					soundnessDialog.getTimeout(),
+					soundnessDialog.getStore()
 				);
 				
 				job.setPriority(Job.SHORT);
