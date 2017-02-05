@@ -8,14 +8,24 @@ import org.eclipse.core.resources.IResource;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.ITreeSelection;
 import org.eclipse.jface.viewers.TreePath;
+import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.handlers.HandlerUtil;
 import org.metaborg.spg.eclipse.ProjectNotFoundException;
+import org.metaborg.spg.eclipse.SpgEclipseModule;
 import org.metaborg.spoofax.core.Spoofax;
 import org.metaborg.spoofax.eclipse.SpoofaxPlugin;
 import org.metaborg.spoofax.eclipse.resource.IEclipseResourceService;
 
+import com.google.inject.Injector;
+
 public abstract class SpgHandler extends AbstractHandler {
-	public Spoofax spoofax = SpoofaxPlugin.spoofax();
+	public Spoofax spoofax;
+	public Injector injector;
+	
+	public SpgHandler() {
+		this.spoofax = SpoofaxPlugin.spoofax();
+		this.injector = spoofax.injector.createChildInjector(new SpgEclipseModule());
+	}
 	
 	/**
 	 * Get a project based on the execution event.
@@ -55,5 +65,15 @@ public abstract class SpgHandler extends AbstractHandler {
 		return spoofax.injector
 			.getInstance(IEclipseResourceService.class)
 			.resolve((IResource) selectedObject);
+	}
+	
+	/**
+	 * Get the shell for the given execution event.
+	 * 
+	 * @param event
+	 * @return
+	 */
+	protected Shell getShell(ExecutionEvent event) {
+		return HandlerUtil.getActiveShell(event);
 	}
 }

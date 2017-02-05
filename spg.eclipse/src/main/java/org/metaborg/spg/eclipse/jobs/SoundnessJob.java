@@ -14,10 +14,17 @@ import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.OperationCanceledException;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.SubMonitor;
+import org.eclipse.core.runtime.jobs.Job;
+import org.eclipse.ui.console.MessageConsole;
+import org.eclipse.ui.console.MessageConsoleStream;
+import org.metaborg.core.MetaborgException;
+import org.metaborg.core.config.ConfigRequest;
+import org.metaborg.core.config.ILanguageComponentConfig;
 import org.metaborg.core.config.ILanguageComponentConfigService;
 import org.metaborg.core.language.ILanguageImpl;
 import org.metaborg.core.language.ILanguageService;
 import org.metaborg.core.language.ResourceExtensionFacet;
+import org.metaborg.core.messages.IMessage;
 import org.metaborg.core.project.IProject;
 import org.metaborg.core.project.IProjectService;
 import org.metaborg.core.resource.IResourceService;
@@ -29,26 +36,46 @@ import org.metaborg.spg.eclipse.models.ProcessOutput;
 import org.metaborg.spg.eclipse.models.TerminateOutput;
 import org.metaborg.spg.eclipse.models.TimeoutOutput;
 import org.metaborg.spg.eclipse.rx.MapWithIndex;
+import org.metaborg.spoofax.eclipse.util.ConsoleUtils;
 
 import com.google.common.collect.Iterables;
-import com.google.inject.Inject;
 
 import rx.Observable;
 
-public class SoundnessJob extends GenerateJob {
-	public static int TIMEOUT = 5;
+public class SoundnessJob extends Job {
+	public static String SEMANTICS_PATH = "trans/static-semantics.nabl2";
 	public static String CLIENT = "/Users/martijn/Projects/scopes-frames/L1.interpreter/L1-client";
 	public static Charset UTF_8 = StandardCharsets.UTF_8;
 	
-	protected Integer termLimit;
+    protected MessageConsole console = ConsoleUtils.get("Spoofax console");
+    protected MessageConsoleStream stream = console.newMessageStream();
+    
+    protected IResourceService resourceService;
+    protected IProjectService projectService;
+    protected ILanguageService languageService;
+    protected ILanguageComponentConfigService configService;
+    protected Generator generator;
+    
+	protected FileObject project;
+	protected int termLimit;
+	protected int termSize;
+	protected int fuel;
+	protected int timeout;
 
-	@Inject
-	public SoundnessJob(IResourceService resourceService, IProjectService projectService, ILanguageService languageService, ILanguageComponentConfigService configService, Generator generator) {
-		super(resourceService, projectService, languageService, configService, generator);
-	}
-	
-	public void setTermLimit(Integer termLimit) {
+	public SoundnessJob(IResourceService resourceService, IProjectService projectService, ILanguageService languageService, ILanguageComponentConfigService configService, Generator generator, FileObject project, int termLimit, int termSize, int fuel, int timeout) {
+		super("Soundness");
+		
+		this.resourceService = resourceService;
+		this.projectService = projectService;
+		this.languageService = languageService;
+		this.configService = configService;
+		this.generator = generator;
+		
+		this.project = project;
 		this.termLimit = termLimit;
+		this.termSize = termSize;
+		this.fuel = fuel;
+		this.timeout = timeout;
 	}
 
 	@Override
@@ -62,7 +89,7 @@ public class SoundnessJob extends GenerateJob {
 			ILanguageImpl language = getLanguage(project);
 			String extension = getExtension(language);
 			
-			Config config = new Config(SEMANTICS_PATH, termLimit, FUEL, TERM_SIZE, true, true);
+			Config config = new Config(SEMANTICS_PATH, termLimit, fuel, termSize, true, true);
 			
 			Observable<? extends String> programs = generator
 				.generate(language, project, config)
@@ -178,7 +205,7 @@ public class SoundnessJob extends GenerateJob {
 	    outputStream.write(randomString().getBytes(UTF_8));
 	    outputStream.flush();
 
-	    if (!process.waitFor(TIMEOUT, TimeUnit.SECONDS)) {
+	    if (!process.waitFor(timeout, TimeUnit.SECONDS)) {
     		process.destroyForcibly();
 			
     		String out = IOUtils.toString(process.getInputStream(), UTF_8);
@@ -203,4 +230,38 @@ public class SoundnessJob extends GenerateJob {
 	protected String randomString() {
 		return "abc";
 	}
+	
+    /**
+     * Get language for given project.
+     * 
+     * @param path
+     * @return
+     * @throws ProjectNotFoundException 
+     * @throws MetaborgException
+     */
+    protected ILanguageImpl getLanguage(IProject project) throws ProjectNotFoundException {
+		ConfigRequest<ILanguageComponentConfig> projectConfig = configService.get(project.location());
+		
+		if (Iterables.size(projectConfig.errors()) != 0) {
+			for (IMessage message : projectConfig.errors()) {
+				Activator.logError(message.message(), message.exception());
+			}
+			
+			throw new ProjectNotFoundException("One or more errors occurred while retrieving config at " + project.location());
+		}
+		
+		ILanguageComponentConfig config = projectConfig.config();
+		
+		if (config == null) {
+			throw new ProjectNotFoundException("Unable to find config at " + project.location());
+		}
+		
+		ILanguageImpl languageImpl = languageService.getImpl(config.identifier());
+		
+		if (languageImpl == null) {
+			throw new ProjectNotFoundException("Unable to get implementation for language with identifier " + config.identifier());
+		}
+    	
+    	return languageImpl;
+    }
 }

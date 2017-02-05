@@ -6,11 +6,9 @@ import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.window.Window;
-import org.eclipse.swt.widgets.Shell;
-import org.eclipse.ui.handlers.HandlerUtil;
 import org.metaborg.spg.eclipse.ProjectNotFoundException;
-import org.metaborg.spg.eclipse.dialogs.GenerateDialog;
-import org.metaborg.spg.eclipse.jobs.SoundnessJob;
+import org.metaborg.spg.eclipse.dialogs.SoundnessDialog;
+import org.metaborg.spg.eclipse.jobs.IJobFactory;
 
 public class SoundnessHandler extends SpgHandler {
 	@Override
@@ -18,23 +16,23 @@ public class SoundnessHandler extends SpgHandler {
 		try {
 			FileObject project = getProject(event);
 			
-			Shell shell = HandlerUtil.getActiveShell(event);
+			SoundnessDialog soundnessDialog = new SoundnessDialog(getShell(event));
+			soundnessDialog.create();
 			
-			GenerateDialog generateDialog = new GenerateDialog(shell);
-			generateDialog.create();
-			
-			if (generateDialog.open() == Window.OK) {
-		        SoundnessJob soundnessJob = spoofax.injector.getInstance(SoundnessJob.class);
-		        
-		        // Generator-specific settings
-		        soundnessJob.setProject(project);
-		        soundnessJob.setTermLimit(generateDialog.getTermLimit());
-		        
-		        // General dialog settings
-		        soundnessJob.setPriority(Job.SHORT);
-		        soundnessJob.setUser(true);
-		        
-		        soundnessJob.schedule();
+			if (soundnessDialog.open() == Window.OK) {
+				IJobFactory jobFactory = injector.getInstance(IJobFactory.class);
+				
+				Job job = jobFactory.createSoundnessJob(
+					project,
+					soundnessDialog.getTermLimit(),
+					soundnessDialog.getTermSize(),
+					soundnessDialog.getFuel(),
+					soundnessDialog.getTimeout()
+				);
+				
+				job.setPriority(Job.SHORT);
+				job.setUser(true);
+				job.schedule();
 			}
 		} catch (ProjectNotFoundException e) {
 			MessageDialog.openError(null, "Project not found", "Cannot find a Spoofax project for generation.");

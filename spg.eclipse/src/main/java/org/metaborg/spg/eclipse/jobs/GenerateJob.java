@@ -26,15 +26,11 @@ import org.metaborg.spg.eclipse.ProjectNotFoundException;
 import org.metaborg.spoofax.eclipse.util.ConsoleUtils;
 
 import com.google.common.collect.Iterables;
-import com.google.inject.Inject;
 
 import rx.Observable;
 
 public class GenerateJob extends Job {
 	public static String SEMANTICS_PATH = "trans/static-semantics.nabl2";
-	public static int TERM_LIMIT = 100;
-	public static int FUEL = 500;
-	public static int TERM_SIZE = 100;
 	
     protected MessageConsole console = ConsoleUtils.get("Spoofax console");
     protected MessageConsoleStream stream = console.newMessageStream();
@@ -46,9 +42,12 @@ public class GenerateJob extends Job {
     protected Generator generator;
     
 	protected FileObject project;
+	protected int termLimit;
+	protected int termSize;
+	protected int fuel;
+	protected int timeout;
     
-	@Inject
-	public GenerateJob(IResourceService resourceService, IProjectService projectService, ILanguageService languageService, ILanguageComponentConfigService configService, Generator generator) {
+	public GenerateJob(IResourceService resourceService, IProjectService projectService, ILanguageService languageService, ILanguageComponentConfigService configService, Generator generator, FileObject project, int termLimit, int termSize, int fuel) {
 		super("Generate");
 		
 		this.resourceService = resourceService;
@@ -56,26 +55,22 @@ public class GenerateJob extends Job {
 		this.languageService = languageService;
 		this.configService = configService;
 		this.generator = generator;
-	}
-	
-	/**
-	 * Set the project that we will perform generation for.
-	 * 
-	 * @param project
-	 */
-	public void setProject(FileObject project) {
+		
 		this.project = project;
+		this.termLimit = termLimit;
+		this.termSize = termSize;
+		this.fuel = fuel;
 	}
 	
 	@Override
 	protected IStatus run(IProgressMonitor monitor) {
-		final SubMonitor subMonitor = SubMonitor.convert(monitor, TERM_LIMIT);
+		final SubMonitor subMonitor = SubMonitor.convert(monitor, termLimit);
 		final IProject project = projectService.get(this.project);
 
 		try {
 			ILanguageImpl language = getLanguage(project);
 			
-			Config config = new Config(SEMANTICS_PATH, TERM_LIMIT, FUEL, TERM_SIZE, true, true);
+			Config config = new Config(SEMANTICS_PATH, termLimit, fuel, termSize, true, true);
 			
 			Observable<? extends String> programs = generator
 				.generate(language, project, config)
