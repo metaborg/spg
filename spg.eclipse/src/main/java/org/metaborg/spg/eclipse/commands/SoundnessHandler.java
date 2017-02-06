@@ -44,7 +44,7 @@ public class SoundnessHandler extends SpgHandler {
 		} catch (ProjectNotFoundException e) {
 			MessageDialog.openError(null, "Project not found", "Cannot find a Spoofax project for generation.");
 		} catch (FileSystemException e) {
-			MessageDialog.openError(null, "Interpreter not found", "Cannot find the interpreter.");
+			MessageDialog.openError(null, "Interpreter not found", "Cannot load the dynsem.properties file.");
 		} catch (IOException e) {
 			MessageDialog.openError(null, "Interpreter not found", "Cannot find the interpreter.");
 		}
