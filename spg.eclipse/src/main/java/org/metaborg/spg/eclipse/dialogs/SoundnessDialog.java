@@ -10,12 +10,18 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 
 public class SoundnessDialog extends GenerateDialog {
-    private Text txtTimeout; 
+	private String defaultInterpreter;
+	
+	private Text txtInterpreter;
+	private Text txtTimeout; 
     
+	private String interpreter;
     private String timeout;
 
-	public SoundnessDialog(Shell parentShell) {
+	public SoundnessDialog(Shell parentShell, String interpreter) {
 		super(parentShell);
+		
+		this.defaultInterpreter = interpreter;
 	}
 
     @Override
@@ -27,6 +33,7 @@ public class SoundnessDialog extends GenerateDialog {
 		group.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
         group.setLayout(new GridLayout(2, false));
 
+        txtInterpreter = createField(group, "Interpreter:", getDefaultInterpreter());
         txtTimeout = createField(group, "Timeout:", getDefaultTimeout());
 
         return area;
@@ -34,6 +41,7 @@ public class SoundnessDialog extends GenerateDialog {
 
     @Override
     protected void okPressed() {
+    	interpreter = txtInterpreter.getText();
     	timeout = txtTimeout.getText();
         
         super.okPressed();
@@ -49,8 +57,16 @@ public class SoundnessDialog extends GenerateDialog {
     	return "-1";
     }
     
+    protected String getDefaultInterpreter() {
+    	return defaultInterpreter;
+    }
+    
     protected String getDefaultTimeout() {
     	return "4";
+    }
+    
+    public String getInterpreter() {
+    	return interpreter;
     }
     
     public Integer getTimeout() {

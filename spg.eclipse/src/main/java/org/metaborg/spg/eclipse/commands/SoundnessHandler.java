@@ -1,6 +1,11 @@
 package org.metaborg.spg.eclipse.commands;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.Properties;
+
 import org.apache.commons.vfs2.FileObject;
+import org.apache.commons.vfs2.FileSystemException;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.core.runtime.jobs.Job;
@@ -16,7 +21,7 @@ public class SoundnessHandler extends SpgHandler {
 		try {
 			FileObject project = getProject(event);
 			
-			SoundnessDialog soundnessDialog = new SoundnessDialog(getShell(event));
+			SoundnessDialog soundnessDialog = new SoundnessDialog(getShell(event), getInterpreter(project));
 			soundnessDialog.create();
 			
 			if (soundnessDialog.open() == Window.OK) {
@@ -27,8 +32,9 @@ public class SoundnessHandler extends SpgHandler {
 					soundnessDialog.getTermLimit(),
 					soundnessDialog.getTermSize(),
 					soundnessDialog.getFuel(),
-					soundnessDialog.getTimeout(),
-					soundnessDialog.getStore()
+					soundnessDialog.getStore(),
+					soundnessDialog.getInterpreter(),
+					soundnessDialog.getTimeout()
 				);
 				
 				job.setPriority(Job.SHORT);
@@ -37,8 +43,35 @@ public class SoundnessHandler extends SpgHandler {
 			}
 		} catch (ProjectNotFoundException e) {
 			MessageDialog.openError(null, "Project not found", "Cannot find a Spoofax project for generation.");
+		} catch (FileSystemException e) {
+			MessageDialog.openError(null, "Interpreter not found", "Cannot find the interpreter.");
+		} catch (IOException e) {
+			MessageDialog.openError(null, "Interpreter not found", "Cannot find the interpreter.");
 		}
 		
 		return null;
+	}
+	
+	/**
+	 * Get the path to the interpreter for the given project.
+	 * 
+	 * @param project
+	 * @return
+	 * @throws IOException 
+	 * @throws FileSystemException 
+	 */
+	protected String getInterpreter(FileObject project) throws FileSystemException, IOException {
+        FileObject propertiesFile = spoofax.resourceService.resolve(project, "dynsem.properties");
+
+        Properties properties = new Properties();
+        properties.load(propertiesFile.getContent().getInputStream());
+
+        String relInterpreterPath = properties.getProperty("project.path");
+        String interpreterName = properties.getProperty("source.langname");
+
+        Path localProjectPath = spoofax.resourceService.localFile(project).toPath();
+        Path localInterpreterPath = localProjectPath.resolve(relInterpreterPath);
+
+        return localInterpreterPath.resolve(interpreterName + "-client").toAbsolutePath().toString();
 	}
 }

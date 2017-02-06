@@ -44,7 +44,6 @@ import rx.Observable;
 
 public class SoundnessJob extends Job {
 	public static String SEMANTICS_PATH = "trans/static-semantics.nabl2";
-	public static String CLIENT = "/Users/martijn/Projects/scopes-frames/L1.interpreter/L1-client";
 	public static Charset UTF_8 = StandardCharsets.UTF_8;
 	
     protected MessageConsole console = ConsoleUtils.get("Spoofax console");
@@ -60,10 +59,11 @@ public class SoundnessJob extends Job {
 	protected int termLimit;
 	protected int termSize;
 	protected int fuel;
-	protected int timeout;
 	protected boolean store;
+	protected String interpreter;
+	protected int timeout;
 
-	public SoundnessJob(IResourceService resourceService, IProjectService projectService, ILanguageService languageService, ILanguageComponentConfigService configService, Generator generator, FileObject project, int termLimit, int termSize, int fuel, int timeout, boolean store) {
+	public SoundnessJob(IResourceService resourceService, IProjectService projectService, ILanguageService languageService, ILanguageComponentConfigService configService, Generator generator, FileObject project, int termLimit, int termSize, int fuel, boolean store, String interpreter, int timeout) {
 		super("Soundness");
 		
 		this.resourceService = resourceService;
@@ -76,16 +76,15 @@ public class SoundnessJob extends Job {
 		this.termLimit = termLimit;
 		this.termSize = termSize;
 		this.fuel = fuel;
-		this.timeout = timeout;
 		this.store = store;
+		this.interpreter = interpreter;
+		this.timeout = timeout;
 	}
 
 	@Override
 	protected IStatus run(IProgressMonitor monitor) {
 		final SubMonitor subMonitor = SubMonitor.convert(monitor, termLimit);
 		final IProject project = projectService.get(this.project);
-		
-		// TODO: Start server for interpreter
 		
 		try {
 			ILanguageImpl language = getLanguage(project);
@@ -206,7 +205,7 @@ public class SoundnessJob extends Job {
 	 * @throws InterruptedException 
 	 */
 	protected ProcessOutput run(String path) throws IOException, InterruptedException {
-		ProcessBuilder processBuilder = new ProcessBuilder(CLIENT, path);
+		ProcessBuilder processBuilder = new ProcessBuilder(interpreter, path);
 	    Process process = processBuilder.start();
 	    
 	    try (OutputStream outputStream = process.getOutputStream()) {
