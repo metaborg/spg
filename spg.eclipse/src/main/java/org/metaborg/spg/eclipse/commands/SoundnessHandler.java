@@ -53,7 +53,11 @@ public class SoundnessHandler extends SpgHandler {
 	}
 	
 	/**
-	 * Get the path to the interpreter for the given project.
+	 * Get a canonical path to the interpreter for the given project.
+	 * 
+	 * This implementation locates the dynsem.properties file in the language
+	 * project to get the path to the interpreter project and constructs a path
+	 * to the Nailgun client.
 	 * 
 	 * @param project
 	 * @return
@@ -72,6 +76,10 @@ public class SoundnessHandler extends SpgHandler {
         Path localProjectPath = spoofax.resourceService.localFile(project).toPath();
         Path localInterpreterPath = localProjectPath.resolve(relInterpreterPath);
 
-        return localInterpreterPath.resolve(interpreterName + "-client").toAbsolutePath().toString();
+        return localInterpreterPath
+    		.resolve(interpreterName + "-client")
+    		.toFile()
+    		.getCanonicalPath()
+    		.toString();
 	}
 }
