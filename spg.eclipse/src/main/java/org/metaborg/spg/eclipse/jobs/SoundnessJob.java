@@ -90,6 +90,7 @@ public class SoundnessJob extends Job {
 		try {
 			ILanguageImpl language = getLanguage(project);
 			String extension = getExtension(language);
+			long startTime = System.currentTimeMillis();
 			
 			Config config = new Config(SEMANTICS_PATH, termLimit, fuel, termSize, true, true);
 			
@@ -120,7 +121,9 @@ public class SoundnessJob extends Job {
 			
 			Observable<ProcessOutput> finite = outputs.takeWhileWithIndex((output, index) -> {
 				if (output.getError().contains("ReductionFailure") || output.getError().contains("IllegalStateException")) {
-					stream.println("Found counterexample after " + (index + 1) + " terms.");
+					long endTime = System.currentTimeMillis();
+					
+					stream.println("Found counterexample after " + (index + 1) + " terms (" + (endTime-startTime)/1000 + " seconds).");
 					
 					subMonitor.setWorkRemaining(0);
 					subMonitor.done();
