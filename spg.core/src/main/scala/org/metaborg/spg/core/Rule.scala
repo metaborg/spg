@@ -1,8 +1,11 @@
 package org.metaborg.spg.core
 
-import org.metaborg.spg.core.solver.{CGenRecurse, Constraint, NewScope}
+import org.metaborg.spg.core.resolution.Occurrence
+import org.metaborg.spg.core.resolution.OccurrenceImplicits._
+import org.metaborg.spg.core.solver.{CGDecl, CGRef, CGenRecurse, Constraint, NewScope}
 import org.metaborg.spg.core.spoofax.Language
 import org.metaborg.spg.core.spoofax.models.{Sort, SortAppl, SortVar}
+import org.metaborg.spg.core.terms._
 
 /**
   * Representation of a constraint generation rule.
@@ -34,12 +37,48 @@ case class Rule(name: String, sort: Sort, pattern: Pattern, scopes: List[Pattern
   }
 
   /**
-    * Replace all variables (scopes) that are marked as "new" by a concrete
+    * Instantiate a rule.
+    *
+    * - Replace all variables (scopes) that are marked as "new" by a concrete
     * scope with a fresh name and remove the NewScope constraints.
+    *
+    * - Replace meta-level variables in occurrences by object-level NameVar
+    * terms.
     */
-  def instantiate(): Rule = newScopes.foldLeft(this) {
-    case (rule, c@NewScope(s)) =>
-      (rule - c).substitute(s, TermAppl("s" + nameProvider.next))
+  def instantiate(): Rule = {
+    // Substitute Var(x) by TermAppl("s1") when x is marked as a new scope.
+    val r2 = newScopes.foldLeft(this) {
+      case (rule, c@NewScope(s)) =>
+        (rule - c).substitute(s, TermAppl("s" + nameProvider.next))
+    }
+
+    // Substitute Var(x) in an occurrence by TermAppl("NameVar", List(TermString("x1"))
+    val occurrences = constraints.flatMap {
+      case CGDecl(_, declaration) =>
+        declaration.occurrence.name match {
+          case v@Var(_) =>
+            Some(v)
+          case _ =>
+            None
+        }
+      case CGRef(reference, _) =>
+        reference.occurrence.name match {
+          case v@Var(_) =>
+            Some(v)
+          case _ =>
+            None
+        }
+      case _ =>
+        None
+    }
+
+    val varToNameVar: TermBinding = occurrences.zipWith(variable =>
+      TermAppl("NameVar", List(
+        TermString("x" + nameProvider.next)
+      ))
+    ).toMap
+
+    r2.substitute(varToNameVar)
   }
 
   /**

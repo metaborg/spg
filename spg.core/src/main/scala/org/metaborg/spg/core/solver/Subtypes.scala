@@ -1,6 +1,9 @@
 package org.metaborg.spg.core.solver
 
-import org.metaborg.spg.core.{Pattern, _}
+import org.metaborg.spg.core._
+import org.metaborg.spg.core.TermBinding
+import org.metaborg.spg.core.spoofax.models.Strategy
+import org.metaborg.spg.core.terms.Pattern
 
 case class Subtypes(bindings: List[(Pattern, Pattern)] = Nil) {
   def contains(n: Pattern): Boolean =
@@ -53,6 +56,13 @@ case class Subtypes(bindings: List[(Pattern, Pattern)] = Nil) {
     freshBindings.map { case (nameBinding, bindings) =>
       (nameBinding, Subtypes(bindings))
     }
+  }
+
+  def rewrite(s: Strategy) = {
+    Subtypes(bindings.map {
+      case (name, typ) =>
+        name.rewrite(s) -> typ.rewrite(s)
+    })
   }
 
   override def toString =

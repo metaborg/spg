@@ -2,7 +2,8 @@ package org.metaborg.spg.core.spoofax
 
 import org.metaborg.core.language.ILanguageImpl
 import org.metaborg.spg.core.spoofax.models._
-import org.metaborg.spg.core.{Pattern, Rule, TermAppl}
+import org.metaborg.spg.core.terms.{Pattern, TermAppl}
+import org.metaborg.spg.core.Rule
 import org.spoofax.interpreter.terms.IStrategoTerm
 
 import scala.collection.mutable

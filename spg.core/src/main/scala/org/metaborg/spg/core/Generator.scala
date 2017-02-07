@@ -4,8 +4,11 @@ import com.google.inject.Inject
 import com.typesafe.scalalogging.LazyLogging
 import org.metaborg.core.language.{ILanguageImpl, ILanguageService, LanguageIdentifier}
 import org.metaborg.core.project.IProject
+import org.metaborg.spg.core.resolution.Label
 import org.metaborg.spg.core.solver._
+import org.metaborg.spg.core.spoofax.models.SortAppl
 import org.metaborg.spg.core.spoofax.{Converter, Language, LanguageService}
+import org.metaborg.spg.core.terms._
 import rx.lang.scala.Observable
 
 import scala.annotation.tailrec
@@ -71,10 +74,11 @@ class Generator @Inject() (val languageService: LanguageService, val baseLanguag
     * @return
     */
   private def generateTry(implicit language: Language, config: Config): Option[String] = {
-    val init = language.initRule.instantiate()
-    val start = language.startRules.random
-    val recurse = CGenRecurse(start.name, init.pattern, init.scopes, init.typ, start.sort)
-    val program = Program.fromRule(init) + recurse
+//    val init = language.initRule.instantiate()
+//    val start = language.startRules.random
+//    val recurse = CGenRecurse(start.name, init.pattern, init.scopes, init.typ, start.sort)
+//    val program = Program.fromRule(init) + recurse
+    val program = Program(TermAppl("Fun", List(TermAppl("NameVar", List(TermString("x112"))), Var("x113"), Var("x114"))),List(CGenRecurse("Default", Var("x114"), List(TermAppl("s111", List())), Some(Var("x117")), SortAppl("Exp", List())), CGenRecurse("Default", Var("x113"), List(), Some(Var("x116")), SortAppl("Type", List())), CGDecl(TermAppl("s111", List()),TermAppl("Occurrence", List(TermString("Var"), TermAppl("NameVar", List(TermString("x112"))), TermString("3")))), CTypeOf(TermAppl("Occurrence", List(TermString("Var"), TermAppl("NameVar", List(TermString("x112"))), TermString("3"))),Var("x116")), CGDirectEdge(TermAppl("s111", List()),Label('P'),TermAppl("s101", List()))),TypeEnv(Map()),Resolution(Map()),Subtypes(List()),List())
 
     try {
       val termOpt = generateFueled(language, config)(program)

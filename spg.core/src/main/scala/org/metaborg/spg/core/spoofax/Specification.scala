@@ -7,16 +7,9 @@ import org.metaborg.spg.core.resolution.{Label, LabelOrdering}
 /**
   * Representation of an NaBL2 specification.
   *
-  * @param params
-  * @param rules
-  */
-case class Specification(params: ResolutionParams, rules: List[Rule])
-
-/**
-  * Representation of NaBL2 resolution parameters.
-  *
   * @param labels
   * @param order
   * @param wf
+  * @param rules
   */
-case class ResolutionParams(labels: List[Label], order: LabelOrdering, wf: Regex[Label])
+case class Specification(labels: List[Label], order: LabelOrdering, wf: Regex[Label], rules: List[Rule])

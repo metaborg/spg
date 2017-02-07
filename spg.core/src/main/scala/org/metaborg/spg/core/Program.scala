@@ -1,6 +1,9 @@
 package org.metaborg.spg.core
 
 import org.metaborg.spg.core.solver.{CGenRecurse, CResolve, Constraint, Resolution, Subtypes, TypeEnv}
+import org.metaborg.spg.core.spoofax.models.Strategy
+import org.metaborg.spg.core.spoofax.models.Strategy._
+import org.metaborg.spg.core.terms.Pattern
 
 /**
   * Representation of a (partial) program.
@@ -71,7 +74,18 @@ case class Program(pattern: Pattern, constraints: List[Constraint], typeEnv: Typ
   }
 
   /**
+    * Create a new program with the resolution added.
+    *
+    * @param refDec
+    * @return
+    */
+  def addResolution(refDec: (Pattern, Pattern)): Program = {
+    copy(resolution = resolution + refDec)
+  }
+
+  /**
     * Create a new program with the inequality added.
+    *
     * @param inequals
     * @return
     */
@@ -110,6 +124,29 @@ case class Program(pattern: Pattern, constraints: List[Constraint], typeEnv: Typ
     */
   def substituteSort(binding: SortBinding): Program = {
     copy(constraints = constraints.substituteSort(binding))
+  }
+
+  /**
+    * Apply the given strategy to all components of the program.
+    *
+    * @param strategy
+    * @return
+    */
+  def rewrite(strategy: Strategy) = {
+    Program(
+      pattern =
+        pattern.rewrite(strategy),
+      constraints =
+        constraints.rewrite(strategy),
+      typeEnv =
+        typeEnv.rewrite(strategy),
+      resolution =
+        resolution.rewrite(strategy),
+      subtypes =
+        subtypes.rewrite(strategy),
+      inequalities =
+        inequalities.rewrite(strategy)
+    )
   }
 }
 

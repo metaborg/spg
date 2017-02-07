@@ -1,11 +1,11 @@
 package org.metaborg.spg.core.resolution
 
 import LabelImplicits._
-import org.metaborg.spg.core.collection.DisjointSet
 import org.metaborg.spg.core.regex.Regex
 import org.metaborg.spg.core.spoofax.Language
-import org.metaborg.spg.core.{ConcreteName, Name, Pattern, Var}
 import org.metaborg.spg.core.solver._
+import org.metaborg.spg.core.resolution.OccurrenceImplicits._
+import org.metaborg.spg.core.terms.{Pattern, Var}
 
 /**
   * Name resolution on a scope graph.
@@ -17,162 +17,159 @@ case class Graph(facts: List[Constraint])(implicit language: Language) {
   type SeenImport = List[Pattern]
   type SeenScope = List[Pattern]
 
-  // Get scope for reference
-  def scope(n: Pattern): Pattern = facts
-    .collect { case CGRef(`n`, s) => s }
-    .head
-
-  // Get declarations for scope
-  def declarations(s: Pattern): List[Pattern] = facts
-    .collect { case CGDecl(`s`, n) => n }
-
-  // Get declarations for scope with namespace
-  def declarations(s: Pattern, ns: String): List[Pattern] = facts
-    .collect { case CGDecl(`s`, n) => n }
-    .filter(_.asInstanceOf[Name].namespace == ns)
-
-  // Get scope associated to name
-  def associated(n: Pattern): Option[Pattern] = facts
-    .collect { case CGAssoc(`n`, s) => s }
-    .headOption
-
-  // Get named imports for scope s
-  def imports(s: Pattern): List[(Label, Pattern)] = facts
-    .collect { case CGNamedEdge(`s`, l, n) => (l, n) }
-
-  // Get l-labeled named imports for scope s
-  def imports(l: Label, s: Pattern): List[Pattern] = facts
-    .collect { case CGNamedEdge(`s`, `l`, n) => n }
-
-  // Get endpoints of l-labeled edges for scope s
-  def edges(l: Label, s: Pattern): List[Pattern] = facts
-    .collect { case CGDirectEdge(`s`, `l`, s2) => s2 }
-
-  // Get endpoints for any direct edge for scope s
-  def edges(s: Pattern): List[(Label, Pattern)] = facts
-    .collect { case CGDirectEdge(`s`, l, s2) => (l, s2) }
-
-  // Set of declarations to which the reference can resolve
-  def res(R: Resolution)(x: Pattern): Set[(List[NamingConstraint], Pattern)] =
-    res(Nil, R)(x)
-
-  // Set of declarations to which the reference can resolve
-  def res(I: SeenImport, R: Resolution)(reference: Pattern): Set[(List[NamingConstraint], Pattern)] = R.get(reference) match {
-    case Some(declaration) =>
-      Set((Nil, declaration))
-    case None =>
-      // TODO: We can compute `env` given `E`, which allows us to discard some declarations earlier instead of filtering afterwards
-      val E = namingConstraints(R)
-      val D = env(language.specification.params.wf, reference :: I, Nil, R)(scope(reference))
-
-      D.declarations.map {
-        case (cs, declaration) =>
-          (Eq(reference, declaration) :: cs ++ E, declaration)
-      }.filter {
-        case (_, declaration) =>
-          reference.isInstanceOf[Name] && declaration.isInstanceOf[Name] && reference.asInstanceOf[Name].namespace == declaration.asInstanceOf[Name].namespace
-      }.filter {
-        case (cs, declaration) =>
-          consistent(cs)
-      }
+  /**
+    * Get scope for reference.
+    *
+    * @param reference
+    * @return
+    */
+  def scope(reference: Pattern): Pattern = {
+    facts.collect {
+      case CGRef(r, scope) if r == reference =>
+        scope
+    }.head
   }
 
-  // Derive constraints on the names that must be satisfied to achieve the given resolution in the current graph
-  def namingConstraints(resolution: Resolution): List[NamingConstraint] = {
-    resolution.bindings.foldLeft(List[NamingConstraint]()) {
-      case (constraints, (reference, declaration)) => {
-        val D = env(language.specification.params.wf, List(reference), Nil, resolution)(scope(reference))
-
-        D.declarations.find(_._2 == declaration).map {
-          case (cs, _) =>
-            Eq(reference, declaration) :: cs ++ constraints
-        }.get
-      }
+  /**
+    * Get declarations for scope.
+    *
+    * @param scope
+    * @return
+    */
+  def declarations(scope: Pattern): List[Occurrence] = {
+    facts.collect {
+      case CGDecl(s, occurrence) if s == scope =>
+        occurrence.occurrence
     }
   }
 
   /**
-    * Check if the naming constraints are consistent.
+    * Get declarations for scope with namespace.
     *
-    * @param cs
+    * @param scope
+    * @param namespace
     * @return
     */
-  def consistent(cs: List[NamingConstraint]): Boolean = {
-    val names = cs.flatMap {
-      case Eq(n1, n2) =>
-        List(n1, n2)
-      case Diseq(n1, n2) =>
-        List(n1, n2)
-    }.distinct
+  def declarations(scope: Pattern, namespace: String): List[Occurrence] = {
+    declarations(scope).filter(_.namespace == namespace)
+  }
 
-    val (eqs, diseqs) = cs.partition {
-      case _: Eq =>
-        true
-      case _: Diseq =>
-        false
+  /**
+    * Get scope associated to declaration.
+    *
+    * @param declaration
+    * @return
+    */
+  def associated(declaration: Pattern): Option[Pattern] = {
+    facts.collect {
+      case CGAssoc(d, scope) if d == declaration =>
+        scope
+    }.headOption
+  }
+
+  /**
+    * Get named imports for scope s.
+    *
+    * @param scope
+    * @return
+    */
+  def imports(scope: Pattern): List[(Label, Pattern)] = {
+    facts.collect {
+      case CGNamedEdge(s, label, reference) if s == scope =>
+        (label, reference)
     }
+  }
 
-    // Put all names in distinct sets
-    val disjointSet = DisjointSet(names: _*)
-
-    // Union sets of names that are supposed to be equal
-    eqs.foreach {
-      case Eq(n1, n2) =>
-        disjointSet.union(n1, n2)
+  /**
+    * Get l-labeled named imports for scope s.
+    *
+    * @param label
+    * @param scope
+    * @return
+    */
+  def imports(label: Label, scope: Pattern): List[Pattern] = {
+    imports(scope).collect {
+      case (l, reference) if l == label =>
+        reference
     }
+  }
 
-    // Union concrete names
-    names.filter(_.isInstanceOf[ConcreteName]).groupBy {
-      case ConcreteName(namespace, name, _) =>
-        (namespace, name)
-    }.foreach {
-      case ((ns, name), concreteNames) =>
-        concreteNames.combinations(2).foreach {
-          case List(n1, n2) =>
-            disjointSet.union(n1, n2)
-        }
+  /**
+    * Get endpoints for any direct edge for scope s.
+    *
+    * @param scope
+    * @return
+    */
+  def edges(scope: Pattern): List[(Label, Pattern)] = {
+    facts.collect {
+      case CGDirectEdge(s1, label, s2) if s1 == scope =>
+        (label, s2)
     }
+  }
 
-    // All names that must be unequal should be in distinct sets
-    lazy val c1 = diseqs.forall {
-      case Diseq(n1, n2) =>
-        disjointSet(n1) != disjointSet(n2)
+  /**
+    * Get endpoints of l-labeled edges for scope s.
+    *
+    * @param label
+    * @param scope
+    * @return
+    */
+  def edges(label: Label, scope: Pattern): List[Pattern] = {
+    edges(scope).collect {
+      case (l, s) if l == label =>
+        s
     }
+  }
 
-    // No set may contain two names that must be distinct
-    lazy val c2 = disjointSet.sets.forall(set =>
-      set.toList.combinations(2).forall {
-        case List(ConcreteName(ns1, name1, _), ConcreteName(ns2, name2, _)) if ns1 == ns2 =>
-          name1 == name2
-        case _ =>
-          true
-      }
-    )
+  /**
+    * Set of declarations to which the reference can resolve.
+    *
+    * @param R
+    * @param x
+    * @return
+    */
+  def res(R: Resolution)(x: Pattern): Set[Occurrence] = {
+    res(Nil, R)(x)
+  }
 
-    c1 && c2
+  /**
+    * Set of declarations to which the reference can resolve.
+    *
+    * @param I
+    * @param R
+    * @param reference
+    * @return
+    */
+  def res(I: SeenImport, R: Resolution)(reference: Pattern): Set[Occurrence] = R.get(reference) match {
+    case Some(declaration) =>
+      Set(declaration.occurrence)
+    case None =>
+      val D = env(reference)(language.specification.wf, reference :: I, Nil, R)(scope(reference))
+
+      D.declarations.filter(_.namespace == reference.namespace)
   }
 
   // Set of declarations that are reachable from S with path satisfying re
-  def env(re: Regex[Label], I: SeenImport, S: SeenScope, R: Resolution)(s: Pattern): Environment =
+  def env(reference: Pattern)(re: Regex[Label], I: SeenImport, S: SeenScope, R: Resolution)(s: Pattern): Environment =
     if (S.contains(s) || re.rejectsAll) {
       Environment()
     } else {
-      envLabels(re, 'D' :: language.specification.params.labels, I, S, R)(s)
+      envLabels(reference)(re, 'D' :: language.specification.labels, I, S, R)(s)
     }
 
   // Set of declarations visible from S through labels in L after shadowing
-  def envLabels(re: Regex[Label], L: List[Label], I: SeenImport, S: SeenScope, R: Resolution)(s: Pattern): Environment = {
-    LabelOrdering.max(L, language.specification.params.order)
-      .map(l => envLabels(re, LabelOrdering.lt(L, l, language.specification.params.order), I, S, R)(s) shadows envL(re, l, I, S, R)(s))
+  def envLabels(reference: Pattern)(re: Regex[Label], L: List[Label], I: SeenImport, S: SeenScope, R: Resolution)(s: Pattern): Environment = {
+    LabelOrdering.max(L, language.specification.order)
+      .map(l => envLabels(reference)(re, LabelOrdering.lt(L, l, language.specification.order), I, S, R)(s).shadows(reference, envL(reference)(re, l, I, S, R)(s)))
       .fold(Environment())(_ union _)
   }
 
   // Multiplex based on label
-  def envL(re: Regex[Label], l: Label, I: SeenImport, S: SeenScope, R: Resolution)(s: Pattern): Environment = l match {
+  def envL(reference: Pattern)(re: Regex[Label], l: Label, I: SeenImport, S: SeenScope, R: Resolution)(s: Pattern): Environment = l match {
     case Label('D') =>
       envDec(re, I, R)(s)
     case _ =>
-      envOther(re, l, I, S, R)(s)
+      envOther(reference)(re, l, I, S, R)(s)
   }
 
   // Set of declarations accessible from scope s with a D-labeled step
@@ -180,15 +177,15 @@ case class Graph(facts: List[Constraint])(implicit language: Language) {
     if (!re.acceptsEmptyString) {
       Environment()
     } else {
-      Environment(declarations(s).map((Nil, _)))
+      Environment(declarations(s))
     }
 
   // Set of declarations accessible from scope s through an l-labeled edge
-  def envOther(re: Regex[Label], l: Label, I: SeenImport, S: SeenScope, R: Resolution)(s: Pattern): Environment = {
+  def envOther(reference: Pattern)(re: Regex[Label], l: Label, I: SeenImport, S: SeenScope, R: Resolution)(s: Pattern): Environment = {
     val scopes = IS(l, I, R)(s) ++ edges(l, s).filter(_.vars.isEmpty)
 
     scopes
-      .map(s2 => env(re.derive(l.name), I, s :: S, R)(s2))
+      .map(s2 => env(reference)(re.derive(l.name), I, s :: S, R)(s2))
       .fold(Environment())(_ union _)
   }
 
@@ -209,7 +206,7 @@ case class Graph(facts: List[Constraint])(implicit language: Language) {
     * Get scopes reachable from s. Ignores variable scopes.
     */
   def reachableScopes(R: Resolution)(s: Pattern): List[Pattern] =
-    reachableScopes(language.specification.params.wf, Nil, Nil, R)(s)
+    reachableScopes(language.specification.wf, Nil, Nil, R)(s)
 
   /**
     * Get scopes reachable from s. Ignores variable scopes.
@@ -240,7 +237,7 @@ case class Graph(facts: List[Constraint])(implicit language: Language) {
     * Get variable scopes reachable from s.
     */
   def reachableVarScopes(R: Resolution)(s: Pattern): List[Pattern] =
-    reachableVarScopes(language.specification.params.wf, Nil, Nil, R)(s)
+    reachableVarScopes(language.specification.wf, Nil, Nil, R)(s)
 
   /**
     * Get variable scopes reachable from s.

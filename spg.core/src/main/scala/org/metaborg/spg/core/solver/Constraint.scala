@@ -1,8 +1,9 @@
 package org.metaborg.spg.core.solver
 
 import org.metaborg.spg.core._
-import org.metaborg.spg.core.resolution.Label
-import org.metaborg.spg.core.spoofax.models.Sort
+import org.metaborg.spg.core.resolution.{Label, Occurrence}
+import org.metaborg.spg.core.spoofax.models.{Sort, Strategy}
+import org.metaborg.spg.core.terms.{Pattern, Var}
 
 // Constraint
 abstract class Constraint {
@@ -28,6 +29,8 @@ abstract class Constraint {
 
   def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint)
 
+  def rewrite(strategy: Strategy): Constraint
+
   def isProper: Boolean = false
 
   def priority: Int = 99
@@ -49,6 +52,9 @@ case class CTrue() extends Constraint {
 
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
     (nameBinding, this)
+
+  override def rewrite(strategy: Strategy): Constraint =
+    this
 
   override def isProper: Boolean =
     true
@@ -84,6 +90,9 @@ case class CGDirectEdge(s1: Pattern, l: Label, s2: Pattern) extends Constraint {
       }
     }
 
+  override def rewrite(strategy: Strategy): Constraint =
+    CGDirectEdge(s1.rewrite(strategy), l, s2.rewrite(strategy))
+
   override def priority =
     3
 }
@@ -114,6 +123,9 @@ case class CGDecl(s: Pattern, n: Pattern) extends Constraint {
         (nameBinding, CGDecl(s, n))
       }
     }
+
+  override def rewrite(strategy: Strategy): Constraint =
+    CGDecl(s.rewrite(strategy), n.rewrite(strategy))
 
   override def priority =
     3
@@ -146,6 +158,9 @@ case class CGRef(n: Pattern, s: Pattern) extends Constraint {
       }
     }
 
+  override def rewrite(strategy: Strategy): Constraint =
+    CGRef(n.rewrite(strategy), s.rewrite(strategy))
+
   override def priority =
     3
 }
@@ -169,6 +184,9 @@ case class CGNamedEdge(s: Pattern, l: Label, n: Pattern) extends Constraint {
         (nameBinding, CGNamedEdge(s, l, n))
       }
     }
+
+  override def rewrite(strategy: Strategy): Constraint =
+    CGNamedEdge(s.rewrite(strategy), l, n.rewrite(strategy))
 
   override def priority =
     3
@@ -201,6 +219,9 @@ case class CGAssoc(n: Pattern, s: Pattern) extends Constraint {
       }
     }
 
+  override def rewrite(strategy: Strategy): Constraint =
+    CGAssoc(n.rewrite(strategy), s.rewrite(strategy))
+
   override def priority =
     3
 }
@@ -230,6 +251,9 @@ case class CAssoc(n: Pattern, s: Pattern) extends Constraint {
         (nameBinding, CAssoc(n, s))
       }
     }
+
+  override def rewrite(strategy: Strategy): Constraint =
+    CAssoc(n.rewrite(strategy), s.rewrite(strategy))
 
   override def isProper =
     true
@@ -264,6 +288,9 @@ case class CResolve(n1: Pattern, n2: Pattern) extends Constraint {
       }
     }
 
+  override def rewrite(strategy: Strategy): Constraint =
+    CResolve(n1.rewrite(strategy), n2.rewrite(strategy))
+
   override def isProper =
     true
 
@@ -297,6 +324,9 @@ case class CTypeOf(n: Pattern, t: Pattern) extends Constraint {
       }
     }
 
+  override def rewrite(strategy: Strategy): Constraint =
+    CTypeOf(n.rewrite(strategy), t.rewrite(strategy))
+
   override def isProper =
     true
 
@@ -323,6 +353,9 @@ case class CEqual(t1: Pattern, t2: Pattern) extends Constraint {
         (nameBinding, CEqual(t1, t2))
       }
     }
+
+  override def rewrite(strategy: Strategy): Constraint =
+    CEqual(t1.rewrite(strategy), t2.rewrite(strategy))
 
   override def isProper =
     true
@@ -351,6 +384,9 @@ case class CInequal(t1: Pattern, t2: Pattern) extends Constraint {
       }
     }
 
+  override def rewrite(strategy: Strategy): Constraint =
+    CInequal(t1.rewrite(strategy), t2.rewrite(strategy))
+
   override def isProper =
     true
 
@@ -378,6 +414,9 @@ case class FSubtype(t1: Pattern, t2: Pattern) extends Constraint {
       }
     }
 
+  override def rewrite(strategy: Strategy): Constraint =
+    FSubtype(t1.rewrite(strategy), t2.rewrite(strategy))
+
   override def isProper =
     true
 
@@ -404,6 +443,9 @@ case class CSubtype(t1: Pattern, t2: Pattern) extends Constraint {
         (nameBinding, CSubtype(t1, t2))
       }
     }
+
+  override def rewrite(strategy: Strategy): Constraint =
+    CSubtype(t1.rewrite(strategy), t2.rewrite(strategy))
 
   override def isProper =
     true
@@ -440,6 +482,9 @@ case class CGenRecurse(name: String, pattern: Pattern, scopes: List[Pattern], ty
       }
     }
 
+  override def rewrite(strategy: Strategy): Constraint =
+    CGenRecurse(name, pattern.rewrite(strategy), scopes.rewrite(strategy), typ.map(_.rewrite(strategy)), sort)
+
   override def isProper =
     true
 
@@ -466,6 +511,9 @@ case class CFalse() extends Constraint {
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
     (nameBinding, this)
 
+  override def rewrite(strategy: Strategy): Constraint =
+    this
+
   override def isProper =
     true
 
@@ -490,6 +538,9 @@ case class CDistinct(names: Names) extends Constraint {
     names.freshen(nameBinding).map { case (nameBinding, names) =>
       (nameBinding, CDistinct(names))
     }
+
+  override def rewrite(strategy: Strategy): Constraint =
+    this
 
   override def isProper =
     true
@@ -518,6 +569,9 @@ case class NewScope(v: Var) extends Constraint {
 
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
     (nameBinding, this)
+
+  override def rewrite(strategy: Strategy): Constraint =
+    this
 }
 
 abstract class Names {
@@ -539,46 +593,46 @@ case class Declarations(scope: Pattern, namespace: String) extends Names {
     s"""Declarations($scope, "$namespace")"""
 }
 
-abstract class NamingConstraint extends Constraint
+abstract class NamingConstraint
 
-case class Diseq(n1: Pattern, n2: Pattern) extends NamingConstraint {
-  override def substitute(binding: TermBinding): Constraint =
-    Diseq(n1.substitute(binding), n2.substitute(binding))
+case class Diseq(n1: Occurrence, n2: Occurrence) extends NamingConstraint {
+//  override def substitute(binding: TermBinding): Constraint =
+//    Diseq(n1.substitute(binding), n2.substitute(binding))
 
-  override def substituteScope(binding: TermBinding): Constraint =
-    this
+//  override def substituteScope(binding: TermBinding): Constraint =
+//    this
 
-  override def substituteType(binding: TermBinding): Constraint =
-    this
+//  override def substituteType(binding: TermBinding): Constraint =
+//    this
 
-  override def substituteSort(binding: SortBinding): Constraint =
-    this
+//  override def substituteSort(binding: SortBinding): Constraint =
+//    this
 
-  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
-    n1.freshen(nameBinding).map { case (nameBinding, n1) =>
-      n2.freshen(nameBinding).map { case (nameBinding, n2) =>
-        (nameBinding, Diseq(n1, n2))
-      }
-    }
+//  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
+//    n1.freshen(nameBinding).map { case (nameBinding, n1) =>
+//      n2.freshen(nameBinding).map { case (nameBinding, n2) =>
+//        (nameBinding, Diseq(n1, n2))
+//      }
+//    }
 }
 
-case class Eq(n1: Pattern, n2: Pattern) extends NamingConstraint {
-  override def substitute(binding: TermBinding): Constraint =
-    Eq(n1.substitute(binding), n2.substitute(binding))
-
-  override def substituteScope(binding: TermBinding): Constraint =
-    this
-
-  override def substituteType(binding: TermBinding): Constraint =
-    this
-
-  override def substituteSort(binding: SortBinding): Constraint =
-    this
-
-  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
-    n1.freshen(nameBinding).map { case (nameBinding, n1) =>
-      n2.freshen(nameBinding).map { case (nameBinding, n2) =>
-        (nameBinding, Eq(n1, n2))
-      }
-    }
+case class Eq(n1: Occurrence, n2: Occurrence) extends NamingConstraint {
+//  override def substitute(binding: TermBinding): Constraint =
+//    Eq(n1.substitute(binding), n2.substitute(binding))
+//
+//  override def substituteScope(binding: TermBinding): Constraint =
+//    this
+//
+//  override def substituteType(binding: TermBinding): Constraint =
+//    this
+//
+//  override def substituteSort(binding: SortBinding): Constraint =
+//    this
+//
+//  override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
+//    n1.freshen(nameBinding).map { case (nameBinding, n1) =>
+//      n2.freshen(nameBinding).map { case (nameBinding, n2) =>
+//        (nameBinding, Eq(n1, n2))
+//      }
+//    }
 }

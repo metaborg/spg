@@ -9,13 +9,14 @@ import org.apache.commons.vfs2.FileObject
 import org.metaborg.core.language.ILanguageImpl
 import org.metaborg.core.resource.IResourceService
 import org.metaborg.spg.core.regex._
-import org.metaborg.spg.core.{As, ConcreteName, NameProvider, Pattern, Rule, SymbolicName, TermAppl, Var}
+import org.metaborg.spg.core.{NameProvider, Rule}
 import org.metaborg.spg.core.resolution.{Label, LabelOrdering}
 import org.metaborg.spg.core.spoofax.models.Signatures
 import org.metaborg.spg.core.resolution.LabelImplicits._
 import org.metaborg.spg.core.solver._
 import org.metaborg.spg.core.spoofax.SpoofaxScala._
 import org.metaborg.spg.core.spoofax.models._
+import org.metaborg.spg.core.terms._
 import org.metaborg.spoofax.core.syntax.ISpoofaxSyntaxService
 import org.metaborg.spoofax.core.unit.ISpoofaxUnitService
 import org.spoofax.interpreter.terms.{IStrategoAppl, IStrategoList, IStrategoString, IStrategoTerm}
@@ -53,11 +54,10 @@ class SpecificationService @Inject() (val resourceService: IResourceService, val
     val labels = toLabels(ast)
     val ordering = toOrdering(ast)
     val wf = toWF(ast)
-    val params = ResolutionParams(labels, ordering, wf)
     val init = toInitRule(ast.getSubterm(1))
     val rules = toRules(ast.getSubterm(1)).map(inlineRecurse)
 
-    Specification(params, init :: rules)
+    Specification(labels, ordering, wf, init :: rules)
   }
 
   /**
@@ -323,6 +323,8 @@ class SpecificationService @Inject() (val resourceService: IResourceService, val
       Var(toString(appl.getSubterm(0)))
     case appl: StrategoAppl if appl.getConstructor.getName == "Wld" =>
       Var("x" + nameProvider.next)
+    case appl: StrategoAppl if appl.getConstructor.getName == "Str" =>
+      TermString(toString(appl.getSubterm(0)))
   }
 
   def toPatternsList(term: IStrategoTerm): List[Pattern] = term match {
@@ -392,11 +394,11 @@ class SpecificationService @Inject() (val resourceService: IResourceService, val
     case appl: StrategoAppl if appl.getConstructor.getName == "Var" =>
       Var(toString(appl.getSubterm(0)))
     case appl: StrategoAppl if appl.getConstructor.getName == "Occurrence" =>
-      if (appl.getSubterm(1).asInstanceOf[StrategoAppl].getConstructor.getName == "Str") {
-        ConcreteName(toNamespace(appl.getSubterm(0)), toString(appl.getSubterm(1).getSubterm(0)), ruleIndex)
-      } else {
-        SymbolicName(toNamespace(appl.getSubterm(0)), toString(appl.getSubterm(1).getSubterm(0)))
-      }
+      TermAppl("Occurrence", List(
+        TermString(toNamespace(appl.getSubterm(0))),
+        toPattern(appl.getSubterm(1)),
+        TermString(String.valueOf(ruleIndex))
+      ))
   }
 
   // Turn a Stratego namespace into a string. Use "Default" as a default namespace.

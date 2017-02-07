@@ -1,6 +1,8 @@
 package org.metaborg.spg.core.solver
 
-import org.metaborg.spg.core.{Pattern, _}
+import org.metaborg.spg.core.terms.Pattern
+import org.metaborg.spg.core._
+import org.metaborg.spg.core.spoofax.models.Strategy
 
 case class Resolution(bindings: Map[Pattern, Pattern] = Map.empty) {
   def contains(n: Pattern): Boolean =
@@ -40,6 +42,14 @@ case class Resolution(bindings: Map[Pattern, Pattern] = Map.empty) {
     freshBindings.map { case (nameBinding, bindings) =>
       (nameBinding, Resolution(bindings.toMap))
     }
+  }
+
+  def rewrite(strategy: Strategy) = {
+    Resolution(
+      bindings.map { case (reference, declaration) =>
+        reference.rewrite(strategy) -> declaration.rewrite(strategy)
+      }
+    )
   }
 
   override def toString =

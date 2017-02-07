@@ -1,6 +1,6 @@
 package org.metaborg.spg.core.spoofax.models
 
-import org.metaborg.spg.core.{As, Pattern, TermAppl}
+import org.metaborg.spg.core.terms.{As, Pattern, TermAppl}
 
 abstract class Strategy extends (Pattern => Option[Pattern])
 
@@ -15,7 +15,7 @@ object Strategy {
       None
   }
 
-  val `try`: (Strategy => Strategy) = (s: Strategy) => new Strategy {
+  val attempt: (Strategy => Strategy) = (s: Strategy) => new Strategy {
     override def apply(p: Pattern) =
       s(p) orElse Some(p)
   }

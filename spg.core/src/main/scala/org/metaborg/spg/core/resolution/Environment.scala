@@ -1,33 +1,28 @@
 package org.metaborg.spg.core.resolution
 
-import org.metaborg.spg.core.solver.{Diseq, NamingConstraint}
-import org.metaborg.spg.core.Pattern
+import org.metaborg.spg.core.terms.Pattern
 
 /**
   * Environment of declarations
   */
-case class Environment(declarations: Set[(List[NamingConstraint], Pattern)] = Set()) {
+case class Environment(declarations: Set[Occurrence]) {
   /**
     * Create a new environment by having this environment shadow the given
     * environment.
     *
     * When environment e1 shadows environment e2, we create a new environment
-    * in which all declarations d2 in e2 are accompanied by constraints that
-    * prevent them from shadowing declarations d1 in n1.
+    * with all declarations d1 in e1 and all declarations d2 in e2 for which
+    * no ground occurrence with the same name exists in d1.
     *
     * @param e2
     * @return
     */
-  def shadows(e2: Environment) = {
-    val shadowed = e2.declarations.map {
-      case (namingConstraint, d2) =>
-        val inequalities = declarations.map {
-          case (_, d1) =>
-            Diseq(d1, d2)
-        }
-
-        (namingConstraint ++ inequalities, d2)
-    }
+  def shadows(reference: Pattern, e2: Environment) = {
+    val shadowed = e2.declarations.filter(d2 =>
+      !declarations.exists(d1 =>
+        (d1.isGround && d1.name == d2.name) && (!d2.isGround && d1.name == reference)
+      )
+    )
 
     Environment(declarations ++ shadowed)
   }
@@ -46,7 +41,11 @@ case class Environment(declarations: Set[(List[NamingConstraint], Pattern)] = Se
 }
 
 object Environment {
-  def apply(declarations: Traversable[(List[NamingConstraint], Pattern)]): Environment = {
+  def apply(declarations: Traversable[Occurrence]): Environment = {
     Environment(declarations.toSet)
+  }
+
+  def apply(): Environment = {
+    Environment(Set.empty)
   }
 }

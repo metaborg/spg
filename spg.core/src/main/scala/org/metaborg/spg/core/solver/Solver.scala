@@ -1,9 +1,13 @@
 package org.metaborg.spg.core.solver
 
-import org.metaborg.spg.core.resolution.Graph
+import org.metaborg.spg.core._
+import org.metaborg.spg.core.resolution.{Graph, Occurrence}
 import org.metaborg.spg.core.spoofax.Language
-import org.metaborg.spg.core.spoofax.models.{Sort, SortAppl, SortVar}
-import org.metaborg.spg.core.{Pattern, Program, SymbolicName, Var}
+import org.metaborg.spg.core.spoofax.models.{Sort, SortAppl, SortVar, Strategy}
+import org.metaborg.spg.core.{NameProvider, Program}
+import org.metaborg.spg.core.resolution.OccurrenceImplicits._
+import org.metaborg.spg.core.spoofax.models.Strategy._
+import org.metaborg.spg.core.terms.{Pattern, TermAppl, TermString, Var}
 
 object Solver {
   /**
@@ -32,15 +36,15 @@ object Solver {
     case CResolve(n1, n2) =>
       val declarations = Graph(program.constraints).res(program.resolution)(n1)
 
-      declarations.toList.flatMap {
-        case (_, declaration) =>
-          declaration.unify(n2).map(unifier =>
-            program
-              .substitute(unifier)
-              .copy(resolution = program.resolution + (n1 -> declaration))
-          )
-      }
-    case CAssoc(n@SymbolicName(_, _), s@Var(_)) if Graph(program.constraints).associated(n).nonEmpty =>
+      declarations.toList.flatMap(declaration =>
+        // TODO: Substitution: if n1 or n2 was a variable, the names should be made equal and this transformation should be applied to the program
+        n2
+          .unify(declaration)
+          .map(program.substitute)
+          .map(_.addResolution(n1 -> declaration))
+          .map(mergeOccurrences(_)(n1, declaration))
+      )
+    case CAssoc(n, s@Var(_)) if Graph(program.constraints).associated(n).nonEmpty =>
       Graph(program.constraints).associated(n).map(scope =>
         program.substitute(Map(s -> scope))
       )
@@ -56,7 +60,7 @@ object Solver {
       val names = Graph(program.constraints).declarations(scope, namespace)
       val combis = for (List(a, b, _*) <- names.combinations(2).toList) yield (a, b)
 
-      program.addInequalities(combis)
+      program//.addInequalities(combis)
     case recurse@CGenRecurse(name, pattern, scopes, typ, sort) =>
       language.rules(name, sort).flatMap(rule => {
         val freshRule = rule.instantiate().freshen()
@@ -72,6 +76,52 @@ object Solver {
       })
     case _ =>
       Nil
+  }
+
+  /**
+    * After resolving a reference to a declaration, we merge the two
+    * occurrences by making their names equal.
+    *
+    * @param program
+    * @param o1
+    * @param o2
+    * @return The updated program and updated name.
+    */
+  def mergeOccurrences(program: Program)(o1: Occurrence, o2: Occurrence): Program = (o1, o2) match {
+    case (Occurrence(_, p1@TermAppl("NameVar", List(x)) , _), Occurrence(_, p2@TermString(y), _)) =>
+      program.rewrite(topdown(attempt(new Strategy {
+        override def apply(p: Pattern): Option[Pattern] = {
+          if (p == p1) {
+            Some(p2)
+          } else {
+            None
+          }
+        }
+      })))
+    case (Occurrence(_, p1@TermAppl("NameVar", List(a)), _), Occurrence(_, p2@TermAppl("NameVar", List(b)), _)) =>
+      val newname = nameProvider.next
+
+      program.rewrite(topdown(attempt(new Strategy {
+        override def apply(p: Pattern): Option[Pattern] = {
+          if (p == p1 || p == p2) {
+            Some(TermString(s"n$newname"))
+          } else {
+            None
+          }
+        }
+      })))
+    case (Occurrence(_, p2@TermString(x), _), Occurrence(_, p1@TermAppl("NameVar", List(a)), _)) =>
+      program.rewrite(topdown(attempt(new Strategy {
+        override def apply(p: Pattern): Option[Pattern] = {
+          if (p == p1) {
+            Some(p2)
+          } else {
+            None
+          }
+        }
+      })))
+    case _ =>
+      program
   }
 
   def mergeSorts(program: Program)(s1: Sort, s2: Sort)(implicit language: Language): Option[Program] = s1 match {

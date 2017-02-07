@@ -3,6 +3,7 @@ package org.metaborg.spg.core
 import org.metaborg.spg.core.resolution.Graph
 import org.metaborg.spg.core.solver.{CEqual, CFalse, CInequal, FSubtype}
 import org.metaborg.spg.core.spoofax.Language
+import org.metaborg.spg.core.terms.Pattern
 
 object Consistency {
   /**

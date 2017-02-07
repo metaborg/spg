@@ -1,7 +1,8 @@
 package org.metaborg.spg
 
 import org.metaborg.spg.core.solver.Constraint
-import org.metaborg.spg.core.spoofax.models.{Sort, SortVar}
+import org.metaborg.spg.core.spoofax.models.{Sort, SortVar, Strategy}
+import org.metaborg.spg.core.terms.{Pattern, Var}
 
 import scala.annotation.tailrec
 import scala.collection.mutable
@@ -16,6 +17,9 @@ package object core {
 
   // Implicitly convert Binding to Tuple
   implicit def bindingToTuple[A, B](b: Binding[A, B]): (A, B) = Tuple2(b.a, b.b)
+
+  // If there is an implicit conversion A => B, then we provide implicit conversion List[A] => List[B]
+  implicit def mapI[A,B](l: List[A])(implicit conv: A => B): List[B] = l.map(conv)
 
   // Implicitly define methods on any sequence
   implicit class RichSeq[T](seq: Seq[T]) {
@@ -121,6 +125,9 @@ package object core {
       } else {
         None
       }
+
+    def rewrite(strategy: Strategy) =
+      list.map(_.rewrite(strategy))
   }
 
   implicit class RichConstraintList[T <: Constraint](list: List[T]) extends RichList[T](list) {
@@ -137,12 +144,20 @@ package object core {
 
     def substituteSort(binding: SortBinding): List[Constraint] =
       list.map(_.substituteSort(binding))
+
+    def rewrite(strategy: Strategy) =
+      list.map(_.rewrite(strategy))
   }
 
   implicit class RichInequalityList(list: List[(Pattern, Pattern)]) extends RichList[(Pattern, Pattern)](list) {
     def substitute(binding: TermBinding): List[(Pattern, Pattern)] =
       list.map { case (p1, p2) =>
         (p1.substitute(binding), p2.substitute(binding))
+      }
+
+    def rewrite(strategy: Strategy) =
+      list.map { case (p1, p2) =>
+        (p1.rewrite(strategy), p2.rewrite(strategy))
       }
   }
 

@@ -1,6 +1,6 @@
 package org.metaborg.spg.core.spoofax.models
 
-import org.metaborg.spg.core.{As, Pattern, TermAppl, Var}
+import org.metaborg.spg.core.terms.{As, Pattern, TermAppl, Var}
 
 case class Signatures(list: List[Signature]) {
   /**

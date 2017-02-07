@@ -1,6 +1,8 @@
 package org.metaborg.spg.core.solver
 
-import org.metaborg.spg.core.{Pattern, _}
+import org.metaborg.spg.core.terms.Pattern
+import org.metaborg.spg.core._
+import org.metaborg.spg.core.spoofax.models.Strategy
 
 /**
   * Representation of a typing environment
@@ -42,6 +44,14 @@ case class TypeEnv(bindings: Map[Pattern, Pattern] = Map.empty) {
     freshBindings.map { case (nameBinding, bindings) =>
       (nameBinding, TypeEnv(bindings.toMap))
     }
+  }
+
+  def rewrite(strategy: Strategy) = {
+    TypeEnv(
+      bindings.map { case (name, typ) =>
+        name.rewrite(strategy) -> typ.rewrite(strategy)
+      }
+    )
   }
 
   override def toString =
