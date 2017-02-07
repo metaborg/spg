@@ -21,6 +21,6 @@ Require-Bundle: org.metaborg.spoofax.eclipse.externaldeps,
  org.spoofax.terms,
  org.eclipse.jdt.core,
  org.eclipse.core.resources
-Bundle-RequiredExecutionEnvironment: JavaSE-1.7
+Bundle-RequiredExecutionEnvironment: JavaSE-1.8
 Bundle-ActivationPolicy: lazy
 Export-Package: org.metaborg.spg.eclipse

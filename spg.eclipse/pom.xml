@@ -10,4 +10,8 @@
     <artifactId>parent.eclipse.plugin</artifactId>
     <version>2.1.0</version>
   </parent>
+  
+  <properties>
+    <java-version>1.8</java-version>
+  </properties>
 </project>
