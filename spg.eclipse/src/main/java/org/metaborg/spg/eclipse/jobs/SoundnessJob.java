@@ -1,5 +1,7 @@
 package org.metaborg.spg.eclipse.jobs;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
@@ -7,7 +9,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.vfs2.FileContent;
 import org.apache.commons.vfs2.FileObject;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
@@ -102,10 +103,9 @@ public class SoundnessJob extends Job {
 				stream.println("--------------------------------------------");
 				
 				try {
-					String fileName = getName(indexed.index(), extension);
-					FileObject programFile = storeProgram(indexed.value(), fileName);
+					File programFile = storeProgram(indexed.value(), extension);
 					
-					ProcessOutput processOutput = run(resourceService.localFile(programFile).getAbsolutePath());
+					ProcessOutput processOutput = run(programFile.getCanonicalPath());
 					
 					stream.println(processOutput.getOutput());
 					stream.println(processOutput.getError());
@@ -148,17 +148,6 @@ public class SoundnessJob extends Job {
 		
 		return Status.OK_STATUS;
 	}
-	
-	/**
-	 * Compute the name for the program at given index and extension.
-	 * 
-	 * @param index
-	 * @param extension
-	 * @return
-	 */
-	protected String getName(long index, String extension) {
-		return String.format("%05d", index) + "." + extension;
-	}
 
 	/**
 	 * Get extension for given language implementation.
@@ -179,20 +168,23 @@ public class SoundnessJob extends Job {
 	}
 	
 	/**
-	 * Store the generated program on the filesystem.
+	 * Store the generated program in a temporary file with the given
+	 * extension.
+	 * 
+	 * We need to store files on the filesystem (as opposted to RAM or VFS),
+	 * because the interpreter takes files from the filesystem.
 	 * 
 	 * @param program
 	 * @throws IOException
 	 */
-	protected FileObject storeProgram(String program, String name) throws IOException {
-		FileObject fileObject = resourceService.resolve(project, name);
-		FileContent fileContent = fileObject.getContent();
-		
-		try (OutputStream outputStream = fileContent.getOutputStream()) {
-			outputStream.write(program.getBytes(UTF_8));
-		}
+	protected File storeProgram(String program, String extension) throws IOException {
+	    File file = File.createTempFile("spg", extension);
 	    
-	    return fileObject;
+	    try (FileWriter fileWriter = new FileWriter(file)) {
+	    	fileWriter.write(program);
+	    }
+	    
+	    return file;
 	}
 
 	/**
@@ -211,6 +203,8 @@ public class SoundnessJob extends Job {
 	    try (OutputStream outputStream = process.getOutputStream()) {
 	    	outputStream.write(randomString().getBytes(UTF_8));
 	    	outputStream.flush();
+	    } catch (IOException e) {
+	    	// Silently fail when we cannot write our random string..
 	    }
 
 	    if (!process.waitFor(timeout, TimeUnit.SECONDS)) {
