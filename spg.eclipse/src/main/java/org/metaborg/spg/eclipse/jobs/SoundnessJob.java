@@ -81,7 +81,7 @@ public class SoundnessJob extends Job {
 		this.interpreter = interpreter;
 		this.timeout = timeout;
 	}
-
+	
 	@Override
 	protected IStatus run(IProgressMonitor monitor) {
 		final SubMonitor subMonitor = SubMonitor.convert(monitor, termLimit);
@@ -124,9 +124,6 @@ public class SoundnessJob extends Job {
 					
 					stream.println("Found counterexample after " + (index + 1) + " terms (" + (endTime-startTime)/1000 + " seconds).");
 					
-					subMonitor.setWorkRemaining(0);
-					subMonitor.done();
-					
 					return false;
 				}
 				
@@ -141,6 +138,9 @@ public class SoundnessJob extends Job {
 				} else {
 					Activator.logError("An error occurred while generating terms.", exception);
 				}
+			}, () -> {
+				subMonitor.setWorkRemaining(0);
+				subMonitor.done();
 			});
 		} catch (ProjectNotFoundException e) {
 			Activator.logError("An error occurred while retrieving the language.", e);

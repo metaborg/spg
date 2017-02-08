@@ -183,16 +183,6 @@ package object core {
       f(tuple2._1, tuple2._2)
   }
 
-  // Returns a function x => f(f(f(x))) with n times f
-  def repeat[T](f: T => T, n: Int): T => T = {
-    @tailrec def repeatAcc(acc: T, n: Int): T = n match {
-      case 0 => acc
-      case _ => repeatAcc(f(acc), n - 1)
-    }
-
-    (t: T) => repeatAcc(t, n)
-  }
-
   // Computes the fixed point by repeated application of f on x
   @tailrec def fixedPoint[T](f: T => T, x: T): T = f(x) match {
     case fx if x == fx =>

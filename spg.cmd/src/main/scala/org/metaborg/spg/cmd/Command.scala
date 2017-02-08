@@ -9,8 +9,8 @@ class Command extends BaseCommand(name = "generator", description = "Generate ra
   )
 
   var limit = opt[Int](
-    description = "Number of terms to generate (default: -1)",
-    default = -1
+    description = "Number of terms to generate (default: 1,000,000)",
+    default = 1000000
   )
 
   var fuel = opt[Int](

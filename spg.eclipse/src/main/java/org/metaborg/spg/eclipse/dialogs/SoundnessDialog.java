@@ -54,7 +54,7 @@ public class SoundnessDialog extends GenerateDialog {
     
     @Override
     protected String getDefaultTermLimit() {
-    	return "-1";
+    	return "100000";
     }
     
     protected String getDefaultInterpreter() {
