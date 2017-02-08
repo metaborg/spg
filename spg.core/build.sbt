@@ -61,3 +61,5 @@ libraryDependencies += "io.reactivex" %% "rxscala" % "0.26.4"
 // OSGi
 libraryDependencies += "org.osgi" % "org.osgi.core" % "4.3.0" % "provided"
 
+// JSR305 Annotations (see http://stackoverflow.com/a/13162672/368220)
+libraryDependencies += "com.google.code.findbugs" % "jsr305" % "1.3.+" % "compile"
