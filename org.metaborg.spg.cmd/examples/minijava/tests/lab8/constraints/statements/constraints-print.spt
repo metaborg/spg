@@ -1,0 +1,45 @@
+module constraints-print
+language MiniJava
+start symbol Program
+
+test print with integer [[
+	class Main {
+		public static void main(String[] args) {
+			System.out.println(1);
+		}
+	}
+]] 0 errors
+
+test print with array [[
+	class Main {
+		public static void main(String[] args) {
+			System.out.println(new int[2]);
+		}
+	}
+]] 1 errors
+
+test print with boolean [[
+	class Main {
+		public static void main(String[] args) {
+			System.out.println(true);
+		}
+	}
+]] 1 error
+
+test print with object [[
+	class Main {
+		public static void main(String[] args) {
+			System.out.println(new A());
+		}
+	}
+	
+	class A {}
+]] 1 error
+
+test print with int array [[
+	class Main {
+		public static void main(String[] args) {
+			System.out.println(new int[2]);
+		}
+	}
+]] 1 error

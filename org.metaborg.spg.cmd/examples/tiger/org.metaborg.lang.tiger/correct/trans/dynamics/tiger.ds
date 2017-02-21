@@ -1,0 +1,32 @@
+module tiger
+
+imports ds-signatures/Tiger-sig
+
+imports dynamics/store
+imports dynamics/natives
+imports dynamics/base
+
+imports dynamics/bindings
+imports dynamics/variables
+imports dynamics/functions
+imports dynamics/numbers
+imports dynamics/strings	
+imports dynamics/records
+imports dynamics/arrays
+imports dynamics/control-flow
+imports dynamics/types
+imports dynamics/predef
+
+imports dynamics/equality
+
+signature
+  
+  arrows
+    Module -init-> V
+    
+rules
+
+  Mod(e) -init-> v
+  where
+    E {} |- stdLib() :: H {} --> E' :: H';
+    E' |- e :: H' --> v.

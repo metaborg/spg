@@ -1,0 +1,36 @@
+module types-new
+
+language MiniJava
+start symbol Program
+
+fixture [[
+	class Main {
+		public static void main(String[] args) {
+	 		System.out.println(1);
+		}
+	}
+	
+	[[...]]
+]]
+
+test class instantiation yields an object (same class) [[
+	class Foo {
+		public int foo() {
+			Foo x;
+			x = [[new Foo()]];
+			return 0;
+		}
+	}
+]] run get-type on #1 to TClass(Occurrence(_, "Foo", _))
+
+test class instantiation yields an object (other class) [[
+	class Bar {}
+	
+	class Foo {
+		public int foo() {
+			Bar x;
+			x = [[new Bar()]];
+			return 0;
+		}
+	}
+]] run get-type on #1 to TClass(Occurrence(_, "Bar", _))

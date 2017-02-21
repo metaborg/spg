@@ -1,0 +1,15 @@
+
+/target/
+src/main/resources/specification.aterm
+src/main/resources/parsetable.tbl
+src/main/java/org/metaborg/org/metaborg/lang/l3/generated
+src/main/java/org/metaborg/org/metaborg/lang/l3/generated/terms
+src/main/java/org/metaborg/org/metaborg/lang/l3/generated/terms/build
+src/main/java/org/metaborg/org/metaborg/lang/l3/generated/terms/match
+src/test/java/org/metaborg/org/metaborg/lang/l3/generated/test
+/L3.launch
+/TestL3.launch
+/L3 (Daemon).launch
+/L3-server
+/L3-client
+/L3

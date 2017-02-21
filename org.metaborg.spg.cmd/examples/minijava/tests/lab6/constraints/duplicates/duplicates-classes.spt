@@ -1,0 +1,33 @@
+module duplicates-classes
+
+language MiniJava
+start symbol Program
+
+fixture [[
+	class Main {
+		public static void main(String[] args) {
+			System.out.println(1);
+		}
+	}
+
+  [[...]]
+]]
+
+test error on duplicate class [[
+  	class [[Foo]] {
+  	}
+
+  	class [[Foo]] {
+  	}
+]] 2 errors
+
+test error on multiple def class [[
+  	class [[Foo]] {
+  	}
+  	
+  	class [[Foo]] {
+  	}
+
+  	class [[Foo]] {
+  	}
+]] 3 errors

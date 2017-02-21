@@ -1,0 +1,42 @@
+module syntax
+
+language L1n
+start symbol Exp
+
+test integer [[
+  5
+]] parse succeeds
+
+test addition [[
+  5 + 5
+]] parse succeeds
+
+test multiple additions [[
+  5 + 5 + 5
+]] parse succeeds
+
+test variable [[
+  foo
+]] parse succeeds
+
+test application [[
+  foo(bar)
+]] parse succeeds
+
+test nested application [[
+  foo(foo(bar))
+]] parse succeeds
+
+test function [[
+  fun (x: Int) {
+    5
+  }
+]] parse succeeds
+
+test non-amgiuous add + app [[
+  1 + 2 ( 3 )
+]] parse succeeds
+
+test add within app [[
+  foo ( 3 + 4 )
+]] parse succeeds

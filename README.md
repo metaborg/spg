@@ -8,6 +8,6 @@ project and returns an observable of well-formed terms.
 
 This repository contains the following sub-projects:
 
-- `spg.core`: The Spoofax generator.
-- `spg.cli`: A command-line interface to the generator.
-- `spg.eclipse`: An Eclipse plugin for the generator.
+- `org.metaborg.spg.core`: The Spoofax generator.
+- `org.metaborg.spg.cli`: A command-line interface to the generator.
+- `org.metaborg.spg.eclipse`: An Eclipse plugin for the generator.

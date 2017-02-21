@@ -1,0 +1,40 @@
+module unresolved-variables
+
+language MiniJava
+start symbol Program
+
+fixture [[
+	class Main {
+		public static void main(String[] args) {
+			System.out.println(1);
+		}
+	}
+
+  [[...]]
+]]
+
+test unresolved variable in return exp [[
+  	class Foo {
+    	public int getX() {
+      		return [[x]];
+    	}
+  	}
+]] 1 error
+
+test unresolved variable in assignment [[
+  	class Foo {
+    	public int initX() {
+      		[[x]] = 0;
+      		return 0;
+    	}
+  	}
+]] 1 error
+
+test unresolved variable in array assignment [[
+  	class Foo {
+    	public int initX() {
+      		[[x]][0] = 0;
+      		return 0;
+    	}
+  	}
+]] 1 error

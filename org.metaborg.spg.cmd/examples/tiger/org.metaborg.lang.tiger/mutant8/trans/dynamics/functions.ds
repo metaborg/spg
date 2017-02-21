@@ -1,0 +1,64 @@
+module functions
+
+imports ds-signatures/Tiger-sig
+imports dynamics/base
+imports dynamics/store
+imports dynamics/strings
+imports dynamics/bindings
+imports dynamics/natives
+imports dynamics/numbers
+
+signature
+  sorts
+  
+  constructors
+    ClosureV : List(FArg) * Exp * Env -> V
+  arrows
+    E |- funEnv(List(FunDec)) :: H --> Env :: H
+    E |- evalFuns(List(FunDec)) :: H --> Env :: H       
+    E |- evalArgs(List(FArg), List(Exp)) :: H --> Env :: H
+
+rules // function definition
+
+  FunDecs(fds) --> E
+  where 
+    funEnv(fds) --> E; 
+    E |- evalFuns(fds) --> _. 
+  
+  E |- funEnv([]) --> E.  
+  
+  funEnv([FunDec(f, _, _, _) | fds]) --> E
+  where 
+    E bindVar(f, UndefV()) |- funEnv(fds) --> E.
+  
+  E |- evalFuns([]) --> E.
+  
+  E |- evalFuns([FunDec(f, args, _, e) | fds]) --> evalFuns(fds)
+  where 
+    writeVar(f, ClosureV(args, e, E)) --> _.
+
+rules // function call
+  
+  Call(f, args) --> v
+  where
+    readVar(f) --> ClosureV(params, e, E);
+    evalArgs(params, args) --> E';
+    E {E', E} |- e --> v.
+    
+  evalArgs([], []) --> {}.
+    
+  evalArgs([FArg(x, _) | args], [v | es]) --> {x |--> a, E}
+  where 
+    allocate(v) --> a; 
+    evalArgs(args, es) --> E.
+    
+rules // procedure definition
+ 
+  funEnv([ProcDec(f, _, _) | fds]) --> E
+  where 
+    E bindVar(f, UndefV()) |- funEnv(fds) --> E.
+ 
+  E |- evalFuns([ProcDec(f, args, e) | fds]) --> evalFuns(fds)
+  where 
+    writeVar(f, ClosureV(args, e, E)) --> _.
+    

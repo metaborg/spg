@@ -1,0 +1,38 @@
+module constraints-while
+
+language MiniJava
+start symbol Program
+
+test while with boolean condition [[
+	class Main {
+		public static void main(String[] args) {
+			while (true) {}
+		}
+	}
+]] 0 errors
+
+test while with integer condition [[
+	class Main {
+		public static void main(String[] args) {
+			while (1) {}
+		}
+	}
+]] 1 error
+
+test while with array condition [[
+	class Main {
+		public static void main(String[] args) {
+			while (new int[1]) {}
+		}
+	}
+]] 1 error
+
+test while with object condition [[
+	class Main {
+		public static void main(String[] args) {
+			while (new A()) {}
+		}
+	}
+	
+	class A {}
+]] 1 error

@@ -1,0 +1,29 @@
+module main-class-type
+
+language MiniJava
+start symbol Program
+
+fixture [[
+	class Main {
+		public static void main(String[] args) {
+			System.out.println(1);
+		}
+	}
+
+	[[...]]
+]]
+
+test main class type field [[
+	class Foo {
+		[[Main]] x;
+	}
+]] 1 error
+
+test main class type variable [[
+	class Foo {
+		public int method() {
+			[[Main]] x;
+			return 1;
+		}
+	}
+]] 1 error

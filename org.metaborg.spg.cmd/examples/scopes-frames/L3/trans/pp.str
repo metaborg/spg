@@ -1,0 +1,48 @@
+module pp
+
+imports
+
+  libstratego-gpp
+  runtime/refactoring/-
+  pp/L3-parenthesize
+  pp/L3-pp
+
+rules
+
+  editor-format:
+    (node, _, ast, path, project-path) -> (filename, result)
+    with
+      ext      := <get-extension> path
+    ; filename := <guarantee-extension(|$[pp.[ext]])> path
+    ; result   := <pp-debug> node
+
+rules
+  
+  pp-L3-string =
+    parenthesize-L3
+    ; prettyprint-L3-start-symbols
+    ; !V([], <id>)
+    ; box2text-string(|120)
+      
+  pp-partial-L3-string =
+    parenthesize-L3
+    ; prettyprint-L3
+    ; !V([], <id>)
+    ; box2text-string(|120)
+
+  pp-partial-L3-string(|sort) =
+    parenthesize-L3
+    ; prettyprint-L3(|sort)
+    ; !V([], <id>)
+    ; box2text-string(|120)
+  
+  pp-debug :
+    ast -> result
+    with
+       result := <pp-L3-string> ast
+    <+ <bottomup(try(not(is-string); not(is-list); not(pp-L3-string); debug(!"cannot pp ")))> ast
+    ;  result := ""
+
+rules
+  
+  construct-textual-change = construct-textual-change(pp-partial-L3-string, parenthesize, override-reconstruction, resugar)

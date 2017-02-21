@@ -1,0 +1,18 @@
+module types
+
+language L1
+start symbol Exp
+
+test integer [[
+  5
+]] run get-type to TInt()
+
+test addition [[
+  5 + 5
+]] run get-type to TInt()
+
+test function [[
+  fun (x: Int) {
+    5
+  }
+]] run get-type to TFun(TInt(), TInt())

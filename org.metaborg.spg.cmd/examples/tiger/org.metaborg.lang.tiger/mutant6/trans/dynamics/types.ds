@@ -1,0 +1,9 @@
+module types
+
+imports ds-signatures/Tiger-sig
+imports dynamics/base
+imports dynamics/bindings
+
+rules // type declarations
+
+  E |- TypeDecs(_) --> E.

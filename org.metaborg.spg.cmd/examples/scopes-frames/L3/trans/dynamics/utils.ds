@@ -1,0 +1,44 @@
+module dynamics/utils
+
+imports
+  dynamics/records
+
+signature
+  arrows
+    contains(List(Binding), Binding) --> Bool
+    concat(List(Binding), List(Binding)) --> List(Binding)
+    shadows(List(Binding), List(Binding)) --> List(Binding)
+    
+rules // contains
+
+  contains([Binding(x, _, _) | bs], b@Binding(y, _, _)) --> r
+  where
+    case x of {
+      y =>
+        true => r
+      otherwise =>
+        contains(bs, b) --> r
+    }.
+  
+  contains([], _) --> false.
+  
+rules // concat
+
+  concat([x|xs], ys) --> [x|concat(xs, ys)].
+  
+  concat([], ys) --> ys.
+
+rules // shadow
+
+  shadows(bs1, []) --> bs1.
+  
+  shadows(bs1, [h|bs2]) --> r
+  where
+    contains(bs1, h) --> c;
+    case c of {
+      true =>
+        shadows([h|bs1], bs2) --> r
+      false =>
+        shadows(bs1, bs2) --> r
+    }.
+  

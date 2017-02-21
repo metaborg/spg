@@ -1,0 +1,24 @@
+module dynamics/types
+
+imports
+  ds-signatures/L3-sig
+  dynamics/values
+  
+signature
+  constructors
+    TIntV : V
+    TFunV : Type * Type -> V
+    TClassV : String -> V
+    
+  arrows
+    Type --> V
+
+  variables
+    t : Type
+    
+rules
+  IntType() --> TIntV().
+  
+  FunType(t1, t2) --> TFunV(t1, t2).
+  
+  ClassType(x) --> TClassV(x).

@@ -1,0 +1,154 @@
+module names-methods
+
+language MiniJava
+start symbol Program
+
+fixture [[
+	class Main {
+		public static void main(String[] args) {
+			System.out.println(1);
+		}
+	}
+	
+	[[...]]
+]]
+
+test backward method name resolution local [[
+	class Foobar {
+	  int x;
+	  
+  	public int [[getX]]() {
+    		return x;
+  	}
+  
+  	public int getX2() {
+  		return (new Foobar()).[[getX]]();
+  	}
+	}
+]] resolve #2 to #1
+
+test forward method name resolution local [[
+	class Foobar {
+	  int x;
+	  
+ 		public int getX2() {
+    		return (new Foobar()).[[getX]]();
+  	}
+  
+  	public int [[getX]]() {
+    		return x;
+  	}
+	}
+]] resolve #1 to #2
+
+test forward method name resolution [[
+	class Foo {
+		Foobar x;
+		public int init() {
+			x = new Foobar();
+			return x.[[test]]();
+		}
+	}
+		
+	class Foobar {
+		int a;
+		public int [[test]]() {
+			return a;
+		}
+	}
+]] resolve #1 to #2
+
+test backward method name resolution [[
+	class Foobar {
+		int a;
+		public int [[test]]() {
+			return a;
+		}
+	}
+	
+	class Foo {
+		Foobar x;
+		public int init() {
+			x = new Foobar();
+			return x.[[test]]();
+		}
+	}
+]] resolve #2 to #1
+
+test recursive call resolution [[
+	class Foobar {
+		int a;
+		Foobar x;
+		public int [[test]]() {
+			x = new Foobar();
+			a = x.[[test]]();
+			return a;
+		}
+	}
+]] resolve #2 to #1
+
+test unresolved method [[
+  class Foo {
+    public int test() {
+      return [[this.unresolved()]];
+    }
+  }
+]] 3 errors
+
+////---------------------------------homonyms---------------------------------
+
+test method call resolution classType homonym [[
+	class Foo {
+		public int init() {
+			Foobar x;
+			x = new Foobar();
+			return x.[[Foobar]]();
+		}
+	}
+		
+	class Foobar {
+		int a;
+		public int [[Foobar]]() {
+			return a;
+		}
+	}
+]] resolve #1 to #2
+
+test method call resolution local methodname homonym [[
+	class Foo {
+		public int init() {
+			Foobar x;
+			x = new Foobar();
+			return x.[[Foobar]]();
+		}
+		
+		public int Foobar() {
+			return 0;
+		}
+	}
+		
+	class Foobar {
+		int a;
+		public int [[Foobar]]() {
+			return a;
+		}
+	}
+]] resolve #1 to #2
+
+test method call resolution varname homonym [[
+	class Foo {
+		int Foobar;
+		Foobar x;
+		public int init() {
+			x = new Foobar();
+			return x.[[Foobar]]();
+		}
+	}
+		
+	class Foobar {
+		int Foobar;
+		public int [[Foobar]]() {
+			return Foobar;
+		}
+	}
+]] resolve #1 to #2

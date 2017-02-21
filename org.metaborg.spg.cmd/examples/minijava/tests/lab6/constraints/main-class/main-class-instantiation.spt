@@ -1,0 +1,42 @@
+module main-class-instantiation
+
+language MiniJava
+start symbol Program
+
+test instantiate-main class in main method [[
+	class Main {
+		public static void main(String[] args) {
+			System.out.println([[new Main()]]);
+		}
+	}
+]] 1 error
+
+test instantiate main class [[
+	class Main {
+		public static void main(String[] args) {
+			System.out.println(1);
+		}
+	}
+
+	class Foo {
+    	public int method() {
+    		int x;
+    		x = [[new Main()]];
+    		return 0;
+    	}
+  	}
+]] 1 error
+
+test instantiate main class in return [[
+	class Main {
+		public static void main(String[] args) {
+			System.out.println(1);
+		}
+	}
+
+	class Foo {
+    	public int method(int x) {
+    		return this.method([[new Main()]]);
+    	}
+  	}
+]] 1 error

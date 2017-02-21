@@ -1,0 +1,27 @@
+module dynamics/variables
+
+imports
+  ds-signatures/L2-sig
+  dynamics/values
+  dynamics/heap
+  dynamics/environment
+  dynamics/l2
+  
+signature
+  arrows
+    Lhs -lhs-> Int
+    Exp -lval-> Int
+
+rules
+
+  __Lhs2Exp__(lhs) --> v
+  where
+    lhs -lhs-> a; read(a) --> v.
+    
+  lhs : Lhs --> read(lhs).
+  
+  Var(x) -lhs-> lookup(x).
+  
+  Assign(lhs, v) --> v'
+  where
+    write(lhs, v) --> v'.

@@ -1,0 +1,43 @@
+module dynamics/records
+
+imports
+  ds-signatures/L3-sig
+  dynamics/environment
+  dynamics/heap
+  dynamics/types
+
+signature
+  sorts
+    Binding
+  
+  constructors
+    RecordV : List(Binding) * Parent -> V
+    Binding : String * Type * Exp -> Binding
+  
+  arrows
+    registerRecords(List(Declaration)) --> Env
+    registerFields(List(Field)) --> List(Binding)
+
+rules // Records
+
+  registerRecords([]) --> {}.
+  
+  // TODO: Parent is never read
+  registerRecords([Class(name, parent, fields) | records]) --> {name |--> a, E'}
+  where
+    registerRecords(records) --> E';
+    registerFields(fields) --> B;
+    allocate(RecordV(B, parent)) => a.
+  
+rules // Fields
+
+  registerFields([]) --> [].
+  
+  registerFields([Field(name, ty, e) | fields]) --> [Binding(name, ty, e) | B]
+  where
+    registerFields(fields) --> B.
+  
+  // TODO: IntType is wrong
+  registerFields([FieldOverride(name, e) | fields]) --> [Binding(name, IntType(), e) | B]
+  where
+    registerFields(fields) --> B.

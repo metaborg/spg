@@ -1,0 +1,20 @@
+module tiger-syntax
+
+language Tiger
+start symbol Exp
+
+test empty program [[
+42
+]] parse succeeds
+
+test empty program [[
+  x + 4
+]] parse succeeds
+ 
+test empty program [[ 
+  x + 4 * 5
+]] parse succeeds
+ 
+ 
+
+

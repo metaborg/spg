@@ -1,0 +1,24 @@
+module dynamics/environment
+
+imports
+  dynamics/values 
+    
+signature
+  sort aliases 
+    Env = Map(String, Int)
+  
+  components 
+    E : Env
+
+  variables
+    a : Int
+  
+  arrows
+    bind(String, Int) --> Env
+    lookup(String) --> Int
+
+rules
+
+  E |- bind(x, a) --> {x |--> a, E}.
+
+  E |- lookup(x) --> E[x].

@@ -1,0 +1,44 @@
+module resolution
+
+language L2
+start symbol Start
+
+test resolve record name [[
+  record [[Foo]] {
+    bar: Int
+  }
+  
+  begin
+    new [[Foo]].bar := 5
+  end
+]] resolve #2 to #1
+
+test resolve type-dependent [[
+  record Foo {
+    [[bar]]: Int
+  }
+  
+  begin
+    new Foo.[[bar]] := 5
+  end
+]] resolve #2 to #1
+
+test resolve variable reference [[
+  record Foo {
+    bar: Int -> Int
+  }
+  
+  begin
+    new Foo.bar := fun ([[x]]: Int) {
+      [[x]]
+    }
+  end
+]] resolve #2 to #1
+
+test function body is scoped [[
+  begin
+    x + fun (x: Int) {
+      x
+    } (1)
+  end
+]] 2 errors

@@ -1,0 +1,117 @@
+module constraints-assign
+
+language MiniJava
+start symbol Program
+
+fixture [[
+	class Main {
+		public static void main(String[] args) {
+			{}
+		}
+	}
+
+	class C {}
+	class A{
+		public boolean fac() {
+		  [[...]]
+		  
+      return true;
+    }
+  }
+]]
+
+test assign integer variable to itself [[ 
+	int a;
+	a = a;
+]] 0 errors
+ 
+test assign different integer variable to integer variable [[ 
+	int a;
+	int b;
+	a = b;
+]] 0 errors
+ 
+test assign integer to integer variable [[ 
+	int a;
+	a = 2;
+]] 0 errors
+
+test assign boolean to integer variable [[ 
+	int a;
+	a = false;
+]] 1 errors
+ 
+test assign array to integer variable [[ 
+	int a;
+	a = new int[1];
+]] 1 errors
+
+test assign object to integer variable [[ 
+	int a;
+	a = new A();
+]] 1 errors
+
+test assign integer to boolean variable [[ 
+	boolean a;
+	a = 2;
+]] 1 errors
+
+test assign boolean to boolean variable [[ 
+	boolean a;
+	a = false;
+]] 0 errors
+ 
+test assign array to boolean variable [[ 
+	boolean a;
+	a = new int[1];
+]] 1 errors
+
+test assign object to boolean variable [[ 
+	boolean a;
+	a = new A();
+]] 1 errors
+
+test assign integer to array variable [[ 
+	int[] a;
+	a = 2;
+]] 1 errors
+
+test assign boolean to array variable [[ 
+	int[] a;
+	a = false;
+]] 1 errors
+ 
+test assign array to array variable [[ 
+	int[] a;
+	a = new int[1];
+]] 0 errors
+
+test assign object to array variable [[ 
+	int[] a;
+	a = new A();
+]] 1 errors
+
+test assign object to class type variable [[ 
+	A a;
+	a = new A();
+]] 0 errors
+
+test assign object to class type variable (non-related classes) [[ 
+	A a;
+	a = new C();
+]] 1 errors
+
+test assign integer to class type variable [[ 
+	A a;
+	a = 3;
+]] 1 errors
+
+test assign boolean to class type variable [[ 
+	A a;
+	a = true;
+]] 1 errors
+
+test assign array to class type variable [[ 
+	A a;
+	a = new int[1];
+]] 1 errors

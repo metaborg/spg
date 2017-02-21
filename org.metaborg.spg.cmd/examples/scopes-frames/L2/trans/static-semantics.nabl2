@@ -1,0 +1,110 @@
+module static-semantics
+
+imports
+
+  signatures/-
+  
+signature
+  types
+    TInt()
+    TFun(type, type)
+    TRec(occurrence)
+  
+rules
+
+// Regular rules
+
+  init ^ (s) :=
+    new s.
+  
+  [[ Program(dd, e) ^ (s) ]] :=
+    Map1 [[ dd ^ (s) ]],
+    [[ e ^ (s) : t ]].
+
+  [[ IntValue(_) ^ (_) : TInt() ]].
+  
+  [[ Var(x) ^ (s) : t ]] :=
+    Var{x} -> s,
+    Var{x} |-> d,
+    d : t.
+    
+  [[ Field(x, t) ^ (s) ]] :=
+    Var{x} <- s,
+    Var{x} : ty,
+    [[ t ^ (s) : ty ]].
+  
+  [[ Add(e1, e2) ^ (s) : TInt() ]] :=
+    [[ e1 ^ (s) : TInt() ]],
+    [[ e2 ^ (s) : TInt() ]].
+
+  [[ Fun(x, t, e) ^ (s) : TFun(t1, t2) ]] :=
+    Var{x} <- s',
+    Var{x} : t1,
+    [[ t ^ (s) : t1 ]],
+    [[ e ^ (s') : t2 ]],
+    s' ---> s,
+    new s'.
+
+  [[ App(e1, e2) ^ (s) : t2 ]] :=
+    [[ e1 ^ (s) : TFun(t1, t2) ]],
+    [[ e2 ^ (s) : t1 ]].
+
+  [[ NewObject(x) ^ (s) : TRec(d) ]] :=
+    Rec{x} -> s,
+    Rec{x} |-> d.
+    
+  [[ Seq(e1, e2) ^ (s) : t2 ]] :=
+    [[ e1 ^ (s) : t1 ]],
+    [[ e2 ^ (s) : t2 ]].
+    
+  [[ Record(x, ff) ^ (s) ]] :=
+    Rec{x} <- s,
+    Rec{x} ===> s',
+    s' ---> s,
+    Map1 [[ ff ^ (s') ]],
+    new s'.
+  
+  [[ Assign(lhs, e) ^ (s) : t ]] :=
+    [[ lhs ^ (s) : t ]],
+    [[ e ^ (s) : t ]].
+    
+  [[ QVar(e, x) ^ (s) : ty ]] :=
+    [[ e ^ (s) : TRec(d_rec) ]],
+    d_rec ?===> cs,
+    s' -I-> cs,
+    Var{x} -> s',
+    Var{x} |-> d,
+    d : ty,
+    new s'.
+  
+  [[ IntType() ^ (s) : TInt() ]] :=
+    true.
+    
+  [[ FunType(t1, t2) ^ (s) : TFun(t1', t2') ]] :=
+    [[ t1 ^ (s) : t1' ]],
+    [[ t2 ^ (s) : t2' ]].
+    
+  [[ RecType(x) ^ (s) : TRec(d) ]] :=
+    Rec{x} -> s,
+    Rec{x} |-> d.
+
+// Lists
+
+  Map1 [[ [x|xs] ^ (s) ]] :=
+    [[ x ^ (s) ]],
+    Map1 [[ xs ^ (s) ]].
+
+  Map1 [[ [] ^ (s) ]] :=
+    true.
+
+// Auxiliary (for generation)
+
+  [[ Cons(x, xs) ^ (s) ]] :=
+    [[ x ^ (s) ]],
+    [[ xs ^ (s) ]].
+
+  [[ Nil() ^ (s) ]].
+  
+  Map1 [[ Conss(x, xs) ^ (s) ]] :=
+    [[ x ^ (s) ]],
+    Map1 [[ xs ^ (s) ]].

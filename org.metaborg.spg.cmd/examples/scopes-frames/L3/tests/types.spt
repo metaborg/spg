@@ -1,0 +1,44 @@
+module types
+
+language L3
+start symbol Start
+
+test assignment [[
+  class Foo {
+    bar: Int := 5
+  }
+  
+  begin
+    [[new Foo]].bar := 5
+  end
+]] run get-type on #1 to TClass(Occurrence(_, "Foo", _))
+
+test assignment [[
+  class Foo {
+    bar: Int := 5
+  }
+  
+  begin
+    [[new Foo.bar]] := 5
+  end
+]] run get-type on #1 to TInt()
+
+test type of assignment [[
+  class Foo {
+    bar: Int := 5
+  }
+  
+  begin
+    [[new Foo.bar := 5]]
+  end
+]] run get-type on #1 to TInt()
+
+test type of seq is last exp [[
+  class Foo {
+    bar: Int := 5
+  }
+  
+  begin
+    [[new Foo.bar := 5; new Foo]]
+  end
+]] run get-type on #1 to TClass(Occurence(_, "Foo", _))

@@ -1,0 +1,186 @@
+module names-parameters
+
+language MiniJava
+start symbol Program
+
+fixture [[
+	class Main {
+		public static void main(String[] args) {
+			System.out.println(1);
+		}
+	}
+
+  [[...]]
+]]
+
+test parameter name resolution in return exp[[
+ 	class Foobar {
+    	public int getX(int [[x]]) {
+      		return [[x]];
+    	}
+  	}
+]] resolve #2 to #1
+
+test parameter name resolution in assignment[[
+ 	class Foobar {
+    	public int method(int [[x]]) {
+      		int y;
+      		[[x]] = 0;
+      		return 1;
+    	}
+  	}
+]] resolve #2 to #1
+
+test array parameter name resolution in assignment[[
+ 	class Foobar {
+    	public int method(int[] [[x]]) {
+      		int y;
+      		[[x]][0] = 0;
+      		return 1;
+    	}
+  	}
+]] resolve #2 to #1
+
+test array index parameter name resolution in assignment[[
+ 	class Foobar {
+    	public int method(int [[x]]) {
+      		int[] y;
+      		y[ [[x]] ] = 0;
+      		return 1;
+    	}
+  	}
+]] resolve #2 to #1
+
+
+test field hidden by parameter name resolution in return exp[[
+  	class Foobar {
+    	int x;
+   	 	public int getX(int [[x]]) {
+      		int y;
+      		return [[x]];
+    	}
+  	}
+]] resolve #2 to #1
+
+test field hidden by parameter name resolution in assignment[[
+  	class Foobar {
+    	int x;
+   	 	public int method(int [[x]]) {
+      		int y;
+      		[[x]] = 3;
+      		return 1;
+    	}
+  	}
+]] resolve #2 to #1
+
+test array field hidden by parameter name resolution in assignment[[
+  	class Foobar {
+    	int[] x;
+   	 	public int method(int[] [[x]]) {
+      		int y;
+      		[[x]][0] = 3;
+      		return 1;
+    	}
+  	}
+]] resolve #2 to #1
+
+
+//---------------------------------homonyms----------------------------------
+
+test parameter name resolution other method parameter homonym before [[
+  	class Foobar {
+  		public int method(int x){
+  			return 1;
+  		}
+  		
+    	public int getX(int [[x]]) {
+      		return [[x]];
+    	}
+  	}
+]] resolve #2 to #1
+
+test parameter name resolution other method parameter homonym after [[
+  	class Foobar {
+    	public int getX(int [[x]]) {
+      		return [[x]];
+    	}
+    	
+    	public int method(int x){
+  			return 1;
+  		}
+  	}
+]] resolve #2 to #1
+
+
+test parameter name resolution other method variable homonym before [[
+  	class Foobar {
+  		public int method(){
+  			int x;
+  			return 1;
+  		}
+  		
+    	public int getX(int [[x]]) {
+      		return [[x]];
+    	}
+  	}
+]] resolve #2 to #1
+
+test parameter name resolution other method variable homonym after [[
+  	class Foobar {
+    	public int getX(int [[x]]) {
+      		return [[x]];
+    	}
+    	
+    	public int method(){
+  			int x;
+  			return 1;
+  		}
+  	}
+]] resolve #2 to #1
+
+
+test parameter name resolution other class homonym before [[
+  	class Foo {
+  	}
+  	
+  	class Foobar {
+    	public int getFoo(int [[Foo]]) {
+      		return [[Foo]];
+    	}
+  	}
+]] resolve #2 to #1
+
+test parameter name resolution other class homonym after [[
+  	class Foobar {
+    	public int getFoo(int [[Foo]]) {
+      		return [[Foo]];
+    	}
+  	}
+  	
+  	class Foo {
+  	}
+]] resolve #2 to #1
+
+test variable name resolution other class field homonym before [[
+  	class Foo {
+  		int x;
+  	}
+  	
+  	class Foobar {
+    	public int getX(int [[x]]) {
+      		return [[x]];
+    	}
+  	}
+]] resolve #2 to #1
+
+test variable name resolution other class field homonym after [[
+  	class Foobar {
+    	public int getX(int [[x]]) {
+      		return [[x]];
+    	}
+  	}
+  	
+  	class Foo {
+  		int x;
+  	}
+]] resolve #2 to #1

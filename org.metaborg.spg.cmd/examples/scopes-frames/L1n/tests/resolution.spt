@@ -1,0 +1,37 @@
+module resolution
+
+language L1n
+start symbol Exp
+
+test resolve variable reference [[
+  fun ([[x]]: Int) { [[x]] }
+]] resolve #2 to #1
+
+test variable hiding [[
+  fun (x: Int) {
+    fun ([[x]]: Int) {
+      [[x]]
+    }
+  }
+]] resolve #2 to #1
+
+test variable hiding with other names [[
+  fun (x: Int) {
+    fun (y: Int) {
+      fun ([[x]]: Int) {
+        [[x]]
+      }
+    }
+  }
+]] resolve #2 to #1
+
+// The number of errors is arbitrary; resolution should fail
+test function body is scoped [[
+  x + fun (x: Int) {
+    x
+  } (1)
+]] 3 errors
+
+test multiple arguments [[
+  fun ([[x]]: Int, y: Int) { [[x]] }
+]] resolve #2 to #1

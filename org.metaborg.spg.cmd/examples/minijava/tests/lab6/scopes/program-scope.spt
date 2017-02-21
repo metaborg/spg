@@ -1,0 +1,26 @@
+module scopes
+
+language MiniJava
+start symbol Program
+
+test program scope class 1 [[
+	class Main {
+		public static void main(String[] args) {
+			System.out.println(1);
+		}
+	}
+	class A {
+		[[B]] b;
+	}
+]] 1 error
+
+test program scope class 2 [[
+	class Main {
+		public static void main(String[] args) {
+			System.out.println(1);
+		}
+	}
+	class B {
+		[[A]] a;
+	}
+]] 1 error

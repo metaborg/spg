@@ -1,0 +1,165 @@
+module types-var
+
+language MiniJava
+start symbol Program
+
+fixture [[
+	class Main {
+		public static void main(String[] args) {
+	 		System.out.println(1);
+		}
+	}
+	
+	[[...]]
+]]
+
+test integer variable reference yields an integer [[
+	class Foo {
+		public int foo() {
+			int x;
+			x = [[x]];
+			return 0;
+		}
+	}
+]] run get-type on #1 to TInt()
+
+test boolean variable reference yields a boolean [[
+	class Foo {
+		public int foo() {
+			boolean x;
+			x = [[x]];
+			return 0;
+		}
+	}
+]] run get-type on #1 to TBool()
+
+test integer array variable reference yields an integer array [[
+	class Foo {
+		public int foo() {
+			int[] x;
+			x = [[x]];
+			return 0;
+		}
+	}
+]] run get-type on #1 to TIntArray()
+
+test class type variable reference yields an object (same class) [[
+	class Foo {
+		public int foo() {
+			Foo x;
+			x = [[x]];
+			return 0;
+		}
+	}
+]] run get-type on #1 to TClass(Occurrence(_, "Foo", _))
+
+test class type variable reference yields an object (other class) [[
+	class Bar {}
+	
+	class Foo {
+		public int foo() {
+			Bar x;
+			x = [[x]];
+			return 0;
+		}
+	}
+]] run get-type on #1 to TClass(Occurrence(_, "Bar", _))
+
+test integer parameter reference yields an integer [[
+	class Foo {
+		public int foo(int x) {
+			x = [[x]];
+			return 0;
+		}
+	}
+]] run get-type on #1 to TInt()
+
+test boolean parameter reference yields a boolean [[
+	class Foo {
+		public int foo(boolean x) {
+			x = [[x]];
+			return 0;
+		}
+	}
+]] run get-type on #1 to TBool()
+
+test integer array parameter reference yields an integer array [[
+	class Foo {
+		public int foo(int[] x) {
+			x = [[x]];
+			return 0;
+		}
+	}
+]] run get-type on #1 to TIntArray()
+
+test class type parameter reference yields an object (same class) [[
+	class Foo {
+		public int foo(Foo x) {
+			x = [[x]];
+			return 0;
+		}
+	}
+]] run get-type on #1 to TClass(Occurrence(_, "Foo", _))
+
+test class type parameter reference yields an object (other class) [[
+	class Bar {}
+	
+	class Foo {
+		public int foo(Bar x) {
+			x = [[x]];
+			return 0;
+		}
+	}
+]] run get-type on #1 to TClass(Occurrence(_, "Bar", _))
+
+test integer field reference yields an integer [[
+	class Foo {
+		int x;
+		public int foo() {
+			x = [[x]];
+			return 0;
+		}
+	}
+]] run get-type on #1 to TInt()
+
+test boolean field reference yields a boolean [[
+	class Foo {
+		boolean x;
+		public int foo() {
+			x = [[x]];
+			return 0;
+		}
+	}
+]] run get-type on #1 to TBool()
+
+test integer array field reference yields an integer array [[
+	class Foo {
+		int[] x;
+		public int foo() {
+			x = [[x]];
+			return 0;
+		}
+	}
+]] run get-type on #1 to TIntArray()
+
+test class type field reference yields an object (same class) [[
+	class Foo {
+		Foo x;
+		public int foo() {
+			x = [[x]];
+			return 0;
+		}
+	}
+]] run get-type on #1 to TClass(Occurrence(_, "Foo", _))
+
+test class type field reference yields an object (other class) [[
+	class Bar {}
+	
+	class Foo {
+		Bar x;
+		public int foo() {
+			x = [[x]];
+			return 0;
+		}
+	}
+]] run get-type on #1 to TClass(Occurrence(_, "Bar", _))
