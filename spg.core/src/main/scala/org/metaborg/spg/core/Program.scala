@@ -2,7 +2,6 @@ package org.metaborg.spg.core
 
 import org.metaborg.spg.core.solver.{CGenRecurse, CResolve, Constraint, Resolution, Subtypes, TypeEnv}
 import org.metaborg.spg.core.spoofax.models.Strategy
-import org.metaborg.spg.core.spoofax.models.Strategy._
 import org.metaborg.spg.core.terms.Pattern
 
 /**

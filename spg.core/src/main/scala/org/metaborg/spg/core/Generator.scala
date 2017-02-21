@@ -11,7 +11,7 @@ import org.metaborg.spg.core.spoofax.{Converter, Language, LanguageService}
 import org.metaborg.spg.core.terms._
 import rx.lang.scala.Observable
 
-class Generator @Inject() (val languageService: LanguageService, val baseLanguageService: ILanguageService) extends LazyLogging {
+class Generator @Inject() (val languageService: LanguageService, val baseLanguageService: ILanguageService, chooser: AutomaticChooser) extends LazyLogging {
   /**
     * Create a cold Observable that emits programs for the given language
     * implementation and generation configuration.
@@ -154,10 +154,10 @@ class Generator @Inject() (val languageService: LanguageService, val baseLanguag
 
       Some(program)
     } else {
-      for (constraint <- program.properConstraints.shuffle.sortBy(_.priority)) {
+      for (constraint <- chooser.nextConstraints(program)) {
         val programs = Solver.rewrite(constraint, program - constraint)
 
-        for (program <- programs.shuffle) {
+        for (program <- chooser.nextProgram(programs)) {
           val result = generate(program)
 
           if (result.isDefined) {
