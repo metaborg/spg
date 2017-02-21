@@ -16,7 +16,7 @@ import org.metaborg.util.resource.FileSelectorUtils
 import org.spoofax.interpreter.terms.{IStrategoAppl, IStrategoString, IStrategoTerm}
 
 /**
-  * The SDF service loads all SDF production from a Spoofax product or a single
+  * The SDF service loads all SDF production from a Spoofax project or a single
   * SDF file.
   *
   * @param resourceService
@@ -31,9 +31,9 @@ class SdfService @Inject()(val resourceService: IResourceService, val unitServic
     */
   def read(templateLangImpl: ILanguageImpl, project: IProject): List[Production] = {
     val fileSelector = FileSelectorUtils.extension("sdf3")
-    val sdfFiles = project.location().findFiles(fileSelector).toList
+    val files = project.location().findFiles(fileSelector).toList
 
-    sdfFiles.flatMap(read(templateLangImpl, _))
+    files.flatMap(read(templateLangImpl, _))
   }
 
   /**

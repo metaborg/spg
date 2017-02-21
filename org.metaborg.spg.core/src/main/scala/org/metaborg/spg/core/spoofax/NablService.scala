@@ -7,6 +7,7 @@ import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.IOUtils
 import org.apache.commons.vfs2.FileObject
 import org.metaborg.core.language.ILanguageImpl
+import org.metaborg.core.project.IProject
 import org.metaborg.core.resource.IResourceService
 import org.metaborg.spg.core.regex._
 import org.metaborg.spg.core.{NameProvider, Rule}
@@ -19,13 +20,35 @@ import org.metaborg.spg.core.spoofax.models._
 import org.metaborg.spg.core.terms._
 import org.metaborg.spoofax.core.syntax.ISpoofaxSyntaxService
 import org.metaborg.spoofax.core.unit.ISpoofaxUnitService
+import org.metaborg.util.resource.FileSelectorUtils
 import org.spoofax.interpreter.terms.{IStrategoAppl, IStrategoList, IStrategoString, IStrategoTerm}
 import org.spoofax.terms.{StrategoAppl, StrategoList}
 
-class SpecificationService @Inject() (val resourceService: IResourceService, val unitService: ISpoofaxUnitService, val syntaxService: ISpoofaxSyntaxService) extends LazyLogging {
-
+/**
+  * The NaBL service loads all constraint generation rules from a Spoofax
+  * project or a single NaBL2 file.
+  *
+  * @param resourceService
+  * @param unitService
+  * @param syntaxService
+  */
+class NablService @Inject()(val resourceService: IResourceService, val unitService: ISpoofaxUnitService, val syntaxService: ISpoofaxSyntaxService) extends LazyLogging {
   // Start at 9 so we do not clash with names in the rules
   val nameProvider = NameProvider(9)
+
+  /**
+    * Read all NaBL2 files in the given project and collect the productions.
+    *
+    * @param nablLangImpl
+    * @param project
+    * @return
+    */
+  def read(nablLangImpl: ILanguageImpl, project: IProject)(implicit signatures: Signatures): Specification = {
+    val fileSelector = FileSelectorUtils.extension("nabl2")
+    val files = project.location().findFiles(fileSelector).toList
+
+    files.map(read(nablLangImpl, _)).reduce(_ merge _)
+  }
 
   /**
     * Parse an NaBL2 file and extract a specification.

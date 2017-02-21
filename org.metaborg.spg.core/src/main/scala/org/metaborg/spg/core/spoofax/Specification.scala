@@ -12,4 +12,13 @@ import org.metaborg.spg.core.resolution.{Label, LabelOrdering}
   * @param wf
   * @param rules
   */
-case class Specification(labels: List[Label], order: LabelOrdering, wf: Regex[Label], rules: List[Rule])
+case class Specification(labels: List[Label], order: LabelOrdering, wf: Regex[Label], rules: List[Rule]) {
+  /**
+    * Merge this NaBL2 specification with the given NaBL2 specification.
+    *
+    * @param s
+    */
+  def merge(s: Specification): Specification = {
+    Specification(labels ++ s.labels, order.merge(s.order), wf || s.wf, rules ++ s.rules)
+  }
+}

@@ -64,7 +64,6 @@ object Main extends App {
       loadLanguage(options.projectPath),
       getOrCreateProject(options.projectPath),
       Config(
-        options.semanticsPath,
         options.limit,
         options.fuel,
         options.sizeLimit,

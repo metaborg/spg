@@ -10,18 +10,20 @@ import org.metaborg.spoofax.core.syntax.SyntaxFacet
 
 import scala.collection.JavaConverters._
 
-class LanguageService @Inject()(val resourceSerivce: ResourceService, val sdfService: SdfService, val specificationService: SpecificationService, val printerService: PrinterService) extends LazyLogging {
+class LanguageService @Inject()(val resourceSerivce: ResourceService, val sdfService: SdfService, val specificationService: NablService, val printerService: PrinterService) extends LazyLogging {
   /**
     * Load a language for generation.
+    *
+    * This method will load all SDF files and all NaBL2 files independent of
+    * whether they are imported.
     *
     * @param templateLangImpl
     * @param nablLangImpl
     * @param lutLangImpl
     * @param project
-    * @param semanticsPath
     * @return
     */
-  def load(templateLangImpl: ILanguageImpl, nablLangImpl: ILanguageImpl, lutLangImpl: ILanguageImpl, project: IProject, semanticsPath: String): Language = {
+  def load(templateLangImpl: ILanguageImpl, nablLangImpl: ILanguageImpl, lutLangImpl: ILanguageImpl, project: IProject): Language = {
     logger.trace("Loading productions")
     val productions = sdfService.read(templateLangImpl, project)
 
@@ -29,7 +31,7 @@ class LanguageService @Inject()(val resourceSerivce: ResourceService, val sdfSer
     val signatures = Signatures(defaultSignatures ++ productions.map(_.toSignature))
 
     logger.trace("Loading static semantics")
-    val specification = specificationService.read(nablLangImpl, resourceSerivce.resolve(project.location(), semanticsPath))(signatures)
+    val specification = specificationService.read(nablLangImpl, project)(signatures)
 
     logger.trace("Constructing printer")
     val printer = printerService.getPrinter(lutLangImpl, project)

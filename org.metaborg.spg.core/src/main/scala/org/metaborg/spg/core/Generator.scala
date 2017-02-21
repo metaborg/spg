@@ -4,14 +4,11 @@ import com.google.inject.Inject
 import com.typesafe.scalalogging.LazyLogging
 import org.metaborg.core.language.{ILanguageImpl, ILanguageService, LanguageIdentifier}
 import org.metaborg.core.project.IProject
-import org.metaborg.spg.core.resolution.Label
 import org.metaborg.spg.core.solver._
-import org.metaborg.spg.core.spoofax.models.SortAppl
 import org.metaborg.spg.core.spoofax.{Converter, Language, LanguageService}
-import org.metaborg.spg.core.terms._
 import rx.lang.scala.Observable
 
-class Generator @Inject() (val languageService: LanguageService, val baseLanguageService: ILanguageService, chooser: AutomaticChooser) extends LazyLogging {
+class Generator @Inject()(val languageService: LanguageService, val baseLanguageService: ILanguageService, chooser: AutomaticChooser) extends LazyLogging {
   /**
     * Create a cold Observable that emits programs for the given language
     * implementation and generation configuration.
@@ -24,7 +21,7 @@ class Generator @Inject() (val languageService: LanguageService, val baseLanguag
   def generate(lut: ILanguageImpl, project: IProject, config: Config): Observable[String] = {
     val templateLang = getLanguage("org.metaborg:org.metaborg.meta.lang.template:2.1.0")
     val nablLang = getLanguage("org.metaborg:org.metaborg.meta.nabl2.lang:2.1.0")
-    val language = languageService.load(templateLang, nablLang, lut, project, config.semanticsPath)
+    val language = languageService.load(templateLang, nablLang, lut, project)
 
     generate(language, config)
   }

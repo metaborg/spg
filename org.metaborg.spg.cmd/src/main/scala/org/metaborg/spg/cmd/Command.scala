@@ -3,11 +3,6 @@ package org.metaborg.spg.cmd
 import org.backuity.clist.{Command => BaseCommand, _}
 
 class Command extends BaseCommand(name = "generator", description = "Generate random well-formed terms") {
-  var semanticsPath = opt[String](
-    description = "Path to the static semantics specification (default: trans/static-semantics.nabl2)",
-    default = "trans/static-semantics.nabl2"
-  )
-
   var limit = opt[Int](
     description = "Number of terms to generate (default: 1,000,000)",
     default = 1000000

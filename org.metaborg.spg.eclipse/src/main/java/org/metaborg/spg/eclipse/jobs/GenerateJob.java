@@ -30,8 +30,6 @@ import com.google.common.collect.Iterables;
 import rx.Observable;
 
 public class GenerateJob extends Job {
-	public static String SEMANTICS_PATH = "trans/static-semantics.nabl2";
-	
     protected MessageConsole console = ConsoleUtils.get("Spoofax console");
     protected MessageConsoleStream stream = console.newMessageStream();
     
@@ -70,7 +68,7 @@ public class GenerateJob extends Job {
 		try {
 			ILanguageImpl language = getLanguage(project);
 			
-			Config config = new Config(SEMANTICS_PATH, termLimit, fuel, termSize, true, true);
+			Config config = new Config(termLimit, fuel, termSize, true, true);
 			
 			Observable<? extends String> programs = generator
 				.generate(language, project, config)

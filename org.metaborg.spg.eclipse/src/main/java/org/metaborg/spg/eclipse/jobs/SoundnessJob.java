@@ -44,7 +44,6 @@ import com.google.common.collect.Iterables;
 import rx.Observable;
 
 public class SoundnessJob extends Job {
-	public static String SEMANTICS_PATH = "trans/static-semantics.nabl2";
 	public static Charset UTF_8 = StandardCharsets.UTF_8;
 	
     protected MessageConsole console = ConsoleUtils.get("Spoofax console");
@@ -92,7 +91,7 @@ public class SoundnessJob extends Job {
 			String extension = getExtension(language);
 			long startTime = System.currentTimeMillis();
 			
-			Config config = new Config(SEMANTICS_PATH, termLimit, fuel, termSize, true, true);
+			Config config = new Config(termLimit, fuel, termSize, true, true);
 			
 			Observable<? extends String> programs = generator
 				.generate(language, project, config)

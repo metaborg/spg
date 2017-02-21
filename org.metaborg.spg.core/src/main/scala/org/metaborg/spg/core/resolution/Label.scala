@@ -9,7 +9,7 @@ case class Label(name: Char) {
 }
 
 // A partial ordering on labels
-class LabelOrdering(relation: Seq[(Label, Label)]) extends PartialOrdering[Label] {
+class LabelOrdering(val relation: Seq[(Label, Label)]) extends PartialOrdering[Label] {
   override def tryCompare(x: Label, y: Label): Option[Int] = {
     val findA = relation.find(_ == (x, y)).map(_ => -1)
     val findB = relation.find(_ == (y, x)).map(_ => 1)
@@ -17,8 +17,19 @@ class LabelOrdering(relation: Seq[(Label, Label)]) extends PartialOrdering[Label
     findA.orElse(findB)
   }
 
-  override def lteq(x: Label, y: Label): Boolean =
+  override def lteq(x: Label, y: Label): Boolean = {
     tryCompare(x, y).exists(_ <= 0)
+  }
+
+  /**
+    * Merge this label ordering with the given label ordering.
+    *
+    * @param labelOrdering
+    * @return
+    */
+  def merge(labelOrdering: LabelOrdering): LabelOrdering = {
+    LabelOrdering(relation ++ labelOrdering.relation: _*)
+  }
 }
 
 object LabelOrdering {
