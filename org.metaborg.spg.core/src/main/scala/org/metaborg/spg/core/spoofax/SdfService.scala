@@ -119,6 +119,8 @@ class SdfService @Inject()(val resourceService: IResourceService, val unitServic
   private def toAttr(term: IStrategoTerm): Option[Attribute] = term match {
     case appl: IStrategoAppl if appl.getConstructor.getName == "Reject" =>
       Some(Reject())
+    case appl: IStrategoAppl if appl.getConstructor.getName == "Bracket" =>
+      Some(Bracket())
     case _ =>
       None
   }
@@ -191,6 +193,10 @@ class SdfService @Inject()(val resourceService: IResourceService, val unitServic
       Iter(toSymbol(appl.getSubterm(0)))
     case appl: IStrategoAppl if appl.getConstructor.getName == "IterStar" =>
       IterStar(toSymbol(appl.getSubterm(0)))
+    case appl: IStrategoAppl if appl.getConstructor.getName == "IterSep" =>
+      IterSep(toSymbol(appl.getSubterm(0)), toString(appl.getSubterm(1).getSubterm(0)))
+    case appl: IStrategoAppl if appl.getConstructor.getName == "IterStarSep" =>
+      IterStarSep(toSymbol(appl.getSubterm(0)), toString(appl.getSubterm(1).getSubterm(0)))
     case appl: IStrategoAppl if appl.getConstructor.getName == "Alt" =>
       Alt(toSymbol(appl.getSubterm(0)), toSymbol(appl.getSubterm(1)))
     case appl: IStrategoAppl if appl.getConstructor.getName == "CharClass" =>
@@ -225,11 +231,15 @@ class SdfService @Inject()(val resourceService: IResourceService, val unitServic
       Range(toCharacter(term.getSubterm(0)), toCharacter(term.getSubterm(1)))
     case appl: IStrategoAppl if appl.getConstructor.getName == "Short" =>
       toCharacter(term)
+    case appl: IStrategoAppl if appl.getConstructor.getName == "Numeric" =>
+      Short(toString(term.getSubterm(0)).tail.toInt.toChar)
   }
 
   private def toCharacter(term: IStrategoTerm): Character = term match {
     case appl: IStrategoAppl if appl.getConstructor.getName == "Short" =>
       Short(unescape(toString(term.getSubterm(0))).head)
+    case appl: IStrategoAppl if appl.getConstructor.getName == "Numeric" =>
+      Short(toString(term.getSubterm(0)).tail.toInt.toChar)
   }
 
   private def toString(term: IStrategoTerm): String = term match {
@@ -252,4 +262,5 @@ class SdfService @Inject()(val resourceService: IResourceService, val unitServic
       .replace("\\-", "-") // 2-char string `\-` becomes 1-char string `-`
       .replace("\\<", "<") // 2-char string `\<` becomes 1-char string `<`
       .replace("\\>", ">") // 2-char string `\>` becomes 1-char string `>`
+      .replace("\\$", "$") // 2-char string `\$` becomes 1-char string `$`
 }

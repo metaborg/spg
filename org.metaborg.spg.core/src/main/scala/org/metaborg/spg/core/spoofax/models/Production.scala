@@ -4,6 +4,9 @@ case class Production(sort: Sort, rhs: List[Symbol], attributes: List[Attribute]
   def isReject: Boolean =
     attributes.contains(Reject())
 
+  def isBracket: Boolean =
+    attributes.contains(Bracket())
+
   /**
     * Derive constructor signature from production. If the production contains
     * a bracket attribute, no production is returned.
@@ -28,11 +31,15 @@ case class Production(sort: Sort, rhs: List[Symbol], attributes: List[Attribute]
         None
     }
 
-    cons match {
-      case Some(name) =>
-        OpDecl(name, FunType(rhs.flatMap(rhsToConstType), ConstType(sort)))
-      case None =>
-        OpDeclInj(FunType(rhs.flatMap(rhsToConstType), ConstType(sort)))
+    if (!isBracket) {
+      cons match {
+        case Some(name) =>
+          Some(OpDecl(name, FunType(rhs.flatMap(rhsToConstType), ConstType(sort))))
+        case None =>
+          Some(OpDeclInj(FunType(rhs.flatMap(rhsToConstType), ConstType(sort))))
+      }
+    } else {
+      None
     }
   }
 }
@@ -41,3 +48,5 @@ case class Production(sort: Sort, rhs: List[Symbol], attributes: List[Attribute]
 abstract class Attribute
 
 case class Reject() extends Attribute
+
+case class Bracket() extends Attribute
