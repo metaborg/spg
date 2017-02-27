@@ -47,7 +47,9 @@ class NablService @Inject()(val resourceService: IResourceService, val unitServi
     val fileSelector = FileSelectorUtils.extension("nabl2")
     val files = project.location().findFiles(fileSelector).toList
 
-    files.map(read(nablLangImpl, _)).reduce(_ merge _)
+    files
+      .map(read(nablLangImpl, _))
+      .foldLeft(Specification.empty)(_ merge _)
   }
 
   /**
