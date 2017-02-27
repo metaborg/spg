@@ -25,10 +25,10 @@ class LanguageService @Inject()(val resourceSerivce: ResourceService, val sdfSer
     */
   def load(templateLangImpl: ILanguageImpl, nablLangImpl: ILanguageImpl, lutLangImpl: ILanguageImpl, project: IProject): Language = {
     logger.trace("Loading productions")
-    val productions = sdfService.read(templateLangImpl, project)
+    val grammar = sdfService.read(templateLangImpl, project)
 
     logger.trace("Computing signatures")
-    val signatures = Signatures(defaultSignatures ++ productions.map(_.toSignature))
+    val signatures = Signatures(defaultSignatures ++ grammar.toSignatures)
 
     logger.trace("Loading static semantics")
     val specification = specificationService.read(nablLangImpl, project)(signatures)
@@ -39,7 +39,7 @@ class LanguageService @Inject()(val resourceSerivce: ResourceService, val sdfSer
     logger.trace("Read start symbols")
     val start = startSymbols(lutLangImpl)
 
-    Language(productions, signatures, specification, printer, start, lutLangImpl)
+    Language(grammar, signatures, specification, printer, start, lutLangImpl)
   }
 
   /**

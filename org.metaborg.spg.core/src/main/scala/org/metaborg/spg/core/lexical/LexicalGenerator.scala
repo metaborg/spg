@@ -9,14 +9,14 @@ import scala.util.Random
 /**
   * A recursive-descent generator for a context-free grammar
   */
-class LexicalGenerator(productions: List[Production]) {
+class LexicalGenerator(grammar: Grammar) {
   /**
     * Generate a string for the given symbol
     */
   def generate(symbol: Symbol): String = symbol match {
     // Recursively generate sort
     case SortAppl(_, Nil) =>
-      val productionOpt = productions
+      val productionOpt = grammar.productions
         .filter(_.sort == symbol)
         .filter(!_.isReject)
         .randomOption

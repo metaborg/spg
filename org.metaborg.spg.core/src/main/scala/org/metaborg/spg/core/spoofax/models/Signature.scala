@@ -4,6 +4,27 @@ import org.metaborg.spg.core.terms.{As, Pattern, TermAppl, Var}
 
 case class Signatures(list: List[Signature]) {
   /**
+    * Get all operations (constructors) for the given sort.
+    *
+    * TODO: The results should be cached. They cannot be precompute (due to sort variables/unification), but they can be memoized...
+    *
+    * @param sort
+    * @return
+    */
+  def forSort(sort: Sort): List[OpDecl] = {
+    list.flatMap {
+      case c@OpDecl(_, ConstType(s)) if s.unify(sort).isDefined =>
+        List(c.substituteSort(s.unify(sort).get))
+      case c@OpDecl(_, FunType(_, ConstType(s))) if s.unify(sort).isDefined =>
+        List(c.substituteSort(s.unify(sort).get))
+      case OpDeclInj(FunType(List(ConstType(childSort)), ConstType(s))) if s.unify(sort).isDefined =>
+        forSort(childSort.substituteSort(s.unify(sort).get))
+      case _ =>
+        Nil
+    }
+  }
+
+  /**
     * Get signatures for the given pattern based on its constructor name and arity.
     *
     * @param pattern
@@ -73,7 +94,9 @@ case class Signatures(list: List[Signature]) {
   }
 }
 
-abstract class Signature
+abstract class Signature {
+  def substituteSort(binding: Map[SortVar, Sort]): Signature
+}
 
 case class OpDecl(name: String, typ: Type) extends Signature {
   /**
@@ -101,6 +124,16 @@ case class OpDecl(name: String, typ: Type) extends Signature {
   }
 
   /**
+    * Substitute sort variables in this constructor.
+    *
+    * @param binding
+    * @return
+    */
+  override def substituteSort(binding: Map[SortVar, Sort]): OpDecl = {
+    OpDecl(name, typ.substituteSort(binding))
+  }
+
+  /**
     * The Stratego representation of a signature.
     *
     * @return
@@ -111,6 +144,16 @@ case class OpDecl(name: String, typ: Type) extends Signature {
 
 case class OpDeclInj(typ: Type) extends Signature {
   /**
+    * Substitute sort variables in this constructor.
+    *
+    * @param binding
+    * @return
+    */
+  override def substituteSort(binding: Map[SortVar, Sort]): Signature = {
+    OpDeclInj(typ.substituteSort(binding))
+  }
+
+  /**
     * The Stratego representation of a signature.
     *
     * @return
@@ -119,9 +162,21 @@ case class OpDeclInj(typ: Type) extends Signature {
     s"$typ"
 }
 
-abstract class Type
+abstract class Type {
+  def substituteSort(binding: Map[SortVar, Sort]): Type
+}
 
 case class FunType(children: List[Type], result: Type) extends Type {
+  /**
+    * Substitute sort in this type.
+    *
+    * @param binding
+    * @return
+    */
+  override def substituteSort(binding: Map[SortVar, Sort]): Type = {
+    FunType(children.map(_.substituteSort(binding)), result.substituteSort(binding))
+  }
+
   /**
     * The Stratego representation of a signature.
     *
@@ -132,6 +187,16 @@ case class FunType(children: List[Type], result: Type) extends Type {
 }
 
 case class ConstType(sort: Sort) extends Type {
+  /**
+    * Substitute sort in this type.
+    *
+    * @param binding
+    * @return
+    */
+  override def substituteSort(binding: Map[SortVar, Sort]): Type = {
+    ConstType(sort.substituteSort(binding))
+  }
+
   /**
     * The Stratego representation of a signature.
     *

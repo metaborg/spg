@@ -29,11 +29,13 @@ class SdfService @Inject()(val resourceService: IResourceService, val unitServic
     *
     * @return
     */
-  def read(templateLangImpl: ILanguageImpl, project: IProject): List[Production] = {
+  def read(templateLangImpl: ILanguageImpl, project: IProject): Grammar = {
     val fileSelector = FileSelectorUtils.extension("sdf3")
     val files = project.location().findFiles(fileSelector).toList
 
-    files.flatMap(read(templateLangImpl, _))
+    files
+      .map(read(templateLangImpl, _))
+      .foldLeft(Grammar.empty)(_ merge _)
   }
 
   /**
@@ -43,7 +45,7 @@ class SdfService @Inject()(val resourceService: IResourceService, val unitServic
     * @param syntax
     * @return
     */
-  def read(templateLangImpl: ILanguageImpl, syntax: FileObject): List[Production] = {
+  def read(templateLangImpl: ILanguageImpl, syntax: FileObject): Grammar = {
     def parseFile(languageImpl: ILanguageImpl): IStrategoTerm = {
       val text = IOUtils.toString(syntax.getContent.getInputStream, StandardCharsets.UTF_8)
       val inputUnit = unitService.inputUnit(syntax, text, languageImpl, null)
@@ -58,16 +60,37 @@ class SdfService @Inject()(val resourceService: IResourceService, val unitServic
 
     val ast = parseFile(templateLangImpl)
 
-    toProductions(ast)
+    toGrammar(ast)
+  }
+
+  private def toGrammar(term: IStrategoTerm): Grammar = {
+    val contextFreeSyntaxes = term.collectAll {
+      case appl: IStrategoAppl =>
+        appl.getConstructor.getName == "ContextFreeSyntax"
+      case _ =>
+        false
+    }
+
+    val lexicalSyntaxes = term.collectAll {
+      case appl: IStrategoAppl =>
+        appl.getConstructor.getName == "LexicalSyntax"
+      case _ =>
+        false
+    }
+
+    Grammar(
+      contextFreeSyntaxes.flatMap(toProductions),
+      lexicalSyntaxes.flatMap(toProductions)
+    )
   }
 
   private def toProductions(term: IStrategoTerm): List[Production] = {
     val productionTerms = term.collectAll {
       case appl: IStrategoAppl =>
         appl.getConstructor.getName == "SdfProduction" ||
-          appl.getConstructor.getName == "SdfProductionWithCons" ||
-          appl.getConstructor.getName == "TemplateProduction" ||
-          appl.getConstructor.getName == "TemplateProductionWithCons"
+        appl.getConstructor.getName == "SdfProductionWithCons" ||
+        appl.getConstructor.getName == "TemplateProduction" ||
+        appl.getConstructor.getName == "TemplateProductionWithCons"
       case _ =>
         false
     }

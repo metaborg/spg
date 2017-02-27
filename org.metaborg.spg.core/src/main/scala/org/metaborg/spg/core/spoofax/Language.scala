@@ -12,14 +12,14 @@ import scala.collection.mutable
   * Representation of a language consisting of productions, signatures,
   * specification, printer, startSymbols, and implementation.
   *
-  * @param productions
+  * @param grammar
   * @param signatures
   * @param specification
   * @param printer
   * @param startSymbols
   * @param implementation
   */
-case class Language(productions: List[Production], signatures: Signatures, specification: Specification, printer: IStrategoTerm => String, startSymbols: Set[Sort], implementation: ILanguageImpl) {
+case class Language(grammar: Grammar, signatures: Signatures, specification: Specification, printer: IStrategoTerm => String, startSymbols: Set[Sort], implementation: ILanguageImpl) {
   val cache = mutable.Map[(String, Sort), List[Rule]]()
 
   /**

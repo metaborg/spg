@@ -9,7 +9,7 @@ import org.metaborg.spg.core.spoofax.models.Strategy._
 import org.metaborg.spg.core.terms.{Pattern, TermAppl, TermString, Var}
 
 case class Concretor(language: Language) {
-  val generator = new LexicalGenerator(language.productions)
+  val generator = new LexicalGenerator(language.grammar)
 
   def computeNamingConstraints(state: Program)(implicit language: Language): List[NamingConstraint] = {
     val graph = Graph(state.constraints)

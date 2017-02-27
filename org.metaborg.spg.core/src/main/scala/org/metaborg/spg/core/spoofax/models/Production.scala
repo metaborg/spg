@@ -4,7 +4,13 @@ case class Production(sort: Sort, rhs: List[Symbol], attributes: List[Attribute]
   def isReject: Boolean =
     attributes.contains(Reject())
 
-  def toSignature: Signature = {
+  /**
+    * Derive constructor signature from production. If the production contains
+    * a bracket attribute, no production is returned.
+    *
+    * @return
+    */
+  def toSignature: Option[Signature] = {
     def rhsToConstType(rhs: Symbol): Option[ConstType] = rhs match {
       case x@SortAppl(_, _) =>
         Some(ConstType(x))
