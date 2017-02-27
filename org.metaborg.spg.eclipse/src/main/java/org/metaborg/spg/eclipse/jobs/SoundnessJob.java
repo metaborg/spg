@@ -97,6 +97,7 @@ public class SoundnessJob extends Job {
 				.generate(language, project, config)
 				.asJavaObservable();
 			
+			/*
 			Observable<ProcessOutput> outputs = programs.compose(MapWithIndex.<String>instance()).map(indexed -> {
 				stream.println(indexed.value());
 				stream.println("--------------------------------------------");
@@ -141,6 +142,7 @@ public class SoundnessJob extends Job {
 				subMonitor.setWorkRemaining(0);
 				subMonitor.done();
 			});
+			*/
 		} catch (ProjectNotFoundException e) {
 			Activator.logError("An error occurred while retrieving the language.", e);
 		}

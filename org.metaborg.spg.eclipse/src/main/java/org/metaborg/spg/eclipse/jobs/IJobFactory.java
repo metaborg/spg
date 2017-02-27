@@ -10,10 +10,18 @@ public interface IJobFactory {
 	 * @param termLimit
 	 * @param termSize
 	 * @param fuel
-	 * @param timeout
 	 * @return
 	 */
 	public GenerateJob createGenerateJob(FileObject project, int termLimit, int termSize, int fuel);
+	
+	/**
+	 * Create an ambiguity job.
+	 * 
+	 * @param project
+	 * @param fuel
+	 * @return
+	 */
+	public AmbiguityJob createAmbiguityJob(FileObject project, int termLimit, int fuel);
 	
 	/**
 	 * Create a soundness job.

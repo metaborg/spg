@@ -43,7 +43,6 @@ public class GenerateJob extends Job {
 	protected int termLimit;
 	protected int termSize;
 	protected int fuel;
-	protected int timeout;
     
 	public GenerateJob(IResourceService resourceService, IProjectService projectService, ILanguageService languageService, ILanguageComponentConfigService configService, Generator generator, FileObject project, int termLimit, int termSize, int fuel) {
 		super("Generate");
