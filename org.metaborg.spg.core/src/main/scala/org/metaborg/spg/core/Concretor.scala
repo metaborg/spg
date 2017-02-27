@@ -72,17 +72,7 @@ case class Concretor(language: Language) {
       }).toMap
     )
 
-    // Replace "Conss" by "Cons" for pretty printing
-    val conssToCons = new Strategy {
-      override def apply(p: Pattern): Option[Pattern] = p match {
-        case TermAppl("Conss", children) =>
-          Some(TermAppl("Cons", children))
-        case _ =>
-          None
-      }
-    }
-
-    topdown(attempt(conssToCons))(r4).get
+    r4
   }
 
   /**
