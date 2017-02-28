@@ -25,7 +25,7 @@
         </command>
         <command
             commandId="org.metaborg.spg.eclipse.command.soundness"
-            label="Type soundness test"
+            label="Soundness test"
             style="push">
         </command>
       </menu>

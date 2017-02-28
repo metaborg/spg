@@ -97,52 +97,26 @@ public class SoundnessJob extends Job {
 				.generate(language, project, config)
 				.asJavaObservable();
 			
-			/*
-			Observable<ProcessOutput> outputs = programs.compose(MapWithIndex.<String>instance()).map(indexed -> {
-				stream.println(indexed.value());
-				stream.println("--------------------------------------------");
-				
-				try {
-					File programFile = storeProgram(indexed.value(), extension);
-					
-					ProcessOutput processOutput = run(programFile.getCanonicalPath());
-					
-					stream.println(processOutput.getOutput());
-					stream.println(processOutput.getError());
-					
-					return processOutput;
-				} catch (IOException | InterruptedException e) {
-					Activator.logError("An error occurred while interpreting a generated term.", e);
-					
-					return new TerminateOutput("", "");
-				}
-			});
-			
-			Observable<ProcessOutput> finite = outputs.takeWhileWithIndex((output, index) -> {
-				if (output.getError().contains("ReductionFailure") || output.getError().contains("IllegalStateException")) {
-					long endTime = System.currentTimeMillis();
-					
-					stream.println("Found counterexample after " + (index + 1) + " terms (" + (endTime-startTime)/1000 + " seconds).");
-					
-					return false;
-				}
-				
-				return true;
-			});
-			
-			finite.subscribe(output -> {
-				subMonitor.split(1);
-			}, exception -> {
-				if (exception instanceof OperationCanceledException) {
-					// Swallow cancellation exceptions
-				} else {
-					Activator.logError("An error occurred while generating terms.", exception);
-				}
-			}, () -> {
-				subMonitor.setWorkRemaining(0);
-				subMonitor.done();
-			});
-			*/
+			programs
+				.doOnNext(file -> subMonitor.split(1))
+				.map(program -> store(program, extension))
+				.map(file -> execute(file))
+				.takeUntil(output -> error(output))
+				.compose(MapWithIndex.instance())
+				.last()
+				.subscribe(indexedOutput -> {
+					stream.println("Found counterexample after " + (indexedOutput.index() + 1) + " terms (" + (System.currentTimeMillis()-startTime)/1000 + " seconds).");
+				}, exception -> {
+					if (exception instanceof OperationCanceledException) {
+						// Swallow cancellation exceptions
+					} else {
+						Activator.logError("An error occurred while generating terms.", exception);
+					}
+				}, () -> {
+					subMonitor.setWorkRemaining(0);
+					subMonitor.done();
+				})
+			;
 		} catch (ProjectNotFoundException e) {
 			Activator.logError("An error occurred while retrieving the language.", e);
 		}
@@ -178,26 +152,45 @@ public class SoundnessJob extends Job {
 	 * @param program
 	 * @throws IOException
 	 */
-	protected File storeProgram(String program, String extension) throws IOException {
-	    File file = File.createTempFile("spg", extension);
-	    
-	    try (FileWriter fileWriter = new FileWriter(file)) {
-	    	fileWriter.write(program);
-	    }
-	    
-	    return file;
+	protected File store(String program, String extension) {
+		try {
+		    File file = File.createTempFile("spg", extension);
+		    
+		    try (FileWriter fileWriter = new FileWriter(file)) {
+		    	fileWriter.write(program);
+		    }
+		    
+		    return file;
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	/**
-	 * Run the interpreter on the program at the given path and return the
-	 * process output.
+	 * Execute the program in the given file and return the process output.
 	 * 
 	 * @param path
 	 * @return 
 	 * @throws IOException 
 	 * @throws InterruptedException 
 	 */
-	protected ProcessOutput run(String path) throws IOException, InterruptedException {
+	protected ProcessOutput execute(File file) {
+		try {
+			return execute(file.getCanonicalPath());
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
+	/**
+	 * Execute the program at the given path and return the process output.
+	 * 
+	 * @param path
+	 * @return 
+	 * @throws IOException 
+	 * @throws InterruptedException 
+	 */
+	protected ProcessOutput execute(String path) throws IOException, InterruptedException {
 		ProcessBuilder processBuilder = new ProcessBuilder(interpreter, path);
 	    Process process = processBuilder.start();
 	    
@@ -223,6 +216,19 @@ public class SoundnessJob extends Job {
 
   			return new TerminateOutput(out, err);
 	    }
+	}
+
+	/**
+	 * Check if the output contains an error.
+	 * 
+	 * @param output
+	 * @return
+	 */
+	protected boolean error(ProcessOutput output) {
+		return Boolean.logicalOr(
+			output.getError().contains("ReductionFailure"),
+			output.getError().contains("IllegalStateException")
+		);
 	}
 	
 	/**

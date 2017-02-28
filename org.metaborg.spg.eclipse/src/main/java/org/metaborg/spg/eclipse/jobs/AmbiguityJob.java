@@ -37,6 +37,7 @@ import org.metaborg.spg.core.Config;
 import org.metaborg.spg.core.SyntaxGenerator;
 import org.metaborg.spg.eclipse.Activator;
 import org.metaborg.spg.eclipse.ProjectNotFoundException;
+import org.metaborg.spg.eclipse.rx.MapWithIndex;
 import org.metaborg.spoofax.core.syntax.ISpoofaxSyntaxService;
 import org.metaborg.spoofax.core.unit.ISpoofaxInputUnit;
 import org.metaborg.spoofax.core.unit.ISpoofaxParseUnit;
@@ -103,18 +104,17 @@ public class AmbiguityJob extends Job {
 				.asJavaObservable();
 			
 			programs
-				.map(program -> progress(program))
+				.doOnNext(program -> progress(subMonitor, program))
 				.map(program -> store(program))
 				.map(file -> parse(language, file))
 				.takeUntil(parseUnit -> ambiguous(parseUnit))
+				.compose(MapWithIndex.instance())
 				.last()
-				.subscribe(parseUnit -> {
-					IStrategoTerm ast = parse(language, parseUnit.input().source()).ast();
+				.subscribe(indexedParseUnit -> {
+					IStrategoTerm ast = parse(language, indexedParseUnit.value().input().source()).ast();
 					
 					stream.println("=== Ambiguities ===");
 					stream.println(Joiner.on("\n").join(ambiguities(ast)));	           
-					
-					subMonitor.split(1);
 				}, exception -> {
 					if (exception instanceof OperationCanceledException) {
 						// Swallow cancellation exceptions
@@ -131,15 +131,16 @@ public class AmbiguityJob extends Job {
     };
     
     /**
-     * Show there is some prorgress by printing the program.
+     * Show there is some prorgress by printing the program and incrementing
+	 * the submonitor.
      * 
      * @param program
      */
-    protected String progress(String program) {
+    protected void progress(SubMonitor monitor, String program) {
     	stream.println("=== Program ===");
     	stream.println(program);
     	
-    	return program;
+    	monitor.split(1);
     }
     
     /**
