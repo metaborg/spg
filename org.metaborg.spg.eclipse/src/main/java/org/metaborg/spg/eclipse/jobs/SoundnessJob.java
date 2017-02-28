@@ -9,7 +9,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.vfs2.FileObject;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.OperationCanceledException;
@@ -18,21 +17,12 @@ import org.eclipse.core.runtime.SubMonitor;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.ui.console.MessageConsole;
 import org.eclipse.ui.console.MessageConsoleStream;
-import org.metaborg.core.MetaborgException;
-import org.metaborg.core.config.ConfigRequest;
-import org.metaborg.core.config.ILanguageComponentConfig;
-import org.metaborg.core.config.ILanguageComponentConfigService;
 import org.metaborg.core.language.ILanguageImpl;
-import org.metaborg.core.language.ILanguageService;
 import org.metaborg.core.language.ResourceExtensionFacet;
-import org.metaborg.core.messages.IMessage;
 import org.metaborg.core.project.IProject;
-import org.metaborg.core.project.IProjectService;
-import org.metaborg.core.resource.IResourceService;
 import org.metaborg.spg.core.Config;
 import org.metaborg.spg.core.Generator;
 import org.metaborg.spg.eclipse.Activator;
-import org.metaborg.spg.eclipse.ProjectNotFoundException;
 import org.metaborg.spg.eclipse.models.ProcessOutput;
 import org.metaborg.spg.eclipse.models.TerminateOutput;
 import org.metaborg.spg.eclipse.models.TimeoutOutput;
@@ -49,34 +39,26 @@ public class SoundnessJob extends Job {
     protected MessageConsole console = ConsoleUtils.get("Spoofax console");
     protected MessageConsoleStream stream = console.newMessageStream();
     
-    protected IResourceService resourceService;
-    protected IProjectService projectService;
-    protected ILanguageService languageService;
-    protected ILanguageComponentConfigService configService;
     protected Generator generator;
     
-	protected FileObject project;
+	protected IProject project;
+	protected ILanguageImpl language;
 	protected int termLimit;
 	protected int termSize;
 	protected int fuel;
-	protected boolean store;
 	protected String interpreter;
 	protected int timeout;
 
-	public SoundnessJob(IResourceService resourceService, IProjectService projectService, ILanguageService languageService, ILanguageComponentConfigService configService, Generator generator, FileObject project, int termLimit, int termSize, int fuel, boolean store, String interpreter, int timeout) {
+	public SoundnessJob(Generator generator, IProject project, ILanguageImpl language, int termLimit, int termSize, int fuel, String interpreter, int timeout) {
 		super("Soundness");
 		
-		this.resourceService = resourceService;
-		this.projectService = projectService;
-		this.languageService = languageService;
-		this.configService = configService;
 		this.generator = generator;
 		
 		this.project = project;
+		this.language = language;
 		this.termLimit = termLimit;
 		this.termSize = termSize;
 		this.fuel = fuel;
-		this.store = store;
 		this.interpreter = interpreter;
 		this.timeout = timeout;
 	}
@@ -84,43 +66,36 @@ public class SoundnessJob extends Job {
 	@Override
 	protected IStatus run(IProgressMonitor monitor) {
 		final SubMonitor subMonitor = SubMonitor.convert(monitor, termLimit);
-		final IProject project = projectService.get(this.project);
 		
-		try {
-			ILanguageImpl language = getLanguage(project);
-			String extension = getExtension(language);
-			long startTime = System.currentTimeMillis();
-			
-			Config config = new Config(termLimit, fuel, termSize, true, true);
-			
-			Observable<? extends String> programs = generator
-				.generate(language, project, config)
-				.asJavaObservable();
-			
-			programs
-				.doOnNext(file -> subMonitor.split(1))
-				.map(program -> store(program, extension))
-				.map(file -> execute(file))
-				.compose(MapWithIndex.instance())
-				.skipWhile(indexedParseUnit -> !error(indexedParseUnit.value()))
-				.first()
-				.last()
-				.subscribe(indexedOutput -> {
-					stream.println("Found counterexample after " + (indexedOutput.index() + 1) + " terms (" + (System.currentTimeMillis()-startTime)/1000 + " seconds).");
-				}, exception -> {
-					if (exception instanceof OperationCanceledException) {
-						// Swallow cancellation exceptions
-					} else {
-						Activator.logError("An error occurred while generating terms.", exception);
-					}
-				}, () -> {
-					subMonitor.setWorkRemaining(0);
-					subMonitor.done();
-				})
-			;
-		} catch (ProjectNotFoundException e) {
-			Activator.logError("An error occurred while retrieving the language.", e);
-		}
+		String extension = getExtension(language);
+		long startTime = System.currentTimeMillis();
+		
+		Config config = new Config(termLimit, fuel, termSize, true, true);
+		
+		Observable<? extends String> programs = generator
+			.generate(language, project, config)
+			.asJavaObservable();
+		
+		programs
+			.doOnNext(file -> subMonitor.split(1))
+			.map(program -> store(program, extension))
+			.map(file -> execute(file))
+			.compose(MapWithIndex.instance())
+			.skipWhile(indexedParseUnit -> !error(indexedParseUnit.value()))
+			.first()
+			.subscribe(indexedOutput -> {
+				stream.println("Found counterexample after " + (indexedOutput.index() + 1) + " terms (" + (System.currentTimeMillis()-startTime)/1000 + " seconds).");
+			}, exception -> {
+				if (exception instanceof OperationCanceledException) {
+					// Swallow cancellation exceptions
+				} else {
+					Activator.logError("An error occurred while generating terms.", exception);
+				}
+			}, () -> {
+				subMonitor.setWorkRemaining(0);
+				subMonitor.done();
+			})
+		;
 		
 		return Status.OK_STATUS;
 	}
@@ -240,38 +215,4 @@ public class SoundnessJob extends Job {
 	protected String randomString() {
 		return "abc";
 	}
-	
-    /**
-     * Get language for given project.
-     * 
-     * @param path
-     * @return
-     * @throws ProjectNotFoundException 
-     * @throws MetaborgException
-     */
-    protected ILanguageImpl getLanguage(IProject project) throws ProjectNotFoundException {
-		ConfigRequest<ILanguageComponentConfig> projectConfig = configService.get(project.location());
-		
-		if (Iterables.size(projectConfig.errors()) != 0) {
-			for (IMessage message : projectConfig.errors()) {
-				Activator.logError(message.message(), message.exception());
-			}
-			
-			throw new ProjectNotFoundException("One or more errors occurred while retrieving config at " + project.location());
-		}
-		
-		ILanguageComponentConfig config = projectConfig.config();
-		
-		if (config == null) {
-			throw new ProjectNotFoundException("Unable to find config at " + project.location());
-		}
-		
-		ILanguageImpl languageImpl = languageService.getImpl(config.identifier());
-		
-		if (languageImpl == null) {
-			throw new ProjectNotFoundException("Unable to get implementation for language with identifier " + config.identifier());
-		}
-    	
-    	return languageImpl;
-    }
 }

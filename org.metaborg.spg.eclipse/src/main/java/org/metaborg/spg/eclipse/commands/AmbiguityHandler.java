@@ -1,11 +1,13 @@
 package org.metaborg.spg.eclipse.commands;
 
-import org.apache.commons.vfs2.FileObject;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.window.Window;
+import org.metaborg.core.language.ILanguageImpl;
+import org.metaborg.core.project.IProject;
+import org.metaborg.spg.eclipse.LanguageNotFoundException;
 import org.metaborg.spg.eclipse.ProjectNotFoundException;
 import org.metaborg.spg.eclipse.dialogs.GenerateDialog;
 import org.metaborg.spg.eclipse.jobs.IJobFactory;
@@ -14,7 +16,8 @@ public class AmbiguityHandler extends SpgHandler {
 	@Override
 	public Object execute(ExecutionEvent event) throws ExecutionException {
 		try {
-			FileObject project = getProject(event);
+			IProject project = getProject(event);
+			ILanguageImpl language = getLanguage(project);
 			
 			GenerateDialog generateDialog = new GenerateDialog(getShell(event));
 			generateDialog.create();
@@ -24,6 +27,7 @@ public class AmbiguityHandler extends SpgHandler {
 				
 				Job job = jobFactory.createAmbiguityJob(
 					project,
+					language,
 					generateDialog.getTermLimit(),
 					generateDialog.getFuel()
 				);
@@ -34,6 +38,8 @@ public class AmbiguityHandler extends SpgHandler {
 			}
 		} catch (ProjectNotFoundException e) {
 			MessageDialog.openError(null, "Project not found", "Cannot find a Spoofax project for generation.");
+		} catch (LanguageNotFoundException e) {
+			MessageDialog.openError(null, "Language not found", "Cannot find a Spoofax language for generation. Did you build the project?");
 		}
 		
 		return null;

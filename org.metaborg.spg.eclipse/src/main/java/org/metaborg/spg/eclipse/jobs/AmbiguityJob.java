@@ -21,22 +21,14 @@ import org.eclipse.core.runtime.SubMonitor;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.ui.console.MessageConsole;
 import org.eclipse.ui.console.MessageConsoleStream;
-import org.metaborg.core.MetaborgException;
-import org.metaborg.core.config.ConfigRequest;
-import org.metaborg.core.config.ILanguageComponentConfig;
-import org.metaborg.core.config.ILanguageComponentConfigService;
 import org.metaborg.core.language.ILanguageImpl;
-import org.metaborg.core.language.ILanguageService;
-import org.metaborg.core.messages.IMessage;
 import org.metaborg.core.project.IProject;
-import org.metaborg.core.project.IProjectService;
 import org.metaborg.core.resource.IResourceService;
 import org.metaborg.core.source.ISourceTextService;
 import org.metaborg.core.syntax.ParseException;
 import org.metaborg.spg.core.Config;
 import org.metaborg.spg.core.SyntaxGenerator;
 import org.metaborg.spg.eclipse.Activator;
-import org.metaborg.spg.eclipse.ProjectNotFoundException;
 import org.metaborg.spg.eclipse.rx.MapWithIndex;
 import org.metaborg.spoofax.core.syntax.ISpoofaxSyntaxService;
 import org.metaborg.spoofax.core.unit.ISpoofaxInputUnit;
@@ -47,7 +39,6 @@ import org.spoofax.interpreter.terms.IStrategoAppl;
 import org.spoofax.interpreter.terms.IStrategoTerm;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.Iterables;
 
 import rx.Observable;
 
@@ -58,26 +49,21 @@ public class AmbiguityJob extends Job {
     protected MessageConsoleStream stream = console.newMessageStream();
     
     protected IResourceService resourceService;
-    protected IProjectService projectService;
-    protected ILanguageService languageService;
-    protected ILanguageComponentConfigService configService;
     protected ISourceTextService sourceTextService;
     protected ISpoofaxUnitService unitService;
     protected ISpoofaxSyntaxService syntaxService;
     protected SyntaxGenerator generator;
     
-	protected FileObject project;
+	protected IProject project;
+	protected ILanguageImpl language;
 	protected int termLimit;
 	protected int fuel;
 	protected int timeout;
     
-	public AmbiguityJob(IResourceService resourceService, IProjectService projectService, ILanguageService languageService, ILanguageComponentConfigService configService, ISourceTextService sourceTextService, ISpoofaxUnitService unitService, ISpoofaxSyntaxService syntaxService, SyntaxGenerator generator, FileObject project, int termLimit, int fuel) {
+	public AmbiguityJob(IResourceService resourceService, ISourceTextService sourceTextService, ISpoofaxUnitService unitService, ISpoofaxSyntaxService syntaxService, SyntaxGenerator generator, IProject project, ILanguageImpl language, int termLimit, int fuel) {
 		super("Generate");
 		
 		this.resourceService = resourceService;
-		this.projectService = projectService;
-		this.languageService = languageService;
-		this.configService = configService;
 		this.sourceTextService = sourceTextService;
 		this.unitService = unitService;
 		this.syntaxService = syntaxService;
@@ -85,6 +71,8 @@ public class AmbiguityJob extends Job {
 		this.generator = generator;
 		
 		this.project = project;
+		this.language = language;
+		this.language = language;
 		this.termLimit = termLimit;
 		this.fuel = fuel;
 	}
@@ -92,40 +80,33 @@ public class AmbiguityJob extends Job {
 	@Override
 	protected IStatus run(IProgressMonitor monitor) {
 		final SubMonitor subMonitor = SubMonitor.convert(monitor, termLimit);
-		final IProject project = projectService.get(this.project);
 
-		try {
-			ILanguageImpl language = getLanguage(project);
-			
-			Config config = new Config(termLimit, fuel, 0, true, true);
-			
-			Observable<? extends String> programs = generator
-				.generate(language, project, config)
-				.asJavaObservable();
-			
-			programs
-				.doOnNext(program -> progress(subMonitor, program))
-				.map(program -> store(program))
-				.map(file -> parse(language, file))
-				.compose(MapWithIndex.instance())
-				.skipWhile(indexedParseUnit -> !ambiguous(indexedParseUnit.value()))
-				.first()
-				.subscribe(indexedParseUnit -> {
-					IStrategoTerm ast = parse(language, indexedParseUnit.value().input().source()).ast();
-					
-					stream.println("=== Ambiguities ===");
-					stream.println(Joiner.on("\n").join(ambiguities(ast)));	           
-				}, exception -> {
-					if (exception instanceof OperationCanceledException) {
-						// Swallow cancellation exceptions
-					} else {
-						Activator.logError("An error occurred while generating terms.", exception);
-					}
-				})
-			;
-		} catch (ProjectNotFoundException e) {
-			Activator.logError("An error occurred while retrieving the language.", e);
-		}
+		Config config = new Config(termLimit, fuel, 0, true, true);
+		
+		Observable<? extends String> programs = generator
+			.generate(language, project, config)
+			.asJavaObservable();
+		
+		programs
+			.doOnNext(program -> progress(subMonitor, program))
+			.map(program -> store(program))
+			.map(file -> parse(language, file))
+			.compose(MapWithIndex.instance())
+			.skipWhile(indexedParseUnit -> !ambiguous(indexedParseUnit.value()))
+			.first()
+			.subscribe(indexedParseUnit -> {
+				IStrategoTerm ast = parse(language, indexedParseUnit.value().input().source()).ast();
+				
+				stream.println("=== Ambiguities ===");
+				stream.println(Joiner.on("\n").join(ambiguities(ast)));
+			}, exception -> {
+				if (exception instanceof OperationCanceledException) {
+					// Swallow cancellation exceptions
+				} else {
+					Activator.logError("An error occurred while generating terms.", exception);
+				}
+			})
+		;
         
         return Status.OK_STATUS;
     };
@@ -242,39 +223,5 @@ public class AmbiguityJob extends Job {
     		.stream(term.getAllSubterms())
     		.flatMap(child -> ambiguities(child).stream())
     		.collect(Collectors.toList());
-    }
-
-    /**
-     * Get language for given project.
-     * 
-     * @param path
-     * @return
-     * @throws ProjectNotFoundException 
-     * @throws MetaborgException
-     */
-    protected ILanguageImpl getLanguage(IProject project) throws ProjectNotFoundException {
-		ConfigRequest<ILanguageComponentConfig> projectConfig = configService.get(project.location());
-		
-		if (Iterables.size(projectConfig.errors()) != 0) {
-			for (IMessage message : projectConfig.errors()) {
-				Activator.logError(message.message(), message.exception());
-			}
-			
-			throw new ProjectNotFoundException("One or more errors occurred while retrieving config at " + project.location());
-		}
-		
-		ILanguageComponentConfig config = projectConfig.config();
-		
-		if (config == null) {
-			throw new ProjectNotFoundException("Unable to find config at " + project.location());
-		}
-		
-		ILanguageImpl languageImpl = languageService.getImpl(config.identifier());
-		
-		if (languageImpl == null) {
-			throw new ProjectNotFoundException("Unable to get implementation for language with identifier " + config.identifier());
-		}
-    	
-    	return languageImpl;
     }
 }
