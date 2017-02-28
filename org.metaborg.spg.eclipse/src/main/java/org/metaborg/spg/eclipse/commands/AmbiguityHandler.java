@@ -29,7 +29,7 @@ public class AmbiguityHandler extends SpgHandler {
 					project,
 					language,
 					generateDialog.getTermLimit(),
-					generateDialog.getFuel()
+					generateDialog.getTermSize()
 				);
 				
 				job.setPriority(Job.SHORT);

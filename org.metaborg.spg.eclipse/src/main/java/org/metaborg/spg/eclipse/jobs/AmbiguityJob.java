@@ -57,10 +57,10 @@ public class AmbiguityJob extends Job {
 	protected IProject project;
 	protected ILanguageImpl language;
 	protected int termLimit;
-	protected int fuel;
+	protected int sizeLimit;
 	protected int timeout;
     
-	public AmbiguityJob(IResourceService resourceService, ISourceTextService sourceTextService, ISpoofaxUnitService unitService, ISpoofaxSyntaxService syntaxService, SyntaxGenerator generator, IProject project, ILanguageImpl language, int termLimit, int fuel) {
+	public AmbiguityJob(IResourceService resourceService, ISourceTextService sourceTextService, ISpoofaxUnitService unitService, ISpoofaxSyntaxService syntaxService, SyntaxGenerator generator, IProject project, ILanguageImpl language, int termLimit, int sizeLimit) {
 		super("Generate");
 		
 		this.resourceService = resourceService;
@@ -74,14 +74,14 @@ public class AmbiguityJob extends Job {
 		this.language = language;
 		this.language = language;
 		this.termLimit = termLimit;
-		this.fuel = fuel;
+		this.sizeLimit = sizeLimit;
 	}
 	
 	@Override
 	protected IStatus run(IProgressMonitor monitor) {
 		final SubMonitor subMonitor = SubMonitor.convert(monitor, termLimit);
 
-		Config config = new Config(termLimit, fuel, 0, true, true);
+		Config config = new Config(termLimit, 0, sizeLimit, true, true);
 		
 		Observable<? extends String> programs = generator
 			.generate(language, project, config)
@@ -92,8 +92,7 @@ public class AmbiguityJob extends Job {
 			.map(program -> store(program))
 			.map(file -> parse(language, file))
 			.compose(MapWithIndex.instance())
-			.skipWhile(indexedParseUnit -> !ambiguous(indexedParseUnit.value()))
-			.first()
+			.takeFirst(indexedParseUnit -> ambiguous(indexedParseUnit.value()))
 			.subscribe(indexedParseUnit -> {
 				IStrategoTerm ast = parse(language, indexedParseUnit.value().input().source()).ast();
 				
@@ -105,6 +104,9 @@ public class AmbiguityJob extends Job {
 				} else {
 					Activator.logError("An error occurred while generating terms.", exception);
 				}
+			}, () -> {
+				subMonitor.setWorkRemaining(0);
+				subMonitor.done();
 			})
 		;
         

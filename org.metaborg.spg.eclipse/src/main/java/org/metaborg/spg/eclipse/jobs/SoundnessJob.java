@@ -21,7 +21,7 @@ import org.metaborg.core.language.ILanguageImpl;
 import org.metaborg.core.language.ResourceExtensionFacet;
 import org.metaborg.core.project.IProject;
 import org.metaborg.spg.core.Config;
-import org.metaborg.spg.core.Generator;
+import org.metaborg.spg.core.SemanticGenerator;
 import org.metaborg.spg.eclipse.Activator;
 import org.metaborg.spg.eclipse.models.ProcessOutput;
 import org.metaborg.spg.eclipse.models.TerminateOutput;
@@ -31,7 +31,6 @@ import org.metaborg.spoofax.eclipse.util.ConsoleUtils;
 
 import com.google.common.collect.Iterables;
 
-import rx.Observable;
 
 public class SoundnessJob extends Job {
 	public static Charset UTF_8 = StandardCharsets.UTF_8;
@@ -39,7 +38,7 @@ public class SoundnessJob extends Job {
     protected MessageConsole console = ConsoleUtils.get("Spoofax console");
     protected MessageConsoleStream stream = console.newMessageStream();
     
-    protected Generator generator;
+    protected SemanticGenerator generator;
     
 	protected IProject project;
 	protected ILanguageImpl language;
@@ -49,7 +48,7 @@ public class SoundnessJob extends Job {
 	protected String interpreter;
 	protected int timeout;
 
-	public SoundnessJob(Generator generator, IProject project, ILanguageImpl language, int termLimit, int termSize, int fuel, String interpreter, int timeout) {
+	public SoundnessJob(SemanticGenerator generator, IProject project, ILanguageImpl language, int termLimit, int termSize, int fuel, String interpreter, int timeout) {
 		super("Soundness");
 		
 		this.generator = generator;
@@ -72,11 +71,9 @@ public class SoundnessJob extends Job {
 		
 		Config config = new Config(termLimit, fuel, termSize, true, true);
 		
-		Observable<? extends String> programs = generator
+		generator
 			.generate(language, project, config)
-			.asJavaObservable();
-		
-		programs
+			.asJavaObservable()
 			.doOnNext(file -> subMonitor.split(1))
 			.map(program -> store(program, extension))
 			.map(file -> execute(file))

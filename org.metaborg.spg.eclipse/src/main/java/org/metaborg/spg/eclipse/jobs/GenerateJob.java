@@ -11,7 +11,7 @@ import org.eclipse.ui.console.MessageConsoleStream;
 import org.metaborg.core.language.ILanguageImpl;
 import org.metaborg.core.project.IProject;
 import org.metaborg.spg.core.Config;
-import org.metaborg.spg.core.Generator;
+import org.metaborg.spg.core.SemanticGenerator;
 import org.metaborg.spg.eclipse.Activator;
 import org.metaborg.spoofax.eclipse.util.ConsoleUtils;
 
@@ -21,7 +21,7 @@ public class GenerateJob extends Job {
     protected MessageConsole console = ConsoleUtils.get("Spoofax console");
     protected MessageConsoleStream stream = console.newMessageStream();
     
-    protected Generator generator;
+    protected SemanticGenerator generator;
     
 	protected IProject project;
 	protected ILanguageImpl language;
@@ -29,7 +29,7 @@ public class GenerateJob extends Job {
 	protected int termSize;
 	protected int fuel;
     
-	public GenerateJob(Generator generator, IProject project, ILanguageImpl language, int termLimit, int termSize, int fuel) {
+	public GenerateJob(SemanticGenerator generator, IProject project, ILanguageImpl language, int termLimit, int termSize, int fuel) {
 		super("Generate");
 		
 		this.generator = generator;

@@ -8,7 +8,7 @@ import net.codingwell.scalaguice.InjectorExtensions._
 import org.backuity.clist.Cli
 import org.metaborg.core.language.LanguageUtils
 import org.metaborg.core.project.{IProject, SimpleProjectService}
-import org.metaborg.spg.core.{Config, Generator, SyntaxGenerator}
+import org.metaborg.spg.core.{Config, SemanticGenerator, SyntaxGenerator}
 import org.metaborg.spoofax.core.Spoofax
 import org.slf4j.LoggerFactory
 

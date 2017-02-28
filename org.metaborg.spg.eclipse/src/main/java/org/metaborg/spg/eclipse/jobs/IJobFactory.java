@@ -21,10 +21,11 @@ public interface IJobFactory {
 	 * 
 	 * @param project
 	 * @param language
-	 * @param fuel
+	 * @param termLimit
+	 * @param termSize
 	 * @return
 	 */
-	public AmbiguityJob createAmbiguityJob(IProject project, ILanguageImpl language, int termLimit, int fuel);
+	public AmbiguityJob createAmbiguityJob(IProject project, ILanguageImpl language, int termLimit, int termSize);
 	
 	/**
 	 * Create a soundness job.
