@@ -101,8 +101,9 @@ public class SoundnessJob extends Job {
 				.doOnNext(file -> subMonitor.split(1))
 				.map(program -> store(program, extension))
 				.map(file -> execute(file))
-				.takeUntil(output -> error(output))
 				.compose(MapWithIndex.instance())
+				.skipWhile(indexedParseUnit -> !error(indexedParseUnit.value()))
+				.first()
 				.last()
 				.subscribe(indexedOutput -> {
 					stream.println("Found counterexample after " + (indexedOutput.index() + 1) + " terms (" + (System.currentTimeMillis()-startTime)/1000 + " seconds).");

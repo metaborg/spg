@@ -107,9 +107,9 @@ public class AmbiguityJob extends Job {
 				.doOnNext(program -> progress(subMonitor, program))
 				.map(program -> store(program))
 				.map(file -> parse(language, file))
-				.takeUntil(parseUnit -> ambiguous(parseUnit))
 				.compose(MapWithIndex.instance())
-				.last()
+				.skipWhile(indexedParseUnit -> !ambiguous(indexedParseUnit.value()))
+				.first()
 				.subscribe(indexedParseUnit -> {
 					IStrategoTerm ast = parse(language, indexedParseUnit.value().input().source()).ast();
 					
@@ -139,7 +139,7 @@ public class AmbiguityJob extends Job {
     protected void progress(SubMonitor monitor, String program) {
     	stream.println("=== Program ===");
     	stream.println(program);
-    	
+		
     	monitor.split(1);
     }
     
@@ -150,7 +150,7 @@ public class AmbiguityJob extends Job {
      * from VFS.
      * 
      * @return
-     * @throws IOException 
+     * @throws IOException
      */
     protected FileObject store(String program) {
     	try {
