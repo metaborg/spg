@@ -1,17 +1,18 @@
 package org.metaborg.spg.core.spoofax.models
 
+import org.metaborg.spg.core._
 import org.metaborg.spg.core.terms.{As, Pattern, TermAppl, Var}
 
 case class Signatures(list: List[Signature]) {
   /**
     * Get all operations (constructors) for the given sort.
     *
-    * TODO: The results should be cached. They cannot be precompute (due to sort variables/unification), but they can be memoized...
+    * This implementation memoizes the results, i.e. the constructors for any
+    * given sort are only computed once.
     *
-    * @param sort
     * @return
     */
-  def forSort(sort: Sort): List[OpDecl] = {
+  val forSort: Sort => List[OpDecl] = memoize((sort: Sort) => {
     list.flatMap {
       case c@OpDecl(_, ConstType(s)) if s.unify(sort).isDefined =>
         List(c.substituteSort(s.unify(sort).get))
@@ -22,8 +23,8 @@ case class Signatures(list: List[Signature]) {
       case _ =>
         Nil
     }
-  }
-
+  })
+  
   /**
     * Get signatures for the given pattern based on its constructor name and arity.
     *

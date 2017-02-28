@@ -4,8 +4,6 @@ import org.metaborg.spg.core.spoofax.models._
 import org.metaborg.spg.core._
 import org.metaborg.spg.core.spoofax.models.{CharacterRange, IterSep, IterStar, Symbol}
 
-import scala.util.Random
-
 /**
   * A recursive-descent generator for a context-free grammar
   */
