@@ -110,6 +110,9 @@ case class SortVar(name: String) extends Sort {
 // Literal string
 case class Lit(text: String) extends Symbol
 
+// Case insensitive literal string
+case class CiLit(text: String) extends Symbol
+
 // Optional symbol
 case class Opt(symbol: Symbol) extends Symbol
 
@@ -127,3 +130,6 @@ case class IterSep(symbol: Symbol, separator: String) extends Symbol
 
 // Kleene star with separator
 case class IterStarSep(symbol: Symbol, separator: String) extends Symbol
+
+// Layout
+case class Layout() extends Symbol

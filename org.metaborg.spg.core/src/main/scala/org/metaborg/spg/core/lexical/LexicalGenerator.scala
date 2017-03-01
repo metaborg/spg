@@ -25,6 +25,9 @@ class LexicalGenerator(grammar: Grammar) {
     // Return literal text as-is
     case Lit(text) =>
       text
+    // Return literal text as-is (TODO: Create variants with capitalization)
+    case CiLit(text) =>
+      text
     // One or more repetitions
     case Iter(s) =>
       generate(s) + generate(IterStar(s))

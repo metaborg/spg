@@ -4,7 +4,7 @@ import com.google.inject.Inject
 import com.typesafe.scalalogging.LazyLogging
 import org.metaborg.core.language.ILanguageService
 import org.metaborg.spg.core.lexical.LexicalGenerator
-import org.metaborg.spg.core.spoofax.models.{ConstType, FunType, Sort}
+import org.metaborg.spg.core.spoofax.models._
 import org.metaborg.spg.core.spoofax.{Converter, Language, LanguageService}
 import org.metaborg.spg.core.terms.{Pattern, TermAppl, TermString}
 
@@ -56,16 +56,18 @@ class SyntaxGenerator @Inject()(languageService: LanguageService, baseLanguageSe
       return None
     }
 
-    val constructors = language.signatures.forSort(sort)
+    val constructors = language
+      .signatures
+      .constructorsForSort(sort)
 
     if (constructors.isEmpty) {
       Some(TermString(new LexicalGenerator(language.grammar).generate(sort)))
     } else {
       for (constructor <- constructors.shuffle) {
-        constructor.typ match {
-          case ConstType(_) =>
-            return Some(TermAppl(constructor.name, Nil))
-          case FunType(types, _) => {
+        constructor match {
+          case OpDecl(name, ConstType(_)) =>
+            return Some(TermAppl(name, Nil))
+          case OpDecl(name, FunType(types, _)) => {
             val childTypes = types.asInstanceOf[List[ConstType]]
             val childSorts = childTypes.map(_.sort)
 
@@ -74,10 +76,10 @@ class SyntaxGenerator @Inject()(languageService: LanguageService, baseLanguageSe
               val childTerms = childSorts.map(generateTry(language, config, _, childSize))
 
               if (childTerms.forall(_.isDefined)) {
-                return Some(TermAppl(constructor.name, childTerms.map(_.get)))
+                return Some(TermAppl(name, childTerms.map(_.get)))
               }
             } else {
-              return Some(TermAppl(constructor.name))
+              return Some(TermAppl(name))
             }
           }
         }

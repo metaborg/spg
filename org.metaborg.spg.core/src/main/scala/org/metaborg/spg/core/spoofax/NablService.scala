@@ -212,6 +212,8 @@ class NablService @Inject()(val resourceService: IResourceService, val unitServi
         false
     }
 
+    // TODO: There's not always an init rule, and thus not always a head...
+
     rules.head match {
       case appl: StrategoAppl =>
         val scopes = toVars(appl.getSubterm(0).getSubterm(0))

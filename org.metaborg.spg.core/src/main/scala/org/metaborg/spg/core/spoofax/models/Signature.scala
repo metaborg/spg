@@ -7,24 +7,28 @@ case class Signatures(list: List[Signature]) {
   /**
     * Get all operations (constructors) for the given sort.
     *
+    * TODO: Deal with cycles in the signatures. E.g. Jasmin has the constructor
+    * `: String -> String` which yields a StackOverflowError.
+    *
+    * TODO: Split computing the closure from computing the signatures for a
+    * given target sort.
+    *
     * This implementation memoizes the results, i.e. the constructors for any
     * given sort are only computed once.
-    *
-    * @return
     */
-  val forSort: Sort => List[OpDecl] = memoize((sort: Sort) => {
+  val constructorsForSort: Sort => List[OpDecl] = memoize((sort: Sort) => {
     list.flatMap {
       case c@OpDecl(_, ConstType(s)) if s.unify(sort).isDefined =>
         List(c.substituteSort(s.unify(sort).get))
       case c@OpDecl(_, FunType(_, ConstType(s))) if s.unify(sort).isDefined =>
         List(c.substituteSort(s.unify(sort).get))
       case OpDeclInj(FunType(List(ConstType(childSort)), ConstType(s))) if s.unify(sort).isDefined =>
-        forSort(childSort.substituteSort(s.unify(sort).get))
+        constructorsForSort(childSort.substituteSort(s.unify(sort).get))
       case _ =>
         Nil
     }
   })
-  
+
   /**
     * Get signatures for the given pattern based on its constructor name and arity.
     *
@@ -139,8 +143,9 @@ case class OpDecl(name: String, typ: Type) extends Signature {
     *
     * @return
     */
-  override def toString: String =
+  override def toString: String = {
     s"$name : $typ"
+  }
 }
 
 case class OpDeclInj(typ: Type) extends Signature {
@@ -159,8 +164,9 @@ case class OpDeclInj(typ: Type) extends Signature {
     *
     * @return
     */
-  override def toString: String =
+  override def toString: String = {
     s"$typ"
+  }
 }
 
 abstract class Type {
@@ -183,8 +189,9 @@ case class FunType(children: List[Type], result: Type) extends Type {
     *
     * @return
     */
-  override def toString: String =
+  override def toString: String = {
     s"${children.mkString(" * ")} -> $result"
+  }
 }
 
 case class ConstType(sort: Sort) extends Type {
@@ -203,6 +210,7 @@ case class ConstType(sort: Sort) extends Type {
     *
     * @return
     */
-  override def toString: String =
+  override def toString: String = {
     sort.toString
+  }
 }

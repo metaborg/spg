@@ -78,9 +78,17 @@ class SdfService @Inject()(val resourceService: IResourceService, val unitServic
         false
     }
 
+    val kernelSyntaxes = term.collectAll {
+      case appl: IStrategoAppl =>
+        appl.getConstructor.getName == "Kernel"
+      case _ =>
+        false
+    }
+
     Grammar(
       contextFreeSyntaxes.flatMap(toProductions),
-      lexicalSyntaxes.flatMap(toProductions)
+      lexicalSyntaxes.flatMap(toProductions),
+      kernelSyntaxes.flatMap(toProductions)
     )
   }
 
@@ -136,6 +144,10 @@ class SdfService @Inject()(val resourceService: IResourceService, val unitServic
       SortAppl(toString(term.getSubterm(0)))
     case appl: IStrategoAppl if appl.getConstructor.getName == "Layout" =>
       SortAppl("LAYOUT")
+    case appl: IStrategoAppl if appl.getConstructor.getName == "Cf" =>
+      toSort(term.getSubterm(0))
+    case appl: IStrategoAppl if appl.getConstructor.getName == "Lex" =>
+      toSort(term.getSubterm(0))
   }
 
   private def toRhs(term: IStrategoTerm): List[models.Symbol] = term match {
@@ -187,6 +199,8 @@ class SdfService @Inject()(val resourceService: IResourceService, val unitServic
       toSort(term)
     case appl: IStrategoAppl if appl.getConstructor.getName == "Lit" =>
       Lit(toString(appl.getSubterm(0)).tail.init)
+    case appl: IStrategoAppl if appl.getConstructor.getName == "CiLit" =>
+      CiLit(toString(appl.getSubterm(0)).tail.init)
     case appl: IStrategoAppl if appl.getConstructor.getName == "Opt" =>
       Opt(toSymbol(appl.getSubterm(0)))
     case appl: IStrategoAppl if appl.getConstructor.getName == "Iter" =>
@@ -203,6 +217,12 @@ class SdfService @Inject()(val resourceService: IResourceService, val unitServic
       toCharClass(appl.getSubterm(0))
     case appl: IStrategoAppl if appl.getConstructor.getName == "Comp" =>
       toCharClass(term)
+    case appl: IStrategoAppl if appl.getConstructor.getName == "Cf" =>
+      toSymbol(term.getSubterm(0))
+    case appl: IStrategoAppl if appl.getConstructor.getName == "Lex" =>
+      toSymbol(term.getSubterm(0))
+    case appl: IStrategoAppl if appl.getConstructor.getName == "Layout" =>
+      Layout()
   }
 
   private def toCharClass(term: IStrategoTerm): CharClass = term match {
