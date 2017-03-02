@@ -91,6 +91,7 @@ public class AmbiguityJob extends Job {
 			.doOnNext(program -> progress(subMonitor, program))
 			.map(program -> store(program))
 			.map(file -> parse(language, file))
+			.filter(parseUnit -> parseUnit.valid())
 			.compose(MapWithIndex.instance())
 			.takeFirst(indexedParseUnit -> ambiguous(indexedParseUnit.value()))
 			.subscribe(indexedParseUnit -> {

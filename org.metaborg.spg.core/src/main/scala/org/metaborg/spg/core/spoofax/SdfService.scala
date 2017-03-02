@@ -217,6 +217,9 @@ class SdfService @Inject()(val resourceService: IResourceService, val unitServic
       toCharClass(appl.getSubterm(0))
     case appl: IStrategoAppl if appl.getConstructor.getName == "Comp" =>
       toCharClass(term)
+    // TODO: Second child of Sequence is a list
+    case appl: IStrategoAppl if appl.getConstructor.getName == "Sequence" =>
+      Sequence(toSymbol(term.getSubterm(0)), toSymbol(term.getSubterm(1).getSubterm(0)))
     case appl: IStrategoAppl if appl.getConstructor.getName == "Cf" =>
       toSymbol(term.getSubterm(0))
     case appl: IStrategoAppl if appl.getConstructor.getName == "Lex" =>

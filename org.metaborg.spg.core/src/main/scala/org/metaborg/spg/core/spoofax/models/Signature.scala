@@ -5,29 +5,32 @@ import org.metaborg.spg.core.terms.{As, Pattern, TermAppl, Var}
 
 case class Signatures(list: List[Signature]) {
   /**
-    * Get all operations (constructors) for the given sort.
+    * Get all constructors for the given sort.
     *
-    * TODO: Deal with cycles in the signatures. E.g. Jasmin has the constructor
-    * `: String -> String` which yields a StackOverflowError.
-    *
-    * TODO: Split computing the closure from computing the signatures for a
-    * given target sort.
-    *
-    * This implementation memoizes the results, i.e. the constructors for any
-    * given sort are only computed once.
+    * This implementation prevents cycles by keeping track of the seen sorts.
+    * Moreover, it memoizes the results to prevent computing the constructors
+    * for any given sort twice.
     */
-  val constructorsForSort: Sort => List[OpDecl] = memoize((sort: Sort) => {
-    list.flatMap {
-      case c@OpDecl(_, ConstType(s)) if s.unify(sort).isDefined =>
-        List(c.substituteSort(s.unify(sort).get))
-      case c@OpDecl(_, FunType(_, ConstType(s))) if s.unify(sort).isDefined =>
-        List(c.substituteSort(s.unify(sort).get))
-      case OpDeclInj(FunType(List(ConstType(childSort)), ConstType(s))) if s.unify(sort).isDefined =>
-        constructorsForSort(childSort.substituteSort(s.unify(sort).get))
-      case _ =>
+  val constructorsForSort: Sort => List[OpDecl] = {
+    def constructorsForSort(seen: Set[Sort])(sort: Sort): List[OpDecl] = {
+      if (seen contains sort) {
         Nil
+      } else {
+        list.flatMap {
+          case c@OpDecl(_, ConstType(s)) if s.unify(sort).isDefined =>
+            List(c.substituteSort(s.unify(sort).get))
+          case c@OpDecl(_, FunType(_, ConstType(s))) if s.unify(sort).isDefined =>
+            List(c.substituteSort(s.unify(sort).get))
+          case OpDeclInj(FunType(List(ConstType(childSort)), ConstType(s))) if s.unify(sort).isDefined =>
+            constructorsForSort(seen + sort)(childSort.substituteSort(s.unify(sort).get))
+          case _ =>
+            Nil
+        }
+      }
     }
-  })
+
+    memoize(constructorsForSort(Set.empty[Sort]))
+  }
 
   /**
     * Get signatures for the given pattern based on its constructor name and arity.

@@ -119,6 +119,9 @@ case class Opt(symbol: Symbol) extends Symbol
 // Alternative symbol
 case class Alt(s1: Symbol, s2: Symbol) extends Symbol
 
+// Sequence symbol
+case class Sequence(s1: Symbol, s2: Symbol) extends Symbol
+
 // Kleene plus
 case class Iter(symbol: Symbol) extends Symbol
 

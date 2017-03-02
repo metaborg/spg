@@ -71,9 +71,18 @@ class LexicalGenerator(grammar: Grammar) {
       val difference = ascii diff exclude
 
       difference.random.toChar.toString
-    case _ =>
-      println(symbol)
-      ???
+    // TODO: Generate based on the layout productions
+    case Layout() =>
+      " "
+    // Pick either alternative
+    case Alt(s1, s2) =>
+      if (Coin.toss() == Coin.Head) {
+        generate(s1)
+      } else {
+        generate(s2)
+      }
+    case Sequence(s1, s2) =>
+      generate(s1) ++ generate(s2)
   }
 
   /**
