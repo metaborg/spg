@@ -29,11 +29,13 @@ class SdfService @Inject()(val resourceService: IResourceService, val unitServic
     *
     * @return
     */
-  def read(templateLangImpl: ILanguageImpl, project: IProject): List[Production] = {
+  def read(templateLangImpl: ILanguageImpl, project: IProject): Grammar = {
     val fileSelector = FileSelectorUtils.extension("sdf3")
     val files = project.location().findFiles(fileSelector).toList
 
-    files.flatMap(read(templateLangImpl, _))
+    files
+      .map(read(templateLangImpl, _))
+      .foldLeft(Grammar.empty)(_ merge _)
   }
 
   /**
@@ -43,7 +45,7 @@ class SdfService @Inject()(val resourceService: IResourceService, val unitServic
     * @param syntax
     * @return
     */
-  def read(templateLangImpl: ILanguageImpl, syntax: FileObject): List[Production] = {
+  def read(templateLangImpl: ILanguageImpl, syntax: FileObject): Grammar = {
     def parseFile(languageImpl: ILanguageImpl): IStrategoTerm = {
       val text = IOUtils.toString(syntax.getContent.getInputStream, StandardCharsets.UTF_8)
       val inputUnit = unitService.inputUnit(syntax, text, languageImpl, null)
@@ -58,16 +60,45 @@ class SdfService @Inject()(val resourceService: IResourceService, val unitServic
 
     val ast = parseFile(templateLangImpl)
 
-    toProductions(ast)
+    toGrammar(ast)
+  }
+
+  private def toGrammar(term: IStrategoTerm): Grammar = {
+    val contextFreeSyntaxes = term.collectAll {
+      case appl: IStrategoAppl =>
+        appl.getConstructor.getName == "ContextFreeSyntax"
+      case _ =>
+        false
+    }
+
+    val lexicalSyntaxes = term.collectAll {
+      case appl: IStrategoAppl =>
+        appl.getConstructor.getName == "LexicalSyntax"
+      case _ =>
+        false
+    }
+
+    val kernelSyntaxes = term.collectAll {
+      case appl: IStrategoAppl =>
+        appl.getConstructor.getName == "Kernel"
+      case _ =>
+        false
+    }
+
+    Grammar(
+      contextFreeSyntaxes.flatMap(toProductions),
+      lexicalSyntaxes.flatMap(toProductions),
+      kernelSyntaxes.flatMap(toProductions)
+    )
   }
 
   private def toProductions(term: IStrategoTerm): List[Production] = {
     val productionTerms = term.collectAll {
       case appl: IStrategoAppl =>
         appl.getConstructor.getName == "SdfProduction" ||
-          appl.getConstructor.getName == "SdfProductionWithCons" ||
-          appl.getConstructor.getName == "TemplateProduction" ||
-          appl.getConstructor.getName == "TemplateProductionWithCons"
+        appl.getConstructor.getName == "SdfProductionWithCons" ||
+        appl.getConstructor.getName == "TemplateProduction" ||
+        appl.getConstructor.getName == "TemplateProductionWithCons"
       case _ =>
         false
     }
@@ -96,6 +127,8 @@ class SdfService @Inject()(val resourceService: IResourceService, val unitServic
   private def toAttr(term: IStrategoTerm): Option[Attribute] = term match {
     case appl: IStrategoAppl if appl.getConstructor.getName == "Reject" =>
       Some(Reject())
+    case appl: IStrategoAppl if appl.getConstructor.getName == "Bracket" =>
+      Some(Bracket())
     case _ =>
       None
   }
@@ -111,6 +144,10 @@ class SdfService @Inject()(val resourceService: IResourceService, val unitServic
       SortAppl(toString(term.getSubterm(0)))
     case appl: IStrategoAppl if appl.getConstructor.getName == "Layout" =>
       SortAppl("LAYOUT")
+    case appl: IStrategoAppl if appl.getConstructor.getName == "Cf" =>
+      toSort(term.getSubterm(0))
+    case appl: IStrategoAppl if appl.getConstructor.getName == "Lex" =>
+      toSort(term.getSubterm(0))
   }
 
   private def toRhs(term: IStrategoTerm): List[models.Symbol] = term match {
@@ -162,18 +199,33 @@ class SdfService @Inject()(val resourceService: IResourceService, val unitServic
       toSort(term)
     case appl: IStrategoAppl if appl.getConstructor.getName == "Lit" =>
       Lit(toString(appl.getSubterm(0)).tail.init)
+    case appl: IStrategoAppl if appl.getConstructor.getName == "CiLit" =>
+      CiLit(toString(appl.getSubterm(0)).tail.init)
     case appl: IStrategoAppl if appl.getConstructor.getName == "Opt" =>
       Opt(toSymbol(appl.getSubterm(0)))
     case appl: IStrategoAppl if appl.getConstructor.getName == "Iter" =>
       Iter(toSymbol(appl.getSubterm(0)))
     case appl: IStrategoAppl if appl.getConstructor.getName == "IterStar" =>
       IterStar(toSymbol(appl.getSubterm(0)))
+    case appl: IStrategoAppl if appl.getConstructor.getName == "IterSep" =>
+      IterSep(toSymbol(appl.getSubterm(0)), toString(appl.getSubterm(1).getSubterm(0)))
+    case appl: IStrategoAppl if appl.getConstructor.getName == "IterStarSep" =>
+      IterStarSep(toSymbol(appl.getSubterm(0)), toString(appl.getSubterm(1).getSubterm(0)))
     case appl: IStrategoAppl if appl.getConstructor.getName == "Alt" =>
       Alt(toSymbol(appl.getSubterm(0)), toSymbol(appl.getSubterm(1)))
     case appl: IStrategoAppl if appl.getConstructor.getName == "CharClass" =>
       toCharClass(appl.getSubterm(0))
     case appl: IStrategoAppl if appl.getConstructor.getName == "Comp" =>
       toCharClass(term)
+    // TODO: Second child of Sequence is a list
+    case appl: IStrategoAppl if appl.getConstructor.getName == "Sequence" =>
+      Sequence(toSymbol(term.getSubterm(0)), toSymbol(term.getSubterm(1).getSubterm(0)))
+    case appl: IStrategoAppl if appl.getConstructor.getName == "Cf" =>
+      toSymbol(term.getSubterm(0))
+    case appl: IStrategoAppl if appl.getConstructor.getName == "Lex" =>
+      toSymbol(term.getSubterm(0))
+    case appl: IStrategoAppl if appl.getConstructor.getName == "Layout" =>
+      Layout()
   }
 
   private def toCharClass(term: IStrategoTerm): CharClass = term match {
@@ -202,11 +254,15 @@ class SdfService @Inject()(val resourceService: IResourceService, val unitServic
       Range(toCharacter(term.getSubterm(0)), toCharacter(term.getSubterm(1)))
     case appl: IStrategoAppl if appl.getConstructor.getName == "Short" =>
       toCharacter(term)
+    case appl: IStrategoAppl if appl.getConstructor.getName == "Numeric" =>
+      Short(toString(term.getSubterm(0)).tail.toInt.toChar)
   }
 
   private def toCharacter(term: IStrategoTerm): Character = term match {
     case appl: IStrategoAppl if appl.getConstructor.getName == "Short" =>
       Short(unescape(toString(term.getSubterm(0))).head)
+    case appl: IStrategoAppl if appl.getConstructor.getName == "Numeric" =>
+      Short(toString(term.getSubterm(0)).tail.toInt.toChar)
   }
 
   private def toString(term: IStrategoTerm): String = term match {
@@ -229,4 +285,5 @@ class SdfService @Inject()(val resourceService: IResourceService, val unitServic
       .replace("\\-", "-") // 2-char string `\-` becomes 1-char string `-`
       .replace("\\<", "<") // 2-char string `\<` becomes 1-char string `<`
       .replace("\\>", ">") // 2-char string `\>` becomes 1-char string `>`
+      .replace("\\$", "$") // 2-char string `\$` becomes 1-char string `$`
 }

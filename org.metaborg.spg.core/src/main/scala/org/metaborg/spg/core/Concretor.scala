@@ -9,7 +9,7 @@ import org.metaborg.spg.core.spoofax.models.Strategy._
 import org.metaborg.spg.core.terms.{Pattern, TermAppl, TermString, Var}
 
 case class Concretor(language: Language) {
-  val generator = new LexicalGenerator(language.productions)
+  val generator = new LexicalGenerator(language.grammar)
 
   def computeNamingConstraints(state: Program)(implicit language: Language): List[NamingConstraint] = {
     val graph = Graph(state.constraints)
@@ -72,17 +72,7 @@ case class Concretor(language: Language) {
       }).toMap
     )
 
-    // Replace "Conss" by "Cons" for pretty printing
-    val conssToCons = new Strategy {
-      override def apply(p: Pattern): Option[Pattern] = p match {
-        case TermAppl("Conss", children) =>
-          Some(TermAppl("Cons", children))
-        case _ =>
-          None
-      }
-    }
-
-    topdown(attempt(conssToCons))(r4).get
+    r4
   }
 
   /**

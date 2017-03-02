@@ -47,7 +47,9 @@ class NablService @Inject()(val resourceService: IResourceService, val unitServi
     val fileSelector = FileSelectorUtils.extension("nabl2")
     val files = project.location().findFiles(fileSelector).toList
 
-    files.map(read(nablLangImpl, _)).reduce(_ merge _)
+    files
+      .map(read(nablLangImpl, _))
+      .foldLeft(Specification.empty)(_ merge _)
   }
 
   /**
@@ -209,6 +211,8 @@ class NablService @Inject()(val resourceService: IResourceService, val unitServi
       case _ =>
         false
     }
+
+    // TODO: There's not always an init rule, and thus not always a head...
 
     rules.head match {
       case appl: StrategoAppl =>

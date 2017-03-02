@@ -14,9 +14,18 @@
             label="Generate terms"
             style="push">
         </command>
+        <separator
+            name="separator-1"
+            visible="true">
+        </separator>
+        <command
+            commandId="org.metaborg.spg.eclipse.command.ambiguity"
+            label="Ambiguity test"
+            style="push">
+        </command>
         <command
             commandId="org.metaborg.spg.eclipse.command.soundness"
-            label="Type soundness test"
+            label="Soundness test"
             style="push">
         </command>
       </menu>
@@ -35,9 +44,18 @@
   <extension
       point="org.eclipse.ui.commands">
     <command
+        defaultHandler="org.metaborg.spg.eclipse.commands.AmbiguityHandler"
+        id="org.metaborg.spg.eclipse.command.ambiguity"
+        name="Ambiguity test">
+    </command>
+  </extension>
+  
+  <extension
+      point="org.eclipse.ui.commands">
+    <command
         defaultHandler="org.metaborg.spg.eclipse.commands.SoundnessHandler"
         id="org.metaborg.spg.eclipse.command.soundness"
-        name="Generate terms">
+        name="Type soundness test">
     </command>
   </extension>
 </plugin>

@@ -1,64 +1,81 @@
 package org.metaborg.spg.eclipse.jobs;
 
-import org.apache.commons.vfs2.FileObject;
-import org.metaborg.core.config.ILanguageComponentConfigService;
-import org.metaborg.core.language.ILanguageService;
-import org.metaborg.core.project.IProjectService;
+import org.metaborg.core.language.ILanguageImpl;
+import org.metaborg.core.project.IProject;
 import org.metaborg.core.resource.IResourceService;
-import org.metaborg.spg.core.Generator;
+import org.metaborg.core.source.ISourceTextService;
+import org.metaborg.spg.core.SemanticGenerator;
+import org.metaborg.spg.core.SyntaxGenerator;
+import org.metaborg.spoofax.core.syntax.ISpoofaxSyntaxService;
+import org.metaborg.spoofax.core.unit.ISpoofaxUnitService;
 
 import com.google.inject.Inject;
 
 public class JobFactory implements IJobFactory {
     protected IResourceService resourceService;
-    protected IProjectService projectService;
-    protected ILanguageService languageService;
-    protected ILanguageComponentConfigService configService;
-    protected Generator generator;
+    protected ISourceTextService sourceTextService;
+    protected ISpoofaxUnitService unitService;
+    protected ISpoofaxSyntaxService syntaxService;
+    
+    protected SyntaxGenerator syntaxGenerator;
+    protected SemanticGenerator semanticGenerator;
     
     @Inject
-	public JobFactory(IResourceService resourceService, IProjectService projectService, ILanguageService languageService, ILanguageComponentConfigService configService, Generator generator) {
+	public JobFactory(IResourceService resourceService, ISourceTextService sourceTextService, ISpoofaxUnitService unitService, ISpoofaxSyntaxService syntaxService, SyntaxGenerator syntaxGenerator, SemanticGenerator semanticGenerator) {
 		this.resourceService = resourceService;
-		this.projectService = projectService;
-		this.languageService = languageService;
-		this.configService = configService;
-		this.generator = generator;
+		this.sourceTextService = sourceTextService;
+		this.unitService = unitService;
+		this.syntaxService = syntaxService;
+		
+		this.syntaxGenerator = syntaxGenerator;
+		this.semanticGenerator = semanticGenerator;
 	}
     
     @Override
-    public GenerateJob createGenerateJob(FileObject project, int termLimit, int termSize, int fuel) {
+    public GenerateJob createGenerateJob(IProject project, ILanguageImpl language, int termLimit, int termSize, int fuel) {
     	return new GenerateJob(
 			// Dependencies
-			resourceService,
-			projectService,
-			languageService,
-			configService,
-			generator,
+			semanticGenerator,
 			
 			// Job configuration
 			project,
+			language,
 			termLimit,
 			termSize,
 			fuel
 		);
     }
     
-	@Override
-	public SoundnessJob createSoundnessJob(FileObject project, int termLimit, int termSize, int fuel, boolean store, String interpreter, int timeout) {
-		return new SoundnessJob(
+    @Override
+	public AmbiguityJob createAmbiguityJob(IProject project, ILanguageImpl language, int termLimit, int termSize) {
+    	return new AmbiguityJob(
 			// Dependencies
 			resourceService,
-			projectService,
-			languageService,
-			configService,
-			generator,
+			sourceTextService,
+			unitService,
+			syntaxService,
+			syntaxGenerator,
 			
 			// Job configuration
 			project,
+			language,
+			termLimit,
+			termSize
+		);
+    }
+    
+	@Override
+	public SoundnessJob createSoundnessJob(IProject project, ILanguageImpl language, int termLimit, int termSize, int fuel, String interpreter, int timeout) {
+		return new SoundnessJob(
+			// Dependencies
+			semanticGenerator,
+			
+			// Job configuration
+			project,
+			language,
 			termLimit,
 			termSize,
 			fuel,
-			store,
 			interpreter,
 			timeout
 		);

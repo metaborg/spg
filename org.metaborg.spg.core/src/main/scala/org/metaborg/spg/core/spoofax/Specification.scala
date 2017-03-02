@@ -22,3 +22,14 @@ case class Specification(labels: List[Label], order: LabelOrdering, wf: Regex[La
     Specification(labels ++ s.labels, order.merge(s.order), wf || s.wf, rules ++ s.rules)
   }
 }
+
+object Specification {
+  /**
+    * Create an empty specification.
+    *
+    * @return
+    */
+  def empty: Specification = {
+    Specification(Nil, LabelOrdering(), EmptySet(), Nil)
+  }
+}

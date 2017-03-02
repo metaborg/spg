@@ -9,28 +9,27 @@ import org.metaborg.core.language.ILanguageImpl;
 import org.metaborg.core.project.IProject;
 import org.metaborg.spg.eclipse.LanguageNotFoundException;
 import org.metaborg.spg.eclipse.ProjectNotFoundException;
-import org.metaborg.spg.eclipse.dialogs.GenerateDialog;
+import org.metaborg.spg.eclipse.dialogs.AmbiguityDialog;
 import org.metaborg.spg.eclipse.jobs.IJobFactory;
 
-public class GenerateHandler extends SpgHandler {
+public class AmbiguityHandler extends SpgHandler {
 	@Override
 	public Object execute(ExecutionEvent event) throws ExecutionException {
 		try {
 			IProject project = getProject(event);
 			ILanguageImpl language = getLanguage(project);
 			
-			GenerateDialog generateDialog = new GenerateDialog(getShell(event));
-			generateDialog.create();
+			AmbiguityDialog ambiguityDialog = new AmbiguityDialog(getShell(event));
+			ambiguityDialog.create();
 			
-			if (generateDialog.open() == Window.OK) {
+			if (ambiguityDialog.open() == Window.OK) {
 				IJobFactory jobFactory = injector.getInstance(IJobFactory.class);
 				
-				Job job = jobFactory.createGenerateJob(
+				Job job = jobFactory.createAmbiguityJob(
 					project,
 					language,
-					generateDialog.getTermLimit(),
-					generateDialog.getTermSize(),
-					generateDialog.getFuel()
+					ambiguityDialog.getTermLimit(),
+					ambiguityDialog.getTermSize()
 				);
 				
 				job.setPriority(Job.SHORT);

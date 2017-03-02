@@ -4,19 +4,17 @@ import org.metaborg.spg.core.spoofax.models._
 import org.metaborg.spg.core._
 import org.metaborg.spg.core.spoofax.models.{CharacterRange, IterSep, IterStar, Symbol}
 
-import scala.util.Random
-
 /**
   * A recursive-descent generator for a context-free grammar
   */
-class LexicalGenerator(productions: List[Production]) {
+class LexicalGenerator(grammar: Grammar) {
   /**
     * Generate a string for the given symbol
     */
   def generate(symbol: Symbol): String = symbol match {
     // Recursively generate sort
     case SortAppl(_, Nil) =>
-      val productionOpt = productions
+      val productionOpt = grammar.productions
         .filter(_.sort == symbol)
         .filter(!_.isReject)
         .randomOption
@@ -26,6 +24,9 @@ class LexicalGenerator(productions: List[Production]) {
         .getOrElse(throw new IllegalStateException("No production for sort " + symbol))
     // Return literal text as-is
     case Lit(text) =>
+      text
+    // Return literal text as-is (TODO: Create variants with capitalization)
+    case CiLit(text) =>
       text
     // One or more repetitions
     case Iter(s) =>
@@ -70,9 +71,18 @@ class LexicalGenerator(productions: List[Production]) {
       val difference = ascii diff exclude
 
       difference.random.toChar.toString
-    case _ =>
-      println(symbol)
-      ???
+    // TODO: Generate based on the layout productions
+    case Layout() =>
+      " "
+    // Pick either alternative
+    case Alt(s1, s2) =>
+      if (Coin.toss() == Coin.Head) {
+        generate(s1)
+      } else {
+        generate(s2)
+      }
+    case Sequence(s1, s2) =>
+      generate(s1) ++ generate(s2)
   }
 
   /**

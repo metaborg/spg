@@ -6,7 +6,7 @@ import org.metaborg.spg.core.terms.{Pattern, Var}
 
 import scala.annotation.tailrec
 import scala.collection.mutable
-import scala.util.Random
+
 
 package object core {
   type TermBinding = Map[Var, Pattern]
@@ -189,5 +189,12 @@ package object core {
       x
     case fx =>
       fixedPoint(f, fx)
+  }
+
+  // Turn a function in a memoized function
+  def memoize[T, R](f: T => R): T => R = {
+    val memory = mutable.Map.empty[T, R]
+
+    (t: T) => memory.getOrElseUpdate(t, f(t))
   }
 }

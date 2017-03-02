@@ -2,70 +2,40 @@ package org.metaborg.spg.core
 
 import com.google.inject.Inject
 import com.typesafe.scalalogging.LazyLogging
-import org.metaborg.core.language.{ILanguageImpl, ILanguageService, LanguageIdentifier}
-import org.metaborg.core.project.IProject
+import org.metaborg.core.language.ILanguageService
 import org.metaborg.spg.core.solver._
 import org.metaborg.spg.core.spoofax.{Converter, Language, LanguageService}
-import rx.lang.scala.Observable
 
-class Generator @Inject()(val languageService: LanguageService, val baseLanguageService: ILanguageService, chooser: AutomaticChooser) extends LazyLogging {
-  /**
-    * Create a cold Observable that emits programs for the given language
-    * implementation and generation configuration.
-    *
-    * @param lut
-    * @param project
-    * @param config
-    * @return
-    */
-  def generate(lut: ILanguageImpl, project: IProject, config: Config): Observable[String] = {
-    val templateLang = getLanguage("org.metaborg:org.metaborg.meta.lang.template:2.1.0")
-    val nablLang = getLanguage("org.metaborg:org.metaborg.meta.nabl2.lang:2.1.0")
-    val language = languageService.load(templateLang, nablLang, lut, project)
-
-    generate(language, config)
-  }
-
-  /**
-    * Create a cold Observable that emits programs for the given language
-    * and generation configuration.
-    *
-    * @param lut
-    * @param config
-    * @return
-    */
-  private def generate(lut: Language, config: Config): Observable[String] = {
-    Observable(subscriber => {
-      Iterator
-        .range(0, config.limit)
-        .takeWhile(_ => !subscriber.isUnsubscribed)
-        .foreach(_ => subscriber.onNext(generateSingle(lut, config)))
-
-      if (!subscriber.isUnsubscribed) {
-        subscriber.onCompleted()
-      }
-    })
-  }
-
+/**
+  * The semantics generator generates semantically valid terms.
+  *
+  * @param languageService
+  * @param baseLanguageService
+  * @param chooser
+  */
+class SemanticGenerator @Inject()(languageService: LanguageService, baseLanguageService: ILanguageService, chooser: AutomaticChooser) extends AbstractGenerator(languageService, baseLanguageService) with LazyLogging {
   /**
     * Generate a single term by repeatedly invoking generateTry until it
-    * returns a well-formed term.
+    * returns a semantically valid term.
     *
     * @param language
     * @param config
     * @return
     */
-  private def generateSingle(implicit language: Language, config: Config): String = {
+  override def generateSingle(language: Language, config: Config): String = {
     Iterator
-      .continually(generateTry)
+      .continually(generateTry(language, config))
       .dropWhile(_.isEmpty)
       .next
       .get
   }
 
   /**
-    * Try to generate a well-formed term by invoking generateFueled with a fuel
-    * parameter taken from the config object.
+    * Try to generate a semantically valid term by invoking generateFueled with
+    * a fuel parameter taken from the config object.
+    *
+    * If a term can be generated, returns Some with the term. Otherwise,
+    * returns None.
     *
     * @param language
     * @param config
@@ -165,16 +135,5 @@ class Generator @Inject()(val languageService: LanguageService, val baseLanguage
 
       None
     }
-  }
-
-  /**
-    * Get a language implementation based on its identifier.
-    *
-    * @param identifier
-    */
-  private def getLanguage(identifier: String) = {
-    val languageIdentifier = LanguageIdentifier.parse(identifier)
-
-    baseLanguageService.getImpl(languageIdentifier)
   }
 }
