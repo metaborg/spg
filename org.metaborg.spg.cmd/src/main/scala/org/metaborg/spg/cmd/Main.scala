@@ -58,7 +58,7 @@ object Main extends App {
     loadLanguage(options.sdfPath)
     loadLanguage(options.nablPath)
 
-    val generator = spoofax.injector.getInstance(classOf[SyntaxGenerator])
+    val generator = spoofax.injector.getInstance(classOf[SemanticGenerator])
 
     val programs = generator.generate(
       loadLanguage(options.projectPath),

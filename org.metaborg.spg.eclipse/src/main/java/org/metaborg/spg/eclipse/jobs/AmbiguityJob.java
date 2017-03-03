@@ -40,8 +40,6 @@ import org.spoofax.interpreter.terms.IStrategoTerm;
 
 import com.google.common.base.Joiner;
 
-import rx.Observable;
-
 public class AmbiguityJob extends Job {
 	public static Charset UTF_8 = StandardCharsets.UTF_8;
 	
@@ -83,11 +81,9 @@ public class AmbiguityJob extends Job {
 
 		Config config = new Config(termLimit, 0, sizeLimit, true, true);
 		
-		Observable<? extends String> programs = generator
+		generator
 			.generate(language, project, config)
-			.asJavaObservable();
-		
-		programs
+			.asJavaObservable()
 			.doOnNext(program -> progress(subMonitor, program))
 			.map(program -> store(program))
 			.map(file -> parse(language, file))

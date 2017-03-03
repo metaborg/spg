@@ -14,7 +14,7 @@ case class Grammar(contextFree: List[Production], lexical: List[Production], ker
     *
     * @return
     */
-  def productions: List[Production] = {
+  lazy val productions: List[Production] = {
     contextFree ++ lexical ++ kernel
   }
 

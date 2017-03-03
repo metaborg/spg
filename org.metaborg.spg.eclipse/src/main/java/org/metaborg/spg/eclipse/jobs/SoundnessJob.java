@@ -31,7 +31,6 @@ import org.metaborg.spoofax.eclipse.util.ConsoleUtils;
 
 import com.google.common.collect.Iterables;
 
-
 public class SoundnessJob extends Job {
 	public static Charset UTF_8 = StandardCharsets.UTF_8;
 	
@@ -74,9 +73,10 @@ public class SoundnessJob extends Job {
 		generator
 			.generate(language, project, config)
 			.asJavaObservable()
-			.doOnNext(file -> subMonitor.split(1))
+			.doOnNext(program -> progress(subMonitor, program))
 			.map(program -> store(program, extension))
 			.map(file -> execute(file))
+			.doOnNext(output -> output(output))
 			.compose(MapWithIndex.instance())
 			.skipWhile(indexedParseUnit -> !error(indexedParseUnit.value()))
 			.first()
@@ -97,6 +97,29 @@ public class SoundnessJob extends Job {
 		return Status.OK_STATUS;
 	}
 
+    /**
+     * Show there is some prorgress by printing the program and incrementing
+	 * the submonitor.
+     * 
+     * @param program
+     */
+    protected void progress(SubMonitor monitor, String program) {
+    	stream.println("=== Program ===");
+    	stream.println(program);
+		
+    	monitor.split(1);
+    }
+    
+    /**
+     * Show the output of interpreting the program.
+     * 
+     * @param output
+     */
+    protected void output(ProcessOutput output) {
+    	stream.println(output.getOutput());
+    	stream.println(output.getError());
+    }
+    
 	/**
 	 * Get extension for given language implementation.
 	 * 
