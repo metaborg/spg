@@ -107,7 +107,7 @@ public class SoundnessJob extends Job {
     	stream.println("=== Program ===");
     	stream.println(program);
 		
-    	monitor.split(1);
+    	//monitor.split(1);
     }
     
     /**

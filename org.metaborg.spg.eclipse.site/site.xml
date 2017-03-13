@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<site>
+   <feature url="features/org.metaborg.spg.eclipse.feature_2.1.0.qualifier.jar" id="org.metaborg.spg.eclipse.feature" version="2.1.0.qualifier"/>
+</site>

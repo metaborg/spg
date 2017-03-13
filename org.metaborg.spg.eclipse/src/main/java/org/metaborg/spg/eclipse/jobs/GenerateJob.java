@@ -55,7 +55,7 @@ public class GenerateJob extends Job {
 			stream.println(program);
 			stream.println("--------------------------------------------");
 			
-			subMonitor.split(1);
+			//subMonitor.split(1);
 		}, exception -> {
 			if (exception instanceof OperationCanceledException) {
 				// Swallow cancellation exceptions

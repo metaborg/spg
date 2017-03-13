@@ -1,5 +1,5 @@
 Manifest-Version: 1.0
-Bnd-LastModified: 1489398275293
+Bnd-LastModified: 1489408158181
 Build-Jdk: 1.8.0_92
 Built-By: martijn
 Bundle-ClassPath: .,scala-logging_2.11-3.5.0.jar,scala-guice_2.11-4.1.0.

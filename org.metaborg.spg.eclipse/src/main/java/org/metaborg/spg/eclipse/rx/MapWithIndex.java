@@ -19,7 +19,7 @@ public final class MapWithIndex<T> implements Transformer<T, Indexed<T>> {
     }
 
 	@Override
-	public Observable<Indexed<T>> call(Observable<T> source) {
+	public Observable<? extends Indexed<T>> call(Observable<? extends T> source) {
         return source.zipWith(NaturalNumbers.instance(), new Func2<T, Long, Indexed<T>>() {
             @Override
             public Indexed<T> call(T t, Long n) {

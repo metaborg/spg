@@ -5,6 +5,7 @@ import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.core.resources.IResource;
+import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.ITreeSelection;
 import org.eclipse.jface.viewers.TreePath;
@@ -84,13 +85,26 @@ public abstract class SpgHandler extends AbstractHandler {
 	protected FileObject getProject(TreePath treePath) throws ProjectNotFoundException {
 		Object selectedObject = treePath.getLastSegment();
 
-		if (!(selectedObject instanceof IResource)) {
-			throw new ProjectNotFoundException("Selected object is not an Eclipse resource.");
-		}
-
 		return spoofax.injector
 			.getInstance(IEclipseResourceService.class)
-			.resolve((IResource) selectedObject);
+			.resolve(getResource(selectedObject));
+	}
+
+	/**
+	 * Get a resource based on the runtime type of the selected object.
+	 * 
+	 * @param selectedObject
+	 * @return
+	 * @throws ProjectNotFoundException 
+	 */
+	protected IResource getResource(Object selectedObject) throws ProjectNotFoundException {
+		if (selectedObject instanceof IResource) {
+			return (IResource) selectedObject;
+		} else if (selectedObject instanceof IJavaProject) {
+			return ((IJavaProject) selectedObject).getProject();
+		}
+		
+		throw new ProjectNotFoundException("Selected object is not an IResource or IJavaProject.");
 	}
 	
     /**

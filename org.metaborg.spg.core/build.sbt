@@ -15,27 +15,12 @@ crossPaths := false
 // Allow overwriting non-SNAPSHOT build (http://stackoverflow.com/a/26089552/368220)
 isSnapshot := true
 
-// Publish as package OSGi settings
-enablePlugins(SbtOsgi)
-
-osgiSettings
-
-OsgiKeys.exportPackage := Seq("org.metaborg.spg.core")
-
-OsgiKeys.importPackage := Seq(
-  "!sun.misc",
-  "!sun.nio.cs",
-  "!org.junit",
-  "!javax*",
-  "!org.xml*",
-  "org.spoofax*",
-  "org.metaborg*",
-  "org.strategoxt.*",
-  "org.apache.tools.ant",
-  "*;provider=metaborg"
-)
-
-OsgiKeys.bundleSymbolicName := "org.metaborg.spg.core"
+// Add MANIFEST.MF to the main binary jar (https://goo.gl/f5JhG6)
+packageOptions in (Compile, packageBin) +=  {
+  val file = baseDirectory.value / "META-INF" / "MANIFEST.MF"
+  val manifest = Using.fileInputStream(file)( in => new java.util.jar.Manifest(in) )
+  Package.JarManifest( manifest )
+}
 
 // Add resolvers
 resolvers += Resolver.mavenLocal
@@ -57,9 +42,6 @@ libraryDependencies += "org.metaborg" % "org.metaborg.spoofax.core" % "2.1.0"
 
 // Observables
 libraryDependencies += "io.reactivex" %% "rxscala" % "0.26.4"
-
-// OSGi
-libraryDependencies += "org.osgi" % "org.osgi.core" % "4.3.0" % "provided"
 
 // JSR305 Annotations (see http://stackoverflow.com/a/13162672/368220)
 libraryDependencies += "com.google.code.findbugs" % "jsr305" % "1.3.+" % "compile"
