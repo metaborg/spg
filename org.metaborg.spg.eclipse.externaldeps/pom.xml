@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+  xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+>
+  <modelVersion>4.0.0</modelVersion>
+  <artifactId>org.metaborg.spg.eclipse.externaldeps</artifactId>
+  <packaging>bundle</packaging>
+  <description>Bundle to import non-Eclipse external dependencies into Eclipse</description>
+
+  <parent>
+    <groupId>org.metaborg</groupId>
+    <artifactId>parent</artifactId>
+    <version>2.1.0</version>
+    <relativePath />
+  </parent>
+
+  <dependencies>
+    <dependency>
+      <groupId>com.typesafe.scala-logging</groupId>
+      <artifactId>scala-logging_2.11</artifactId>
+      <version>3.5.0</version>
+    </dependency>
+    <dependency>
+      <groupId>net.codingwell</groupId>
+      <artifactId>scala-guice_2.11</artifactId>
+      <version>4.1.0</version>
+    </dependency>
+	  <dependency>
+      <groupId>org.backuity.clist</groupId>
+      <artifactId>clist-core_2.11</artifactId>
+      <version>3.2.2</version>
+    </dependency>
+    <dependency>
+      <groupId>org.backuity.clist</groupId>
+      <artifactId>clist-macros_2.11</artifactId>
+      <version>3.2.2</version>
+    </dependency>
+    <dependency>
+      <groupId>io.reactivex</groupId>
+      <artifactId>rxscala_2.11</artifactId>
+      <version>0.26.4</version>
+    </dependency>
+    <dependency>
+      <groupId>org.scala-lang</groupId>
+      <artifactId>scala-library</artifactId>
+      <version>2.11.8</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <sourceDirectory>src</sourceDirectory>
+
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+      </plugin>
+      <!-- Generate MANIFEST.MF from project, to make project available to Eclipse plugins. -->
+      <plugin>
+        <groupId>org.apache.felix</groupId>
+        <artifactId>maven-bundle-plugin</artifactId>
+        <configuration>
+          <unpackBundle>true</unpackBundle>
+          <instructions>
+            <!-- Fix names not to include the groupId. -->
+            <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
+            <Bundle-Name>${project.artifactId}</Bundle-Name>
+            <!-- Replace SNAPSHOT in the manifest version with given qualifier. -->
+            <Bundle-Version>$(replace;${project.version};-SNAPSHOT;.${forceContextQualifier})</Bundle-Version>
+            <!-- Embed dependencies into plugin bundle, so they are exportable. -->
+            <Embed-Dependency>
+              scala-logging_2.11,
+              scala-guice_2.11,
+              clist-macros_2.11,
+              clist-core_2.11,
+              rxscala_2.11,
+              scala-library
+            </Embed-Dependency>
+            <!-- Export dependency packages -->
+            <Export-Package>
+              !com.google.common.base.internal,
+              !com.google.inject.internal.*,
+              rx.*;provider=metaborg;mandatory:=provider;version=0,
+              com.typesafe.scalalogging.*;provider=metaborg;mandatory:=provider;version=0,
+              net.codingwell.scalaguice.*;provider=metaborg;mandatory:=provider;version=0,
+              org.backuity.clist;provider=metaborg;mandatory:=provider;version=0,
+              org.backuity.clist.util;provider=metaborg;mandatory:=provider;version=0,
+              rx.lang.scala;provider=metaborg;mandatory:=provider;version=0,
+              scala;provider=metaborg;mandatory:=provider;version=0,
+              scala.collection;provider=metaborg;mandatory:=provider;version=0,
+              scala.collection.convert;provider=metaborg;mandatory:=provider;version=0,
+              scala.collection.generic;provider=metaborg;mandatory:=provider;version=0,
+              scala.collection.immutable;provider=metaborg;mandatory:=provider;version=0,
+              scala.collection.mutable;provider=metaborg;mandatory:=provider;version=0,
+              scala.math;provider=metaborg;mandatory:=provider;version=0,
+              scala.reflect;provider=metaborg;mandatory:=provider;version=0,
+              scala.runtime;provider=metaborg;mandatory:=provider;version=0,
+              scala.util;provider=metaborg;mandatory:=provider;version=0
+            </Export-Package>
+            <!-- Don't declare dependency on JDK, internal, or non-existent packages. -->
+            <Import-Package>
+              !sun*,
+              !javax*,
+              !groovy*,
+              !com.google*,
+              !org.apache*,
+              !org.codehaus*,
+              !org.jruby*,
+              !scala*,
+              !org.aopalliance*,
+              org.slf4j;provider=metaborg;mandatory:=provider;version=0,
+              *
+            </Import-Package>
+            <!-- Don't generate uses declarations in exported packages. -->
+            <_nouses>true</_nouses>
+            <!-- Don't use version of this package if no version can be determined. -->
+            <_nodefaultversion>true</_nodefaultversion>
+            <!-- Allow buddy class loading, so that other bundles can merge their classpath with this bundle, which 
+              some libraries require. -->
+            <Eclipse-BuddyPolicy>registered</Eclipse-BuddyPolicy>
+          </instructions>
+        </configuration>
+      </plugin>
+      <!-- Add the generated MANIFEST.MF is used in the resulting JAR file. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <configuration>
+          <archive>
+            <manifestFile>META-INF/MANIFEST.MF</manifestFile>
+          </archive>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+  <developers>
+    <developer>
+      <name>Martijn Dwars</name>
+      <email>ikben@martijndwars.nl</email>
+      <organization>Delft University of Technology</organization>
+      <organizationUrl>http://www.ewi.tudelft.nl/en</organizationUrl>
+    </developer>
+  </developers>
+
+  <scm>
+    <connection>scm:git:git@github.com:metaborg/mb-exec-deps.git</connection>
+    <developerConnection>scm:git:git@github.com:metaborg/mb-exec-deps.git</developerConnection>
+    <url>https://github.com/metaborg/mb-exec-deps</url>
+  </scm>
+</project>

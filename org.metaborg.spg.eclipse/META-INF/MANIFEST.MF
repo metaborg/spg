@@ -6,6 +6,7 @@ Bundle-Version: 2.1.0
 Bundle-Activator: org.metaborg.spg.eclipse.Activator
 Bundle-Vendor: Metaborg
 Require-Bundle: org.metaborg.spoofax.eclipse.externaldeps,
+ org.metaborg.spg.eclipse.externaldeps,
  org.metaborg.spoofax.eclipse,
  org.metaborg.spoofax.eclipse.util,
  org.eclipse.ui,
