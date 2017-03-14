@@ -109,7 +109,6 @@
               !org.codehaus*,
               !org.jruby*,
               !scala*,
-              !org.aopalliance*,
               *;provider=metaborg;mandatory:=provider;version=0
             </Import-Package>
             <!-- Don't generate uses declarations in exported packages. -->

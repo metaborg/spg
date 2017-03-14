@@ -1,5 +1,5 @@
 Manifest-Version: 1.0
-Bnd-LastModified: 1489478288229
+Bnd-LastModified: 1489478949854
 Build-Jdk: 1.8.0_92
 Built-By: martijn
 Bundle-ClassPath: .,scala-logging_2.11-3.5.0.jar,scala-guice_2.11-4.1.0.
@@ -45,13 +45,14 @@ Export-Package: rx.lang.scala;provider=metaborg;mandatory:=provider;vers
  a.runtime;provider=metaborg;mandatory:=provider;version=0,scala.util;pr
  ovider=metaborg;mandatory:=provider;version=0,rx.lang.scala;provider=me
  taborg;mandatory:=provider;version=0
-Import-Package: org.slf4j;provider=metaborg;mandatory:=provider;version=
- 0,rx;provider=metaborg;mandatory:=provider;version=0,rx.exceptions;prov
- ider=metaborg;mandatory:=provider;version=0,rx.functions;provider=metab
- org;mandatory:=provider;version=0,rx.observables;provider=metaborg;mand
- atory:=provider;version=0,rx.observers;provider=metaborg;mandatory:=pro
- vider;version=0,rx.schedulers;provider=metaborg;mandatory:=provider;ver
- sion=0,rx.subjects;provider=metaborg;mandatory:=provider;version=0,rx.s
- ubscriptions;provider=metaborg;mandatory:=provider;version=0
+Import-Package: org.aopalliance.intercept;provider=metaborg;mandatory:=p
+ rovider;version=0,org.slf4j;provider=metaborg;mandatory:=provider;versi
+ on=0,rx;provider=metaborg;mandatory:=provider;version=0,rx.exceptions;p
+ rovider=metaborg;mandatory:=provider;version=0,rx.functions;provider=me
+ taborg;mandatory:=provider;version=0,rx.observables;provider=metaborg;m
+ andatory:=provider;version=0,rx.observers;provider=metaborg;mandatory:=
+ provider;version=0,rx.schedulers;provider=metaborg;mandatory:=provider;
+ version=0,rx.subjects;provider=metaborg;mandatory:=provider;version=0,r
+ x.subscriptions;provider=metaborg;mandatory:=provider;version=0
 Require-Capability: osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=1.6))"
 Tool: Bnd-2.4.1.201501161923
