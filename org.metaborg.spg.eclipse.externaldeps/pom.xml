@@ -110,8 +110,7 @@
               !org.jruby*,
               !scala*,
               !org.aopalliance*,
-              org.slf4j;provider=metaborg;mandatory:=provider;version=0,
-              *
+              *;provider=metaborg;mandatory:=provider;version=0
             </Import-Package>
             <!-- Don't generate uses declarations in exported packages. -->
             <_nouses>true</_nouses>

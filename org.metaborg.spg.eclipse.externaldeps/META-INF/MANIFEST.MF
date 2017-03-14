@@ -1,5 +1,5 @@
 Manifest-Version: 1.0
-Bnd-LastModified: 1489408158181
+Bnd-LastModified: 1489478288229
 Build-Jdk: 1.8.0_92
 Built-By: martijn
 Bundle-ClassPath: .,scala-logging_2.11-3.5.0.jar,scala-guice_2.11-4.1.0.
@@ -46,11 +46,12 @@ Export-Package: rx.lang.scala;provider=metaborg;mandatory:=provider;vers
  ovider=metaborg;mandatory:=provider;version=0,rx.lang.scala;provider=me
  taborg;mandatory:=provider;version=0
 Import-Package: org.slf4j;provider=metaborg;mandatory:=provider;version=
- 0,rx;version="[0.0,1)";provider=metaborg,rx.exceptions;version="[0.0,1)
- ";provider=metaborg,rx.functions;version="[0.0,1)";provider=metaborg,rx
- .observables;version="[0.0,1)";provider=metaborg,rx.observers;version="
- [0.0,1)";provider=metaborg,rx.schedulers;version="[0.0,1)";provider=met
- aborg,rx.subjects;version="[0.0,1)";provider=metaborg,rx.subscriptions;
- version="[0.0,1)";provider=metaborg
+ 0,rx;provider=metaborg;mandatory:=provider;version=0,rx.exceptions;prov
+ ider=metaborg;mandatory:=provider;version=0,rx.functions;provider=metab
+ org;mandatory:=provider;version=0,rx.observables;provider=metaborg;mand
+ atory:=provider;version=0,rx.observers;provider=metaborg;mandatory:=pro
+ vider;version=0,rx.schedulers;provider=metaborg;mandatory:=provider;ver
+ sion=0,rx.subjects;provider=metaborg;mandatory:=provider;version=0,rx.s
+ ubscriptions;provider=metaborg;mandatory:=provider;version=0
 Require-Capability: osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=1.6))"
 Tool: Bnd-2.4.1.201501161923
