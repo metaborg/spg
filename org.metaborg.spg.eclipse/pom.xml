@@ -28,4 +28,18 @@
       <version>2.1.0</version>
     </dependency>
   </dependencies>
+
+  <repositories>
+    <repository>
+      <id>metaborg-spoofax-repo</id>
+      <url>http://artifacts.metaborg.org/content/unzip/releases-unzipped/org/metaborg/org.metaborg.spoofax.eclipse.updatesite/2.1.0/org.metaborg.spoofax.eclipse.updatesite-2.1.0-assembly.zip-unzip/</url>
+      <layout>p2</layout>
+      <releases>
+        <enabled>false</enabled>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </repository>
+  </repositories>
 </project>
