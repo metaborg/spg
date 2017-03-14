@@ -31,3 +31,10 @@ mvn -f org.metaborg.spg.eclipse/pom.xml clean install
 mvn -f org.metaborg.spg.eclipse.feature/pom.xml clean install
 mvn -f org.metaborg.spg.eclipse.site/pom.xml clean install
 ```
+
+Alternatively, build `org.metaborg.spg.{eclipse,eclipse.feature,eclipse.site}` together using:
+
+```
+mvn -f pom.xml clean install
+```
+
