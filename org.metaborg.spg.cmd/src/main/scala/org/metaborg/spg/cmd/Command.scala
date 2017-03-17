@@ -4,7 +4,8 @@ import org.backuity.clist.{Command => BaseCommand, _}
 
 class Command extends BaseCommand(name = "generator", description = "Generate random well-formed terms") {
   var limit = opt[Int](
-    description = "Number of terms to generate (default: 1,000,000)",
+    description = "Number of " +
+      "terms to generate (default: 1,000,000)",
     default = 1000000
   )
 
@@ -31,6 +32,10 @@ class Command extends BaseCommand(name = "generator", description = "Generate ra
   var verbosity = opt[String](
     description = "Verbosity of the output as log level, i.e. ERROR, WARN, INFO, etc (default: ERROR)",
     default = "ERROR"
+  )
+
+  var seed = opt[Option[Int]](
+    description = "Seed for the random number generator (default: random)"
   )
 
   var sdfPath = arg[String](

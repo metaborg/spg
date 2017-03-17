@@ -6,14 +6,17 @@ import org.metaborg.core.language.ILanguageService
 import org.metaborg.spg.core.solver._
 import org.metaborg.spg.core.spoofax.{Converter, Language, LanguageService}
 
+import scala.util.Random
+
 /**
   * The semantics generator generates semantically valid terms.
   *
   * @param languageService
   * @param baseLanguageService
   * @param chooser
+  * @param random
   */
-class SemanticGenerator @Inject()(languageService: LanguageService, baseLanguageService: ILanguageService, chooser: AutomaticChooser) extends AbstractGenerator(languageService, baseLanguageService) with LazyLogging {
+class SemanticGenerator @Inject()(languageService: LanguageService, baseLanguageService: ILanguageService, chooser: AutomaticChooser)(implicit val random: Random) extends AbstractGenerator(languageService, baseLanguageService) with LazyLogging {
   /**
     * Generate a single term by repeatedly invoking generateTry until it
     * returns a semantically valid term.

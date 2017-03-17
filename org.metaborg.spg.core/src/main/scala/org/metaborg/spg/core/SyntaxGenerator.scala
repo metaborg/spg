@@ -8,14 +8,17 @@ import org.metaborg.spg.core.spoofax.models._
 import org.metaborg.spg.core.spoofax.{Converter, Language, LanguageService}
 import org.metaborg.spg.core.terms.{Pattern, TermAppl, TermString}
 
+import scala.util.Random
+
 /**
   * The syntax generator generates syntactically valid programs.
   *
   * @param languageService
   * @param baseLanguageService
   * @param chooser
+  * @param random
   */
-class SyntaxGenerator @Inject()(languageService: LanguageService, baseLanguageService: ILanguageService, chooser: AutomaticChooser) extends AbstractGenerator(languageService, baseLanguageService) with LazyLogging {
+class SyntaxGenerator @Inject()(languageService: LanguageService, baseLanguageService: ILanguageService, chooser: AutomaticChooser)(implicit val random: Random) extends AbstractGenerator(languageService, baseLanguageService) with LazyLogging {
   /**
     * Generate a single term by repeatedly invoking generateTry until it
     * returns a syntactically valid term.

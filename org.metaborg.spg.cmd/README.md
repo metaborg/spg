@@ -13,6 +13,7 @@ Options
 
    --fuel=NUM              : Fuel provided to the backtracker (default: 400)
    --limit=NUM             : Number of terms to generate (default: -1)
+   --seed                  : Seed for the random number geenrator (default: none)
    --size-limit=NUM        : Maximum size of terms to generate (default: 60)
    --verbosity=STRING      : Verbosity of the output as log level (default: ERROR)
 

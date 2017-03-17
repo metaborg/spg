@@ -6,6 +6,7 @@ import org.metaborg.spg.core.terms.{Pattern, Var}
 
 import scala.annotation.tailrec
 import scala.collection.mutable
+import scala.util.Random
 
 
 package object core {
@@ -23,19 +24,34 @@ package object core {
 
   // Implicitly define methods on any sequence
   implicit class RichSeq[T](seq: Seq[T]) {
-    // Get random element from the sequence
-    def random: T = {
+    /**
+      * Get random element from the sequence using the provided pseudorandom
+      * number generator. Throws an IllegalArgumentException if the sequence is
+      * empty.
+      *
+      * @param random
+      * @return
+      */
+    def random(implicit random: Random): T = {
       if (seq.isEmpty) {
         throw new IllegalArgumentException("Random element of empty sequence not defined.")
       } else {
-        seq(Random.nextInt(seq.length))
+        seq(random.nextInt(seq.length))
       }
     }
 
-    // Get random element from the sequence
-    def randomOption: Option[T] = seq match {
-      case Nil => None
-      case _ => Some(seq(Random.nextInt(seq.length)))
+    /**
+      * Get random element from the sequence using the provided pseudorandom
+      * number generator. If the sequence is empty, return None.
+      *
+      * @param random
+      * @return
+      */
+    def randomOption(implicit random: Random): Option[T] = seq match {
+      case Nil =>
+        None
+      case _ =>
+        Some(seq(random.nextInt(seq.length)))
     }
   }
 
@@ -98,9 +114,16 @@ package object core {
     def zipWith[U](f: T => U): List[(T, U)] =
       (list, list.map(f)).zipped.toList
 
-    // Shuffle elements of the list
-    def shuffle: List[T] =
-      Random.shuffle(list)
+    /**
+      * Create a random random permutation of the list. Use the provided
+      * pseudorandom number generator for randomness.
+      *
+      * @param random
+      * @return
+      */
+    def shuffle(implicit random: Random): List[T] = {
+      random.shuffle(list)
+    }
 
     // Remove element from list
     def -(elem: T): List[T] =

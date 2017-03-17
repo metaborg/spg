@@ -1,8 +1,10 @@
 package org.metaborg.spg.core
 
+import com.google.inject.Inject
 import org.metaborg.spg.core.solver.Constraint
 
 import scala.io.StdIn._
+import scala.util.Random
 
 trait Chooser {
   /**
@@ -27,7 +29,7 @@ trait Chooser {
   * program. This is useful during debugging, if you manually want to force
   * a specific set of choices.
   */
-class InteractiveChooser extends Chooser {
+class InteractiveChooser @Inject()(implicit val random: Random) extends Chooser {
   /**
     * Get a list of constraints to solve.
     *
@@ -59,7 +61,7 @@ class InteractiveChooser extends Chooser {
   }
 }
 
-class AutomaticChooser extends Chooser {
+class AutomaticChooser @Inject()(implicit val random: Random) extends Chooser {
   /**
     * Get a list of constraints to solve.
     *

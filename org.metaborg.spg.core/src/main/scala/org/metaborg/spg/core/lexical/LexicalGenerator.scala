@@ -4,10 +4,12 @@ import org.metaborg.spg.core.spoofax.models._
 import org.metaborg.spg.core._
 import org.metaborg.spg.core.spoofax.models.{CharacterRange, IterSep, IterStar, Symbol}
 
+import scala.util.Random
+
 /**
   * A recursive-descent generator for a context-free grammar
   */
-class LexicalGenerator(grammar: Grammar) {
+class LexicalGenerator(val grammar: Grammar)(implicit val random: Random) {
   /**
     * Generate a string for the given symbol
     */
@@ -33,28 +35,28 @@ class LexicalGenerator(grammar: Grammar) {
       generate(s) + generate(IterStar(s))
     // Zero or more repetitions of s
     case IterStar(s) =>
-      if (Coin.toss() == Coin.Head) {
+      if (Coin(random).toss() == Coin.Head) {
         generate(s) + generate(symbol)
       } else {
         ""
       }
     // One or more repetitions of s (with separator)
     case IterSep(s, separator) =>
-      if (Coin.toss() == Coin.Head) {
+      if (Coin(random).toss() == Coin.Head) {
         generate(IterSep(s, separator)) + separator + generate(IterSep(s, separator))
       } else {
         generate(s)
       }
     // Zero or more repetitions of s (with separator)
     case IterStarSep(s, separator) =>
-      if (Coin.toss() == Coin.Head) {
+      if (Coin(random).toss() == Coin.Head) {
         generate(IterSep(s, separator))
       } else {
         ""
       }
     // Optionally generate symbol
     case Opt(s) =>
-      if (Coin.toss() == Coin.Head) {
+      if (Coin(random).toss() == Coin.Head) {
         generate(s)
       } else {
         ""
@@ -76,7 +78,7 @@ class LexicalGenerator(grammar: Grammar) {
       " "
     // Pick either alternative
     case Alt(s1, s2) =>
-      if (Coin.toss() == Coin.Head) {
+      if (Coin(random).toss() == Coin.Head) {
         generate(s1)
       } else {
         generate(s2)
@@ -103,11 +105,14 @@ object Coin extends Enumeration {
   type Coin = Value
 
   val Head, Tail = Value
+}
 
-  def toss(): Coin =
-    if (Random.nextInt(2) == 0) {
-      Head
+case class Coin(random: Random) {
+  def toss(): Coin.Value = {
+    if (random.nextInt(2) == 0) {
+      Coin.Head
     } else {
-      Tail
+      Coin.Tail
     }
+  }
 }
