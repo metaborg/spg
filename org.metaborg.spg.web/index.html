@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>SPG Viewer</title>
+
+  <link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="style.css"/>
+
+  <script src="node_modules/jquery/dist/jquery.min.js"></script>
+  <script src="node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
+  <script src="node_modules/vis/dist/vis.min.js"></script>
+  <script src="demo.js"></script>
+  <script src="page.js"></script>
+</head>
+
+<body>
+  <div class="container">
+    <nav>
+      <ul class="pager">
+        <li><a href="#" id="prev">Previous</a></li>
+        <li>Viewing <span class="current">0</span> out of <span class="total">0</span></li>
+        <li><a href="#" id="next">Next</a></li>
+      </ul>
+    </nav>
+    <div class="row">
+      <div class="col-md-8">
+        <div id="tree"></div>
+      </div>
+      <div class="col-md-4">
+        <div id="state">
+          <dl class="dl-horizontal">
+            <dt>Holes</dt>
+            <dd id="holes"></dd>
+
+            <dt>Size</dt>
+            <dd id="size"></dd>
+          </dl>
+
+          <h4>Constraints</h4>
+          <ul id="constraints"></ul>
+
+          <h4>Facts</h4>
+          <ul id="facts"></ul>
+
+          <h4>Type environment</h4>
+          <ul id="types"></ul>
+
+          <h4>Resolution</h4>
+          <ul id="resolution"></ul>
+
+          <h4>Subtype relation</h4>
+          <ul id="subtypeRelation"></ul>
+          
+          <h4>Names</h4>
+          <ul id="names"></ul>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-12">
+        <textarea id="term" placeholder='Cons("a", TypeVar("u12"), ScopeVar("s13"), List())'></textarea>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
