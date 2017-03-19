@@ -454,18 +454,18 @@ case class CSubtype(t1: Pattern, t2: Pattern) extends Constraint {
     6
 }
 
-case class CGenRecurse(name: String, pattern: Pattern, scopes: List[Pattern], typ: Option[Pattern], sort: Sort) extends Constraint {
+case class CGenRecurse(name: String, pattern: Pattern, scopes: List[Pattern], typ: Option[Pattern], sort: Sort, size: Int) extends Constraint {
   override def substitute(binding: TermBinding): Constraint =
-    CGenRecurse(name, pattern.substitute(binding), scopes.map(_.substitute(binding)), typ.map(_.substitute(binding)), sort)
+    CGenRecurse(name, pattern.substitute(binding), scopes.map(_.substitute(binding)), typ.map(_.substitute(binding)), sort, size)
 
   override def substituteScope(binding: TermBinding): Constraint =
-    CGenRecurse(name, pattern, scopes.map(_.substituteScope(binding)), typ.map(_.substituteScope(binding)), sort)
+    CGenRecurse(name, pattern, scopes.map(_.substituteScope(binding)), typ.map(_.substituteScope(binding)), sort, size)
 
   override def substituteType(binding: TermBinding): Constraint =
-    CGenRecurse(name, pattern, scopes, typ.map(_.substituteType(binding)), sort)
+    CGenRecurse(name, pattern, scopes, typ.map(_.substituteType(binding)), sort, size)
 
   override def substituteSort(binding: SortBinding): Constraint =
-    CGenRecurse(name, pattern, scopes, typ, sort.substituteSort(binding))
+    CGenRecurse(name, pattern, scopes, typ, sort.substituteSort(binding), size)
 
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Constraint) =
     pattern.freshen(nameBinding).map { case (nameBinding, pattern) =>
@@ -474,16 +474,16 @@ case class CGenRecurse(name: String, pattern: Pattern, scopes: List[Pattern], ty
 
         newTyp
           .map { case (nameBinding, typ) =>
-            (nameBinding, CGenRecurse(name, pattern, scopes, Some(typ), sort))
+            (nameBinding, CGenRecurse(name, pattern, scopes, Some(typ), sort, size))
           }
           .getOrElse(
-            (nameBinding, CGenRecurse(name, pattern, scopes, None, sort))
+            (nameBinding, CGenRecurse(name, pattern, scopes, None, sort, size))
           )
       }
     }
 
   override def rewrite(strategy: Strategy): Constraint =
-    CGenRecurse(name, pattern.rewrite(strategy), scopes.rewrite(strategy), typ.map(_.rewrite(strategy)), sort)
+    CGenRecurse(name, pattern.rewrite(strategy), scopes.rewrite(strategy), typ.map(_.rewrite(strategy)), sort, size)
 
   override def isProper =
     true
@@ -492,7 +492,7 @@ case class CGenRecurse(name: String, pattern: Pattern, scopes: List[Pattern], ty
     999
 
   override def toString: String =
-    s"""CGenRecurse("$name", $pattern, $scopes, $typ, $sort)"""
+    s"""CGenRecurse("$name", $pattern, $scopes, $typ, $sort, $size)"""
 }
 
 case class CFalse() extends Constraint {

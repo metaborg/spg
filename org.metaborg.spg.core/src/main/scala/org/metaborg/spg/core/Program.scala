@@ -1,6 +1,7 @@
 package org.metaborg.spg.core
 
 import org.metaborg.spg.core.solver.{CGenRecurse, CResolve, Constraint, Resolution, Solver, Subtypes, TypeEnv}
+import org.metaborg.spg.core.spoofax.Language
 import org.metaborg.spg.core.spoofax.models.Strategy
 import org.metaborg.spg.core.terms.Pattern
 
@@ -38,9 +39,32 @@ case class Program(pattern: Pattern, constraints: List[Constraint], typeEnv: Typ
     *
     * @param rule
     */
-  def apply(recurse: CGenRecurse, rule: Rule): Option[Program] = {
+  def apply(recurse: CGenRecurse, rule: Rule)(implicit language: Language): Option[Program] = {
+    if (rule.name != recurse.name) {
+      return None
+    }
+
     val freshRule = rule.instantiate().freshen()
-    val program = copy(constraints = constraints ++ freshRule.constraints)
+
+    // Compute the new balanced size
+    val balancedSize = (recurse.size - rule.pattern.size)/(rule.recurses.length max 1)
+
+    if (balancedSize <= 0) {
+      return None
+    }
+
+    // Update the size in the recurse constraints
+    val newConstraints = freshRule.constraints.map {
+      case CGenRecurse(n, p, s, t, sort, _) =>
+        CGenRecurse(n, p, s, t, sort, balancedSize)
+      case x =>
+        x
+    }
+
+    // TODO: Check that we stay below the balanced size...
+
+    // Create a program that combines the constraints
+    val program = copy(constraints = constraints ++ newConstraints)
 
     Solver.mergeSorts(program)(recurse.sort, freshRule.sort).flatMap(program =>
       Solver.mergePatterns(program)(recurse.pattern, freshRule.pattern).flatMap(program =>

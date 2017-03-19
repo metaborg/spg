@@ -86,6 +86,8 @@ object Solver {
       * @return
       */
     def rewrite(constraint: Constraint, program: Program): Option[Program] = constraint match {
+      case CTrue() =>
+        program
       case CEqual(t1, t2) =>
         t1.unify(t2).map(program.substitute)
       case CTypeOf(n, t) if n.vars.isEmpty =>

@@ -90,11 +90,11 @@ class NablService @Inject()(val resourceService: IResourceService, val unitServi
     */
   def inlineRecurse(rule: Rule)(implicit signatures: Signatures) = {
     rule.recurses.foldLeft(rule) {
-      case (rule, recurse@CGenRecurse(name, variable, scopes, typ, null)) =>
+      case (rule, recurse@CGenRecurse(name, variable, scopes, typ, null, 0)) =>
         val sortOpt = signatures.sortForPattern(rule.pattern, variable)
         val sort = sortOpt.getOrElse(throw new IllegalStateException("Could not find sort for " + variable + " in " + rule.pattern))
 
-        rule - recurse + CGenRecurse(name, variable, scopes, typ, sort)
+        rule - recurse + CGenRecurse(name, variable, scopes, typ, sort, 0)
     }
   }
 
@@ -497,7 +497,7 @@ class NablService @Inject()(val resourceService: IResourceService, val unitServi
     case appl: StrategoAppl if appl.getConstructor.getName == "CGNamedEdge" =>
       List(CGNamedEdge(toVar(appl.getSubterm(2)), toLabel(appl.getSubterm(1)), toName(ruleIndex, appl.getSubterm(0))))
     case appl: StrategoAppl if appl.getConstructor.getName == "CGenRecurse" =>
-      List(CGenRecurse(toRuleName(appl.getSubterm(0)), toPattern(appl.getSubterm(1)), toVars(appl.getSubterm(2).getSubterm(0)), toTypeOption(ruleIndex, appl.getSubterm(3)), null))
+      List(CGenRecurse(toRuleName(appl.getSubterm(0)), toPattern(appl.getSubterm(1)), toVars(appl.getSubterm(2).getSubterm(0)), toTypeOption(ruleIndex, appl.getSubterm(3)), null, 0))
     case appl: StrategoAppl if appl.getConstructor.getName == "CInequal" =>
       List(CInequal(toType(ruleIndex, appl.getSubterm(0)), toType(ruleIndex, appl.getSubterm(1))))
     case appl: StrategoAppl if appl.getConstructor.getName == "CDistinct" =>

@@ -136,8 +136,31 @@ case class Language(grammar: Grammar, signatures: Signatures, specification: Spe
     * @return
     */
   def rules(name: String, sort: Sort): List[Rule] = {
-    cache.getOrElseUpdate((name, sort), specification.rules.filter(rule =>
+    cache.getOrElseUpdate((name, sort), allRules.filter(rule =>
       name == rule.name && Sort.injectionsClosure(signatures, sort).flatMap(_.unify(rule.sort)).nonEmpty
     ))
+  }
+
+  /**
+    * Compute all rules.
+    *
+    * We experiment by combining rules, creating larger rules.
+    */
+  lazy val allRules: List[Rule] = {
+    // Get the original rules
+    specification.rules
+
+    /*
+    // Get the combined rules
+    val combined1 = (for (r1 <- specification.rules; recurse <- r1.recurses; r2 <- specification.rules) yield {
+      r1.merge(recurse, r2)(this)
+    }).flatten
+
+    val combined2 = (for (r1 <- combined1; recurse <- r1.recurses; r2 <- specification.rules) yield {
+      r1.merge(recurse, r2)(this)
+    }).flatten
+
+    combined2
+    */
   }
 }
