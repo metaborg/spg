@@ -607,9 +607,9 @@ CGenRecurse.prototype.toString = function () {
 		.join(", ");
 
 	if (this.type == None) {
-		return this.name + " [[ " + this.pattern + " ^ (" + scopes + ") ]] @ " + this.sort;
+		return this.name + " &#x27e6; " + this.pattern + " ^ (" + scopes + ") &#x27e7; @ " + this.sort;
 	} else {
-		return this.name + " [[ " + this.pattern + " ^ (" + scopes + ") : " + this.type + " ]] @ " + this.sort;
+		return this.name + " &#x27e6; " + this.pattern + " ^ (" + scopes + ") : " + this.type + " &#x27e7; @ " + this.sort;
 	}
 };
 

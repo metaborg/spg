@@ -28,7 +28,7 @@ case class TermString(name: String) extends Term {
     ???
 
   override def substituteSort(binding: SortBinding): Pattern =
-    ???
+    this
 
   override def freshen(nameBinding: Map[String, String]): (Map[String, String], Pattern) =
     (nameBinding, this)

@@ -116,6 +116,64 @@ case class Rule(name: String, sort: Sort, pattern: Pattern, scopes: List[Pattern
   }
 
   /**
+    * Apply the given sort substitution to the program.
+    *
+    * @param binding
+    * @return
+    */
+  def substituteSort(binding: SortBinding): Rule = {
+    Rule(
+      name =
+        name,
+      sort =
+        sort.substituteSort(binding),
+      pattern =
+        pattern.substituteSort(binding),
+      scopes =
+        scopes,
+      typ =
+        typ,
+      constraints =
+        constraints.substituteSort(binding)
+    )
+  }
+
+  /**
+    * Merges two rules.
+    *
+    * If the given rule is not applicable (e.g. wrong rule name), returns None.
+    *
+    * @param recurse
+    * @param rule
+    * @param language
+    * @return
+    */
+  def merge(recurse: CGenRecurse, rule: Rule)(implicit language: Language): Option[Rule] = {
+    if (rule.name != recurse.name) {
+      return None
+    }
+
+    // Instantiate and freshen the given rule
+    val freshRule = rule
+      .instantiate()
+      .freshen()
+
+    // Remove the recurse
+    val merged = copy(constraints = constraints ++ freshRule.constraints - recurse)
+
+    // Merge sorts, patterns, types, scopes
+    Merger.mergeSorts(merged)(recurse.sort, freshRule.sort).flatMap(merged =>
+      Merger.mergePatterns(merged)(recurse.pattern, freshRule.pattern).flatMap(merged =>
+        Merger.mergeTypes(merged)(recurse.typ, freshRule.typ).flatMap(merged =>
+          Merger.mergeScopes(merged)(recurse.scopes, freshRule.scopes).flatMap(merged =>
+            Some(merged)
+          )
+        )
+      )
+    )
+  }
+
+  /**
     * Create a new rule with the given constraint removed.
     *
     * @param constraint

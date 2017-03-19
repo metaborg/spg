@@ -1,6 +1,6 @@
 package org.metaborg.spg.core
 
-import org.metaborg.spg.core.solver.{CGenRecurse, CResolve, Constraint, Resolution, Subtypes, TypeEnv}
+import org.metaborg.spg.core.solver.{CGenRecurse, CResolve, Constraint, Resolution, Solver, Subtypes, TypeEnv}
 import org.metaborg.spg.core.spoofax.models.Strategy
 import org.metaborg.spg.core.terms.Pattern
 
@@ -38,8 +38,17 @@ case class Program(pattern: Pattern, constraints: List[Constraint], typeEnv: Typ
     *
     * @param rule
     */
-  def apply(recurse: CGenRecurse, rule: Rule) = {
-    copy(constraints = constraints ++ rule.constraints)
+  def apply(recurse: CGenRecurse, rule: Rule): Option[Program] = {
+    val freshRule = rule.instantiate().freshen()
+    val program = copy(constraints = constraints ++ freshRule.constraints)
+
+    Solver.mergeSorts(program)(recurse.sort, freshRule.sort).flatMap(program =>
+      Solver.mergePatterns(program)(recurse.pattern, freshRule.pattern).flatMap(program =>
+        Solver.mergeTypes(program)(recurse.typ, freshRule.typ).flatMap(program =>
+          Solver.mergeScopes(program)(recurse.scopes, freshRule.scopes)
+        )
+      )
+    )
   }
 
   /**

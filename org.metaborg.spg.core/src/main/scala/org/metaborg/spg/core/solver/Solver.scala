@@ -61,21 +61,63 @@ object Solver {
       val combis = for (List(a, b, _*) <- names.combinations(2).toList) yield (a, b)
 
       program//.addInequalities(combis)
-    case recurse@CGenRecurse(name, pattern, scopes, typ, sort) =>
+    case recurse@CGenRecurse(name, _, _, _, sort, size) =>
       language.rules(name, sort).flatMap(rule => {
-        val freshRule = rule.instantiate().freshen()
-        val newState = program.apply(recurse, freshRule)
-
-        mergeSorts(newState)(sort, freshRule.sort).map(newState =>
-          mergePatterns(newState)(pattern, freshRule.pattern).flatMap(newState =>
-            mergeTypes(newState)(typ, freshRule.typ).flatMap(newState =>
-              mergeScopes(newState)(scopes, freshRule.scopes)
-            )
-          )
-        )
+        program.apply(recurse, rule)
       })
     case _ =>
       Nil
+  }
+
+  /**
+    * Given a program, solve all basic constraints.
+    *
+    * @param program
+    * @return
+    */
+  def solveFixpoint(program: Program): Program = {
+    /**
+      * Rewrite a basic constraint.
+      *
+      * TODO: This should also handle CAssoc, FSubtype, and CSubtype.
+      *
+      * @param constraint
+      * @param program
+      * @return
+      */
+    def rewrite(constraint: Constraint, program: Program): Option[Program] = constraint match {
+      case CEqual(t1, t2) =>
+        t1.unify(t2).map(program.substitute)
+      case CTypeOf(n, t) if n.vars.isEmpty =>
+        if (program.typeEnv.contains(n)) {
+          program + CEqual(program.typeEnv(n), t)
+        } else {
+          program.addBinding(n -> t)
+        }
+      case _ =>
+        None
+    }
+
+    /**
+      * Solve a single constraint or return the program if none can be solved.
+      *
+      * @param program
+      * @return
+      */
+    def solveAny(program: Program): Program = {
+      for (constraint <- program.constraints) {
+        rewrite(constraint, program - constraint) match {
+          case Some(program) =>
+            return program
+          case None =>
+            // Noop
+        }
+      }
+
+      program
+    }
+
+    fixedPoint(solveAny, program)
   }
 
   /**
@@ -135,28 +177,27 @@ object Solver {
         .map(program.substituteSort)
   }
 
-  // TODO: It is possible that the pattern is aliased, so we should be more specific
-  def mergePatterns(program: Program)(p1: Pattern, p2: Pattern)(implicit language: Language): List[Program] = {
-    rewrite(CEqual(p1, p2), program)
+  def mergePatterns(program: Program)(p1: Pattern, p2: Pattern)(implicit language: Language): Option[Program] = {
+    p1.unify(p2).map(program.substitute)
   }
 
-  def mergeTypes(program: Program)(t1: Option[Pattern], t2: Option[Pattern])(implicit language: Language): List[Program] = (t1, t2) match {
+  def mergeTypes(program: Program)(t1: Option[Pattern], t2: Option[Pattern])(implicit language: Language): Option[Program] = (t1, t2) match {
     case (None, None) =>
       program
-    case (Some(_), Some(_)) =>
-      rewrite(CEqual(t1.get, t2.get), program)
+    case (Some(t1), Some(t2)) =>
+      t1.unify(t2).map(program.substitute)
     case _ =>
-      Nil
+      None
   }
 
-  def mergeScopes(program: Program)(ss1: List[Pattern], ss2: List[Pattern])(implicit language: Language): List[Program] = {
+  def mergeScopes(program: Program)(ss1: List[Pattern], ss2: List[Pattern])(implicit language: Language): Option[Program] = {
     if (ss1.length == ss2.length) {
-      ss1.zip(ss2).foldLeftMap(program) {
+      ss1.zip(ss2).foldLeftWhile(program) {
         case (program, (s1, s2)) =>
-          rewrite(CEqual(s1, s2), program)
+          s1.unify(s2).map(program.substitute)
       }
     } else {
-      Nil
+      None
     }
   }
 }
