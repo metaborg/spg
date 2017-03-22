@@ -130,8 +130,15 @@ class SemanticGeneratorC @Inject()(languageService: LanguageService, baseLanguag
       //val childSize = (size - 1) / (childRecurse.size max 1)
 
       // For QVars, artificially limit the max size of its children to prevent excessive backtracking (TODO: Hacky)
-      val childSize = if (program.pattern.asInstanceOf[TermAppl].cons == "QVar") {
-        ((size - 1) / (childRecurse.size max 1)) min 10
+      val childSize = if (dependency(program)) {
+//        ((size - 1) / (childRecurse.size max 1)) min 10
+        // TODO: Generate bottom-up with given context
+        // TODO: Get correct recurse
+        // TODO: Get correct context
+        val x = new Bottomup(language).generate(recurse, context)
+        x.foreach(println)
+
+        (size - 1) / (childRecurse.size max 2)
       } else {
         (size - 1) / (childRecurse.size max 1)
       }
@@ -252,5 +259,87 @@ class SemanticGeneratorC @Inject()(languageService: LanguageService, baseLanguag
     } else {
       Nil
     }
+  }
+
+  /**
+    * Check if a reference in the program depends expansion of one of its
+    * children.
+    *
+    * @return
+    */
+  def dependency(program: Program)(implicit language: Language): Boolean = {
+    if (program.pattern.asInstanceOf[TermAppl].cons == "QVar") {
+      true
+    } else {
+      false
+    }
+
+    /*
+    val graph = Graph(program.constraints)
+
+    val recurseScopes = program.recurse.flatMap(recurse =>
+      recurse.scopes
+    )
+
+    program.resolve.exists(resolve => {
+      val referenceScope = graph.scope(resolve.n1)
+      val reachableScopes = graph.reachableScopes(program.resolution)(referenceScope)
+
+      (reachableScopes intersect recurseScopes).nonEmpty
+    })
+    */
+  }
+}
+
+/**
+  * Generate terms bottom-up.
+  */
+class Bottomup(language: Language) {
+  type Requirements = List[Constraint]
+
+  /**
+    * Generate terms for the given recurse in the given context. Returns
+    * programs and requirements.
+    *
+    * @param recurse
+    */
+  def generate(recurse: CGenRecurse, context: List[Constraint]): List[Rule] = {
+    // Build rules bottom-up
+    val combinedRules = repeat(generate, 2)(terminalRules)
+
+    // Filter on recurse.sort
+    val applicableRules = combinedRules.filter(combinedRule =>
+      combinedRule.name == recurse.name && combinedRule.sort == recurse.sort
+    )
+
+    // TODO: Filter on those whose requirements can be satisfied by the context
+
+    // TODO: Return requirements
+    applicableRules
+  }
+
+  // Given a list of terminal rules, build a larger list of terminal rules
+  def generate(terminalRules: List[Rule]): List[Rule] = {
+    language.specification.rules.flatMap(rule =>
+      generate(terminalRules, rule)
+    )
+  }
+
+  // Expand the given rule using the terminal rules
+  def generate(terminalRules: List[Rule], rule: Rule): List[Rule] = {
+    // TODO: Solving one recurse may change the other recurse because they share variables!
+    rule.recurses.foldLeftMap(rule) {
+      case (rule, recurse) =>
+        terminalRules.flatMap(terminalRule =>
+          rule.merge(recurse, terminalRule)(language)
+        )
+    }
+  }
+
+  // Get terminal rules, i.e. rules with no recurse constraints
+  lazy val terminalRules: List[Rule] = {
+    language.specification.rules.filter(rule =>
+      rule.recurses.isEmpty
+    )
   }
 }
