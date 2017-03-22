@@ -6,7 +6,7 @@ import org.metaborg.core.language.ILanguageService
 import org.metaborg.spg.core.resolution.{Graph, Occurrence}
 import org.metaborg.spg.core.solver._
 import org.metaborg.spg.core.spoofax.{Converter, Language, LanguageService}
-import org.metaborg.spg.core.terms.{Pattern, Var}
+import org.metaborg.spg.core.terms.{Pattern, TermAppl, Var}
 import org.metaborg.spg.core.resolution.OccurrenceImplicits._
 import org.metaborg.spg.core.spoofax.models.Strategy
 import org.metaborg.spg.core.spoofax.models.Strategy.{attempt, topdown}
@@ -127,7 +127,14 @@ class SemanticGeneratorC @Inject()(languageService: LanguageService, baseLanguag
       val program = Program.fromRule(rule.instantiate().freshen())
 
       val childRecurse = program.recurse
-      val childSize = (size - 1) / (childRecurse.size max 1)
+      //val childSize = (size - 1) / (childRecurse.size max 1)
+
+      // For QVars, artificially limit the max size of its children to prevent excessive backtracking (TODO: Hacky)
+      val childSize = if (program.pattern.asInstanceOf[TermAppl].cons == "QVar") {
+        ((size - 1) / (childRecurse.size max 1)) min 10
+      } else {
+        (size - 1) / (childRecurse.size max 1)
+      }
 
       // For every recurse, recursively generate a program and merge it into this program
       // After solving one recurse (e.g. the rhs of App(_, _) becomes Int), this changes the other recurse in the fold (e.g. the lhs of the application becomes Int -> ?)
