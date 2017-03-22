@@ -3,11 +3,11 @@ package org.metaborg.spg.core
 import com.google.inject.Inject
 import com.typesafe.scalalogging.LazyLogging
 import org.metaborg.core.language.ILanguageService
-import org.metaborg.spg.core.resolution.Label
+import org.metaborg.spg.core.resolution.Graph
 import org.metaborg.spg.core.solver._
-import org.metaborg.spg.core.spoofax.models.SortAppl
 import org.metaborg.spg.core.spoofax.{Converter, Language, LanguageService}
-import org.metaborg.spg.core.terms.{TermAppl, TermString, Var}
+import org.metaborg.spg.core.terms.Var
+import org.metaborg.spg.core.resolution.OccurrenceImplicits._
 
 import scala.util.Random
 
@@ -19,7 +19,7 @@ import scala.util.Random
   * @param chooser
   * @param random
   */
-class SemanticGenerator @Inject()(languageService: LanguageService, baseLanguageService: ILanguageService, chooser: AutomaticChooser)(implicit val random: Random) extends AbstractGenerator(languageService, baseLanguageService) with LazyLogging {
+class SemanticGeneratorAa @Inject()(languageService: LanguageService, baseLanguageService: ILanguageService, chooser: AutomaticChooser)(implicit val random: Random) extends AbstractGenerator(languageService, baseLanguageService) with LazyLogging {
   /**
     * Generate a single term by repeatedly invoking generateTry until it
     * returns a semantically valid term.
@@ -54,7 +54,6 @@ class SemanticGenerator @Inject()(languageService: LanguageService, baseLanguage
     val start = language.startRules.random
     val recurse = CGenRecurse(start.name, init.pattern, init.scopes, init.typ, start.sort, config.sizeLimit)
     val program = Program.fromRule(init) + recurse
-    //val program = Program(TermAppl("Program", List(TermAppl("Fun", List(TermAppl("NameVar", List(TermString("x115"))), TermAppl("FunType", List(Var("x168"), Var("x169"))), TermAppl("Add", List(TermAppl("Var", List(TermAppl("NameVar", List(TermString("x149"))))), Var("x133"))))))),List(CGDecl(TermAppl("s114", List()),TermAppl("Occurrence", List(TermString("Var"), TermAppl("NameVar", List(TermString("x115"))), TermString("4")))), CGDirectEdge(TermAppl("s114", List()),Label('P'),TermAppl("s101", List())), CGenRecurse("Default", Var("x133"), List(TermAppl("s114", List())), Some(TermAppl("TInt", List())), SortAppl("Exp", List())), CGRef(TermAppl("Occurrence", List(TermString("Var"), TermAppl("NameVar", List(TermString("x149"))), TermString("2"))),TermAppl("s114", List())), CResolve(TermAppl("Occurrence", List(TermString("Var"), TermAppl("NameVar", List(TermString("x149"))), TermString("2"))),Var("x152")), CTypeOf(Var("x152"),TermAppl("TInt", List())), CGenRecurse("Default", Var("x169"), List(), Some(Var("x171")), SortAppl("Type", List())), CGenRecurse("Default", Var("x168"), List(), Some(Var("x170")), SortAppl("Type", List()))),TypeEnv(Map(Binding(TermAppl("Occurrence", List(TermString("Var"), TermAppl("NameVar", List(TermString("x115"))), TermString("4"))), TermAppl("TFun", List(Var("x170"), Var("x171")))))),Resolution(Map()),Subtypes(List()),List())
 
     try {
       val termOpt = generateFueled(language, config)(program)
@@ -132,10 +131,24 @@ class SemanticGenerator @Inject()(languageService: LanguageService, baseLanguage
         val programs = Solver.rewrite(constraint, program - constraint)
 
         for (program <- chooser.nextProgram(programs)) {
+          /*
           val result = generate(Solver.solveFixpoint(program))
 
           if (result.isDefined) {
             return result
+          }
+          */
+
+          val a = Solver.solveFixpoint(program)
+          val b = Solver.solveResolve(a)
+          val c = b.map(Solver.solveFixpoint)
+
+          for (p <- c) {
+            val result = generate(p)
+
+            if (result.isDefined) {
+              return result
+            }
           }
         }
       }

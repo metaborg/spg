@@ -7,9 +7,9 @@ import ch.qos.logback.classic.{Level, Logger}
 import com.google.inject.{AbstractModule, Injector}
 import net.codingwell.scalaguice.InjectorExtensions._
 import org.backuity.clist.Cli
-import org.metaborg.core.language.LanguageUtils
+import org.metaborg.core.language.{ILanguageImpl, LanguageUtils}
 import org.metaborg.core.project.{IProject, SimpleProjectService}
-import org.metaborg.spg.core.{Config, SemanticGenerator, SyntaxGenerator}
+import org.metaborg.spg.core.{Config, SemanticGeneratorA, SemanticGeneratorAa, SemanticGeneratorB, SemanticGeneratorC, SyntaxGenerator}
 import org.metaborg.spoofax.core.Spoofax
 import org.slf4j.LoggerFactory
 
@@ -23,7 +23,7 @@ object Main extends App {
     *
     * @param path
     */
-  def loadLanguage(path: String) = {
+  def loadLanguage(path: String): ILanguageImpl = {
     val languageDiscoveryRequest = spoofax.languageDiscoveryService.request(spoofax.resourceService.resolve(path))
     val lutComponents = spoofax.languageDiscoveryService.discover(languageDiscoveryRequest)
 
@@ -73,6 +73,20 @@ object Main extends App {
   }
 
   /**
+    * Create a config object from the given command.
+    *
+    * @param options
+    * @return
+    */
+  def getConfig(options: Command): Config = {
+    Config(
+      options.limit,
+      options.fuel,
+      options.sizeLimit
+    )
+  }
+
+  /**
     * Entry-point of the CLI.
     */
   Cli.parse(args).withCommand(new Command)(options => {
@@ -85,18 +99,12 @@ object Main extends App {
 
     val injector = getInjector(options)
 
-    val generator = injector.getInstance(classOf[SemanticGenerator])
+    val generator = injector.getInstance(classOf[SemanticGeneratorC])
 
     val programs = generator.generate(
       loadLanguage(options.projectPath),
       getOrCreateProject(options.projectPath),
-      Config(
-        options.limit,
-        options.fuel,
-        options.sizeLimit,
-        options.consistency,
-        options.throwOnUnresolvable
-      )
+      getConfig(options)
     )
 
     programs.subscribe(program => {

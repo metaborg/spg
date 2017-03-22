@@ -52,8 +52,8 @@ case class Rule(name: String, sort: Sort, pattern: Pattern, scopes: List[Pattern
         (rule - c).substitute(s, TermAppl("s" + nameProvider.next))
     }
 
-    // Substitute Var(x) in an occurrence by TermAppl("NameVar", List(TermString("x1"))
-    val occurrences = constraints.flatMap {
+    // Collect declaration occurrences
+    val decls = constraints.flatMap {
       case CGDecl(_, declaration) =>
         declaration.occurrence.name match {
           case v@Var(_) =>
@@ -61,6 +61,12 @@ case class Rule(name: String, sort: Sort, pattern: Pattern, scopes: List[Pattern
           case _ =>
             None
         }
+      case _ =>
+        None
+    }
+
+    // Collect reference occurrences
+    val refs = constraints.flatMap {
       case CGRef(reference, _) =>
         reference.occurrence.name match {
           case v@Var(_) =>
@@ -72,13 +78,22 @@ case class Rule(name: String, sort: Sort, pattern: Pattern, scopes: List[Pattern
         None
     }
 
-    val varToNameVar: TermBinding = occurrences.zipWith(variable =>
+    // Substitute Var(x) in references by TermAppl("NameVar", List(TermString("x1"))
+    val refVarToNameVar: TermBinding = refs.zipWith(variable =>
       TermAppl("NameVar", List(
         TermString("x" + nameProvider.next)
       ))
     ).toMap
 
-    r2.substitute(varToNameVar)
+    // Substitute Var(x) in declarations by TermAppl("NameVar", List(TermString("x1"))
+    // TODO: For now, we give declarations a concrete name, so we don't need to bother about renaming later on
+    val decVarToName: TermBinding = decls.zipWith(variable =>
+      TermString("x" + nameProvider.next)
+    ).toMap
+
+    r2
+      .substitute(refVarToNameVar)
+      .substitute(decVarToName)
   }
 
   /**

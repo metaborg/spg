@@ -189,6 +189,15 @@ package object core {
       o.map(_.substitute(binding))
     }
 
+    def unify(t: Option[Pattern], termBinding: TermBinding = Map.empty): Option[TermBinding] = (o, t) match {
+      case (None, None) =>
+        Some(termBinding)
+      case (Some(p1), Some(p2)) =>
+        p1.unify(p2, termBinding)
+      case _ =>
+        None
+    }
+
     def freshen(nameBinding: Map[String, String]): (Map[String, String], Option[Pattern]) = o match {
       case Some(p) =>
         p.freshen(nameBinding).map {

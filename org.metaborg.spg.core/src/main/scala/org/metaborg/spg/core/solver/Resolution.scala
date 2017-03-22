@@ -30,6 +30,16 @@ case class Resolution(bindings: Map[Pattern, Pattern] = Map.empty) {
   def size =
     bindings.size
 
+  /**
+    * Merge the given resolution with this resolution.
+    *
+    * @param resolution
+    * @return
+    */
+  def merge(resolution: Resolution): Resolution = {
+    Resolution(bindings ++ resolution.bindings)
+  }
+
   def freshen(nameBinding: Map[String, String]): (Map[String, String], Resolution) = {
     val freshBindings = bindings.toList.mapFoldLeft(nameBinding) { case (nameBinding, (n1, n2)) =>
       n1.freshen(nameBinding).map { case (nameBinding, n1) =>

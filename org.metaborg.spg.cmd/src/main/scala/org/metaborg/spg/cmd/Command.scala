@@ -19,6 +19,7 @@ class Command extends BaseCommand(name = "generator", description = "Generate ra
     default = 60
   )
 
+  /*
   var consistency = opt[Boolean](
     description = "Whether or not to perform the consistency check (default: true)",
     default = true
@@ -28,6 +29,7 @@ class Command extends BaseCommand(name = "generator", description = "Generate ra
     description = "Whether or not to throw an exception when a reference can never be resolved (default: false)",
     default = false
   )
+  */
 
   var verbosity = opt[String](
     description = "Verbosity of the output as log level, i.e. ERROR, WARN, INFO, etc (default: ERROR)",

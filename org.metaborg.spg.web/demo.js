@@ -15,9 +15,9 @@ function Parent() {
 	return null;
 }
 
-function Program(pattern, constraints, typeEnv, resolution, subtypes) {
+function Program(sort, pattern, scopes, typ, constraints, typeEnv, resolution, subtypes) {
 	if (!(this instanceof Program)) {
-		return new Program(pattern, constraints, typeEnv, resolution, subtypes);
+		return new Program(sort, pattern, scopes, typ, constraints, typeEnv, resolution, subtypes);
 	}
 
 	this.pattern = pattern;

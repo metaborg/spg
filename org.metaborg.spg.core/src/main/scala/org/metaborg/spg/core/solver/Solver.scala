@@ -70,22 +70,47 @@ object Solver {
   }
 
   /**
-    * Given a program, solve all basic constraints.
+    * Solve all constraints.
     *
     * @param program
     * @return
     */
-  def solveFixpoint(program: Program): Program = {
+  def solveAll(program: Program)(implicit language: Language): List[Program] = {
+    if (program.properConstraints.isEmpty) {
+      return Some(program)
+    }
+
+    for (constraint <- program.properConstraints) {
+      val result = rewrite(constraint, program - constraint)
+
+      if (result.nonEmpty) {
+        return result.flatMap(solveAll)
+      }
+    }
+
+    Nil
+  }
+
+  /**
+    * Solve all deterministic constraints in the given program.
+    *
+    * A deterministic constraint is one that does not involve a choice. In
+    * essence, they only propagate knowledge. For example, a TypeOf constraint
+    * can only be solved in one way, and if it can be solved, it should be
+    * solved.
+    *
+    * @param program
+    * @return
+    */
+  def solveFixpoint(program: Program)(implicit language: Language): Program = {
     /**
       * Rewrite a basic constraint.
-      *
-      * TODO: This should also handle CAssoc, FSubtype, and CSubtype.
       *
       * @param constraint
       * @param program
       * @return
       */
-    def rewrite(constraint: Constraint, program: Program): Option[Program] = constraint match {
+    def rewrite(constraint: Constraint, program: Program)(implicit language: Language): Option[Program] = constraint match {
       case CTrue() =>
         program
       case CEqual(t1, t2) =>
@@ -96,6 +121,17 @@ object Solver {
         } else {
           program.addBinding(n -> t)
         }
+      case CAssoc(n, s@Var(_)) if Graph(program.constraints).associated(n).nonEmpty =>
+        Graph(program.constraints).associated(n).map(scope =>
+          program.substitute(Map(s -> scope))
+        )
+      case FSubtype(t1, t2) if (t1.vars ++ t2.vars).isEmpty && !program.subtypes.domain.contains(t1) && !program.subtypes.isSubtype(t2, t1) =>
+        val closure = for (ty1 <- program.subtypes.subtypeOf(t1); ty2 <- program.subtypes.supertypeOf(t2))
+          yield (ty1, ty2)
+
+        program.copy(subtypes = program.subtypes ++ closure)
+      case CSubtype(t1, t2) if (t1.vars ++ t2.vars).isEmpty && program.subtypes.isSubtype(t1, t2) =>
+        program
       case _ =>
         None
     }
@@ -106,7 +142,7 @@ object Solver {
       * @param program
       * @return
       */
-    def solveAny(program: Program): Program = {
+    def solveAny(program: Program)(implicit language: Language): Program = {
       for (constraint <- program.constraints) {
         rewrite(constraint, program - constraint) match {
           case Some(program) =>
@@ -120,6 +156,48 @@ object Solver {
     }
 
     fixedPoint(solveAny, program)
+  }
+
+  /**
+    * Resolve every reference in the program.
+    *
+    * TODO: For L1, this method is sufficient. For L2-3, a reference may depend
+    * TODO: upon another reference, and we should give this method more slack.
+    *
+    * @param program
+    * @param language
+    * @return
+    */
+  def solveResolve(program: Program)(implicit language: Language): List[Program] = {
+    def solveResolveInner(program: Program)(implicit language: Language): List[Program] = {
+      if (program.resolve.isEmpty) {
+        List(program)
+      } else {
+        for (resolve <- program.resolve) {
+          val declarations = Graph(program.constraints).res(program.resolution)(resolve.n1)
+
+          if (declarations.nonEmpty) {
+            return declarations.toList.flatMap(declaration =>
+              resolve.n2
+                .unify(declaration)
+                .map(program.substitute)
+                .map(_.addResolution(resolve.n1 -> declaration))
+                .map(mergeOccurrences(_)(resolve.n1, declaration))
+            )
+          }
+        }
+
+        Nil
+      }
+    }
+
+    // TODO: After solving a resolve, we need to solveAny to propagate knowledge
+
+    def solveResolves(programs: List[Program]) = {
+      programs.flatMap(solveResolveInner)
+    }
+
+    fixedPoint(solveResolves, List(program))
   }
 
   /**
