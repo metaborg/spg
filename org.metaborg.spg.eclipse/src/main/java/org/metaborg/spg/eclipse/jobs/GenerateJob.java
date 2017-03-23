@@ -15,6 +15,9 @@ import org.metaborg.spg.core.SemanticGenerator;
 import org.metaborg.spg.eclipse.Activator;
 import org.metaborg.spoofax.eclipse.util.ConsoleUtils;
 
+import com.google.inject.Inject;
+import com.google.inject.assistedinject.Assisted;
+
 import rx.Observable;
 
 public class GenerateJob extends Job {
@@ -25,27 +28,27 @@ public class GenerateJob extends Job {
     
 	protected IProject project;
 	protected ILanguageImpl language;
-	protected int termLimit;
-	protected int termSize;
-	protected int fuel;
-    
-	public GenerateJob(SemanticGenerator generator, IProject project, ILanguageImpl language, int termLimit, int termSize, int fuel) {
+	protected Config config;
+
+	@Inject
+	public GenerateJob(
+		SemanticGenerator generator,
+		@Assisted IProject project,
+		@Assisted ILanguageImpl language,
+		@Assisted Config config
+	) {
 		super("Generate");
 		
 		this.generator = generator;
 		
 		this.project = project;
 		this.language = language;
-		this.termLimit = termLimit;
-		this.termSize = termSize;
-		this.fuel = fuel;
+		this.config = config;
 	}
 	
 	@Override
 	protected IStatus run(IProgressMonitor monitor) {
-		final SubMonitor subMonitor = SubMonitor.convert(monitor, termLimit);
-
-		Config config = new Config(termLimit, fuel, termSize, true, true);
+		final SubMonitor subMonitor = SubMonitor.convert(monitor, config.limit());
 		
 		Observable<? extends String> programs = generator
 			.generate(language, project, config)

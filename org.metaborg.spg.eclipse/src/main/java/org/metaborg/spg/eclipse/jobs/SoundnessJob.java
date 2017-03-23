@@ -30,6 +30,8 @@ import org.metaborg.spg.eclipse.rx.MapWithIndex;
 import org.metaborg.spoofax.eclipse.util.ConsoleUtils;
 
 import com.google.common.collect.Iterables;
+import com.google.inject.Inject;
+import com.google.inject.assistedinject.Assisted;
 
 public class SoundnessJob extends Job {
 	public static Charset UTF_8 = StandardCharsets.UTF_8;
@@ -41,34 +43,36 @@ public class SoundnessJob extends Job {
     
 	protected IProject project;
 	protected ILanguageImpl language;
-	protected int termLimit;
-	protected int termSize;
-	protected int fuel;
+	protected Config config;
 	protected String interpreter;
 	protected int timeout;
 
-	public SoundnessJob(SemanticGenerator generator, IProject project, ILanguageImpl language, int termLimit, int termSize, int fuel, String interpreter, int timeout) {
+	@Inject
+	public SoundnessJob(
+		SemanticGenerator generator,
+		@Assisted IProject project,
+		@Assisted ILanguageImpl language,
+		@Assisted Config config,
+		@Assisted String interpreter,
+		@Assisted int timeout
+	) {
 		super("Soundness");
 		
 		this.generator = generator;
 		
 		this.project = project;
 		this.language = language;
-		this.termLimit = termLimit;
-		this.termSize = termSize;
-		this.fuel = fuel;
+		this.config = config;
 		this.interpreter = interpreter;
 		this.timeout = timeout;
 	}
 	
 	@Override
 	protected IStatus run(IProgressMonitor monitor) {
-		final SubMonitor subMonitor = SubMonitor.convert(monitor, termLimit);
+		final SubMonitor subMonitor = SubMonitor.convert(monitor, config.limit());
 		
 		String extension = getExtension(language);
 		long startTime = System.currentTimeMillis();
-		
-		Config config = new Config(termLimit, fuel, termSize, true, true);
 		
 		generator
 			.generate(language, project, config)

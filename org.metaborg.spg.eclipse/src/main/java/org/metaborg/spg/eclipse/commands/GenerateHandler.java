@@ -11,6 +11,7 @@ import org.metaborg.spg.eclipse.LanguageNotFoundException;
 import org.metaborg.spg.eclipse.ProjectNotFoundException;
 import org.metaborg.spg.eclipse.dialogs.GenerateDialog;
 import org.metaborg.spg.eclipse.jobs.IJobFactory;
+import org.metaborg.spg.core.Config;
 
 public class GenerateHandler extends SpgHandler {
 	@Override
@@ -28,9 +29,7 @@ public class GenerateHandler extends SpgHandler {
 				Job job = jobFactory.createGenerateJob(
 					project,
 					language,
-					generateDialog.getTermLimit(),
-					generateDialog.getTermSize(),
-					generateDialog.getFuel()
+					getConfig(generateDialog)
 				);
 				
 				job.setPriority(Job.SHORT);
@@ -44,5 +43,15 @@ public class GenerateHandler extends SpgHandler {
 		}
 		
 		return null;
+	}
+	
+	protected Config getConfig(GenerateDialog generateDialog) {
+		return new Config(
+			generateDialog.getTermLimit(),
+			generateDialog.getFuel(),
+			generateDialog.getTermSize(),
+			true,
+			true
+		);
 	}
 }

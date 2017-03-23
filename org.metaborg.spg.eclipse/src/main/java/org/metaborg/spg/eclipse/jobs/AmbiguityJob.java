@@ -39,6 +39,8 @@ import org.spoofax.interpreter.terms.IStrategoAppl;
 import org.spoofax.interpreter.terms.IStrategoTerm;
 
 import com.google.common.base.Joiner;
+import com.google.inject.Inject;
+import com.google.inject.assistedinject.Assisted;
 
 public class AmbiguityJob extends Job {
 	public static Charset UTF_8 = StandardCharsets.UTF_8;
@@ -54,11 +56,19 @@ public class AmbiguityJob extends Job {
     
 	protected IProject project;
 	protected ILanguageImpl language;
-	protected int termLimit;
-	protected int sizeLimit;
-	protected int timeout;
+	protected Config config;
     
-	public AmbiguityJob(IResourceService resourceService, ISourceTextService sourceTextService, ISpoofaxUnitService unitService, ISpoofaxSyntaxService syntaxService, SyntaxGenerator generator, IProject project, ILanguageImpl language, int termLimit, int sizeLimit) {
+	@Inject
+	public AmbiguityJob(
+		IResourceService resourceService,
+		ISourceTextService sourceTextService,
+		ISpoofaxUnitService unitService,
+		ISpoofaxSyntaxService syntaxService,
+		SyntaxGenerator generator,
+		@Assisted IProject project,
+		@Assisted ILanguageImpl language,
+		@Assisted Config config
+	) {
 		super("Generate");
 		
 		this.resourceService = resourceService;
@@ -70,17 +80,13 @@ public class AmbiguityJob extends Job {
 		
 		this.project = project;
 		this.language = language;
-		this.language = language;
-		this.termLimit = termLimit;
-		this.sizeLimit = sizeLimit;
+		this.config = config;
 	}
 	
 	@Override
 	protected IStatus run(IProgressMonitor monitor) {
-		final SubMonitor subMonitor = SubMonitor.convert(monitor, termLimit);
+		final SubMonitor subMonitor = SubMonitor.convert(monitor, config.limit());
 
-		Config config = new Config(termLimit, 0, sizeLimit, true, true);
-		
 		generator
 			.generate(language, project, config)
 			.asJavaObservable()
