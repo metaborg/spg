@@ -1,10 +1,10 @@
 package org.metaborg.spg.core
 
-import org.metaborg.spg.core.resolution.Occurrence
 import org.metaborg.spg.core.resolution.OccurrenceImplicits._
+import org.metaborg.spg.core.sdf.Sort
 import org.metaborg.spg.core.solver.{CGDecl, CGRef, CGenRecurse, Constraint, NewScope}
 import org.metaborg.spg.core.spoofax.Language
-import org.metaborg.spg.core.spoofax.models.{Sort, SortAppl, SortVar}
+import org.metaborg.spg.core.sdf.{SortAppl, SortVar}
 import org.metaborg.spg.core.terms._
 
 /**

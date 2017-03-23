@@ -4,8 +4,8 @@ import org.metaborg.spg.core.lexical.LexicalGenerator
 import org.metaborg.spg.core.resolution.{Graph, Occurrence}
 import org.metaborg.spg.core.solver._
 import org.metaborg.spg.core.spoofax.Language
-import org.metaborg.spg.core.spoofax.models.Strategy
-import org.metaborg.spg.core.spoofax.models.Strategy._
+import org.metaborg.spg.core.stratego.Strategy._
+import org.metaborg.spg.core.stratego.Strategy
 import org.metaborg.spg.core.terms.{Pattern, TermAppl, TermString, Var}
 
 import scala.util.Random

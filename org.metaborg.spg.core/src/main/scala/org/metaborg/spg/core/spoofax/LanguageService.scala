@@ -5,7 +5,9 @@ import com.typesafe.scalalogging.LazyLogging
 import org.metaborg.core.language.ILanguageImpl
 import org.metaborg.core.project.IProject
 import org.metaborg.core.resource.ResourceService
-import org.metaborg.spg.core.spoofax.models._
+import org.metaborg.spg.core.nabl.NablService
+import org.metaborg.spg.core.sdf.{SdfService, Sort, SortAppl, SortVar}
+import org.metaborg.spg.core.stratego.{Constructor, Injection, Operation, Signature}
 import org.metaborg.spoofax.core.syntax.SyntaxFacet
 
 import scala.collection.JavaConverters._

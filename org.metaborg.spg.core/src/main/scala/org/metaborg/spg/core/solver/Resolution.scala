@@ -2,7 +2,7 @@ package org.metaborg.spg.core.solver
 
 import org.metaborg.spg.core.terms.Pattern
 import org.metaborg.spg.core._
-import org.metaborg.spg.core.spoofax.models.Strategy
+import org.metaborg.spg.core.stratego.Strategy
 
 case class Resolution(bindings: Map[Pattern, Pattern] = Map.empty) {
   def contains(n: Pattern): Boolean =

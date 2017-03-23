@@ -2,7 +2,8 @@ package org.metaborg.spg.core.solver
 
 import org.metaborg.spg.core._
 import org.metaborg.spg.core.resolution.{Label, Occurrence}
-import org.metaborg.spg.core.spoofax.models.{Sort, Strategy}
+import org.metaborg.spg.core.sdf.Sort
+import org.metaborg.spg.core.stratego.Strategy
 import org.metaborg.spg.core.terms.{Pattern, Var}
 
 // Constraint

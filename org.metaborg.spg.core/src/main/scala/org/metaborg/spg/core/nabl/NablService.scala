@@ -1,4 +1,4 @@
-package org.metaborg.spg.core.spoofax
+package org.metaborg.spg.core.nabl
 
 import java.nio.charset.StandardCharsets
 
@@ -10,14 +10,14 @@ import org.metaborg.core.language.ILanguageImpl
 import org.metaborg.core.project.IProject
 import org.metaborg.core.resource.IResourceService
 import org.metaborg.spg.core.regex._
-import org.metaborg.spg.core.{NameProvider, Rule}
-import org.metaborg.spg.core.resolution.{Label, LabelOrdering}
-import org.metaborg.spg.core.spoofax.models.Signature
 import org.metaborg.spg.core.resolution.LabelImplicits._
+import org.metaborg.spg.core.resolution.{Label, LabelOrdering}
+import org.metaborg.spg.core.sdf.{Sort, SortVar}
 import org.metaborg.spg.core.solver._
 import org.metaborg.spg.core.spoofax.SpoofaxScala._
-import org.metaborg.spg.core.spoofax.models._
+import org.metaborg.spg.core.stratego.Signature
 import org.metaborg.spg.core.terms._
+import org.metaborg.spg.core.{NameProvider, Rule}
 import org.metaborg.spoofax.core.syntax.ISpoofaxSyntaxService
 import org.metaborg.spoofax.core.unit.ISpoofaxUnitService
 import org.metaborg.util.resource.FileSelectorUtils

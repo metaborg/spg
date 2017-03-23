@@ -6,9 +6,9 @@ import org.metaborg.core.language.ILanguageService
 import org.metaborg.spg.core.resolution.{Graph, Occurrence}
 import org.metaborg.spg.core.resolution.OccurrenceImplicits._
 import org.metaborg.spg.core.solver._
-import org.metaborg.spg.core.spoofax.models.Strategy
-import org.metaborg.spg.core.spoofax.models.Strategy.{attempt, topdown}
+import org.metaborg.spg.core.stratego.Strategy.{attempt, topdown}
 import org.metaborg.spg.core.spoofax.{Converter, Language, LanguageService}
+import org.metaborg.spg.core.stratego.Strategy
 import org.metaborg.spg.core.terms.{Pattern, TermAppl, Var}
 
 import scala.util.Random
@@ -109,6 +109,8 @@ class SemanticGenerator @Inject()(languageService: LanguageService, baseLanguage
     if (size <= 0) {
       return Nil
     }
+
+    println(s"$recurse $size")
 
     val rules = language
       // Get rules for given recurse.name and recurse.sort

@@ -1,10 +1,5 @@
-package org.metaborg.spg.core.spoofax.models
+package org.metaborg.spg.core.sdf
 
-import org.metaborg.spg.core._
-
-abstract class Symbol
-
-// Sort
 abstract class Sort extends Symbol {
   def substituteSort(binding: Map[SortVar, Sort]): Sort
 
@@ -49,33 +44,3 @@ case class SortVar(name: String) extends Sort {
   override def toString: String =
     s"""SortVar("$name")"""
 }
-
-// Literal string
-case class Lit(text: String) extends Symbol
-
-// Case insensitive literal string
-case class CiLit(text: String) extends Symbol
-
-// Optional symbol
-case class Opt(symbol: Symbol) extends Symbol
-
-// Alternative symbol
-case class Alt(s1: Symbol, s2: Symbol) extends Symbol
-
-// Sequence symbol
-case class Sequence(s1: Symbol, s2: Symbol) extends Symbol
-
-// Kleene plus
-case class Iter(symbol: Symbol) extends Symbol
-
-// Kleene star
-case class IterStar(symbol: Symbol) extends Symbol
-
-// Kleene plus with separator
-case class IterSep(symbol: Symbol, separator: String) extends Symbol
-
-// Kleene star with separator
-case class IterStarSep(symbol: Symbol, separator: String) extends Symbol
-
-// Layout
-case class Layout() extends Symbol

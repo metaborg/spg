@@ -1,7 +1,8 @@
 package org.metaborg.spg
 
+import org.metaborg.spg.core.sdf.{Sort, SortVar}
 import org.metaborg.spg.core.solver.Constraint
-import org.metaborg.spg.core.spoofax.models.{Sort, SortVar, Strategy}
+import org.metaborg.spg.core.stratego.Strategy
 import org.metaborg.spg.core.terms.{Pattern, Var}
 
 import scala.annotation.tailrec

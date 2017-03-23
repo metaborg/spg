@@ -4,7 +4,7 @@ import com.google.inject.Inject
 import com.typesafe.scalalogging.LazyLogging
 import org.metaborg.core.language.ILanguageService
 import org.metaborg.spg.core.lexical.LexicalGenerator
-import org.metaborg.spg.core.spoofax.models._
+import org.metaborg.spg.core.sdf.Sort
 import org.metaborg.spg.core.spoofax.{Converter, Language, LanguageService}
 import org.metaborg.spg.core.terms.{Pattern, TermAppl, TermString}
 

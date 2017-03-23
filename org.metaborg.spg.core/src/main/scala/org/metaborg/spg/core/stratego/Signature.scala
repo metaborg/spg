@@ -1,7 +1,8 @@
-package org.metaborg.spg.core.spoofax.models
+package org.metaborg.spg.core.stratego
 
-import org.metaborg.spg.core.terms.{As, Pattern, TermAppl, Var}
 import org.metaborg.spg.core.fixedPoint
+import org.metaborg.spg.core.sdf.Sort
+import org.metaborg.spg.core.terms.{As, Pattern, TermAppl, Var}
 
 import scala.collection.mutable
 

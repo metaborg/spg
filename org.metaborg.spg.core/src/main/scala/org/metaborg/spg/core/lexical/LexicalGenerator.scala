@@ -1,8 +1,7 @@
 package org.metaborg.spg.core.lexical
 
-import org.metaborg.spg.core.spoofax.models._
 import org.metaborg.spg.core._
-import org.metaborg.spg.core.spoofax.models.{CharacterRange, IterSep, IterStar, Symbol}
+import org.metaborg.spg.core.sdf._
 
 import scala.util.Random
 

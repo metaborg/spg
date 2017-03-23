@@ -1,8 +1,9 @@
 package org.metaborg.spg.core
 
+import org.metaborg.spg.core.sdf.Sort
 import org.metaborg.spg.core.solver.{CGenRecurse, CResolve, Constraint, Resolution, Solver, Subtypes, TypeEnv}
 import org.metaborg.spg.core.spoofax.Language
-import org.metaborg.spg.core.spoofax.models.{Sort, Strategy}
+import org.metaborg.spg.core.stratego.Strategy
 import org.metaborg.spg.core.terms.Pattern
 
 /**

@@ -2,7 +2,7 @@ package org.metaborg.spg.core.solver
 
 import org.metaborg.spg.core.terms.{Pattern, Var}
 import org.metaborg.spg.core._
-import org.metaborg.spg.core.spoofax.models.Strategy
+import org.metaborg.spg.core.stratego.Strategy
 
 /**
   * Representation of a typing environment

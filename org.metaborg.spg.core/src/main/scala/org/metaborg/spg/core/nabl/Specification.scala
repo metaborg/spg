@@ -1,4 +1,4 @@
-package org.metaborg.spg.core.spoofax
+package org.metaborg.spg.core.nabl
 
 import org.metaborg.spg.core._
 import org.metaborg.spg.core.regex._

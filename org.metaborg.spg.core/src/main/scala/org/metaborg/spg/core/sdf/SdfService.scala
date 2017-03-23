@@ -1,4 +1,4 @@
-package org.metaborg.spg.core.spoofax
+package org.metaborg.spg.core.sdf
 
 import java.nio.charset.StandardCharsets
 
@@ -8,8 +8,8 @@ import org.apache.commons.vfs2.FileObject
 import org.metaborg.core.language.ILanguageImpl
 import org.metaborg.core.project.IProject
 import org.metaborg.core.resource.IResourceService
+import org.metaborg.spg.core
 import org.metaborg.spg.core.spoofax.SpoofaxScala._
-import org.metaborg.spg.core.spoofax.models._
 import org.metaborg.spoofax.core.syntax.ISpoofaxSyntaxService
 import org.metaborg.spoofax.core.unit.ISpoofaxUnitService
 import org.metaborg.util.resource.FileSelectorUtils
@@ -150,7 +150,7 @@ class SdfService @Inject()(val resourceService: IResourceService, val unitServic
       toSort(term.getSubterm(0))
   }
 
-  private def toRhs(term: IStrategoTerm): List[models.Symbol] = term match {
+  private def toRhs(term: IStrategoTerm): List[core.sdf.Symbol] = term match {
     case appl: IStrategoAppl if appl.getConstructor.getName == "Rhs" =>
       appl.getSubterm(0).getAllSubterms.toList.map(toSymbol)
 
@@ -161,13 +161,13 @@ class SdfService @Inject()(val resourceService: IResourceService, val unitServic
       term.getSubterm(0).getAllSubterms.toList.flatMap(toLine)
   }
 
-  private def toLine(term: IStrategoTerm): List[models.Symbol] = term match {
+  private def toLine(term: IStrategoTerm): List[core.sdf.Symbol] = term match {
     case appl: IStrategoAppl if appl.getConstructor.getName == "Line" =>
       term.getSubterm(0).getAllSubterms.toList.flatMap(toTemplateSymbol)
   }
 
   // Many template symbols are ignored, since they are not important for generation.
-  private def toTemplateSymbol(term: IStrategoTerm): List[models.Symbol] = term match {
+  private def toTemplateSymbol(term: IStrategoTerm): List[core.sdf.Symbol] = term match {
     case appl: IStrategoAppl if appl.getConstructor.getName == "Layout" =>
       Nil
     case appl: IStrategoAppl if appl.getConstructor.getName == "Escape" =>
@@ -194,7 +194,7 @@ class SdfService @Inject()(val resourceService: IResourceService, val unitServic
       List(toSymbol(appl))
   }
 
-  private def toSymbol(term: IStrategoTerm): models.Symbol = term match {
+  private def toSymbol(term: IStrategoTerm): core.sdf.Symbol = term match {
     case appl: IStrategoAppl if appl.getConstructor.getName == "Sort" =>
       toSort(term)
     case appl: IStrategoAppl if appl.getConstructor.getName == "Lit" =>
@@ -260,9 +260,9 @@ class SdfService @Inject()(val resourceService: IResourceService, val unitServic
 
   private def toCharacter(term: IStrategoTerm): Character = term match {
     case appl: IStrategoAppl if appl.getConstructor.getName == "Short" =>
-      Short(unescape(toString(term.getSubterm(0))).head)
+      core.sdf.Short(unescape(toString(term.getSubterm(0))).head)
     case appl: IStrategoAppl if appl.getConstructor.getName == "Numeric" =>
-      Short(toString(term.getSubterm(0)).tail.toInt.toChar)
+      core.sdf.Short(toString(term.getSubterm(0)).tail.toInt.toChar)
   }
 
   private def toString(term: IStrategoTerm): String = term match {

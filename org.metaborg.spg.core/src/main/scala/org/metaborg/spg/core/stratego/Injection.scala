@@ -1,4 +1,6 @@
-package org.metaborg.spg.core.spoofax.models
+package org.metaborg.spg.core.stratego
+
+import org.metaborg.spg.core.sdf.{Sort, SortVar}
 
 /**
   * An injection is a nameless constructor of arity one.

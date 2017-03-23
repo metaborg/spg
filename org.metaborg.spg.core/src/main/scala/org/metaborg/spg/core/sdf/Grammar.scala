@@ -1,4 +1,6 @@
-package org.metaborg.spg.core.spoofax.models
+package org.metaborg.spg.core.sdf
+
+import org.metaborg.spg.core.stratego.{Constructor, Injection, Operation}
 
 /**
   * A representation of an SDF grammar.

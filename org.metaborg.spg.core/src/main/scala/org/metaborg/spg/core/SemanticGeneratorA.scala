@@ -4,8 +4,8 @@ import com.google.inject.Inject
 import com.typesafe.scalalogging.LazyLogging
 import org.metaborg.core.language.ILanguageService
 import org.metaborg.spg.core.resolution.Label
+import org.metaborg.spg.core.sdf.SortAppl
 import org.metaborg.spg.core.solver._
-import org.metaborg.spg.core.spoofax.models.SortAppl
 import org.metaborg.spg.core.spoofax.{Converter, Language, LanguageService}
 import org.metaborg.spg.core.terms.{TermAppl, TermString, Var}
 

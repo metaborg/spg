@@ -1,4 +1,4 @@
-package org.metaborg.spg.core.spoofax.models
+package org.metaborg.spg.core.sdf
 
 abstract class CharClass extends Symbol {
   def characters: Seq[Char]

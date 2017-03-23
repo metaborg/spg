@@ -1,8 +1,10 @@
 package org.metaborg.spg.core.spoofax
 
 import org.metaborg.core.language.ILanguageImpl
-import org.metaborg.spg.core.spoofax.models._
 import org.metaborg.spg.core.Rule
+import org.metaborg.spg.core.nabl.Specification
+import org.metaborg.spg.core.sdf.{Grammar, Sort}
+import org.metaborg.spg.core.stratego.Signature
 import org.spoofax.interpreter.terms.IStrategoTerm
 
 import scala.collection.mutable

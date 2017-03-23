@@ -1,4 +1,6 @@
-package org.metaborg.spg.core.spoofax.models
+package org.metaborg.spg.core.stratego
+
+import org.metaborg.spg.core.sdf.{Sort, SortVar}
 
 /**
   * A constructor is an operation in an algebraic signature.

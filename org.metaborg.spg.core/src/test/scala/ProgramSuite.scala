@@ -1,7 +1,8 @@
+import org.metaborg.spg.core.sdf.SortAppl
 import org.metaborg.spg.core.{Binding, Program}
 import org.metaborg.spg.core.solver.{CGRef, CGenRecurse, Resolution, Subtypes, TypeEnv}
 import org.metaborg.spg.core.spoofax.Language
-import org.metaborg.spg.core.spoofax.models._
+import org.metaborg.spg.core.stratego.{Injection, Signature}
 import org.metaborg.spg.core.terms.{TermAppl, TermString, Var}
 import org.scalatest.FunSuite
 

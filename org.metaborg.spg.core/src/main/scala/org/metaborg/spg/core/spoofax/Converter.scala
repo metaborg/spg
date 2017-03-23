@@ -1,8 +1,7 @@
 package org.metaborg.spg.core.spoofax
 
-import org.metaborg.spg.core._
-import org.metaborg.spg.core.spoofax.models.Strategy
-import org.metaborg.spg.core.spoofax.models.Strategy._
+import org.metaborg.spg.core.stratego.Strategy._
+import org.metaborg.spg.core.stratego.Strategy
 import org.metaborg.spg.core.terms.{As, Pattern, TermAppl, TermString}
 import org.spoofax.interpreter.terms.{IStrategoConstructor, IStrategoList, IStrategoString, IStrategoTerm}
 import org.spoofax.terms.{StrategoConstructor, StrategoList, StrategoString, TermFactory}

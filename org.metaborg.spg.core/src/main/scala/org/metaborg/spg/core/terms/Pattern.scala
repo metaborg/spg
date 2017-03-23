@@ -1,7 +1,7 @@
 package org.metaborg.spg.core.terms
 
 import org.metaborg.spg.core._
-import org.metaborg.spg.core.spoofax.models.Strategy
+import org.metaborg.spg.core.stratego.Strategy
 
 abstract class Pattern {
   def vars: List[Var]

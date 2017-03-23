@@ -3,10 +3,12 @@ package org.metaborg.spg.core.solver
 import org.metaborg.spg.core._
 import org.metaborg.spg.core.resolution.{Graph, Occurrence}
 import org.metaborg.spg.core.spoofax.Language
-import org.metaborg.spg.core.spoofax.models.{Sort, SortAppl, SortVar, Strategy}
+import org.metaborg.spg.core.sdf.{SortAppl, SortVar}
 import org.metaborg.spg.core.{NameProvider, Program}
 import org.metaborg.spg.core.resolution.OccurrenceImplicits._
-import org.metaborg.spg.core.spoofax.models.Strategy._
+import org.metaborg.spg.core.sdf.Sort
+import org.metaborg.spg.core.stratego.Strategy._
+import org.metaborg.spg.core.stratego.Strategy
 import org.metaborg.spg.core.terms.{Pattern, TermAppl, TermString, Var}
 
 object Solver {
