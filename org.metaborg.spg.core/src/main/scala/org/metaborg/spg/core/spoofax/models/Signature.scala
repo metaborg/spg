@@ -1,219 +1,172 @@
 package org.metaborg.spg.core.spoofax.models
 
-import org.metaborg.spg.core._
 import org.metaborg.spg.core.terms.{As, Pattern, TermAppl, Var}
+import org.metaborg.spg.core.fixedPoint
 
-case class Signatures(list: List[Signature]) {
+import scala.collection.mutable
+
+/**
+  * An (algebraic) signature consists of a list of constructors.
+  *
+  * @param constructors
+  */
+case class Signature(constructors: List[Constructor]) {
   /**
-    * Get all constructors for the given sort.
-    *
-    * This implementation prevents cycles by keeping track of the seen sorts.
-    * Moreover, it memoizes the results to prevent computing the constructors
-    * for any given sort twice.
+    * Get only the operations from the list of constructors.
     */
-  val constructorsForSort: Sort => List[OpDecl] = {
-    def constructorsForSort(seen: Set[Sort])(sort: Sort): List[OpDecl] = {
-      if (seen contains sort) {
-        Nil
-      } else {
-        list.flatMap {
-          case c@OpDecl(_, ConstType(s)) if s.unify(sort).isDefined =>
-            List(c.substituteSort(s.unify(sort).get))
-          case c@OpDecl(_, FunType(_, ConstType(s))) if s.unify(sort).isDefined =>
-            List(c.substituteSort(s.unify(sort).get))
-          case OpDeclInj(FunType(List(ConstType(childSort)), ConstType(s))) if s.unify(sort).isDefined =>
-            constructorsForSort(seen + sort)(childSort.substituteSort(s.unify(sort).get))
-          case _ =>
-            Nil
-        }
-      }
-    }
-
-    memoize(constructorsForSort(Set.empty[Sort]))
+  lazy val operations: List[Operation] = constructors.collect {
+    case x: Operation =>
+      x
   }
 
   /**
-    * Get signatures for the given pattern based on its constructor name and arity.
-    *
-    * @param pattern
-    * @return
+    * Get only the injections from the list of constructors.
     */
-  def forPattern(pattern: Pattern): List[OpDecl] = pattern match {
-    case termAppl: TermAppl =>
-      list
-        .filter(_.isInstanceOf[OpDecl])
-        .asInstanceOf[List[OpDecl]]
-        .filter(_.name == termAppl.cons)
-        .filter(_.arity == termAppl.arity)
-    case _ =>
-      Nil
+  lazy val injections: List[Injection] = constructors.collect {
+    case x: Injection =>
+      x
   }
 
   /**
-    * Try to detect the signature for a given pattern based on its constructor
-    * name and its children.
-    *
-    * @param pattern
-    * @return
+    * Get all distinct sorts in the signature.
     */
-  def detectSignature(pattern: Pattern): List[OpDecl] = {
-    ???
+  lazy val sorts: List[Sort] = {
+    constructors.flatMap(_.sorts).distinct
   }
 
   /**
-    * Get the sort of p2 for its occurrence in p1. If p2 occurs multiple times
-    * in p1, the sort for the first occurrence is returned.
+    * Get the operations for the given sort.
     *
-    * @param p1
-    * @param p2
     * @param sort
     * @return
     */
-  def sortForPattern(p1: Pattern, p2: Pattern, sort: Option[Sort] = None): Option[Sort] = (p1, p2) match {
-    case (_, _) if p1 == p2 =>
+  def getOperations(sort: Sort): List[Operation] = {
+    operations.flatMap(operation =>
+      operation.target.unify(sort).map(unifier =>
+        operation.substitute(unifier)
+      )
+    )
+  }
+
+  /**
+    * Get the operations for both the given sort and all its injections.
+    *
+    * @param sort
+    * @return
+    */
+  def getOperationsTransitive(sort: Sort): List[Operation] = {
+    injectionsClosure(sort).flatMap(getOperations).toList
+  }
+
+  /**
+    * Memoized version of getOperationsTransitive.
+    *
+    * @return
+    */
+  val getOperationsTransitiveMem: Sort => List[Operation] = {
+    val memory = mutable.Map.empty[Sort, List[Operation]]
+
+    (s: Sort) => memory.getOrElseUpdate(s, getOperationsTransitive(s))
+  }
+
+  /**
+    * Get the constructors based on the given pattern.
+    *
+    * @param pattern
+    * @return
+    */
+  def getOperations(pattern: Pattern): List[Operation] = {
+    pattern match {
+      case TermAppl(cons, children) =>
+        operations
+          .filter(_.name == cons)
+          .filter(_.arity == children.size)
+      case _ =>
+        Nil
+    }
+  }
+
+  /**
+    * Get the sort for the given pattern in the given context.
+    *
+    *
+    * @param pattern
+    * @param context
+    * @return
+    */
+  def getSort(context: Pattern, pattern: Pattern): Option[Sort] = {
+    // TODO: I do not really understand this method, but it seems to work?
+
+    sortForPattern(context, pattern)
+  }
+
+  def sortForPattern(context: Pattern, pattern: Pattern, sort: Option[Sort] = None): Option[Sort] = (context, pattern) match {
+    case (_, _) if context == pattern =>
       sort
     case (As(Var(n1), _), Var(n2)) if n1 == n2 =>
       sort
     case (As(Var(n1), term1), term2) =>
       sortForPattern(term1, term2)
-    case (termAppl@TermAppl(_, children), _) =>
-      // If `forPattern(p1) == Nil` then we were unable to identify a signature for p1
-      val signature = forPattern(p1).head
-
-      val sorts = signature.typ match {
-        case FunType(children, _) =>
-          children
-        case ConstType(_) =>
-          Nil
-      }
+    case (TermAppl(_, children), _) =>
+      val operation = getOperations(context).head
+      val sorts = operation.arguments
 
       (children, sorts).zipped.foldLeft(Option.empty[Sort]) {
         case (Some(x), _) =>
           Some(x)
-        case (_, (child, ConstType(sort))) =>
-          sortForPattern(child, p2, Some(sort))
-        case (_, (child, FunType(_, ConstType(sort)))) =>
-          sortForPattern(child, p2, Some(sort))
-        case (None, _) =>
-          ???
+        case (_, (child, sort)) =>
+          sortForPattern(child, pattern, Some(sort))
       }
     case _ =>
       None
   }
-}
 
-abstract class Signature {
-  def substituteSort(binding: Map[SortVar, Sort]): Signature
-}
-
-case class OpDecl(name: String, typ: Type) extends Signature {
   /**
-    * The arity of a signature is the number of arguments it takes.
+    * Get the direct injections for the given sort.
     *
+    * Injections can be parametric, so for every injection the given sort is
+    * unified with the target sort and this unifier is applied to the source
+    * sort.
+    *
+    * @param sort
     * @return
     */
-  def arity = typ match {
-    case FunType(children, _) =>
-      children.length
-    case ConstType(_) =>
-      0
+  def injections(sort: Sort): Set[Sort] = {
+    val sorts = injections.flatMap(injection =>
+      injection.target.unify(sort).map(injection.argument.substituteSort)
+    )
+
+    sorts.toSet
   }
 
   /**
-    * Get the sort (result type) for this signature
+    * Get the direct injections for the given set of sorts.
     *
+    * @param sorts
     * @return
     */
-  def sort = typ match {
-    case FunType(_, ConstType(sort)) =>
-      sort
-    case ConstType(sort) =>
-      sort
+  def injections(sorts: Set[Sort]): Set[Sort] = {
+    sorts.flatMap(injections(_)) ++ sorts
   }
 
   /**
-    * Substitute sort variables in this constructor.
+    * Get the transitive closure of the injection relation on the given set
+    * of sorts.
     *
-    * @param binding
+    * @param sorts
     * @return
     */
-  override def substituteSort(binding: Map[SortVar, Sort]): OpDecl = {
-    OpDecl(name, typ.substituteSort(binding))
+  def injectionsClosure(sorts: Set[Sort]): Set[Sort] = {
+    fixedPoint(injections(_: Set[Sort]), sorts)
   }
 
   /**
-    * The Stratego representation of a signature.
+    * Compute the transitive closure of the injection relation on the given sort.
     *
+    * @param sort
     * @return
     */
-  override def toString: String = {
-    s"$name : $typ"
-  }
-}
-
-case class OpDeclInj(typ: Type) extends Signature {
-  /**
-    * Substitute sort variables in this constructor.
-    *
-    * @param binding
-    * @return
-    */
-  override def substituteSort(binding: Map[SortVar, Sort]): Signature = {
-    OpDeclInj(typ.substituteSort(binding))
-  }
-
-  /**
-    * The Stratego representation of a signature.
-    *
-    * @return
-    */
-  override def toString: String = {
-    s"$typ"
-  }
-}
-
-abstract class Type {
-  def substituteSort(binding: Map[SortVar, Sort]): Type
-}
-
-case class FunType(children: List[Type], result: Type) extends Type {
-  /**
-    * Substitute sort in this type.
-    *
-    * @param binding
-    * @return
-    */
-  override def substituteSort(binding: Map[SortVar, Sort]): Type = {
-    FunType(children.map(_.substituteSort(binding)), result.substituteSort(binding))
-  }
-
-  /**
-    * The Stratego representation of a signature.
-    *
-    * @return
-    */
-  override def toString: String = {
-    s"${children.mkString(" * ")} -> $result"
-  }
-}
-
-case class ConstType(sort: Sort) extends Type {
-  /**
-    * Substitute sort in this type.
-    *
-    * @param binding
-    * @return
-    */
-  override def substituteSort(binding: Map[SortVar, Sort]): Type = {
-    ConstType(sort.substituteSort(binding))
-  }
-
-  /**
-    * The Stratego representation of a signature.
-    *
-    * @return
-    */
-  override def toString: String = {
-    sort.toString
+  def injectionsClosure(sort: Sort): Set[Sort] = {
+    injectionsClosure(Set(sort))
   }
 }

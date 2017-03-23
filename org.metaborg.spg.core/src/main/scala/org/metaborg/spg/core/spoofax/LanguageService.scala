@@ -28,7 +28,7 @@ class LanguageService @Inject()(val resourceSerivce: ResourceService, val sdfSer
     val grammar = sdfService.read(templateLangImpl, project)
 
     logger.trace("Computing signatures")
-    val signatures = Signatures(defaultSignatures ++ grammar.toSignatures)
+    val signatures = Signature(defaultSignatures ++ grammar.toConstructors)
 
     logger.trace("Loading static semantics")
     val specification = specificationService.read(nablLangImpl, project)(signatures)
@@ -57,60 +57,34 @@ class LanguageService @Inject()(val resourceSerivce: ResourceService, val sdfSer
   }
 
   /**
-    * These signatures are defined in the standard library and do not appear in
-    * the signature file. Hence, we add them ourselves.
+    * Spoofax leaves the constructors for List(a) and Option(a) out of the
+    * generated signature file, so we add them ourselves.
     *
-    * The last two signatures define the sort Iter(a) and IterStar(a):
-    *  - Iter(a) is a list with at least one element. This is not supported in
-    * Stratego.
-    *  - IterStar(a) is a list with zero or more elements. It is the same as
-    * List(a), so we define an injection to it.
+    * Spoofax's List(a) does not distinguish between empty and non-empty lists.
+    * We define Iter(a) and IterStar(a) for non-empty and empty lists,
+    * respectively.
+    *
+    * TODO: Drop IterStar(a), since it is the same as List(a). We only need to add Iter(a).
     *
     * @return
     */
-  def defaultSignatures: List[Signature] = List(
-    // Cons : a * Lits(a) -> List(a)
-    OpDecl("Cons", FunType(
-      List(
-        ConstType(SortVar("a")),
-        ConstType(SortAppl("List", List(SortVar("a"))))
-      ),
-      ConstType(SortAppl("List", List(SortVar("a"))))
-    )),
+  lazy val defaultSignatures: List[Constructor] = List(
+    // Cons : a * List(a) -> List(a)
+    Operation("Cons", List(SortVar("a"), SortAppl("List", List(SortVar("a")))), SortAppl("List", List(SortVar("a")))),
 
     // Nil : List(a)
-    OpDecl("Nil", ConstType(
-      SortAppl("List", List(SortVar("a")))
-    )),
+    Operation("Nil", Nil, SortAppl("List", List(SortVar("a")))),
 
-    // Some : Option(a)
-    OpDecl("Some", FunType(
-      List(
-        ConstType(SortVar("a"))
-      ),
-      ConstType(SortAppl("Option", List(SortVar("a"))))
-    )),
+    // Some : a -> Option(a)
+    Operation("Some", List(SortVar("a")), SortAppl("Option", List(SortVar("a")))),
 
     // None : Option(a)
-    OpDecl("None", ConstType(
-      SortAppl("Option", List(SortVar("a")))
-    )),
+    Operation("None", Nil, SortAppl("Option", List(SortVar("a")))),
 
     // Conss : a * List(a) -> Iter(a)
-    OpDecl("Conss", FunType(
-      List(
-        ConstType(SortVar("a")),
-        ConstType(SortAppl("List", List(SortVar("a"))))
-      ),
-      ConstType(SortAppl("Iter", List(SortVar("a"))))
-    )),
+    Operation("Conss", List(SortVar("a"), SortAppl("List", List(SortVar("a")))), SortAppl("Iter", List(SortVar("a")))),
 
     // : List(a) -> IterStar(a)
-    OpDeclInj(FunType(
-      List(
-        ConstType(SortAppl("List", List(SortVar("a"))))
-      ),
-      ConstType(SortAppl("IterStar", List(SortVar("a"))))
-    ))
+    Injection(SortAppl("List", List(SortVar("a"))), SortAppl("IterStar", List(SortVar("a"))))
   )
 }

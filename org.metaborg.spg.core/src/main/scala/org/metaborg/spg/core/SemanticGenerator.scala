@@ -20,7 +20,7 @@ import scala.util.Random
   * @param baseLanguageService
   * @param random
   */
-class SemanticGeneratorC @Inject()(languageService: LanguageService, baseLanguageService: ILanguageService)(implicit val random: Random) extends AbstractGenerator(languageService, baseLanguageService) with LazyLogging {
+class SemanticGenerator @Inject()(languageService: LanguageService, baseLanguageService: ILanguageService)(implicit val random: Random) extends AbstractGenerator(languageService, baseLanguageService) with LazyLogging {
   /**
     * Generate a single term by repeatedly invoking generateTry until it
     * returns a semantically valid term.
@@ -112,7 +112,7 @@ class SemanticGeneratorC @Inject()(languageService: LanguageService, baseLanguag
 
     val rules = language
       // Get rules for given recurse.name and recurse.sort
-      .rules(recurse.name, recurse.sort)
+      .rulesMem(recurse.name, recurse.sort)
       // Also make sure the types will unify
       .flatMap(rule =>
         Merger.mergeTypes(rule)(recurse.typ, rule.typ).flatMap(rule =>
@@ -291,58 +291,5 @@ class SemanticGeneratorC @Inject()(languageService: LanguageService, baseLanguag
       (reachableScopes intersect recurseScopes).nonEmpty
     })
     */
-  }
-}
-
-/**
-  * Generate terms bottom-up.
-  */
-class Bottomup(language: Language) {
-  type Requirements = List[Constraint]
-
-  /**
-    * Generate terms for the given recurse in the given context. Returns
-    * programs and requirements.
-    *
-    * @param recurse
-    */
-  def generate(recurse: CGenRecurse, context: List[Constraint]): List[Rule] = {
-    // Build rules bottom-up
-    val combinedRules = repeat(generate, 2)(terminalRules)
-
-    // Filter on recurse.sort
-    val applicableRules = combinedRules.filter(combinedRule =>
-      combinedRule.name == recurse.name && combinedRule.sort == recurse.sort
-    )
-
-    // TODO: Filter on those whose requirements can be satisfied by the context
-
-    // TODO: Return requirements
-    applicableRules
-  }
-
-  // Given a list of terminal rules, build a larger list of terminal rules
-  def generate(terminalRules: List[Rule]): List[Rule] = {
-    language.specification.rules.flatMap(rule =>
-      generate(terminalRules, rule)
-    )
-  }
-
-  // Expand the given rule using the terminal rules
-  def generate(terminalRules: List[Rule], rule: Rule): List[Rule] = {
-    // TODO: Solving one recurse may change the other recurse because they share variables!
-    rule.recurses.foldLeftMap(rule) {
-      case (rule, recurse) =>
-        terminalRules.flatMap(terminalRule =>
-          rule.merge(recurse, terminalRule)(language)
-        )
-    }
-  }
-
-  // Get terminal rules, i.e. rules with no recurse constraints
-  lazy val terminalRules: List[Rule] = {
-    language.specification.rules.filter(rule =>
-      rule.recurses.isEmpty
-    )
   }
 }

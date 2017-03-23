@@ -233,8 +233,8 @@ object Rule {
     case SortVar(_) =>
       s1.unify(s2)
     case SortAppl(_, children) =>
-      Sort
-        .injectionsClosure(language.signatures, s1).view
+      language.signature
+        .injectionsClosure(s1).view
         .flatMap(_.unify(s2))
         .headOption
   }

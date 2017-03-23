@@ -17,16 +17,21 @@ This repository contains the following sub-projects:
 
 ## Building
 
-To build `org.metaborg.spg.{cmd,core}`, use:
+First, build `org.metaborg.spg.{cmd,core}` using:
 
 ```
 sbt compile publish-m2
 ```
 
-To build `org.metaborg.spg.eclipse.*`, use:
+Second, build `org.metaborg.spg.eclipse.externaldeps` using:
 
 ```
 mvn -f org.metaborg.spg.eclipse.externaldeps/pom.xml clean install
+```
+
+Third, build `org.metaborg.spg.eclipse.*` using:
+
+```
 mvn -f org.metaborg.spg.eclipse/pom.xml clean install
 mvn -f org.metaborg.spg.eclipse.feature/pom.xml clean install
 mvn -f org.metaborg.spg.eclipse.site/pom.xml clean install

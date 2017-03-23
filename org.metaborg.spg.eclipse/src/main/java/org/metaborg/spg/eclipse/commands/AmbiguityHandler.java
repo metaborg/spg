@@ -49,9 +49,7 @@ public class AmbiguityHandler extends SpgHandler {
 		return new Config(
 			ambiguityDialog.getTermLimit(),
 			0,
-			ambiguityDialog.getTermSize(),
-			true,
-			true
+			ambiguityDialog.getTermSize()
 		);
 	}
 }

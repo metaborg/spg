@@ -49,9 +49,7 @@ public class GenerateHandler extends SpgHandler {
 		return new Config(
 			generateDialog.getTermLimit(),
 			generateDialog.getFuel(),
-			generateDialog.getTermSize(),
-			true,
-			true
+			generateDialog.getTermSize()
 		);
 	}
 }

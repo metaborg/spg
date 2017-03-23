@@ -62,7 +62,7 @@ object Solver {
 
       program//.addInequalities(combis)
     case recurse@CGenRecurse(name, _, _, _, sort, size) =>
-      language.rules(name, sort).flatMap(rule => {
+      language.rulesMem(name, sort).flatMap(rule => {
         program.apply(recurse, rule)
       })
     case _ =>
@@ -250,8 +250,8 @@ object Solver {
     case SortVar(_) =>
       s1.unify(s2).map(program.substituteSort)
     case SortAppl(_, children) =>
-      Sort
-        .injectionsClosure(language.signatures, s1).view
+      language.signature
+        .injectionsClosure(s1).view
         .flatMap(_.unify(s2))
         .headOption
         .map(program.substituteSort)

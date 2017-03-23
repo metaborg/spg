@@ -9,7 +9,7 @@ import net.codingwell.scalaguice.InjectorExtensions._
 import org.backuity.clist.Cli
 import org.metaborg.core.language.{ILanguageImpl, LanguageUtils}
 import org.metaborg.core.project.{IProject, SimpleProjectService}
-import org.metaborg.spg.core.{Config, SemanticGeneratorA, SemanticGeneratorAa, SemanticGeneratorB, SemanticGeneratorC, SyntaxGenerator}
+import org.metaborg.spg.core.{Config, SemanticGeneratorA, SemanticGeneratorAa, SemanticGeneratorB, SemanticGenerator, SyntaxGenerator}
 import org.metaborg.spoofax.core.Spoofax
 import org.slf4j.LoggerFactory
 
@@ -99,7 +99,7 @@ object Main extends App {
 
     val injector = getInjector(options)
 
-    val generator = injector.getInstance(classOf[SemanticGeneratorC])
+    val generator = injector.getInstance(classOf[SemanticGenerator])
 
     val programs = generator.generate(
       loadLanguage(options.projectPath),

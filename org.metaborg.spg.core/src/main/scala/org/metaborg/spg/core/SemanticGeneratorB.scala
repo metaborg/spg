@@ -107,7 +107,7 @@ class SemanticGeneratorB @Inject()(languageService: LanguageService, baseLanguag
 
     val rules = language
       // Get rules for given recurse.name and recurse.sort
-      .rules(recurse.name, recurse.sort)
+      .rulesMem(recurse.name, recurse.sort)
       // Also make sure the types will unify
       .flatMap(rule =>
         Merger.mergeTypes(rule)(recurse.typ, rule.typ).flatMap(rule =>

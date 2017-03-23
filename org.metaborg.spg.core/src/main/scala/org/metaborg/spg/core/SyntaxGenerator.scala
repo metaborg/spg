@@ -15,10 +15,9 @@ import scala.util.Random
   *
   * @param languageService
   * @param baseLanguageService
-  * @param chooser
   * @param random
   */
-class SyntaxGenerator @Inject()(languageService: LanguageService, baseLanguageService: ILanguageService, chooser: AutomaticChooser)(implicit val random: Random) extends AbstractGenerator(languageService, baseLanguageService) with LazyLogging {
+class SyntaxGenerator @Inject()(languageService: LanguageService, baseLanguageService: ILanguageService)(implicit val random: Random) extends AbstractGenerator(languageService, baseLanguageService) with LazyLogging {
   /**
     * Generate a single term by repeatedly invoking generateTry until it
     * returns a syntactically valid term.
@@ -60,31 +59,18 @@ class SyntaxGenerator @Inject()(languageService: LanguageService, baseLanguageSe
     }
 
     val constructors = language
-      .signatures
-      .constructorsForSort(sort)
+      .signature
+      .getOperationsTransitive(sort)
 
     if (constructors.isEmpty) {
       Some(TermString(new LexicalGenerator(language.grammar).generate(sort)))
     } else {
       for (constructor <- constructors.shuffle) {
-        constructor match {
-          case OpDecl(name, ConstType(_)) =>
-            return Some(TermAppl(name, Nil))
-          case OpDecl(name, FunType(types, _)) => {
-            val childTypes = types.asInstanceOf[List[ConstType]]
-            val childSorts = childTypes.map(_.sort)
+        val childSize = (size - 1) / (constructor.arity max 1)
+        val childTerms = constructor.arguments.map(generateTry(language, config, _, childSize))
 
-            if (childSorts.nonEmpty) {
-              val childSize = (size - 1) / childSorts.size
-              val childTerms = childSorts.map(generateTry(language, config, _, childSize))
-
-              if (childTerms.forall(_.isDefined)) {
-                return Some(TermAppl(name, childTerms.map(_.get)))
-              }
-            } else {
-              return Some(TermAppl(name))
-            }
-          }
+        if (childTerms.forall(_.isDefined)) {
+          return Some(TermAppl(constructor.name, childTerms.map(_.get)))
         }
       }
 

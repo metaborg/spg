@@ -1,8 +1,7 @@
 package org.metaborg.spg.core.spoofax.models
 
 /**
-  * An SDF grammar consisting of two lists of context-free and lexical
-  * productions.
+  * A representation of an SDF grammar.
   *
   * @param contextFree
   * @param lexical
@@ -10,7 +9,7 @@ package org.metaborg.spg.core.spoofax.models
   */
 case class Grammar(contextFree: List[Production], lexical: List[Production], kernel: List[Production]) {
   /**
-    * Get both context-free and lexical productions.
+    * Get both context-free, lexical, and kernel productions.
     *
     * @return
     */
@@ -19,28 +18,29 @@ case class Grammar(contextFree: List[Production], lexical: List[Production], ker
   }
 
   /**
-    * Derive the signatures from the productions.
+    * Derive constructors from the productions.
     *
-    * Compared to SDFs default implementation, we distinguish between sorts
-    * IterStar and Iter for non-empty and empty lists, respectively.
+    * This code is based on https://goo.gl/lsxDlN, but we distinguish between
+    * sorts Iter and IterStar, which stand for for non-empty and empty lists,
+    * respectively.
     *
     * @return
     */
-  def toSignatures: List[Signature] = {
-    def contextFreeToSignature(production: Production): Option[Signature] = {
-      def rhsToConstType(rhs: Symbol): Option[ConstType] = rhs match {
+  def toConstructors: List[Constructor] = {
+    def contextFreeToConstructor(production: Production): Option[Constructor] = {
+      def symbolToSort(rhs: Symbol): Option[Sort] = rhs match {
         case x@SortAppl(_, _) =>
-          Some(ConstType(x))
+          Some(x)
         case Iter(sort: Sort) =>
-          Some(ConstType(SortAppl("Iter", List(sort))))
+          Some(SortAppl("Iter", List(sort)))
         case IterStar(sort: Sort) =>
-          Some(ConstType(SortAppl("IterStar", List(sort))))
+          Some(SortAppl("IterStar", List(sort)))
         case IterSep(sort: Sort, _) =>
-          Some(ConstType(SortAppl("Iter", List(sort))))
+          Some(SortAppl("Iter", List(sort)))
         case IterStarSep(sort: Sort, _) =>
-          Some(ConstType(SortAppl("IterStar", List(sort))))
+          Some(SortAppl("IterStar", List(sort)))
         case Opt(sort: Sort) =>
-          Some(ConstType(SortAppl("Option", List(sort))))
+          Some(SortAppl("Option", List(sort)))
         case _ =>
           None
       }
@@ -48,24 +48,28 @@ case class Grammar(contextFree: List[Production], lexical: List[Production], ker
       if (!production.isBracket && !production.isReject) {
         production.cons match {
           case Some(name) =>
-            Some(OpDecl(name, FunType(production.rhs.flatMap(rhsToConstType), ConstType(production.sort))))
+            Some(Operation(name, production.rhs.flatMap(symbolToSort), production.sort))
           case None =>
-            Some(OpDeclInj(FunType(production.rhs.flatMap(rhsToConstType), ConstType(production.sort))))
+            Some(Injection(symbolToSort(production.rhs.head).get, production.sort))
         }
       } else {
         None
       }
     }
 
-    def lexicalToSignature(production: Production): Option[Signature] = {
+    def lexicalToConstructor(production: Production): Option[Injection] = {
       if (!production.isReject) {
-        Some(OpDeclInj(FunType(List(ConstType(SortAppl("String"))), ConstType(production.sort))))
+        Some(Injection(SortAppl("String"), production.sort))
       } else {
         None
       }
     }
 
-    contextFree.flatMap(contextFreeToSignature) ++ kernel.flatMap(contextFreeToSignature) ++ lexical.flatMap(lexicalToSignature)
+    List.concat(
+      contextFree.flatMap(contextFreeToConstructor),
+      kernel.flatMap(contextFreeToConstructor),
+      lexical.flatMap(lexicalToConstructor)
+    )
   }
 
   /**
@@ -84,6 +88,11 @@ case class Grammar(contextFree: List[Production], lexical: List[Production], ker
 }
 
 object Grammar {
+  /**
+    * Create an empty grammar.
+    *
+    * @return
+    */
   def empty: Grammar = {
     Grammar(Nil, Nil, Nil)
   }

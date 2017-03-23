@@ -93,9 +93,7 @@ public class SoundnessHandler extends SpgHandler {
 		return new Config(
 			soundnessDialog.getTermLimit(),
 			soundnessDialog.getFuel(),
-			soundnessDialog.getTermSize(),
-			true,
-			true
+			soundnessDialog.getTermSize()
 		);
 	}
 }

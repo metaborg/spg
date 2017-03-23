@@ -6,7 +6,7 @@ import org.metaborg.spg.core.terms.{TermAppl, TermString, Var}
 import org.scalatest.FunSuite
 
 class ProgramSuite extends FunSuite {
-  val language: Language = Language(null, Signatures(List(OpDeclInj(FunType(List(ConstType(SortAppl("Exp"))), ConstType(SortAppl("ResetExp")))))), null, null, null, null)
+  val language: Language = Language(null, Signature(List(Injection(SortAppl("Exp"), SortAppl("ResetExp")))), null, null, null, null)
 
   test("merge two programs") {
     // Arrange

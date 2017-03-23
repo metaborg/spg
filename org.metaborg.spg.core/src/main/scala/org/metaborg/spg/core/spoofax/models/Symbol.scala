@@ -9,63 +9,6 @@ abstract class Sort extends Symbol {
   def substituteSort(binding: Map[SortVar, Sort]): Sort
 
   def unify(sort: Sort, binding: Map[SortVar, Sort] = Map.empty): Option[Map[SortVar, Sort]]
-
-  def unifiesWith(sort: Sort, binding: Map[SortVar, Sort] = Map.empty): Boolean =
-    unify(sort, binding).isDefined
-}
-
-object Sort {
-  /**
-    * Compute the direct injections for the given sort.
-    *
-    * @param signatures
-    * @param sort
-    * @return
-    */
-  def injections(signatures: Signatures, sort: Sort): Set[Sort] = {
-    val sorts = signatures.list.flatMap {
-      case OpDeclInj(FunType(List(ConstType(x)), ConstType(y))) =>
-        y.unify(sort).map(x.substituteSort)
-      case _ =>
-        Option.empty[Sort]
-    }
-
-    sorts.toSet
-  }
-
-  /**
-    * Compute the direct injections for the given set of sorts.
-    *
-    * @param signatures
-    * @param sorts
-    * @return
-    */
-  def injections(signatures: Signatures, sorts: Set[Sort]): Set[Sort] =
-    sorts.flatMap(injections(signatures, _)) ++ sorts
-
-  /**
-    * Compute the transitive closure of the injection relation on the given set
-    * of sorts.
-    *
-    * @param signatures
-    * @param sorts
-    * @return
-    */
-  def injectionsClosure(signatures: Signatures, sorts: Set[Sort]): Set[Sort] =
-    fixedPoint(injections(signatures, _: Set[Sort]), sorts)
-
-  /**
-    * Compute the transitive closure of the injection relation on the given
-    * sort.
-    *
-    * TODO: This should be cached, because it is highly inefficient!
-    *
-    * @param signatures
-    * @param sort
-    * @return
-    */
-  def injectionsClosure(signatures: Signatures, sort: Sort): Set[Sort] =
-    injectionsClosure(signatures, Set(sort))
 }
 
 case class SortAppl(name: String, children: List[Sort] = Nil) extends Sort {

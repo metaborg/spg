@@ -67,7 +67,7 @@ case class Concretor(language: Language)(implicit val random: Random) {
     // Replace variables by a random value that satisfies their sort
     val r4 = r3.substitute(
       r3.vars.map(v => {
-        val sortOpt = language.signatures.sortForPattern(r3, v)
+        val sortOpt = language.signature.getSort(r3, v)
         val value = sortOpt.map(generator.generate)
 
         v -> TermString(value.getOrElse(throw new RuntimeException("Could not determine Sort for TermVar")))

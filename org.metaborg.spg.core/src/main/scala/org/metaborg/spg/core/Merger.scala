@@ -23,8 +23,8 @@ object Merger {
     case SortVar(_) =>
       s1.unify(s2).map(rule.substituteSort)
     case SortAppl(_, _) =>
-      Sort
-        .injectionsClosure(language.signatures, s1).view
+      language.signature
+        .injectionsClosure(s1).view
         .flatMap(_.unify(s2))
         .headOption
         .map(rule.substituteSort)
@@ -98,8 +98,8 @@ object ProgramMerger {
     case SortVar(_) =>
       s1.unify(s2).map(rule.substituteSort)
     case SortAppl(_, _) =>
-      Sort
-        .injectionsClosure(language.signatures, s1).view
+      language.signature
+        .injectionsClosure(s1).view
         .flatMap(_.unify(s2))
         .headOption
         .map(rule.substituteSort)

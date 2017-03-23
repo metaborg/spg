@@ -12,7 +12,7 @@ import org.metaborg.core.resource.IResourceService
 import org.metaborg.spg.core.regex._
 import org.metaborg.spg.core.{NameProvider, Rule}
 import org.metaborg.spg.core.resolution.{Label, LabelOrdering}
-import org.metaborg.spg.core.spoofax.models.Signatures
+import org.metaborg.spg.core.spoofax.models.Signature
 import org.metaborg.spg.core.resolution.LabelImplicits._
 import org.metaborg.spg.core.solver._
 import org.metaborg.spg.core.spoofax.SpoofaxScala._
@@ -43,7 +43,7 @@ class NablService @Inject()(val resourceService: IResourceService, val unitServi
     * @param project
     * @return
     */
-  def read(nablLangImpl: ILanguageImpl, project: IProject)(implicit signatures: Signatures): Specification = {
+  def read(nablLangImpl: ILanguageImpl, project: IProject)(implicit signatures: Signature): Specification = {
     val fileSelector = FileSelectorUtils.extension("nabl2")
     val files = project.location().findFiles(fileSelector).toList
 
@@ -60,7 +60,7 @@ class NablService @Inject()(val resourceService: IResourceService, val unitServi
     * @param signatures
     * @return
     */
-  def read(nablLangImpl: ILanguageImpl, specification: FileObject)(implicit signatures: Signatures): Specification = {
+  def read(nablLangImpl: ILanguageImpl, specification: FileObject)(implicit signatures: Signature): Specification = {
     def parseFile(languageImpl: ILanguageImpl): IStrategoTerm = {
       val text = IOUtils.toString(specification.getContent.getInputStream, StandardCharsets.UTF_8)
       val inputUnit = unitService.inputUnit(specification, text, languageImpl, null)
@@ -88,10 +88,10 @@ class NablService @Inject()(val resourceService: IResourceService, val unitServi
   /**
     * Add sort to the Recurse constraints based on the position
     */
-  def inlineRecurse(rule: Rule)(implicit signatures: Signatures) = {
+  def inlineRecurse(rule: Rule)(implicit signature: Signature) = {
     rule.recurses.foldLeft(rule) {
       case (rule, recurse@CGenRecurse(name, variable, scopes, typ, null, 0)) =>
-        val sortOpt = signatures.sortForPattern(rule.pattern, variable)
+        val sortOpt = signature.getSort(rule.pattern, variable)
         val sort = sortOpt.getOrElse(throw new IllegalStateException("Could not find sort for " + variable + " in " + rule.pattern))
 
         rule - recurse + CGenRecurse(name, variable, scopes, typ, sort, 0)
@@ -204,7 +204,7 @@ class NablService @Inject()(val resourceService: IResourceService, val unitServi
   /**
     * Convert the Rules(_) block to an (init) Rule
     */
-  def toInitRule(term: IStrategoTerm)(implicit signatures: Signatures): Rule = {
+  def toInitRule(term: IStrategoTerm)(implicit signatures: Signature): Rule = {
     val rules = term.collectAll {
       case appl: IStrategoAppl if appl.getConstructor.getName == "CGenInitRule" =>
         true
@@ -238,7 +238,7 @@ class NablService @Inject()(val resourceService: IResourceService, val unitServi
   /**
     * Convert the Rules(_) block to a list of Rule
     */
-  def toRules(term: IStrategoTerm)(implicit signatures: Signatures): List[Rule] = {
+  def toRules(term: IStrategoTerm)(implicit signatures: Signature): List[Rule] = {
     val rules = term.collectAll {
       case appl: IStrategoAppl if appl.getConstructor.getName == "CGenMatchRule" =>
         true
@@ -259,7 +259,7 @@ class NablService @Inject()(val resourceService: IResourceService, val unitServi
   /**
     * Turn a CGenRule into a Rule
     */
-  def toRule(ruleIndex: Int, term: IStrategoTerm)(implicit signatures: Signatures): Rule = term match {
+  def toRule(ruleIndex: Int, term: IStrategoTerm)(implicit signatures: Signature): Rule = term match {
     case appl: StrategoAppl =>
       val name = toRuleName(appl.getSubterm(0))
       val pattern = toPattern(appl.getSubterm(1))
@@ -282,7 +282,7 @@ class NablService @Inject()(val resourceService: IResourceService, val unitServi
       )
   }
 
-  def toRuleNoConstraint(ruleIndex: Int, term: IStrategoTerm)(implicit signatures: Signatures): Rule = term match {
+  def toRuleNoConstraint(ruleIndex: Int, term: IStrategoTerm)(implicit signatures: Signature): Rule = term match {
     case appl: StrategoAppl =>
       val name = toRuleName(appl.getSubterm(0))
       val pattern = toPattern(appl.getSubterm(1))
@@ -313,17 +313,17 @@ class NablService @Inject()(val resourceService: IResourceService, val unitServi
   }
 
   // Retrieve the sort for the given pattern from the signatures
-  def toSort(pattern: Pattern)(implicit signatures: Signatures): Sort = pattern match {
+  def toSort(pattern: Pattern)(implicit signature: Signature): Sort = pattern match {
     case As(_, term) =>
       toSort(term)
     case _ =>
-      val signaturesForPattern = signatures.forPattern(pattern)
+      val signaturesForPattern = signature.getOperations(pattern)
 
       if (signaturesForPattern.length > 1) {
         logger.warn(s"Multiple signatures match $pattern ($signaturesForPattern), determining sort possibly wrong.")
       }
 
-      signaturesForPattern.head.sort
+      signaturesForPattern.head.target
   }
 
   // Turn a CGenMatch into a Pattern

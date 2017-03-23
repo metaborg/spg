@@ -87,7 +87,7 @@ object Consistency {
   private def advancedResolveCheck(program: Program)(implicit language: Language): Boolean = {
     def canAddDeclaration(resolve: CResolve, recurse: CGenRecurse): Boolean = {
       // Easy case; single-rule check, sufficient for L0
-      for (rule <- language.rules(recurse.name, recurse.sort)) {
+      for (rule <- language.rulesMem(recurse.name, recurse.sort)) {
         val r = rule.instantiate()
 
         for (scope <- r.scopes) {
