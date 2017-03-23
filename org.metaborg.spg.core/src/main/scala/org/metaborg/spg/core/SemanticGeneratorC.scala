@@ -4,12 +4,12 @@ import com.google.inject.Inject
 import com.typesafe.scalalogging.LazyLogging
 import org.metaborg.core.language.ILanguageService
 import org.metaborg.spg.core.resolution.{Graph, Occurrence}
-import org.metaborg.spg.core.solver._
-import org.metaborg.spg.core.spoofax.{Converter, Language, LanguageService}
-import org.metaborg.spg.core.terms.{Pattern, TermAppl, Var}
 import org.metaborg.spg.core.resolution.OccurrenceImplicits._
+import org.metaborg.spg.core.solver._
 import org.metaborg.spg.core.spoofax.models.Strategy
 import org.metaborg.spg.core.spoofax.models.Strategy.{attempt, topdown}
+import org.metaborg.spg.core.spoofax.{Converter, Language, LanguageService}
+import org.metaborg.spg.core.terms.{Pattern, TermAppl, Var}
 
 import scala.util.Random
 
@@ -18,10 +18,9 @@ import scala.util.Random
   *
   * @param languageService
   * @param baseLanguageService
-  * @param chooser
   * @param random
   */
-class SemanticGeneratorC @Inject()(languageService: LanguageService, baseLanguageService: ILanguageService, chooser: AutomaticChooser)(implicit val random: Random) extends AbstractGenerator(languageService, baseLanguageService) with LazyLogging {
+class SemanticGeneratorC @Inject()(languageService: LanguageService, baseLanguageService: ILanguageService)(implicit val random: Random) extends AbstractGenerator(languageService, baseLanguageService) with LazyLogging {
   /**
     * Generate a single term by repeatedly invoking generateTry until it
     * returns a semantically valid term.
@@ -130,15 +129,11 @@ class SemanticGeneratorC @Inject()(languageService: LanguageService, baseLanguag
       //val childSize = (size - 1) / (childRecurse.size max 1)
 
       // For QVars, artificially limit the max size of its children to prevent excessive backtracking (TODO: Hacky)
-      val childSize = if (dependency(program)) {
-//        ((size - 1) / (childRecurse.size max 1)) min 10
-        // TODO: Generate bottom-up with given context
-        // TODO: Get correct recurse
-        // TODO: Get correct context
-        val x = new Bottomup(language).generate(recurse, context)
-        x.foreach(println)
+      val childSize = if (false && dependency(program)) {
+        // Do not create children larger than 2 to prevent excessive backtracking on QVar's
+        //(size - 1) / (childRecurse.size max 1) min 2
 
-        (size - 1) / (childRecurse.size max 2)
+        (size - 1) / (childRecurse.size max 1)
       } else {
         (size - 1) / (childRecurse.size max 1)
       }
@@ -204,11 +199,12 @@ class SemanticGeneratorC @Inject()(languageService: LanguageService, baseLanguag
   }
 
   /**
-    * Resolve all references in the given program.
+    * Solve all CResolve constraints in the given program.
     *
-    * If one of the references cannot be resolved, return None. Otherwise,
-    * resolve the reference and return both the new program and the
-    * substitution.
+    * If a reference cannot be resolved, return None. If a reference can be
+    * resolved to multiple declarations, fork on each choice.
+    *
+    * TODO: The order of resolving references may be important (when references depend upon each other)
     */
   def solveResolves(program: Program, context: List[Constraint])(implicit language: Language): List[(Program, Map[Var, Pattern])] = {
     program.resolve.foldLeftMap((program, Map.empty[Var, Pattern])) {
@@ -221,44 +217,51 @@ class SemanticGeneratorC @Inject()(languageService: LanguageService, baseLanguag
   }
 
   /**
-    * Solve the given reference in the given program.
+    * Solve the given CResolve constraint in the given program.
     *
-    * If the reference cannot be resolved, return None. Otherwise, resolve the
-    * reference and return a) the new program, b) the substitution, and c) the
-    * names that need to be merged.
+    * If the reference cannot be resolved, return None. Otherwise, fork on each
+    * declaration that the reference may resolve to and return the new program.
     *
     * @return
     */
   def solveResolve(program: Program, resolve: CResolve, context: List[Constraint])(implicit language: Language): List[(Program, TermBinding)] = {
     val declarations = Graph(program.constraints ++ context).res(Resolution())(resolve.n1)
 
-    if (declarations.nonEmpty) {
-      val solutions = declarations.toList.flatMap(declaration => {
-        val substitutionOpt = resolve.n2.unify(declaration)
+    declarations.toList.flatMap(declaration => {
+      applyResolution(program, resolve, declaration)
+    })
+  }
 
-        substitutionOpt.map(substitution => {
-          val newProgram = (program - resolve)
-            .substitute(substitution)
-            .addResolution(resolve.n1 -> declaration)
-            // TODO: We replace the reference by the declaration to ensure they get the same name. Hacky..
-            .rewrite(topdown(attempt(new Strategy {
-              override def apply(p: Pattern): Option[Pattern] = {
-                if (p == resolve.n1.occurrence.name) {
-                  Some(declaration.name)
-                } else {
-                  None
-                }
-              }
-            })))
+  /**
+    * Solve the given CResolve constraint by resolving to the given declaration.
+    *
+    * TODO: We use a rewrite rule to replace the reference (occurrence) by the declaration (occurrence) to ensure they get the same name. Hacky..
+    * TODO: Can't we move this method to the Program class? I.e. program.resolve(reference, declaration)?
+    *
+    * @param program
+    * @param resolve
+    * @param declaration
+    * @return
+    */
+  def applyResolution(program: Program, resolve: CResolve, declaration: Occurrence): Option[(Program, TermBinding)] = {
+    val substitutionOpt = resolve.n2.unify(declaration)
 
-          (newProgram, substitution)
-        })
-      })
+    substitutionOpt.map(substitution => {
+      val newProgram = (program - resolve)
+        .substitute(substitution)
+        .addResolution(resolve.n1 -> declaration)
+        .rewrite(topdown(attempt(new Strategy {
+          override def apply(p: Pattern): Option[Pattern] = {
+            if (p == resolve.n1.occurrence.name) {
+              Some(declaration.name)
+            } else {
+              None
+            }
+          }
+        })))
 
-      solutions
-    } else {
-      Nil
-    }
+      (newProgram, substitution)
+    })
   }
 
   /**
