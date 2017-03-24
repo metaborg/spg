@@ -2,6 +2,10 @@
 
 The Spoofax generator.
 
+## Requirements
+
+- Spoofax 2.1.0
+
 ## Building
 
 Use [sbt](http://scala-sbt.org) to build the project. Use `sbt publish-local`

@@ -2,6 +2,10 @@
 
 Eclipse integration for SPG.
 
+## Requirements
+
+- Eclipse Neon or higher
+
 ## Developing
 
 This plugin depends on `org.metaborg.spg.core`. Because it is an Eclipse plugin, it uses Tycho for dependency management. Tycho is different from Maven in two aspects: first, it requires its dependencies to be OSGi packages, and second, it resolves these dependencies in the _Target platform_. To develop in Eclipse, you need to perform these steps:

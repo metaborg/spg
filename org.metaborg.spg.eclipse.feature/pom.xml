@@ -61,6 +61,12 @@
         <enabled>true</enabled>
       </snapshots>
     </repository>
+    <!-- Mars comes with org.eclipse.equinox.common 3.7, but we depend on 3.8, so we add Neon repository. -->
+    <repository>
+      <id>eclipse-neon</id>
+      <layout>p2</layout>
+      <url>http://eclipse.mirror.triple-it.nl/releases/neon/</url>
+    </repository>
   </repositories>
 
   <pluginRepositories>
