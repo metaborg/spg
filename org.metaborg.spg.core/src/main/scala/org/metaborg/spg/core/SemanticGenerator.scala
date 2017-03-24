@@ -82,10 +82,31 @@ class SemanticGenerator @Inject()(languageService: LanguageService, baseLanguage
   }
 
   def generateTop(program: Program)(implicit language: Language, config: Config): Option[Program] = {
-    generateRecursive(program.recurse.head, config.sizeLimit, program.constraints).flatMap {
+    generateFueled(language, config)(program.recurse.head, config.sizeLimit, program.constraints).flatMap {
       case (program, _) =>
         Solver.solveAll(program).randomOption
     }.randomOption
+  }
+
+  /**
+    * Wraps generateRecursive in a function that limits backtracking by the
+    * given fuel parameter.
+    *
+    * @param language
+    * @param config
+    * @return
+    */
+  def generateFueled(language: Language, config: Config): (CGenRecurse, Int, List[Constraint]) => List[(Program, TermBinding)] = {
+    var mutableFuel = config.fuel
+
+    lazy val self: (CGenRecurse, Int, List[Constraint]) => List[(Program, TermBinding)] = (r: CGenRecurse, s: Int, c: List[Constraint]) => mutableFuel match {
+      case 0 =>
+        Nil
+      case _ =>
+        mutableFuel = mutableFuel - 1; generateRecursive(self)(r, s, c)(language, config)
+    }
+
+    self
   }
 
   /**
@@ -99,18 +120,17 @@ class SemanticGenerator @Inject()(languageService: LanguageService, baseLanguage
     * constraints). Let the caller solve remaining constraints (see
     * generateTop).
     *
+    * @param generateRecursive Continuation
     * @param recurse
     * @param size
     * @param language
     * @param config
     * @return
     */
-  def generateRecursive(recurse: CGenRecurse, size: Int, context: List[Constraint])(implicit language: Language, config: Config): List[(Program, TermBinding)] = {
+  def generateRecursive(generateRecursive: (CGenRecurse, Int, List[Constraint]) => List[(Program, TermBinding)])(recurse: CGenRecurse, size: Int, context: List[Constraint])(implicit language: Language, config: Config): List[(Program, TermBinding)] = {
     if (size <= 0) {
       return Nil
     }
-
-    println(s"$recurse $size")
 
     val rules = language
       // Get rules for given recurse.name and recurse.sort
