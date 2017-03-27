@@ -4,6 +4,7 @@ import org.metaborg.core.language.ILanguageImpl
 import org.metaborg.spg.core.Rule
 import org.metaborg.spg.core.nabl.Specification
 import org.metaborg.spg.core.sdf.{Grammar, Sort}
+import org.metaborg.spg.core.solver.CGenRecurse
 import org.metaborg.spg.core.stratego.Signature
 import org.spoofax.interpreter.terms.IStrategoTerm
 
@@ -85,6 +86,22 @@ case class Language(grammar: Grammar, signature: Signature, specification: Speci
   def rules(name: String, sort: Sort): List[Rule] = {
     specification.rules.filter(rule =>
       name == rule.name && signature.injectionsClosure(sort).flatMap(_.unify(rule.sort)).nonEmpty
+    )
+  }
+
+  /**
+    * Get all rules that are applicable for the given recurse constraint.
+    *
+    * @param recurse
+    * @return
+    */
+  def rules(recurse: CGenRecurse)(implicit language: Language): List[Rule] = {
+    rulesMem(recurse.name, recurse.sort).flatMap(rule =>
+      Merger.mergeTypes(rule)(recurse.typ, rule.typ).flatMap(rule =>
+        Merger.mergeSorts(rule)(recurse.sort, rule.sort).flatMap(rule =>
+          Merger.mergeScopes(rule)(recurse.scopes, rule.scopes)
+        )
+      )
     )
   }
 

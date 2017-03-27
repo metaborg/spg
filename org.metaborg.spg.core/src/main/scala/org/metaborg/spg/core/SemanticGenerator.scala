@@ -9,7 +9,7 @@ import org.metaborg.spg.core.solver._
 import org.metaborg.spg.core.stratego.Strategy.{attempt, topdown}
 import org.metaborg.spg.core.spoofax.{Converter, Language, LanguageService}
 import org.metaborg.spg.core.stratego.Strategy
-import org.metaborg.spg.core.terms.{Pattern, TermAppl, Var}
+import org.metaborg.spg.core.terms.{Pattern, Var}
 
 import scala.util.Random
 
@@ -132,33 +132,11 @@ class SemanticGenerator @Inject()(languageService: LanguageService, baseLanguage
       return Nil
     }
 
-    val rules = language
-      // Get rules for given recurse.name and recurse.sort
-      .rulesMem(recurse.name, recurse.sort)
-      // Also make sure the types will unify
-      .flatMap(rule =>
-        Merger.mergeTypes(rule)(recurse.typ, rule.typ).flatMap(rule =>
-          Merger.mergeSorts(rule)(recurse.sort, rule.sort).flatMap(rule =>
-            Merger.mergeScopes(rule)(recurse.scopes, rule.scopes)
-          )
-        )
-      )
-
-    for (rule <- rules.shuffle) {
+    for (rule <- language.rules(recurse).shuffle) {
       val program = Program.fromRule(rule.instantiate().freshen())
 
       val childRecurse = program.recurse
-      //val childSize = (size - 1) / (childRecurse.size max 1)
-
-      // For QVars, artificially limit the max size of its children to prevent excessive backtracking (TODO: Hacky)
-      val childSize = if (false && dependency(program)) {
-        // Do not create children larger than 2 to prevent excessive backtracking on QVar's
-        //(size - 1) / (childRecurse.size max 1) min 2
-
-        (size - 1) / (childRecurse.size max 1)
-      } else {
-        (size - 1) / (childRecurse.size max 1)
-      }
+      val childSize = (size - 1) / (childRecurse.size max 1)
 
       // For every recurse, recursively generate a program and merge it into this program
       // After solving one recurse (e.g. the rhs of App(_, _) becomes Int), this changes the other recurse in the fold (e.g. the lhs of the application becomes Int -> ?)
@@ -284,34 +262,5 @@ class SemanticGenerator @Inject()(languageService: LanguageService, baseLanguage
 
       (newProgram, substitution)
     })
-  }
-
-  /**
-    * Check if a reference in the program depends expansion of one of its
-    * children.
-    *
-    * @return
-    */
-  def dependency(program: Program)(implicit language: Language): Boolean = {
-    if (program.pattern.asInstanceOf[TermAppl].cons == "QVar") {
-      true
-    } else {
-      false
-    }
-
-    /*
-    val graph = Graph(program.constraints)
-
-    val recurseScopes = program.recurse.flatMap(recurse =>
-      recurse.scopes
-    )
-
-    program.resolve.exists(resolve => {
-      val referenceScope = graph.scope(resolve.n1)
-      val reachableScopes = graph.reachableScopes(program.resolution)(referenceScope)
-
-      (reachableScopes intersect recurseScopes).nonEmpty
-    })
-    */
   }
 }
