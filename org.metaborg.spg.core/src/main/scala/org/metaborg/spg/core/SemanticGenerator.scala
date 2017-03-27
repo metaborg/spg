@@ -138,21 +138,15 @@ class SemanticGenerator @Inject()(languageService: LanguageService, baseLanguage
       val childRecurse = program.recurse
       val childSize = (size - 1) / (childRecurse.size max 1)
 
-      // For every recurse, recursively generate a program and merge it into this program
-      // After solving one recurse (e.g. the rhs of App(_, _) becomes Int), this changes the other recurse in the fold (e.g. the lhs of the application becomes Int -> ?)
-      val mergedProgram = (1 to program.recurse.size).toList.foldLeftMap((program, Map.empty[Var, Pattern])) {
+      val mergedPrograms = (1 to program.recurse.size).toList.foldLeftMap((program, Map.empty[Var, Pattern])) {
         case ((program, substitution), _) =>
           val recurse = program.recurse.random
           val newContext = (context ++ program.constraints).substitute(substitution)
-
-          // Generate a subprogram for the given recurse, with given max size, and given context
           val options = generateRecursive(recurse, childSize, newContext)
 
           options.flatMap {
             case (subProgram, newSubstitution) =>
-              // Merge created program back in
               program.merge(recurse, subProgram).map(program => {
-                // Apply given substitution
                 val substitutedProgram = program.substitute(newSubstitution)
 
                 // Due to the merge, we may need to propagate knowledge again
@@ -164,8 +158,29 @@ class SemanticGenerator @Inject()(languageService: LanguageService, baseLanguage
           }
       }
 
-      // Solve any constraint that is solvable
-      for ((program, substitution) <- mergedProgram) {
+      for (mergedProgram <- mergedPrograms) {
+        val cleaned = clean(mergedProgram, context)
+
+        if (cleaned.nonEmpty) {
+          return cleaned
+        }
+      }
+    }
+
+    Nil
+  }
+
+  /**
+    * Cleanup a program by solving all its CResolve constraints.
+    *
+    * @param pu
+    * @param context
+    * @param language
+    * @return
+    */
+  def clean(pu: (Program, Map[Var, Pattern]), context: List[Constraint])(implicit language: Language): List[(Program, Map[Var, Pattern])] = {
+    pu match {
+      case (program, substitution) =>
         // First, solveFixpoint to cleanup any remaining constraints
         val a = Solver.solveFixpoint(program)
 
@@ -192,7 +207,6 @@ class SemanticGenerator @Inject()(languageService: LanguageService, baseLanguage
               (program, substitution ++ newSubstitution)
           }
         }
-      }
     }
 
     Nil

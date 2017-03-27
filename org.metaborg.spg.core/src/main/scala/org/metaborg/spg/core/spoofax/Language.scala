@@ -1,7 +1,7 @@
 package org.metaborg.spg.core.spoofax
 
 import org.metaborg.core.language.ILanguageImpl
-import org.metaborg.spg.core.Rule
+import org.metaborg.spg.core.{Merger, Rule}
 import org.metaborg.spg.core.nabl.Specification
 import org.metaborg.spg.core.sdf.{Grammar, Sort}
 import org.metaborg.spg.core.solver.CGenRecurse
