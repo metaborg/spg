@@ -24,6 +24,9 @@ Arguments
    <projectPath> : Path to the Spoofax project of the language to generate terms for
 ```
 
+Setting the seed helps with reproducing a bug or checking that a refactoring
+does not change the semantics.
+
 ## Examples
 
 The `examples/` directory contains Spoofax implementations for the following

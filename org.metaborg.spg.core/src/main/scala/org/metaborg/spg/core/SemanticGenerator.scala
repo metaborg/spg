@@ -128,41 +128,17 @@ class SemanticGenerator @Inject()(languageService: LanguageService, baseLanguage
     * @return
     */
   def generateRecursive(generateRecursive: (CGenRecurse, Int, List[Constraint]) => List[(Program, TermBinding)])(recurse: CGenRecurse, size: Int, context: List[Constraint])(implicit language: Language, config: Config): List[(Program, TermBinding)] = {
-    if (size <= 0) {
-      return Nil
-    }
+    if (size > 0) {
+      for (rule <- language.rules(recurse).shuffle) {
+        val program = Program.fromRule(rule.instantiate().freshen())
+        val mergedPrograms = generateProgram(generateRecursive)(program, size, context)
 
-    for (rule <- language.rules(recurse).shuffle) {
-      val program = Program.fromRule(rule.instantiate().freshen())
+        for (mergedProgram <- mergedPrograms) {
+          val cleaned = clean(mergedProgram, context)
 
-      val childRecurse = program.recurse
-      val childSize = (size - 1) / (childRecurse.size max 1)
-
-      val mergedPrograms = (1 to program.recurse.size).toList.foldLeftMap((program, Map.empty[Var, Pattern])) {
-        case ((program, substitution), _) =>
-          val recurse = program.recurse.random
-          val newContext = (context ++ program.constraints).substitute(substitution)
-          val options = generateRecursive(recurse, childSize, newContext)
-
-          options.flatMap {
-            case (subProgram, newSubstitution) =>
-              program.merge(recurse, subProgram).map(program => {
-                val substitutedProgram = program.substitute(newSubstitution)
-
-                // Due to the merge, we may need to propagate knowledge again
-                val solvedProgram = Solver.solveFixpoint(substitutedProgram)
-
-                // Return new program and propagate all substitutions upward
-                (solvedProgram, substitution ++ newSubstitution)
-              })
+          if (cleaned.nonEmpty) {
+            return cleaned
           }
-      }
-
-      for (mergedProgram <- mergedPrograms) {
-        val cleaned = clean(mergedProgram, context)
-
-        if (cleaned.nonEmpty) {
-          return cleaned
         }
       }
     }
@@ -171,7 +147,44 @@ class SemanticGenerator @Inject()(languageService: LanguageService, baseLanguage
   }
 
   /**
+    * Given a program, complete it by filling in all holes.
+    *
+    * @param generateRecursive
+    * @param program
+    * @param size
+    * @param context
+    * @return
+    */
+  def generateProgram(generateRecursive: (CGenRecurse, Int, List[Constraint]) => List[(Program, TermBinding)])(program: Program, size: Int, context: List[Constraint])(implicit language: Language): List[(Program, Map[Var, Pattern])] = {
+    val childSize = (size - 1) / (program.recurse.size max 1)
+
+    // TODO: Propagate unifier instead of going over (1 to recurse.size) and picking a random recurse
+
+    (1 to program.recurse.size).toList.foldLeftMap((program, Map.empty[Var, Pattern])) {
+      case ((program, substitution), _) =>
+        val recurse = program.recurse.random
+        val newContext = (context ++ program.constraints).substitute(substitution)
+        val options = generateRecursive(recurse, childSize, newContext)
+
+        options.flatMap {
+          case (subProgram, newSubstitution) =>
+            program.merge(recurse, subProgram).map(program => {
+              val substitutedProgram = program.substitute(newSubstitution)
+
+              // Due to the merge, we may need to propagate knowledge again
+              val solvedProgram = Solver.solveFixpoint(substitutedProgram)
+
+              // Return new program and propagate all substitutions upward
+              (solvedProgram, substitution ++ newSubstitution)
+            })
+        }
+    }
+  }
+
+  /**
     * Cleanup a program by solving all its CResolve constraints.
+    *
+    * TODO: We should also require all CSubtype constraints to be satisfied, as these may also lead to excessive backtracking.
     *
     * @param pu
     * @param context
