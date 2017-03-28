@@ -20,7 +20,7 @@ This repository contains the following sub-projects:
 First, build `org.metaborg.spg.{cmd,core}` using:
 
 ```
-sbt compile publish-m2
+sbt clean compile publish-m2
 ```
 
 Second, build `org.metaborg.spg.eclipse.externaldeps` using:
@@ -42,4 +42,10 @@ Alternatively, build `org.metaborg.spg.{eclipse,eclipse.feature,eclipse.site}` t
 ```
 mvn -f pom.xml clean install
 ```
+
+## Usage
+
+To use the CLI, see `org.metaborg.spg.cmd`.
+To use the API, see `org.metaborg.spg.core`.
+To use the Eclipse plugin, see `org.metaborg.spg.eclipse`.
 

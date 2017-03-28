@@ -28,6 +28,7 @@ import org.metaborg.core.source.ISourceTextService;
 import org.metaborg.core.syntax.ParseException;
 import org.metaborg.spg.core.Config;
 import org.metaborg.spg.core.SyntaxGenerator;
+import org.metaborg.spg.core.SyntaxGeneratorFactory;
 import org.metaborg.spg.eclipse.Activator;
 import org.metaborg.spg.eclipse.rx.MapWithIndex;
 import org.metaborg.spoofax.core.syntax.ISpoofaxSyntaxService;
@@ -52,7 +53,7 @@ public class AmbiguityJob extends Job {
     protected ISourceTextService sourceTextService;
     protected ISpoofaxUnitService unitService;
     protected ISpoofaxSyntaxService syntaxService;
-    protected SyntaxGenerator generator;
+    protected SyntaxGeneratorFactory generatorFactory;
     
 	protected IProject project;
 	protected ILanguageImpl language;
@@ -64,7 +65,7 @@ public class AmbiguityJob extends Job {
 		ISourceTextService sourceTextService,
 		ISpoofaxUnitService unitService,
 		ISpoofaxSyntaxService syntaxService,
-		SyntaxGenerator generator,
+		SyntaxGeneratorFactory generatorFactory,
 		@Assisted IProject project,
 		@Assisted ILanguageImpl language,
 		@Assisted Config config
@@ -76,7 +77,7 @@ public class AmbiguityJob extends Job {
 		this.unitService = unitService;
 		this.syntaxService = syntaxService;
 		
-		this.generator = generator;
+		this.generatorFactory = generatorFactory;
 		
 		this.project = project;
 		this.language = language;
@@ -87,8 +88,8 @@ public class AmbiguityJob extends Job {
 	protected IStatus run(IProgressMonitor monitor) {
 		final SubMonitor subMonitor = SubMonitor.convert(monitor, config.limit());
 
-		generator
-			.generate(language, project, config)
+		generatorFactory
+            .create(language, project, config)
 			.asJavaObservable()
 			.doOnNext(program -> progress(subMonitor, program))
 			.map(program -> store(program))

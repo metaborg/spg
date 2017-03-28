@@ -12,6 +12,7 @@ import org.metaborg.core.language.ILanguageImpl;
 import org.metaborg.core.project.IProject;
 import org.metaborg.spg.core.Config;
 import org.metaborg.spg.core.SemanticGenerator;
+import org.metaborg.spg.core.SemanticGeneratorFactory;
 import org.metaborg.spg.eclipse.Activator;
 import org.metaborg.spoofax.eclipse.util.ConsoleUtils;
 
@@ -24,7 +25,7 @@ public class GenerateJob extends Job {
     protected MessageConsole console = ConsoleUtils.get("Spoofax console");
     protected MessageConsoleStream stream = console.newMessageStream();
     
-    protected SemanticGenerator generator;
+    protected SemanticGeneratorFactory generatorFactory;
     
 	protected IProject project;
 	protected ILanguageImpl language;
@@ -32,14 +33,14 @@ public class GenerateJob extends Job {
 
 	@Inject
 	public GenerateJob(
-		SemanticGenerator generator,
+		SemanticGeneratorFactory generatorFactory,
 		@Assisted IProject project,
 		@Assisted ILanguageImpl language,
 		@Assisted Config config
 	) {
 		super("Generate");
 		
-		this.generator = generator;
+		this.generatorFactory = generatorFactory;
 		
 		this.project = project;
 		this.language = language;
@@ -50,14 +51,14 @@ public class GenerateJob extends Job {
 	protected IStatus run(IProgressMonitor monitor) {
 		final SubMonitor subMonitor = SubMonitor.convert(monitor, config.limit());
 		
-		Observable<? extends String> programs = generator
-			.generate(language, project, config)
+		Observable<? extends String> programs = generatorFactory
+			.create(language, project, config)
 			.asJavaObservable();
-		
+
 		programs.subscribe(program -> {
 			stream.println(program);
 			stream.println("--------------------------------------------");
-			
+
 			subMonitor.split(1);
 		}, exception -> {
 			if (exception instanceof OperationCanceledException) {

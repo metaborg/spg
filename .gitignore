@@ -1,10 +1,17 @@
+# IntelliJ
+*.iml
 .idea/
 project/
 target/
-*.log
-.cache-main
-.cache-tests
+
+# Eclipse
 .classpath
 .project
 .settings
+
+# Miscellaneous
+*.log
+.cache-main
+.cache-tests
 .tmpBin/
+

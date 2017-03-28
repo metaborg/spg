@@ -128,7 +128,10 @@ class SemanticGeneratorB @Inject()(languageService: LanguageService, baseLanguag
           val recurse = program.recurse.random
 
           generateRecursive(recurse, childSize).flatMap(subProgram =>
-            program.merge(recurse, subProgram)
+            program.merge(recurse, subProgram).map {
+              case (program, _) =>
+                program
+            }
           )
       }
 

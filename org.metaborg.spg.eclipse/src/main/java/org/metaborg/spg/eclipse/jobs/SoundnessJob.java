@@ -21,7 +21,7 @@ import org.metaborg.core.language.ILanguageImpl;
 import org.metaborg.core.language.ResourceExtensionFacet;
 import org.metaborg.core.project.IProject;
 import org.metaborg.spg.core.Config;
-import org.metaborg.spg.core.SemanticGenerator;
+import org.metaborg.spg.core.SemanticGeneratorFactory;
 import org.metaborg.spg.eclipse.Activator;
 import org.metaborg.spg.eclipse.models.ProcessOutput;
 import org.metaborg.spg.eclipse.models.TerminateOutput;
@@ -39,7 +39,7 @@ public class SoundnessJob extends Job {
     protected MessageConsole console = ConsoleUtils.get("Spoofax console");
     protected MessageConsoleStream stream = console.newMessageStream();
     
-    protected SemanticGenerator generator;
+    protected SemanticGeneratorFactory generatorFactory;
     
 	protected IProject project;
 	protected ILanguageImpl language;
@@ -49,7 +49,7 @@ public class SoundnessJob extends Job {
 
 	@Inject
 	public SoundnessJob(
-		SemanticGenerator generator,
+		SemanticGeneratorFactory generatorFactory,
 		@Assisted IProject project,
 		@Assisted ILanguageImpl language,
 		@Assisted Config config,
@@ -58,7 +58,7 @@ public class SoundnessJob extends Job {
 	) {
 		super("Soundness");
 		
-		this.generator = generator;
+		this.generatorFactory = generatorFactory;
 		
 		this.project = project;
 		this.language = language;
@@ -73,9 +73,9 @@ public class SoundnessJob extends Job {
 		
 		String extension = getExtension(language);
 		long startTime = System.currentTimeMillis();
-		
-		generator
-			.generate(language, project, config)
+
+		generatorFactory
+			.create(language, project, config)
 			.asJavaObservable()
 			.doOnNext(program -> progress(subMonitor, program))
 			.map(program -> store(program, extension))

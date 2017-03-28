@@ -16,3 +16,9 @@ This plugin depends on `org.metaborg.spg.core`. Because it is an Eclipse plugin,
 
 3. `org.metaborg.spg.core` depends on third-party code that is not included in the default Spoofax Eclipse installation and thus not available in the _Target platform_. Spoofax's way of working around this problem is by importing the `org.metaborg.spoofax.eclipse.externaldeps` project, which contains all third-party dependencies. I have added all `org.metaborg.spg.core`s dependencies to this project.
 
+## Usage
+
+After building the project, the update site will be located at
+`org.metaborg.spg.eclipse.site/target/site`. Use this update site in Spoofax
+Eclipse 2.1.0 to install the plugin.
+
