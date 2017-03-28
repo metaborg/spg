@@ -17,6 +17,9 @@ package object core {
   // An instance of the NameProvider made globally available
   val nameProvider = NameProvider(100)
 
+  // Implicitly convert Unifier to Map[Var, Pattern]
+  implicit def unifierToMap(u: Unifier): Map[Var, Pattern] = u.delegate
+
   // Implicitly convert Binding to Tuple
   implicit def bindingToTuple[A, B](b: Binding[A, B]): (A, B) = Tuple2(b.a, b.b)
 

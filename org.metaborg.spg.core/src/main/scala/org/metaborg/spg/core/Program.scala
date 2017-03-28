@@ -84,7 +84,9 @@ case class Program(sort: Sort, pattern: Pattern, scopes: List[Pattern], typ: Opt
     * @param language
     * @return
     */
-  def merge(recurse: CGenRecurse, program: Program)(implicit language: Language): Option[Program] = {
+  def merge(recurse: CGenRecurse, program: Program)(implicit language: Language): Option[(Program, Unifier)] = {
+    assert(this.recurse contains recurse)
+
     // Freshen the program. After this point, don't use `program` anymore!
     val freshProgram = program.freshen()
 
@@ -95,17 +97,17 @@ case class Program(sort: Sort, pattern: Pattern, scopes: List[Pattern], typ: Opt
         resolution.merge(freshProgram.resolution)
     )
 
-    ProgramMerger.mergePatterns(newProgram)(recurse.pattern, freshProgram.pattern).flatMap(newProgram =>
-      ProgramMerger.mergeTypes(newProgram)(recurse.typ, freshProgram.typ).flatMap(newProgram =>
-        ProgramMerger.mergeScopes(newProgram)(recurse.scopes, freshProgram.scopes).flatMap(newProgram =>
-          ProgramMerger.mergeSorts(newProgram)(recurse.sort, freshProgram.sort).flatMap(newProgram =>
-            ProgramMerger.mergeTypeEnv(newProgram)(newProgram.typeEnv, freshProgram.typeEnv).flatMap(newProgram =>
-              Some(newProgram)
-            )
-          )
-        )
-      )
-    )
+    ProgramMerger.mergePatterns(newProgram)(recurse.pattern, freshProgram.pattern).flatMap { case (newProgram, unifier1) =>
+      ProgramMerger.mergeTypes(newProgram)(recurse.typ, freshProgram.typ).flatMap { case (newProgram, unifier2) =>
+        ProgramMerger.mergeScopes(newProgram)(recurse.scopes, freshProgram.scopes).flatMap { case (newProgram, unifier3) =>
+          ProgramMerger.mergeSorts(newProgram)(recurse.sort, freshProgram.sort).flatMap { case (newProgram, unifier4) =>
+            ProgramMerger.mergeTypeEnv(newProgram)(newProgram.typeEnv, freshProgram.typeEnv).flatMap { case (newProgram, unifier5) =>
+              Some(newProgram, unifier1 ++ unifier2 ++ unifier3 ++ unifier4 ++ unifier5)
+            }
+          }
+        }
+      }
+    }
   }
 
   /**

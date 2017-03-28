@@ -456,7 +456,7 @@ case class CSubtype(t1: Pattern, t2: Pattern) extends Constraint {
 }
 
 case class CGenRecurse(name: String, pattern: Pattern, scopes: List[Pattern], typ: Option[Pattern], sort: Sort, size: Int) extends Constraint {
-  override def substitute(binding: TermBinding): Constraint =
+  override def substitute(binding: TermBinding): CGenRecurse =
     CGenRecurse(name, pattern.substitute(binding), scopes.map(_.substitute(binding)), typ.map(_.substitute(binding)), sort, size)
 
   override def substituteScope(binding: TermBinding): Constraint =

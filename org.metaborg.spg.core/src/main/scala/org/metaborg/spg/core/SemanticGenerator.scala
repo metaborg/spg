@@ -96,10 +96,10 @@ class SemanticGenerator @Inject()(languageService: LanguageService, baseLanguage
     * @param config
     * @return
     */
-  def generateFueled(language: Language, config: Config): (CGenRecurse, Int, List[Constraint]) => List[(Program, TermBinding)] = {
+  def generateFueled(language: Language, config: Config): (CGenRecurse, Int, List[Constraint]) => List[(Program, Unifier)] = {
     var mutableFuel = config.fuel
 
-    lazy val self: (CGenRecurse, Int, List[Constraint]) => List[(Program, TermBinding)] = (r: CGenRecurse, s: Int, c: List[Constraint]) => mutableFuel match {
+    lazy val self: (CGenRecurse, Int, List[Constraint]) => List[(Program, Unifier)] = (r: CGenRecurse, s: Int, c: List[Constraint]) => mutableFuel match {
       case 0 =>
         Nil
       case _ =>
@@ -127,7 +127,7 @@ class SemanticGenerator @Inject()(languageService: LanguageService, baseLanguage
     * @param config
     * @return
     */
-  def generateRecursive(generateRecursive: (CGenRecurse, Int, List[Constraint]) => List[(Program, TermBinding)])(recurse: CGenRecurse, size: Int, context: List[Constraint])(implicit language: Language, config: Config): List[(Program, TermBinding)] = {
+  def generateRecursive(generateRecursive: (CGenRecurse, Int, List[Constraint]) => List[(Program, Unifier)])(recurse: CGenRecurse, size: Int, context: List[Constraint])(implicit language: Language, config: Config): List[(Program, Unifier)] = {
     if (size > 0) {
       for (rule <- language.rules(recurse).shuffle) {
         val program = Program.fromRule(rule.instantiate().freshen())
@@ -155,28 +155,23 @@ class SemanticGenerator @Inject()(languageService: LanguageService, baseLanguage
     * @param context
     * @return
     */
-  def generateProgram(generateRecursive: (CGenRecurse, Int, List[Constraint]) => List[(Program, TermBinding)])(program: Program, size: Int, context: List[Constraint])(implicit language: Language): List[(Program, Map[Var, Pattern])] = {
+  def generateProgram(generateRecursive: (CGenRecurse, Int, List[Constraint]) => List[(Program, Unifier)])(program: Program, size: Int, context: List[Constraint])(implicit language: Language): List[(Program, Unifier)] = {
     val childSize = (size - 1) / (program.recurse.size max 1)
 
-    // TODO: Propagate unifier instead of going over (1 to recurse.size) and picking a random recurse
+    program.recurse.shuffle.foldLeftMap(program, Unifier.empty) {
+      case ((program, unifier), recurse) =>
+        val updatedRecurse = recurse.substitute(unifier)
+        val updatedContext = context.substitute(unifier) ++ program.constraints
 
-    (1 to program.recurse.size).toList.foldLeftMap((program, Map.empty[Var, Pattern])) {
-      case ((program, substitution), _) =>
-        val recurse = program.recurse.random
-        val newContext = (context ++ program.constraints).substitute(substitution)
-        val options = generateRecursive(recurse, childSize, newContext)
-
-        options.flatMap {
-          case (subProgram, newSubstitution) =>
-            program.merge(recurse, subProgram).map(program => {
-              val substitutedProgram = program.substitute(newSubstitution)
-
-              // Due to the merge, we may need to propagate knowledge again
-              val solvedProgram = Solver.solveFixpoint(substitutedProgram)
-
-              // Return new program and propagate all substitutions upward
-              (solvedProgram, substitution ++ newSubstitution)
-            })
+        generateRecursive(updatedRecurse, childSize, updatedContext).flatMap {
+          case (childProgram, childUnifier) =>
+            program.merge(updatedRecurse, childProgram).flatMap {
+              case (mergedProgram, mergeUnifier) =>
+                Solver.solveFixpointE(mergedProgram).map {
+                  case (solvedProgram, solveUnifier) =>
+                    (solvedProgram, unifier ++ childUnifier ++ mergeUnifier ++ solveUnifier)
+                }
+            }
         }
     }
   }
@@ -191,7 +186,7 @@ class SemanticGenerator @Inject()(languageService: LanguageService, baseLanguage
     * @param language
     * @return
     */
-  def clean(pu: (Program, Map[Var, Pattern]), context: List[Constraint])(implicit language: Language): List[(Program, Map[Var, Pattern])] = {
+  def clean(pu: (Program, Unifier), context: List[Constraint])(implicit language: Language): List[(Program, Unifier)] = {
     pu match {
       case (program, substitution) =>
         // First, solveFixpoint to cleanup any remaining constraints
@@ -217,7 +212,7 @@ class SemanticGenerator @Inject()(languageService: LanguageService, baseLanguage
           // Fifth, for all remaining programs, combine the substitution
           return d.map {
             case (program, newSubstitution) =>
-              (program, substitution ++ newSubstitution)
+              (program, substitution ++ Unifier(newSubstitution))
           }
         }
     }

@@ -89,21 +89,27 @@ object ProgramMerger {
   /**
     * Merge two sorts.
     *
+    * TODO: Unifier.empty is wrong, but the type system clashes with Sorts and Patterns
+    *
     * @param rule
     * @param s1
     * @param s2
     * @param language
     * @return
     */
-  def mergeSorts(rule: Program)(s1: Sort, s2: Sort)(implicit language: Language): Option[Program] = s1 match {
+  def mergeSorts(rule: Program)(s1: Sort, s2: Sort)(implicit language: Language): Option[(Program, Unifier)] = s1 match {
     case SortVar(_) =>
-      s1.unify(s2).map(rule.substituteSort)
+      s1.unify(s2).map(unifier =>
+        (rule.substituteSort(unifier), Unifier.empty)
+      )
     case SortAppl(_, _) =>
       language.signature
         .injectionsClosure(s1).view
         .flatMap(_.unify(s2))
         .headOption
-        .map(rule.substituteSort)
+        .map(unifier =>
+          (rule.substituteSort(unifier), Unifier.empty)
+        )
   }
 
   /**
@@ -117,8 +123,10 @@ object ProgramMerger {
     * @param language
     * @return
     */
-  def mergePatterns(program: Program)(p1: Pattern, p2: Pattern)(implicit language: Language): Option[Program] = {
-    p1.unify(p2).map(program.substitute)
+  def mergePatterns(program: Program)(p1: Pattern, p2: Pattern)(implicit language: Language): Option[(Program, Unifier)] = {
+    p1.unify(p2).map(unifier =>
+      (program.substitute(unifier), Unifier(unifier))
+    )
   }
 
   /**
@@ -130,11 +138,13 @@ object ProgramMerger {
     * @param language
     * @return
     */
-  def mergeTypes(program: Program)(t1: Option[Pattern], t2: Option[Pattern])(implicit language: Language): Option[Program] = (t1, t2) match {
+  def mergeTypes(program: Program)(t1: Option[Pattern], t2: Option[Pattern])(implicit language: Language): Option[(Program, Unifier)] = (t1, t2) match {
     case (None, None) =>
-      Some(program)
+      Some(program, Unifier.empty)
     case (Some(_), Some(_)) =>
-      t1.get.unify(t2.get).map(program.substitute)
+      t1.get.unify(t2.get).map(unifier =>
+        (program.substitute(unifier), Unifier(unifier))
+      )
     case _ =>
       None
   }
@@ -148,11 +158,13 @@ object ProgramMerger {
     * @param language
     * @return
     */
-  def mergeScopes(program: Program)(ss1: List[Pattern], ss2: List[Pattern])(implicit language: Language): Option[Program] = {
+  def mergeScopes(program: Program)(ss1: List[Pattern], ss2: List[Pattern])(implicit language: Language): Option[(Program, Unifier)] = {
     if (ss1.length == ss2.length) {
-      ss1.zip(ss2).foldLeftWhile(program) {
-        case (program, (s1, s2)) =>
-          s1.unify(s2).map(program.substitute)
+      ss1.zip(ss2).foldLeftWhile(program, Unifier.empty) {
+        case ((program, unifier), (s1, s2)) =>
+          s1.unify(s2).map(newUnifier =>
+            (program.substitute(newUnifier), unifier ++ Unifier(newUnifier))
+          )
       }
     } else {
       None
@@ -168,10 +180,10 @@ object ProgramMerger {
     * @param language
     * @return
     */
-  def mergeTypeEnv(program: Program)(t1: TypeEnv, t2: TypeEnv)(implicit language: Language): Option[Program] = {
+  def mergeTypeEnv(program: Program)(t1: TypeEnv, t2: TypeEnv)(implicit language: Language): Option[(Program, Unifier)] = {
     t1.merge(t2).map {
       case (typeEnv, unifier) =>
-        program.copy(typeEnv = typeEnv).substitute(unifier)
+        (program.copy(typeEnv = typeEnv).substitute(unifier), Unifier(unifier))
     }
   }
 }

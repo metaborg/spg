@@ -1,5 +1,15 @@
 package org.metaborg.spg.core.sdf
 
+// TODO: Sorts are just patterns. No need to duplicate all the code...
+
+//abstract class Sort extends Pattern
+
+//class SortAppl(cons: String, children: List[Sort] = Nil) extends TermAppl(cons, children)
+
+//class SortVar(name: String) extends Var(name)
+
+//---
+
 abstract class Sort extends Symbol {
   def substituteSort(binding: Map[SortVar, Sort]): Sort
 
