@@ -9,7 +9,7 @@ import net.codingwell.scalaguice.InjectorExtensions._
 import org.backuity.clist.Cli
 import org.metaborg.core.language.{ILanguageImpl, LanguageUtils}
 import org.metaborg.core.project.{IProject, SimpleProjectService}
-import org.metaborg.spg.core.{Config, SemanticGenerator}
+import org.metaborg.spg.core.{Config, SemanticGenerator, SemanticGeneratorFactory}
 import org.metaborg.spoofax.core.Spoofax
 import org.slf4j.LoggerFactory
 
@@ -99,6 +99,7 @@ object Main extends App {
 
     val injector = getInjector(options)
 
+    /*
     val generator = injector.getInstance(classOf[SemanticGenerator])
 
     val programs = generator.generate(
@@ -106,8 +107,17 @@ object Main extends App {
       getOrCreateProject(options.projectPath),
       getConfig(options)
     )
+    */
 
-    programs.subscribe(program => {
+    val generatorFactory = injector.getInstance(classOf[SemanticGeneratorFactory])
+
+    val generator = generatorFactory.create(
+      loadLanguage(options.projectPath),
+      getOrCreateProject(options.projectPath),
+      getConfig(options)
+    )
+
+    generator.subscribe(program => {
       println("===================================")
       println(DateTimeFormatter.ISO_DATE_TIME.format(ZonedDateTime.now()))
       println("-----------------------------------")
