@@ -17,7 +17,7 @@ import scala.util.Random
   * @param language
   * @param random
   */
-class SemanticGenerator @Inject()(language: Language, config: Config)(implicit val random: Random) extends LazyLogging {
+class SemanticGenerator(language: Language, config: Config)(implicit val random: Random) extends LazyLogging {
   /**
     * Generate a single term by repeatedly invoking generateTry until it
     * returns a semantically valid term.
