@@ -99,16 +99,6 @@ object Main extends App {
 
     val injector = getInjector(options)
 
-    /*
-    val generator = injector.getInstance(classOf[SemanticGenerator])
-
-    val programs = generator.generate(
-      loadLanguage(options.projectPath),
-      getOrCreateProject(options.projectPath),
-      getConfig(options)
-    )
-    */
-
     val generatorFactory = injector.getInstance(classOf[SemanticGeneratorFactory])
 
     val generator = generatorFactory.create(
