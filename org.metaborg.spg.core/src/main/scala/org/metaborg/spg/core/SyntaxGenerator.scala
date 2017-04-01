@@ -4,6 +4,7 @@ import org.metaborg.spg.core.lexical.LexicalGenerator
 import org.metaborg.spg.core.sdf.Sort
 import org.metaborg.spg.core.spoofax.{Converter, Language}
 import org.metaborg.spg.core.terms.{Pattern, TermAppl, TermString}
+import rx.lang.scala.Observable
 
 import scala.util.Random
 
@@ -16,12 +17,30 @@ import scala.util.Random
   */
 class SyntaxGenerator(language: Language, config: Config)(implicit val random: Random) {
   /**
+    * Create a cold Observable that emits programs for the given language
+    * and generation configuration.
+    *
+    * @return
+    */
+  def generate(): Observable[(Pattern, String)] = {
+    Observable(subscriber => {
+      Iterator
+        .range(0, config.limit)
+        .takeWhile(_ => !subscriber.isUnsubscribed)
+        .foreach(_ => subscriber.onNext(generateOne()))
+
+      if (!subscriber.isUnsubscribed) {
+        subscriber.onCompleted()
+      }
+    })
+  }
+  /**
     * Generate a single term by repeatedly invoking generateTry until it
     * returns a syntactically valid term.
     *
     * @return
     */
-  def generateOne(): String = {
+  def generateOne(): (Pattern, String) = {
     val startSymbol = language
       .startSymbols
       .toSeq
@@ -31,7 +50,7 @@ class SyntaxGenerator(language: Language, config: Config)(implicit val random: R
       .continually(generateTry(startSymbol, config.sizeLimit))
       .dropWhile(_.isEmpty)
       .next
-      .map(pattern => language.printer(Converter.toTerm(pattern)))
+      .map(pattern => (pattern, language.printer(Converter.toTerm(pattern))))
       .get
   }
 
@@ -46,7 +65,7 @@ class SyntaxGenerator(language: Language, config: Config)(implicit val random: R
     * @param size
     * @return
     */
-  private def generateTry(sort: Sort, size: Int): Option[Pattern] = {
+  def generateTry(sort: Sort, size: Int): Option[Pattern] = {
     if (size <= 0) {
       return None
     }

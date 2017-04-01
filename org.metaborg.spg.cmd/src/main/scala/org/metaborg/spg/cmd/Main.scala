@@ -9,7 +9,7 @@ import net.codingwell.scalaguice.InjectorExtensions._
 import org.backuity.clist.Cli
 import org.metaborg.core.language.{ILanguageImpl, LanguageUtils}
 import org.metaborg.core.project.{IProject, SimpleProjectService}
-import org.metaborg.spg.core.{Config, SemanticGenerator, SemanticGeneratorFactory}
+import org.metaborg.spg.core.{Config, SemanticGenerator, SemanticGeneratorFactory, SyntaxGeneratorFactory, SyntaxShrinker}
 import org.metaborg.spoofax.core.Spoofax
 import org.slf4j.LoggerFactory
 
@@ -99,19 +99,39 @@ object Main extends App {
 
     val injector = getInjector(options)
 
-    val generatorFactory = injector.getInstance(classOf[SemanticGeneratorFactory])
+    val generatorFactory = injector.getInstance(classOf[SyntaxGeneratorFactory])
 
-    val generator = generatorFactory.create(
-      loadLanguage(options.projectPath),
-      getOrCreateProject(options.projectPath),
-      getConfig(options)
+    val language = generatorFactory.loadLanguage(
+      lut =
+        loadLanguage(options.projectPath),
+      project =
+        getOrCreateProject(options.projectPath)
     )
 
-    generator.subscribe(program => {
-      println("===================================")
-      println(DateTimeFormatter.ISO_DATE_TIME.format(ZonedDateTime.now()))
-      println("-----------------------------------")
-      println(program)
+    val generator = generatorFactory.create(
+      language =
+        language,
+      config =
+        getConfig(options)
+    )
+
+    val shrinker = new SyntaxShrinker(generator, language)(new Random(0))
+
+    generator.generate().subscribe(_ match {
+      case (tree, program) => {
+        println("===================================")
+        println(DateTimeFormatter.ISO_DATE_TIME.format(ZonedDateTime.now()))
+        println("-----------------------------------")
+        println(program)
+
+        println("Shrinking...")
+
+        shrinker.shrink(tree).foreach {
+          case (_, shrinkProgram) =>
+            println(shrinkProgram)
+            println("-----------------------------------")
+        }
+      }
     })
   })
 }

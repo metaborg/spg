@@ -10,7 +10,7 @@ import scala.util.Random
 
 class SyntaxGeneratorFactory @Inject()(languageService: LanguageService, baseLanguageService: ILanguageService)(implicit random: Random) {
   /**
-    * Create a cold Observable that emits programs for the given language
+    * Create a generator for programs based on the given language
     * implementation and generation configuration.
     *
     * @param lut
@@ -18,35 +18,27 @@ class SyntaxGeneratorFactory @Inject()(languageService: LanguageService, baseLan
     * @param config
     * @return
     */
-  def create(lut: ILanguageImpl, project: IProject, config: Config): Observable[String] = {
-    val templateLang = getLanguage("org.metaborg:org.metaborg.meta.lang.template:2.1.0")
-    val nablLang = getLanguage("org.metaborg:org.metaborg.meta.nabl2.lang:2.1.0")
-    val language = languageService.load(templateLang, nablLang, lut, project)
+  def create(lut: ILanguageImpl, project: IProject, config: Config): SyntaxGenerator = {
+    create(loadLanguage(lut, project), config)
+  }
 
-    create(language, config)
+  def create(language: Language, config: Config): SyntaxGenerator = {
+    new SyntaxGenerator(language, config)
   }
 
   /**
-    * Create a cold Observable that emits programs for the given language
-    * and generation configuration.
+    * Load a language for generation based on the underlying language
+    * implementation.
     *
-    * @param language
-    * @param config
+    * @param lut
+    * @param project
     * @return
     */
-  def create(language: Language, config: Config): Observable[String] = {
-    val generator = new SyntaxGenerator(language, config)
+  def loadLanguage(lut: ILanguageImpl, project: IProject): Language = {
+    val templateLang = getLanguage("org.metaborg:org.metaborg.meta.lang.template:2.1.0")
+    val nablLang = getLanguage("org.metaborg:org.metaborg.meta.nabl2.lang:2.1.0")
 
-    Observable(subscriber => {
-      Iterator
-        .range(0, config.limit)
-        .takeWhile(_ => !subscriber.isUnsubscribed)
-        .foreach(_ => subscriber.onNext(generator.generateOne()))
-
-      if (!subscriber.isUnsubscribed) {
-        subscriber.onCompleted()
-      }
-    })
+    languageService.load(templateLang, nablLang, lut, project)
   }
 
   /**

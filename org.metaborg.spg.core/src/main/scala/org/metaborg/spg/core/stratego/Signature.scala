@@ -101,25 +101,62 @@ case class Signature(constructors: List[Constructor]) {
     sortForPattern(context, pattern)
   }
 
-  def sortForPattern(context: Pattern, pattern: Pattern, sort: Option[Sort] = None): Option[Sort] = (context, pattern) match {
-    case (_, _) if context == pattern =>
-      sort
-    case (As(Var(n1), _), Var(n2)) if n1 == n2 =>
-      sort
-    case (As(Var(n1), term1), term2) =>
-      sortForPattern(term1, term2)
-    case (TermAppl(_, children), _) =>
-      val operation = getOperations(context).head
-      val sorts = operation.arguments
+  /**
+    * Get the sort for the pattern in the context.
+    *
+    * The sort for a pattern may not be obvious from the pattern itself. For
+    * example, the sort of a Cons node is `List(a)`, where `a` is to be
+    * determined by the context.
+    *
+    * @param context
+    * @param pattern
+    * @param sort
+    * @return
+    */
+  def sortForPattern(context: Pattern, pattern: Pattern, sort: Option[Sort] = None): Option[Sort] = {
+    (context, pattern) match {
+      case (_, _) if context == pattern =>
+        sort match {
+          case None =>
+            getOperations(pattern)
+              .headOption
+              .map(_.target)
+          case Some(_) =>
+            sort
+        }
+      case (TermAppl(_, children), _) =>
+        val sorts = if (sort.isDefined) {
+          val sortInjections = injectionsClosure(sort.get)
+          val operation = getOperations(context).head
+          val unifier = sortInjections.flatMap(_ unify operation.target).headOption
 
-      (children, sorts).zipped.foldLeft(Option.empty[Sort]) {
-        case (Some(x), _) =>
-          Some(x)
-        case (_, (child, sort)) =>
-          sortForPattern(child, pattern, Some(sort))
-      }
-    case _ =>
-      None
+          if (unifier.isEmpty) {
+            Nil
+          } else {
+            operation.arguments.map(_ substituteSort unifier.get)
+          }
+        } else {
+          getOperations(context).head.arguments
+        }
+
+        (children, sorts).zipped.foldLeft(Option.empty[Sort]) {
+          case (Some(x), _) =>
+            Some(x)
+          case (_, (child, sort)) =>
+            sortForPattern(child, pattern, Some(sort))
+        }
+      case (As(Var(n1), _), Var(n2)) if n1 == n2 =>
+        sort
+      case (As(Var(n1), term1), term2) =>
+        sortForPattern(term1, term2)
+      case _ =>
+        None
+    }
+  }
+
+  // TODO: Deprecate, use getOperations(context)
+  def sortForConstructor(constructor: String): Sort = {
+    operations.filter(_.name == constructor).head.target
   }
 
   /**
