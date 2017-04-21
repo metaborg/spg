@@ -7,14 +7,11 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.vfs2.FileObject;
-import org.apache.commons.vfs2.FileSystemException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.OperationCanceledException;
@@ -46,6 +43,8 @@ import org.spoofax.interpreter.terms.IStrategoTerm;
 import com.google.common.base.Joiner;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
+
+import rx.Observable;
 
 public class AmbiguityJob extends Job {
 	public static Charset UTF_8 = StandardCharsets.UTF_8;
@@ -101,29 +100,19 @@ public class AmbiguityJob extends Job {
 		final SyntaxGenerator generator = generatorFactory.create(this.language, project, config);
 		
 		final SyntaxShrinker shrinker = new SyntaxShrinker(generator, parseService, language, new scala.util.Random(0));
-		
-		generator
+
+		@SuppressWarnings("unchecked")
+		Observable<String> programs = (Observable<String>) generator
 			.generate()
-			.asJavaObservable()
+			.asJavaObservable();
+		
+		programs
 			.doOnNext(program -> progress(subMonitor, program))
 			.map(program -> store(program))
 			.map(file -> parse(this.language, file))
 			.filter(parseUnit -> parseUnit.valid())
-			.compose(MapWithIndex.instance())
-			.takeFirst(indexedParseUnit -> ambiguous(indexedParseUnit.value()))
-			.map(indexedParseUnit -> {
-				try {
-					return shrink(shrinker, this.language, indexedParseUnit.value());
-				} catch (FileSystemException e) {
-					e.printStackTrace();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-				
-				stream.println("Now supposed to get here");
-				
-				return null;
-			})
+			.takeFirst(parseUnit -> ambiguous(parseUnit))
+			.map(parseUnit -> shrink(shrinker, parseUnit))
 			.subscribe(parseUnit -> {
 				IStrategoTerm ast = parseUnit.ast();
 				
@@ -221,6 +210,18 @@ public class AmbiguityJob extends Job {
     }
     
     /**
+     * Check if the program is ambiguous.
+     * 
+     * @param program
+     * @return
+     */
+    protected boolean ambiguous(String program) {
+    	ISpoofaxParseUnit parseUnit = parse(language, store(program));
+    	
+    	return ambiguous(parseUnit);
+    }
+    
+    /**
      * Check if the parse unit contains an ambiguous AST.
      * 
      * @param parseUnit
@@ -261,30 +262,28 @@ public class AmbiguityJob extends Job {
     }
     
     /**
-     * Repeatedly shrink the given program until it is no longer ambiguous or
-     * it can no longer be shrunk.
+     * Recursively shrink the given program until it is no longer ambiguous or
+     * cannot be shrunk any further.
      * 
      * @param shrinker
      * @param program
      * @return
-     * @throws IOException 
-     * @throws FileSystemException 
      */
-    protected ISpoofaxParseUnit shrink(SyntaxShrinker shrinker, ILanguageImpl language, ISpoofaxParseUnit parseUnit) throws FileSystemException, IOException {
+    protected ISpoofaxParseUnit shrink(SyntaxShrinker shrinker, ISpoofaxParseUnit parseUnit) {
 		stream.println("=== Shrink ===");
 		stream.println(parseUnit.input().text());
 		
-		scala.collection.Iterator<String> iterator = shrinker.shrink(parseUnit.input().text()).iterator();
+		@SuppressWarnings("unchecked")
+		Observable<String> shrunkPrograms = (Observable<String>) shrinker
+			.shrink(parseUnit.input().text())
+			.asJavaObservable();
 		
-		while (iterator.hasNext()) {
-			String shrunk = iterator.next();
-			ISpoofaxParseUnit shrunkParseUnit = parse(language, store(shrunk));
-			
-			if (ambiguous(shrunkParseUnit)) {
-				return shrink(shrinker, language, shrunkParseUnit);
-			}
-		}
-		
-		return parseUnit;
+		return shrunkPrograms
+			.map(shrunkProgram -> parse(language, store(shrunkProgram)))
+			.filter(shrunkParseUnit -> ambiguous(shrunkParseUnit))
+			.map(shrunkParseUnit -> shrink(shrinker, shrunkParseUnit))
+			.firstOrDefault(parseUnit)
+			.toBlocking()
+			.single();
     }
 }

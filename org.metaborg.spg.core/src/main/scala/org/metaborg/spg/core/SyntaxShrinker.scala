@@ -5,6 +5,7 @@ import org.metaborg.spg.core.spoofax.{Language, ParseService}
 import org.metaborg.spg.core.stratego.Strategy
 import org.metaborg.spg.core.stratego.Strategy.{attempt, topdown}
 import org.metaborg.spg.core.terms._
+import rx.lang.scala.Observable
 
 import scala.util.Random
 import terms.Converters._
@@ -13,12 +14,10 @@ class SyntaxShrinker @Inject() (generator: SyntaxGenerator, parseService: ParseS
   /**
     * Given a program, construct an observable of smaller programs.
     *
-    * If no smaller programs can be generated, the Observable will be empty.
-    *
     * @param program
     * @return
     */
-  def shrink(program: String): List[String] = {
+  def shrink(program: String): Observable[String] = {
     // 1. Parse program (String => IStrategoTerm)
     val javaTerm = parseService.parse(language.implementation, program)
 
@@ -28,7 +27,7 @@ class SyntaxShrinker @Inject() (generator: SyntaxGenerator, parseService: ParseS
     // 3. Remove amb-nodes by picking an arbitrary alternative
     val nonambiguous = disambiguate(scalaTerm)
 
-    // 3. Shrink the Scala term (Term => List[Term])
+    // 3. Shrink the Scala term (Term => Observable[Term])
     val scalaShrunkTerms = shrink(nonambiguous)
 
     // 4. Convert to Java (Term => IStrategoTerm) (TODO: Fix runtime cast hack)
@@ -58,26 +57,43 @@ class SyntaxShrinker @Inject() (generator: SyntaxGenerator, parseService: ParseS
   /**
     * Given a term, construct possible smaller terms.
     *
+    * Smaller terms are constructed lazily such that you don't need to compute
+    * all smaller terms when you are merely looking for a single smaller term
+    * that is ambiguous.
+    *
     * @param term
     */
-  def shrink(term: Pattern): List[Pattern] = {
-    subTerms(term).shuffle.flatMap(subTerm => {
-      // Infer sort for subTerm in term
-      val sort = language.signature.sortForPattern(term, subTerm)
+  def shrink(term: Pattern): Observable[Pattern] = {
+    Observable
+      .from(subTerms(term).shuffle)
+      .flatMap(shrink(term, _))
+  }
 
-      // Try to generate a sentence for the nodes sort that is strictly smaller.
-      generator.generateTry(sort.get, subTerm.size - 1).map(smallerNode =>
-        term.rewrite(topdown(attempt(new Strategy {
-          override def apply(p: Pattern) = {
-            if (p eq subTerm) {
-              Some(smallerNode)
-            } else {
-              None
-            }
+  /**
+    * Shrink the given subTerm in the given term.
+    *
+    * @param term
+    * @param subTerm
+    * @return
+    */
+  def shrink(term: Pattern, subTerm: Pattern): Observable[Pattern] = {
+    // Infer sort for subTerm in term
+    val sort = language.signature.sortForPattern(term, subTerm)
+
+    // Try to generate a sentence for the nodes sort that is strictly smaller.
+    val result = generator.generateTry(sort.get, subTerm.size - 1).map(smallerNode =>
+      term.rewrite(topdown(attempt(new Strategy {
+        override def apply(p: Pattern): Option[Pattern] = {
+          if (p eq subTerm) {
+            Some(smallerNode)
+          } else {
+            None
           }
-        })))
-      )
-    })
+        }
+      })))
+    )
+
+    Observable.from(result)
   }
 
   /**
