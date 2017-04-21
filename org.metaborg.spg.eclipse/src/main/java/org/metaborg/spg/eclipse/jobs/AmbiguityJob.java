@@ -10,9 +10,11 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.vfs2.FileObject;
+import org.apache.commons.vfs2.FileSystemException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.OperationCanceledException;
@@ -29,6 +31,8 @@ import org.metaborg.core.syntax.ParseException;
 import org.metaborg.spg.core.Config;
 import org.metaborg.spg.core.SyntaxGenerator;
 import org.metaborg.spg.core.SyntaxGeneratorFactory;
+import org.metaborg.spg.core.SyntaxShrinker;
+import org.metaborg.spg.core.spoofax.*;
 import org.metaborg.spg.eclipse.Activator;
 import org.metaborg.spg.eclipse.rx.MapWithIndex;
 import org.metaborg.spoofax.core.syntax.ISpoofaxSyntaxService;
@@ -54,6 +58,7 @@ public class AmbiguityJob extends Job {
     protected ISpoofaxUnitService unitService;
     protected ISpoofaxSyntaxService syntaxService;
     protected SyntaxGeneratorFactory generatorFactory;
+    protected ParseService parseService;
     
 	protected IProject project;
 	protected ILanguageImpl language;
@@ -66,6 +71,8 @@ public class AmbiguityJob extends Job {
 		ISpoofaxUnitService unitService,
 		ISpoofaxSyntaxService syntaxService,
 		SyntaxGeneratorFactory generatorFactory,
+		ParseService parseService,
+		
 		@Assisted IProject project,
 		@Assisted ILanguageImpl language,
 		@Assisted Config config
@@ -78,6 +85,7 @@ public class AmbiguityJob extends Job {
 		this.syntaxService = syntaxService;
 		
 		this.generatorFactory = generatorFactory;
+		this.parseService = parseService;
 		
 		this.project = project;
 		this.language = language;
@@ -87,21 +95,43 @@ public class AmbiguityJob extends Job {
 	@Override
 	protected IStatus run(IProgressMonitor monitor) {
 		final SubMonitor subMonitor = SubMonitor.convert(monitor, config.limit());
-
-		generatorFactory
-            .create(language, project, config)
+		
+		final Language language = generatorFactory.loadLanguage(this.language, project);
+		
+		final SyntaxGenerator generator = generatorFactory.create(this.language, project, config);
+		
+		final SyntaxShrinker shrinker = new SyntaxShrinker(generator, parseService, language, new scala.util.Random(0));
+		
+		generator
+			.generate()
 			.asJavaObservable()
 			.doOnNext(program -> progress(subMonitor, program))
 			.map(program -> store(program))
-			.map(file -> parse(language, file))
+			.map(file -> parse(this.language, file))
 			.filter(parseUnit -> parseUnit.valid())
 			.compose(MapWithIndex.instance())
 			.takeFirst(indexedParseUnit -> ambiguous(indexedParseUnit.value()))
-			.subscribe(indexedParseUnit -> {
-				IStrategoTerm ast = parse(language, indexedParseUnit.value().input().source()).ast();
+			.map(indexedParseUnit -> {
+				try {
+					return shrink(shrinker, this.language, indexedParseUnit.value());
+				} catch (FileSystemException e) {
+					e.printStackTrace();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+				
+				stream.println("Now supposed to get here");
+				
+				return null;
+			})
+			.subscribe(parseUnit -> {
+				IStrategoTerm ast = parseUnit.ast();
+				
+				stream.println("=== Shrunk program ===");
+				stream.println(parseUnit.input().text());
 				
 				stream.println("=== Ambiguities ===");
-				stream.println(Joiner.on("\n").join(ambiguities(ast)));
+				stream.println(Joiner.on("\n").join(ambiguities(ast).collect(Collectors.toList())));
 			}, exception -> {
 				if (exception instanceof OperationCanceledException) {
 					// Swallow cancellation exceptions
@@ -118,7 +148,7 @@ public class AmbiguityJob extends Job {
     };
     
     /**
-     * Show there is some prorgress by printing the program and incrementing
+     * Show there is some progress by printing the program and incrementing
 	 * the submonitor.
      * 
      * @param program
@@ -202,32 +232,59 @@ public class AmbiguityJob extends Job {
     
     /**
      * Check if the AST contains the 'amb' constructor.
-     * 
+     *  
      * @param term
      * @return
      */
     protected boolean ambiguous(IStrategoTerm term) {
-        return !ambiguities(term).isEmpty();
+        return ambiguities(term).findAny().isPresent();
     }
 
     /**
-      * Collect all 'amb' constructors.
-      *
+      * Compute a lazy stream of all 'amb' constructors.
+      * 
       * @param term
       * @return
       */
-    protected List<IStrategoTerm> ambiguities(IStrategoTerm term) {
+    protected Stream<IStrategoTerm> ambiguities(IStrategoTerm term) {
 	    if (term instanceof IStrategoAppl) {
 		    IStrategoAppl appl = (IStrategoAppl) term;
 		    
 		    if (appl.getConstructor().getName() == "amb") {
-			    return Collections.singletonList(term);
+			    return Stream.of(term);
 		    }
 	    }
 
 	    return Arrays
     		.stream(term.getAllSubterms())
-    		.flatMap(child -> ambiguities(child).stream())
-    		.collect(Collectors.toList());
+    		.flatMap(child -> ambiguities(child));
+    }
+    
+    /**
+     * Repeatedly shrink the given program until it is no longer ambiguous or
+     * it can no longer be shrunk.
+     * 
+     * @param shrinker
+     * @param program
+     * @return
+     * @throws IOException 
+     * @throws FileSystemException 
+     */
+    protected ISpoofaxParseUnit shrink(SyntaxShrinker shrinker, ILanguageImpl language, ISpoofaxParseUnit parseUnit) throws FileSystemException, IOException {
+		stream.println("=== Shrink ===");
+		stream.println(parseUnit.input().text());
+		
+		scala.collection.Iterator<String> iterator = shrinker.shrink(parseUnit.input().text()).iterator();
+		
+		while (iterator.hasNext()) {
+			String shrunk = iterator.next();
+			ISpoofaxParseUnit shrunkParseUnit = parse(language, store(shrunk));
+			
+			if (ambiguous(shrunkParseUnit)) {
+				return shrink(shrinker, language, shrunkParseUnit);
+			}
+		}
+		
+		return parseUnit;
     }
 }

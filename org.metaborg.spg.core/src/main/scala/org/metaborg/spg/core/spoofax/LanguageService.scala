@@ -30,7 +30,7 @@ class LanguageService @Inject()(val resourceSerivce: ResourceService, val sdfSer
     val grammar = sdfService.read(templateLangImpl, project)
 
     logger.trace("Computing signatures")
-    val signatures = Signature(defaultSignatures ++ grammar.toConstructors)
+    val signatures = Signature(LanguageService.defaultSignatures ++ grammar.toConstructors)
 
     logger.trace("Loading static semantics")
     val specification = specificationService.read(nablLangImpl, project)(signatures)
@@ -57,16 +57,17 @@ class LanguageService @Inject()(val resourceSerivce: ResourceService, val sdfSer
       .map(SortAppl(_))
       .toSet
   }
+}
 
+object LanguageService {
   /**
-    * Spoofax leaves the constructors for List(a) and Option(a) out of the
-    * generated signature file, so we add them ourselves.
+    * The constructors for sorts List(a) and Option(a) are implicit in Spoofax.
+    * This method lists these implicit constructors.
     *
-    * Spoofax's List(a) does not distinguish between empty and non-empty lists.
-    * We define Iter(a) and IterStar(a) for non-empty and empty lists,
-    * respectively.
-    *
-    * TODO: Drop IterStar(a), since it is the same as List(a). We only need to add Iter(a).
+    * Moreover, Spoofax uses sort List(a) for both empty and non-empty lists.
+    * However, we do not want to generate empty lists when non-empty lists are
+    * required. We define sorts Iter(a) and IterStar(a) for non-empty lists and
+    * empty lists, respectively.
     *
     * @return
     */
@@ -83,10 +84,17 @@ class LanguageService @Inject()(val resourceSerivce: ResourceService, val sdfSer
     // None : Option(a)
     Operation("None", Nil, SortAppl("Option", List(SortVar("a")))),
 
-    // Conss : a * List(a) -> Iter(a)
-    Operation("Conss", List(SortVar("a"), SortAppl("List", List(SortVar("a")))), SortAppl("Iter", List(SortVar("a")))),
+    // IterCons : a * List(a) -> Iter(a)
+    //Operation("IterCons", List(SortVar("a"), SortAppl("List", List(SortVar("a")))), SortAppl("Iter", List(SortVar("a")))),
+
+    // Cons : a * List(a) -> Iter(a)
+    Operation("Cons", List(SortVar("a"), SortAppl("List", List(SortVar("a")))), SortAppl("Iter", List(SortVar("a")))),
 
     // : List(a) -> IterStar(a)
     Injection(SortAppl("List", List(SortVar("a"))), SortAppl("IterStar", List(SortVar("a"))))
+
+    // We made amb part of the signature so we can get its sort. But if we do this, then the sentence generator will generate amb nodes. We should not have amb nodes in the tree to begin with...
+    // amb : List(a) -> a
+    //Operation("amb", List(SortAppl("List", List(SortVar("a")))), SortVar("a"))
   )
 }

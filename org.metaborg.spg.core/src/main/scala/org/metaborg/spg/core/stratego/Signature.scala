@@ -96,7 +96,7 @@ case class Signature(constructors: List[Constructor]) {
     * @return
     */
   def getSort(context: Pattern, pattern: Pattern): Option[Sort] = {
-    // TODO: I do not really understand this method, but it seems to work?
+    // TODO: Inline sortForPattern
 
     sortForPattern(context, pattern)
   }
@@ -104,51 +104,61 @@ case class Signature(constructors: List[Constructor]) {
   /**
     * Get the sort for the pattern in the context.
     *
-    * The sort for a pattern may not be obvious from the pattern itself. For
-    * example, the sort of a Cons node is `List(a)`, where `a` is to be
-    * determined by the context.
+    * The sort for a pattern may not be obvious from the constructor. For
+    * example, the sort of a `Cons` node is `List(a)` for some value of `a`.
     *
-    * @param context
-    * @param pattern
-    * @param sort
+    * This method assumes:
+    *
+    *   a) The sort for a pattern is determined by its ancestors. This allows
+    *   us to find the sort by traversing the tree from the root until we find
+    *   the subtree.
+    *
+    *   b) The combination of constructor name and arity for a given sort is
+    *   unique. This allows us to infer the constructor based on its name,
+    *   arity, and sort.
+    *
+    * @param term
+    * @param subTerm
+    * @param termSort
     * @return
     */
-  def sortForPattern(context: Pattern, pattern: Pattern, sort: Option[Sort] = None): Option[Sort] = {
-    (context, pattern) match {
-      case (_, _) if context == pattern =>
-        sort match {
+  def sortForPattern(term: Pattern, subTerm: Pattern, termSort: Option[Sort] = None): Option[Sort] = {
+    (term, subTerm) match {
+      case (_, _) if term == subTerm =>
+        termSort match {
           case None =>
-            getOperations(pattern)
+            getOperations(subTerm)
               .headOption
               .map(_.target)
           case Some(_) =>
-            sort
+            termSort
         }
-      case (TermAppl(_, children), _) =>
-        val sorts = if (sort.isDefined) {
-          val sortInjections = injectionsClosure(sort.get)
-          val operation = getOperations(context).head
-          val unifier = sortInjections.flatMap(_ unify operation.target).headOption
+      case (term: TermAppl, _) =>
+        // Given a sort and a term, what are the sorts of its subterms?
+        val sorts = if (termSort.isDefined) {
+          val sortInjections = injectionsClosure(termSort.get)
+          val operation = sortInjections
+            .flatMap(getOperations)
+            .filter(_.name == term.cons)
+            .filter(_.arity == term.arity)
+            .head
 
-          if (unifier.isEmpty) {
-            Nil
-          } else {
-            operation.arguments.map(_ substituteSort unifier.get)
-          }
+          operation.arguments
         } else {
-          getOperations(context).head.arguments
+          getOperations(term).head.arguments
         }
 
-        (children, sorts).zipped.foldLeft(Option.empty[Sort]) {
+        // Try to find subTerm in each child
+        (term.children, sorts).zipped.foldLeft(Option.empty[Sort]) {
           case (Some(x), _) =>
-            Some(x)
+            Some(x) // TODO: Short circuit the fold?
           case (_, (child, sort)) =>
-            sortForPattern(child, pattern, Some(sort))
+            sortForPattern(child, subTerm, Some(sort))
         }
       case (As(Var(n1), _), Var(n2)) if n1 == n2 =>
-        sort
-      case (As(Var(n1), term1), term2) =>
-        sortForPattern(term1, term2)
+        termSort
+      case (As(Var(_), t1), t2) =>
+        sortForPattern(t1, t2)
       case _ =>
         None
     }

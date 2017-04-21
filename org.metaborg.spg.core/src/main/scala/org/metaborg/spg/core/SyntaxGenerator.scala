@@ -22,7 +22,7 @@ class SyntaxGenerator(language: Language, config: Config)(implicit val random: R
     *
     * @return
     */
-  def generate(): Observable[(Pattern, String)] = {
+  def generate(): Observable[String] = {
     Observable(subscriber => {
       Iterator
         .range(0, config.limit)
@@ -34,13 +34,14 @@ class SyntaxGenerator(language: Language, config: Config)(implicit val random: R
       }
     })
   }
+
   /**
     * Generate a single term by repeatedly invoking generateTry until it
     * returns a syntactically valid term.
     *
     * @return
     */
-  def generateOne(): (Pattern, String) = {
+  def generateOne(): String = {
     val startSymbol = language
       .startSymbols
       .toSeq
@@ -50,7 +51,7 @@ class SyntaxGenerator(language: Language, config: Config)(implicit val random: R
       .continually(generateTry(startSymbol, config.sizeLimit))
       .dropWhile(_.isEmpty)
       .next
-      .map(pattern => (pattern, language.printer(Converter.toTerm(pattern))))
+      .map(p => language.printer(Converter.toTerm(p)))
       .get
   }
 

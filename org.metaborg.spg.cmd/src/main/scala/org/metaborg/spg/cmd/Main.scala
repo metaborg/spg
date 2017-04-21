@@ -9,6 +9,7 @@ import net.codingwell.scalaguice.InjectorExtensions._
 import org.backuity.clist.Cli
 import org.metaborg.core.language.{ILanguageImpl, LanguageUtils}
 import org.metaborg.core.project.{IProject, SimpleProjectService}
+import org.metaborg.spg.core.spoofax.ParseService
 import org.metaborg.spg.core.{Config, SemanticGenerator, SemanticGeneratorFactory, SyntaxGeneratorFactory, SyntaxShrinker}
 import org.metaborg.spoofax.core.Spoofax
 import org.slf4j.LoggerFactory
@@ -115,22 +116,23 @@ object Main extends App {
         getConfig(options)
     )
 
-    val shrinker = new SyntaxShrinker(generator, language)(new Random(0))
+    val shrinker = new SyntaxShrinker(generator, injector.getInstance(classOf[ParseService]), language)(new Random(0))
 
     generator.generate().subscribe(_ match {
-      case (tree, program) => {
+      case program => {
         println("===================================")
         println(DateTimeFormatter.ISO_DATE_TIME.format(ZonedDateTime.now()))
         println("-----------------------------------")
         println(program)
 
+        println("-----------------------------------")
         println("Shrinking...")
+        println("-----------------------------------")
 
-        shrinker.shrink(tree).foreach {
-          case (_, shrinkProgram) =>
-            println(shrinkProgram)
-            println("-----------------------------------")
-        }
+        shrinker.shrink(program).foreach(program => {
+          println(program)
+          println("-----------------------------------")
+        })
       }
     })
   })

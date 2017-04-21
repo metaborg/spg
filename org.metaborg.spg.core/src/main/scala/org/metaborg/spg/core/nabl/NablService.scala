@@ -1,25 +1,20 @@
 package org.metaborg.spg.core.nabl
 
-import java.nio.charset.StandardCharsets
-
 import com.google.inject.Inject
 import com.typesafe.scalalogging.LazyLogging
-import org.apache.commons.io.IOUtils
 import org.apache.commons.vfs2.FileObject
 import org.metaborg.core.language.ILanguageImpl
 import org.metaborg.core.project.IProject
-import org.metaborg.core.resource.IResourceService
 import org.metaborg.spg.core.regex._
 import org.metaborg.spg.core.resolution.LabelImplicits._
 import org.metaborg.spg.core.resolution.{Label, LabelOrdering}
 import org.metaborg.spg.core.sdf.{Sort, SortVar}
 import org.metaborg.spg.core.solver._
+import org.metaborg.spg.core.spoofax.ParseService
 import org.metaborg.spg.core.spoofax.SpoofaxScala._
 import org.metaborg.spg.core.stratego.Signature
 import org.metaborg.spg.core.terms._
 import org.metaborg.spg.core.{NameProvider, Rule}
-import org.metaborg.spoofax.core.syntax.ISpoofaxSyntaxService
-import org.metaborg.spoofax.core.unit.ISpoofaxUnitService
 import org.metaborg.util.resource.FileSelectorUtils
 import org.spoofax.interpreter.terms.{IStrategoAppl, IStrategoList, IStrategoString, IStrategoTerm}
 import org.spoofax.terms.{StrategoAppl, StrategoList}
@@ -28,11 +23,9 @@ import org.spoofax.terms.{StrategoAppl, StrategoList}
   * The NaBL service loads all constraint generation rules from a Spoofax
   * project or a single NaBL2 file.
   *
-  * @param resourceService
-  * @param unitService
-  * @param syntaxService
+  * @param parseService
   */
-class NablService @Inject()(val resourceService: IResourceService, val unitService: ISpoofaxUnitService, val syntaxService: ISpoofaxSyntaxService) extends LazyLogging {
+class NablService @Inject()(val parseService: ParseService) extends LazyLogging {
   // Start at 9 so we do not clash with names in the rules
   val nameProvider = NameProvider(9)
 
@@ -61,19 +54,7 @@ class NablService @Inject()(val resourceService: IResourceService, val unitServi
     * @return
     */
   def read(nablLangImpl: ILanguageImpl, specification: FileObject)(implicit signatures: Signature): Specification = {
-    def parseFile(languageImpl: ILanguageImpl): IStrategoTerm = {
-      val text = IOUtils.toString(specification.getContent.getInputStream, StandardCharsets.UTF_8)
-      val inputUnit = unitService.inputUnit(specification, text, languageImpl, null)
-      val parseResult = syntaxService.parse(inputUnit)
-
-      if (!parseResult.success()) {
-        throw new RuntimeException(s"Unsuccessful parse of $specification in language ${languageImpl.id()}.")
-      }
-
-      parseResult.ast()
-    }
-
-    val ast = parseFile(nablLangImpl)
+    val ast = parseService.parse(nablLangImpl, specification)
 
     // Translate ATerms to Scala DSL
     val labels = toLabels(ast)

@@ -1,17 +1,12 @@
 package org.metaborg.spg.core.sdf
 
-import java.nio.charset.StandardCharsets
-
 import com.google.inject.Inject
-import org.apache.commons.io.IOUtils
 import org.apache.commons.vfs2.FileObject
 import org.metaborg.core.language.ILanguageImpl
 import org.metaborg.core.project.IProject
-import org.metaborg.core.resource.IResourceService
 import org.metaborg.spg.core
+import org.metaborg.spg.core.spoofax.ParseService
 import org.metaborg.spg.core.spoofax.SpoofaxScala._
-import org.metaborg.spoofax.core.syntax.ISpoofaxSyntaxService
-import org.metaborg.spoofax.core.unit.ISpoofaxUnitService
 import org.metaborg.util.resource.FileSelectorUtils
 import org.spoofax.interpreter.terms.{IStrategoAppl, IStrategoString, IStrategoTerm}
 
@@ -19,11 +14,9 @@ import org.spoofax.interpreter.terms.{IStrategoAppl, IStrategoString, IStrategoT
   * The SDF service loads all SDF production from a Spoofax project or a single
   * SDF file.
   *
-  * @param resourceService
-  * @param unitService
-  * @param syntaxService
+  * @param parseService
   */
-class SdfService @Inject()(val resourceService: IResourceService, val unitService: ISpoofaxUnitService, val syntaxService: ISpoofaxSyntaxService) {
+class SdfService @Inject()(val parseService: ParseService) {
   /**
     * Read all SDF files in the given project and collect the productions.
     *
@@ -42,23 +35,11 @@ class SdfService @Inject()(val resourceService: IResourceService, val unitServic
     * Parse an SDF file and extract a list of productions.
     *
     * @param templateLangImpl
-    * @param syntax
+    * @param fileObject
     * @return
     */
-  def read(templateLangImpl: ILanguageImpl, syntax: FileObject): Grammar = {
-    def parseFile(languageImpl: ILanguageImpl): IStrategoTerm = {
-      val text = IOUtils.toString(syntax.getContent.getInputStream, StandardCharsets.UTF_8)
-      val inputUnit = unitService.inputUnit(syntax, text, languageImpl, null)
-      val parseResult = syntaxService.parse(inputUnit)
-
-      if (!parseResult.success()) {
-        throw new RuntimeException(s"Unsuccessful parse of $syntax in language ${languageImpl.id()}.")
-      }
-
-      parseResult.ast()
-    }
-
-    val ast = parseFile(templateLangImpl)
+  def read(templateLangImpl: ILanguageImpl, fileObject: FileObject): Grammar = {
+    val ast = parseService.parse(templateLangImpl, fileObject)
 
     toGrammar(ast)
   }
@@ -96,9 +77,9 @@ class SdfService @Inject()(val resourceService: IResourceService, val unitServic
     val productionTerms = term.collectAll {
       case appl: IStrategoAppl =>
         appl.getConstructor.getName == "SdfProduction" ||
-        appl.getConstructor.getName == "SdfProductionWithCons" ||
-        appl.getConstructor.getName == "TemplateProduction" ||
-        appl.getConstructor.getName == "TemplateProductionWithCons"
+          appl.getConstructor.getName == "SdfProductionWithCons" ||
+          appl.getConstructor.getName == "TemplateProduction" ||
+          appl.getConstructor.getName == "TemplateProductionWithCons"
       case _ =>
         false
     }
@@ -139,6 +120,7 @@ class SdfService @Inject()(val resourceService: IResourceService, val unitServic
       toString(term.getSubterm(0))
   }
 
+  // TODO: Productions like `"any" = "exists"` (GM: Reductions.sdf3) do not have sorts on the LHS
   private def toSort(term: IStrategoTerm): Sort = term match {
     case appl: IStrategoAppl if appl.getConstructor.getName == "SortDef" || appl.getConstructor.getName == "Sort" =>
       SortAppl(toString(term.getSubterm(0)))
@@ -148,6 +130,8 @@ class SdfService @Inject()(val resourceService: IResourceService, val unitServic
       toSort(term.getSubterm(0))
     case appl: IStrategoAppl if appl.getConstructor.getName == "Lex" =>
       toSort(term.getSubterm(0))
+    case _ =>
+      throw new RuntimeException(s"Unable to read $term")
   }
 
   private def toRhs(term: IStrategoTerm): List[core.sdf.Symbol] = term match {
@@ -272,18 +256,18 @@ class SdfService @Inject()(val resourceService: IResourceService, val unitServic
 
   private def unescape(s: String): String =
     s
-      .replace("\\ ", " ") // 2-char string `\ ` becomes 1-char string ` `
-      .replace("\\t", "\t") // 2-char string `\t` becomes 1-char string `\t`
-      .replace("\\n", "\n") // 2-char string `\n` becomes 1-char string `\n`
-      .replace("\\r", "\r") // 2-char string `\r` becomes 1-char string `\r`
-      .replace("\\*", "*") // 2-char string `\*` becomes 1-char string `*`
+      .replace("\\ ", " ")   // 2-char string `\ ` becomes 1-char string ` `
+      .replace("\\t", "\t")  // 2-char string `\t` becomes 1-char string `\t`
+      .replace("\\n", "\n")  // 2-char string `\n` becomes 1-char string `\n`
+      .replace("\\r", "\r")  // 2-char string `\r` becomes 1-char string `\r`
+      .replace("\\*", "*")   // 2-char string `\*` becomes 1-char string `*`
       .replace("\\\"", "\"") // 2-char string `\"` becomes 1-char string `"`
       .replace("\\\\", "\\") // 2-char string `\\` becomes 1-char string `\`
-      .replace("\\_", "_") // 2-char string `\_` becomes 1-char string `_`
-      .replace("\\^", "^") // 2-char string `\^` becomes 1-char string `^`
-      .replace("\\+", "+") // 2-char string `\+` becomes 1-char string `+`
-      .replace("\\-", "-") // 2-char string `\-` becomes 1-char string `-`
-      .replace("\\<", "<") // 2-char string `\<` becomes 1-char string `<`
-      .replace("\\>", ">") // 2-char string `\>` becomes 1-char string `>`
-      .replace("\\$", "$") // 2-char string `\$` becomes 1-char string `$`
+      .replace("\\_", "_")   // 2-char string `\_` becomes 1-char string `_`
+      .replace("\\^", "^")   // 2-char string `\^` becomes 1-char string `^`
+      .replace("\\+", "+")   // 2-char string `\+` becomes 1-char string `+`
+      .replace("\\-", "-")   // 2-char string `\-` becomes 1-char string `-`
+      .replace("\\<", "<")   // 2-char string `\<` becomes 1-char string `<`
+      .replace("\\>", ">")   // 2-char string `\>` becomes 1-char string `>`
+      .replace("\\$", "$")   // 2-char string `\$` becomes 1-char string `$`
 }
