@@ -8,7 +8,7 @@ import org.metaborg.spg.core
 import org.metaborg.spg.core.spoofax.ParseService
 import org.metaborg.spg.core.spoofax.SpoofaxScala._
 import org.metaborg.util.resource.FileSelectorUtils
-import org.spoofax.interpreter.terms.{IStrategoAppl, IStrategoString, IStrategoTerm}
+import org.spoofax.interpreter.terms.{IStrategoAppl, IStrategoList, IStrategoString, IStrategoTerm}
 
 /**
   * The SDF service loads all SDF production from a Spoofax project or a single
@@ -120,7 +120,6 @@ class SdfService @Inject()(val parseService: ParseService) {
       toString(term.getSubterm(0))
   }
 
-  // TODO: Productions like `"any" = "exists"` (GM: Reductions.sdf3) do not have sorts on the LHS
   private def toSort(term: IStrategoTerm): Sort = term match {
     case appl: IStrategoAppl if appl.getConstructor.getName == "SortDef" || appl.getConstructor.getName == "Sort" =>
       SortAppl(toString(term.getSubterm(0)))
@@ -201,15 +200,19 @@ class SdfService @Inject()(val parseService: ParseService) {
       toCharClass(appl.getSubterm(0))
     case appl: IStrategoAppl if appl.getConstructor.getName == "Comp" =>
       toCharClass(term)
-    // TODO: Second child of Sequence is a list
     case appl: IStrategoAppl if appl.getConstructor.getName == "Sequence" =>
-      Sequence(toSymbol(term.getSubterm(0)), toSymbol(term.getSubterm(1).getSubterm(0)))
+      Sequence(toSymbol(term.getSubterm(0)), toSymbolList(term.getSubterm(1)))
     case appl: IStrategoAppl if appl.getConstructor.getName == "Cf" =>
       toSymbol(term.getSubterm(0))
     case appl: IStrategoAppl if appl.getConstructor.getName == "Lex" =>
       toSymbol(term.getSubterm(0))
     case appl: IStrategoAppl if appl.getConstructor.getName == "Layout" =>
       Layout()
+  }
+
+  def toSymbolList(term: IStrategoTerm): List[core.sdf.Symbol] = term match {
+    case list: IStrategoList =>
+      list.getAllSubterms.toList.map(toSymbol)
   }
 
   private def toCharClass(term: IStrategoTerm): CharClass = term match {

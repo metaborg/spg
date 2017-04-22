@@ -82,8 +82,8 @@ class LexicalGenerator(val grammar: Grammar)(implicit val random: Random) {
       } else {
         generate(s2)
       }
-    case Sequence(s1, s2) =>
-      generate(s1) ++ generate(s2)
+    case Sequence(s, ss) =>
+      generate(s) ++ ss.map(generate).mkString
   }
 
   /**
