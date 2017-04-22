@@ -108,8 +108,7 @@ public class AmbiguityJob extends Job {
 		
 		programs
 			.doOnNext(program -> progress(subMonitor, program))
-			.map(program -> store(program))
-			.map(file -> parse(this.language, file))
+			.map(program -> parse(this.language, program))
 			.filter(parseUnit -> parseUnit.valid())
 			.takeFirst(parseUnit -> ambiguous(parseUnit))
 			.map(parseUnit -> shrink(shrinker, parseUnit))
@@ -150,40 +149,15 @@ public class AmbiguityJob extends Job {
     }
     
     /**
-     * Store the given program.
-     * 
-     * This implementation stores the program in RAM, using the RAM provider
-     * from VFS.
-     * 
-     * @return
-     * @throws IOException
-     */
-    protected FileObject store(String program) {
-    	try {
-	    	FileObject fileObject = resourceService.resolve("ram://" + System.nanoTime() + ".jav");
-	    	fileObject.createFile();
-	    	
-	    	Writer writer = new PrintWriter(fileObject.getContent().getOutputStream());
-	    	writer.write(program);
-	    	writer.flush();
-	    	
-	    	return fileObject;
-    	} catch (Exception e) {
-    		throw new RuntimeException(e);
-    	}
-    }
-    
-    /**
      * Parse the given file object in the given language.
      * 
      * @return
      * @throws IOException 
      * @throws ParseException 
      */
-    protected ISpoofaxParseUnit parse(ILanguageImpl language, FileObject fileObject) {
+    protected ISpoofaxParseUnit parse(ILanguageImpl language, String program) {
     	try {
-    		String text = sourceTextService.text(fileObject);
-        	ISpoofaxInputUnit inputUnit = unitService.inputUnit(fileObject, text, language, null);
+        	ISpoofaxInputUnit inputUnit = unitService.inputUnit(program, language, null);
         	
 			return syntaxService.parse(inputUnit);
     	} catch (Exception e) {
@@ -216,7 +190,7 @@ public class AmbiguityJob extends Job {
      * @return
      */
     protected boolean ambiguous(String program) {
-    	ISpoofaxParseUnit parseUnit = parse(language, store(program));
+    	ISpoofaxParseUnit parseUnit = parse(language, program);
     	
     	return ambiguous(parseUnit);
     }
@@ -279,7 +253,7 @@ public class AmbiguityJob extends Job {
 			.asJavaObservable();
 		
 		return shrunkPrograms
-			.map(shrunkProgram -> parse(language, store(shrunkProgram)))
+			.map(shrunkProgram -> parse(language, shrunkProgram))
 			.filter(shrunkParseUnit -> ambiguous(shrunkParseUnit))
 			.map(shrunkParseUnit -> shrink(shrinker, shrunkParseUnit))
 			.firstOrDefault(parseUnit)
