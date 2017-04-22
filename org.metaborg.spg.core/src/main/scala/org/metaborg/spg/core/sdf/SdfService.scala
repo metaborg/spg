@@ -39,7 +39,7 @@ class SdfService @Inject()(val parseService: ParseService) {
     * @return
     */
   def read(templateLangImpl: ILanguageImpl, fileObject: FileObject): Grammar = {
-    val ast = parseService.parse(templateLangImpl, fileObject)
+    val ast = parseService.parse(templateLangImpl, fileObject).ast()
 
     toGrammar(ast)
   }

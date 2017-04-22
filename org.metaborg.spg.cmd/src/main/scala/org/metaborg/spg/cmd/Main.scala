@@ -5,18 +5,21 @@ import java.time.format.DateTimeFormatter
 
 import ch.qos.logback.classic.{Level, Logger}
 import com.google.inject.{AbstractModule, Injector}
+import com.typesafe.scalalogging.LazyLogging
 import net.codingwell.scalaguice.InjectorExtensions._
 import org.backuity.clist.Cli
 import org.metaborg.core.language.{ILanguageImpl, LanguageUtils}
 import org.metaborg.core.project.{IProject, SimpleProjectService}
+import org.metaborg.core.syntax.IParseUnit
 import org.metaborg.spg.core.spoofax.ParseService
 import org.metaborg.spg.core.{Config, SemanticGenerator, SemanticGeneratorFactory, SyntaxGeneratorFactory, SyntaxShrinker}
 import org.metaborg.spoofax.core.Spoofax
+import org.metaborg.spoofax.core.unit.ISpoofaxParseUnit
 import org.slf4j.LoggerFactory
 
 import scala.util.Random
 
-object Main extends App {
+object Main extends App with LazyLogging {
   val spoofax = new Spoofax(new SPGModule)
 
   /**
@@ -88,6 +91,28 @@ object Main extends App {
   }
 
   /**
+    * Shrink the given program until it cannot be shrunk any more.
+    *
+    * @param shrinker
+    * @param parseService
+    * @param parseUnit
+    * @param language
+    */
+  def multiShrink(shrinker: SyntaxShrinker, parseService: ParseService, parseUnit: ISpoofaxParseUnit, language: ILanguageImpl): ISpoofaxParseUnit = {
+    logger.info(parseUnit.input().text())
+
+    val shrunkPrograms = shrinker.shrink(parseUnit.input().text())
+
+    shrunkPrograms
+      .map(parseService.parse(language, _))
+      .filter(parseService.isAmbiguous)
+      .map(multiShrink(shrinker, parseService, _, language))
+      .firstOrElse(parseUnit)
+      .toBlocking
+      .single
+  }
+
+  /**
     * Entry-point of the CLI.
     */
   Cli.parse(args).withCommand(new Command)(options => {
@@ -120,19 +145,27 @@ object Main extends App {
 
     generator.generate().subscribe(_ match {
       case program => {
-        println("===================================")
-        println(DateTimeFormatter.ISO_DATE_TIME.format(ZonedDateTime.now()))
-        println("-----------------------------------")
-        println(program)
+        logger.info("===================================")
+        logger.info(program)
 
-        println("-----------------------------------")
-        println("Shrinking...")
-        println("-----------------------------------")
+        // TODO: Move this stuff, it's valuable!
+        try {
+          val parseService = injector.getInstance(classOf[ParseService])
+          val parseUnit = parseService.parse(language.implementation, program)
 
-        shrinker.shrink(program).foreach(program => {
-          println(program)
-          println("-----------------------------------")
-        })
+          if (parseService.isAmbiguous(parseUnit)) {
+            logger.info("The program is ambiguous, go shrink it.")
+
+            val shrunken = multiShrink(shrinker, parseService, parseUnit, language.implementation)
+
+            logger.info(shrunken.input().text())
+
+            System.exit(42)
+          }
+        } catch {
+          case e: Exception =>
+            println(e)
+        }
       }
     })
   })

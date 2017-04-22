@@ -19,7 +19,7 @@ class SyntaxShrinker @Inject() (generator: SyntaxGenerator, parseService: ParseS
     */
   def shrink(program: String): Observable[String] = {
     // 1. Parse program (String => IStrategoTerm)
-    val javaTerm = parseService.parse(language.implementation, program)
+    val javaTerm = parseService.parse(language.implementation, program).ast()
 
     // 2. Convert to Scala (IStrategoTerm => Term)
     val scalaTerm = javaTerm.asScala

@@ -54,7 +54,7 @@ class NablService @Inject()(val parseService: ParseService) extends LazyLogging 
     * @return
     */
   def read(nablLangImpl: ILanguageImpl, specification: FileObject)(implicit signatures: Signature): Specification = {
-    val ast = parseService.parse(nablLangImpl, specification)
+    val ast = parseService.parse(nablLangImpl, specification).ast()
 
     // Translate ATerms to Scala DSL
     val labels = toLabels(ast)
