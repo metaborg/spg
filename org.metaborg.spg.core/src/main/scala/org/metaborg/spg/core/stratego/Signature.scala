@@ -124,7 +124,7 @@ case class Signature(constructors: List[Constructor]) {
     */
   def sortForPattern(term: Pattern, subTerm: Pattern, termSort: Option[Sort] = None): Option[Sort] = {
     (term, subTerm) match {
-      case (_, _) if term == subTerm =>
+      case (_, _) if term eq subTerm =>
         termSort match {
           case None =>
             getOperations(subTerm)
