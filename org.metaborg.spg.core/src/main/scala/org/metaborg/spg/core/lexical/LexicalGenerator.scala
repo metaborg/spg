@@ -26,9 +26,14 @@ class LexicalGenerator(val grammar: Grammar)(implicit val random: Random) {
     // Return literal text as-is
     case Lit(text) =>
       text
-    // Return literal text as-is (TODO: Create variants with capitalization)
+    // Return string with random casing
     case CiLit(text) =>
-      text
+      text.toList match {
+        case x :: xs =>
+          List(x.toLower, x.toUpper).random + generate(CiLit(xs.mkString))
+        case _ =>
+          ""
+      }
     // One or more repetitions
     case Iter(s) =>
       generate(s) + generate(IterStar(s))
