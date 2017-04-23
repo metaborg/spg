@@ -77,14 +77,26 @@ class SdfService @Inject()(val parseService: ParseService) {
     val productionTerms = term.collectAll {
       case appl: IStrategoAppl =>
         appl.getConstructor.getName == "SdfProduction" ||
-          appl.getConstructor.getName == "SdfProductionWithCons" ||
-          appl.getConstructor.getName == "TemplateProduction" ||
-          appl.getConstructor.getName == "TemplateProductionWithCons"
+        appl.getConstructor.getName == "SdfProductionWithCons" ||
+        appl.getConstructor.getName == "TemplateProduction" ||
+        appl.getConstructor.getName == "TemplateProductionWithCons"
       case _ =>
         false
     }
 
-    productionTerms.map(toProduction)
+    // Filter kernel productions with a literal on the LHS
+    val filteredProductions = productionTerms.filter(productionTerm => {
+      val lhsConstructor = productionTerm.getSubterm(0)
+
+      lhsConstructor match {
+        case appl: IStrategoAppl =>
+          appl.getConstructor.getName != "Lit" && appl.getConstructor.getName != "CiLit"
+        case _ =>
+          true
+      }
+    })
+
+    filteredProductions.map(toProduction)
   }
 
   private def toProduction(term: IStrategoTerm): Production = term match {
