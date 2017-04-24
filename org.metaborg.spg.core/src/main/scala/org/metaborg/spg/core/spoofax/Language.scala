@@ -113,4 +113,18 @@ case class Language(grammar: Grammar, signature: Signature, specification: Speci
 
     (s: String, t: Sort) => memory.getOrElseUpdate((s, t), rules(s, t))
   }
+
+  /**
+    * Get the language name from the main facet.
+    */
+  lazy val name: String = {
+    implementation.belongsTo().name()
+  }
+
+  /**
+    * Compute the effective grammar using the language name as entry point.
+    */
+  lazy val effectiveGrammar: Grammar = {
+    grammar.effectiveGrammar(name)
+  }
 }

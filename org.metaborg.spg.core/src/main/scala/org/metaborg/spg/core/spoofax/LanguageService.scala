@@ -30,7 +30,8 @@ class LanguageService @Inject()(val resourceSerivce: ResourceService, val sdfSer
     val grammar = sdfService.read(templateLangImpl, project)
 
     logger.trace("Computing signatures")
-    val signatures = Signature(LanguageService.defaultSignatures ++ grammar.toConstructors)
+    val name = lutLangImpl.belongsTo().name
+    val signatures = Signature(LanguageService.defaultSignatures ++ grammar.effectiveGrammar(name).toConstructors)
 
     logger.trace("Loading static semantics")
     val specification = specificationService.read(nablLangImpl, project)(signatures)

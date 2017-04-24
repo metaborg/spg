@@ -11,7 +11,7 @@ import org.metaborg.spg.core.terms.{Pattern, TermAppl, TermString, Var}
 import scala.util.Random
 
 case class Concretor(language: Language)(implicit val random: Random) {
-  val generator = new LexicalGenerator(language.grammar)
+  val generator = new LexicalGenerator(language)
 
   def computeNamingConstraints(state: Program)(implicit language: Language): List[NamingConstraint] = {
     val graph = Graph(state.constraints)

@@ -4,6 +4,7 @@ import com.google.inject.Inject
 import org.apache.commons.vfs2.FileObject
 import org.metaborg.core.language.ILanguageImpl
 import org.metaborg.core.project.IProject
+import org.metaborg.core.resource.IResourceService
 import org.metaborg.spg.core
 import org.metaborg.spg.core.spoofax.ParseService
 import org.metaborg.spg.core.spoofax.SpoofaxScala._
@@ -16,35 +17,59 @@ import org.spoofax.interpreter.terms.{IStrategoAppl, IStrategoList, IStrategoStr
   *
   * @param parseService
   */
-class SdfService @Inject()(val parseService: ParseService) {
+class SdfService @Inject()(val parseService: ParseService, val resourceService: IResourceService) {
   /**
-    * Read all SDF files in the given project and collect the productions.
+    * Read all SDF3 files in the given project.
     *
+    * @param templateLangImpl
+    * @param project
     * @return
     */
   def read(templateLangImpl: ILanguageImpl, project: IProject): Grammar = {
     val fileSelector = FileSelectorUtils.extension("sdf3")
-    val files = project.location().findFiles(fileSelector).toList
+    val allFiles = project.location().findFiles(fileSelector)
 
-    files
-      .map(read(templateLangImpl, _))
-      .foldLeft(Grammar.empty)(_ merge _)
+    read(templateLangImpl, allFiles)
   }
 
   /**
-    * Parse an SDF file and extract a list of productions.
+    * Read the given files to a grammar.
+    *
+    * @param templateLangImpl
+    * @param files
+    * @return
+    */
+  def read(templateLangImpl: ILanguageImpl, files: Iterable[FileObject]): Grammar = {
+    val modules = files
+      .map(read(templateLangImpl, _))
+      .toSeq
+
+    Grammar(modules)
+  }
+
+  /**
+    * Read the given file to a module.
     *
     * @param templateLangImpl
     * @param fileObject
     * @return
     */
-  def read(templateLangImpl: ILanguageImpl, fileObject: FileObject): Grammar = {
+  def read(templateLangImpl: ILanguageImpl, fileObject: FileObject): Module = {
     val ast = parseService.parse(templateLangImpl, fileObject).ast()
 
-    toGrammar(ast)
+    toModule(ast)
   }
 
-  private def toGrammar(term: IStrategoTerm): Grammar = {
+  private def toModule(term: IStrategoTerm): Module = {
+    val name = toString(term.getSubterm(0).getSubterm(0))
+
+    val imports = term.collectAll {
+      case appl: IStrategoAppl =>
+        appl.getConstructor.getName == "Imports"
+      case _ =>
+        false
+    }
+
     val contextFreeSyntaxes = term.collectAll {
       case appl: IStrategoAppl =>
         appl.getConstructor.getName == "ContextFreeSyntax"
@@ -66,11 +91,26 @@ class SdfService @Inject()(val parseService: ParseService) {
         false
     }
 
-    Grammar(
+    Module(
+      name,
+      imports.flatMap(toImports),
       contextFreeSyntaxes.flatMap(toProductions),
       lexicalSyntaxes.flatMap(toProductions),
       kernelSyntaxes.flatMap(toProductions)
     )
+  }
+
+  private def toImports(term: IStrategoTerm): List[String] = {
+    val modules = term.collectAll {
+      case appl: IStrategoAppl =>
+        appl.getConstructor.getName == "Unparameterized"
+      case _ =>
+        false
+    }
+
+    modules.map(term => {
+      toString(term.getSubterm(0))
+    })
   }
 
   private def toProductions(term: IStrategoTerm): List[Production] = {

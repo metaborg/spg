@@ -76,7 +76,7 @@ class SyntaxGenerator(language: Language, config: Config)(implicit val random: R
       .getOperationsTransitive(sort)
 
     if (constructors.isEmpty) {
-      Some(TermString(new LexicalGenerator(language.grammar).generate(sort)))
+      Some(TermString(new LexicalGenerator(language).generate(sort)))
     } else {
       for (constructor <- constructors.shuffle) {
         val childSize = (size - 1) / (constructor.arity max 1)
