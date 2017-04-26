@@ -21,15 +21,25 @@ case class Unifier(delegate: Map[Var, Pattern]) {
   }
 
   /**
-    * Combine this unifier with the given unifier.
+    * Compose unifiers.
+    *
+    * Composition is an associative operation and is compatible with
+    * substitution application, i.e. (γ ◦ σ) t = γ (σ t). However, composition
+    * of unifiers is not commutative: σ ◦ γ may be different from γ ◦ σ.
     *
     * @param unifier
     * @return
     */
   def ++(unifier: Unifier): Unifier = {
-    assert((delegate.keySet intersect unifier.delegate.keySet).isEmpty)
+    // The unifiers may not have overlapping keys (e.g. X |-> a, X |-> b)
+    assert(delegate.keySet intersect unifier.delegate.keySet isEmpty)
 
-    Unifier(delegate ++ unifier.delegate)
+    val updatedMap = unifier.delegate.map {
+      case (variable, pattern) =>
+        variable -> pattern.substitute(delegate)
+    }
+
+    Unifier(updatedMap ++ delegate)
   }
 }
 
