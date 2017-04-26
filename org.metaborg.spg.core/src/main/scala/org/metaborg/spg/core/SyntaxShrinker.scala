@@ -77,8 +77,13 @@ class SyntaxShrinker @Inject() (generator: SyntaxGenerator, parseService: ParseS
     * @return
     */
   def shrink(term: Pattern, subTerm: Pattern): Observable[Pattern] = {
+
+    // TODO: This usage of sortForPattern requires reference equality, because there may be multiple occurrences of this
+    // subTerm in the term, each having a different sort (e.g. through an injection or not through an injection, see
+    // BlockStatement in GM).
+
     // Infer sort for subTerm in term
-    val sort = language.signature.sortForPattern(term, subTerm)
+    val sort = language.signature.sortForPattern(term, subTerm, "eq")
 
     // Try to generate a sentence for the nodes sort that is strictly smaller.
     val result = generator.generateTry(sort.get, subTerm.size - 1).map(smallerNode =>

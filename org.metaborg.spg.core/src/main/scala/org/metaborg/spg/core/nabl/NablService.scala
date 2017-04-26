@@ -72,7 +72,7 @@ class NablService @Inject()(val parseService: ParseService) extends LazyLogging 
   def inlineRecurse(rule: Rule)(implicit signature: Signature) = {
     rule.recurses.foldLeft(rule) {
       case (rule, recurse@CGenRecurse(name, variable, scopes, typ, null, 0)) =>
-        val sortOpt = signature.getSort(rule.pattern, variable)
+        val sortOpt = signature.sortForPattern(rule.pattern, variable, "equals")
         val sort = sortOpt.getOrElse(throw new IllegalStateException("Could not find sort for " + variable + " in " + rule.pattern))
 
         rule - recurse + CGenRecurse(name, variable, scopes, typ, sort, 0)

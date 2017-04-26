@@ -98,7 +98,7 @@ case class Signature(constructors: List[Constructor]) {
   def getSort(context: Pattern, pattern: Pattern): Option[Sort] = {
     // TODO: Inline sortForPattern
 
-    sortForPattern(context, pattern)
+    sortForPattern(context, pattern, "eq")
   }
 
   /**
@@ -117,50 +117,59 @@ case class Signature(constructors: List[Constructor]) {
     *   unique. This allows us to infer the constructor based on its name,
     *   arity, and sort.
     *
+    * The NaBL service uses this method to compute the sort for a variable
+    * found within a rule's body, which requires equals comparison. The syntax
+    * shrinker uses this method to compute the sort of a term that may occur
+    * at multiple places in the tree, requiring pointer equality. This was
+    * fixed really hacky. So TODO.
+    *
     * @param term
     * @param subTerm
+    * @param equality
     * @param termSort
     * @return
     */
-  def sortForPattern(term: Pattern, subTerm: Pattern, termSort: Option[Sort] = None): Option[Sort] = {
-    (term, subTerm) match {
-      case (_, _) if term eq subTerm =>
-        termSort match {
-          case None =>
-            getOperations(subTerm)
-              .headOption
-              .map(_.target)
-          case Some(_) =>
-            termSort
-        }
-      case (term: TermAppl, _) =>
-        // Given a sort and a term, what are the sorts of its subterms?
-        val sorts = if (termSort.isDefined) {
-          val sortInjections = injectionsClosure(termSort.get)
-          val operation = sortInjections
-            .flatMap(getOperations)
-            .filter(_.name == term.cons)
-            .filter(_.arity == term.arity)
-            .head
+  def sortForPattern(term: Pattern, subTerm: Pattern, equality: String, termSort: Option[Sort] = None): Option[Sort] = {
+    if ((equality == "eq" && term.eq(subTerm)) || (equality == "equals" && term == subTerm)) {
+      termSort match {
+        case None =>
+          getOperations(subTerm)
+            .headOption
+            .map(_.target)
+        case Some(_) =>
+          termSort
+      }
+    } else {
+      (term, subTerm) match {
+        case (term: TermAppl, _) =>
+          // Given a sort and a term, what are the sorts of its subterms?
+          val sorts = if (termSort.isDefined) {
+            val sortInjections = injectionsClosure(termSort.get)
+            val operation = sortInjections
+              .flatMap(getOperations)
+              .filter(_.name == term.cons)
+              .filter(_.arity == term.arity)
+              .head
 
-          operation.arguments
-        } else {
-          getOperations(term).head.arguments
-        }
+            operation.arguments
+          } else {
+            getOperations(term).head.arguments
+          }
 
-        // Try to find subTerm in each child
-        (term.children, sorts).zipped.foldLeft(Option.empty[Sort]) {
-          case (Some(x), _) =>
-            Some(x) // TODO: Short circuit the fold?
-          case (_, (child, sort)) =>
-            sortForPattern(child, subTerm, Some(sort))
-        }
-      case (As(Var(n1), _), Var(n2)) if n1 == n2 =>
-        termSort
-      case (As(Var(_), t1), t2) =>
-        sortForPattern(t1, t2)
-      case _ =>
-        None
+          // Try to find subTerm in each child
+          (term.children, sorts).zipped.foldLeft(Option.empty[Sort]) {
+            case (Some(x), _) =>
+              Some(x) // TODO: Short circuit the fold?
+            case (_, (child, sort)) =>
+              sortForPattern(child, subTerm, equality, Some(sort))
+          }
+        case (As(Var(n1), _), Var(n2)) if n1 == n2 =>
+          termSort
+        case (As(Var(_), t1), t2) =>
+          sortForPattern(t1, t2, equality)
+        case _ =>
+          None
+      }
     }
   }
 
