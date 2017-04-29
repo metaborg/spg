@@ -54,7 +54,14 @@ case class Module(name: String, imports: List[String], contextFree: List[Product
           case Some(name) =>
             Some(Operation(name, production.rhs.flatMap(symbolToSort), production.sort))
           case None =>
-            Some(Injection(symbolToSort(production.rhs.head).get, production.sort))
+            val sorts = production.rhs.flatMap(symbolToSort)
+            
+            sorts match {
+              case sort :: Nil =>
+                Some(Injection(sort, production.sort))
+              case _ =>
+                throw new RuntimeException(s"Unable to derive a constructor for production $production")
+            }
         }
       } else {
         None
