@@ -43,6 +43,22 @@ Alternatively, build `org.metaborg.spg.{eclipse,eclipse.feature,eclipse.site}` t
 mvn -f pom.xml clean install
 ```
 
+### Assembling
+
+To create a JAR file with no external dependencies:
+
+```
+sbt clean assemble
+```
+
+To run the  JAR file:
+
+```
+java -jar org.metaborg.spg.cmd/target/scala-2.11/org.metaborg.spg.cmd-assembly-2.1.0.jar
+```
+
+For detailed instructions on how to use the CLI, see `org.metaborg.spg.cmd`.
+
 ## Usage
 
 To use the CLI, see `org.metaborg.spg.cmd`.
