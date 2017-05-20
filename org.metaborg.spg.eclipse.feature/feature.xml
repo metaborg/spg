@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <feature
       id="org.metaborg.spg.eclipse.feature"
-      label="org.metaborg.spg.eclipse.feature"
+      label="Spoofax Generator"
       version="2.1.0"
       provider-name="org.metaborg">
 
