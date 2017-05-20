@@ -1,13 +1,16 @@
 # IntelliJ
 *.iml
 .idea/
-project/
 target/
 
 # Eclipse
 .classpath
 .project
 .settings
+
+# SBT
+project/boot/
+project/plugins/project/
 
 # Miscellaneous
 *.log
