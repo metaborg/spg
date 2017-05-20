@@ -1,6 +1,0 @@
-module runtime/interpret
-
-imports
-  nabl2/runtime/interpreter/frame-api
-  nabl2/runtime/interpreter/frame-impl
-	runtime/l1n

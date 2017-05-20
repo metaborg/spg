@@ -1,7 +1,0 @@
-module dynamics/values
-
-signature
-  sorts
-    V
-  variables 
-    v : V

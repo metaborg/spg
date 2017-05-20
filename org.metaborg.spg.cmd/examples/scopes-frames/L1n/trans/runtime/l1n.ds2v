@@ -1,6 +1,0 @@
-[Import("nabl2/runtime/interpreter/frame-api.ds2v"),
- Import("nabl2/runtime/interpreter/frame-dummy.ds2v"),
- Nabl2Signature("nabl2/analysis/l1n.nabl2sig"),
- SortAlias("FrameListExpListOccTuple", "FrameId * list(PostExp) * List(Occurrence)"),
- ConstructorAlias("FLELO", 3, Tuple()),
- Timeouts([("default", SimpleSort("PostExp")), ("fill_par", SimpleSort("FrameListExpListOccTuple"))])]
