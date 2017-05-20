@@ -84,8 +84,8 @@ case class Program(sort: Sort, pattern: Pattern, scopes: List[Pattern], typ: Opt
     * @param language
     * @return
     */
-  def merge(recurse: CGenRecurse, program: Program)(implicit language: Language): Option[(Program, Unifier)] = {
-    assert(this.recurse contains recurse)
+  def merge(recurse: CGenRecurse, program: Program)(implicit language: Language): Option[(Program, Substitution)] = {
+    assert(this.recurse contains recurse, s"program.recurse ${this.recurse} does not contain $recurse")
 
     // Freshen the program. After this point, don't use `program` anymore!
     val freshProgram = program.freshen()
@@ -102,6 +102,7 @@ case class Program(sort: Sort, pattern: Pattern, scopes: List[Pattern], typ: Opt
         ProgramMerger.mergeScopes(newProgram)(recurse.scopes, freshProgram.scopes).flatMap { case (newProgram, unifier3) =>
           ProgramMerger.mergeSorts(newProgram)(recurse.sort, freshProgram.sort).flatMap { case (newProgram, unifier4) =>
             ProgramMerger.mergeTypeEnv(newProgram)(newProgram.typeEnv, freshProgram.typeEnv).flatMap { case (newProgram, unifier5) =>
+              // TODO: This is wrong! Each substitution should directly compose with the old substitution; not wait until here.
               Some(newProgram, unifier1 ++ unifier2 ++ unifier3 ++ unifier4 ++ unifier5)
             }
           }

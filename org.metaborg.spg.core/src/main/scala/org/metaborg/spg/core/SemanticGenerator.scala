@@ -87,10 +87,10 @@ class SemanticGenerator(language: Language, config: Config)(implicit val random:
     *
     * @return
     */
-  def generateFueled(): (CGenRecurse, Int, List[Constraint]) => List[(Program, Unifier)] = {
+  def generateFueled(): (CGenRecurse, Int, List[Constraint]) => List[(Program, Substitution)] = {
     var mutableFuel = config.fuel
 
-    lazy val self: (CGenRecurse, Int, List[Constraint]) => List[(Program, Unifier)] = (r: CGenRecurse, s: Int, c: List[Constraint]) => mutableFuel match {
+    lazy val self: (CGenRecurse, Int, List[Constraint]) => List[(Program, Substitution)] = (r: CGenRecurse, s: Int, c: List[Constraint]) => mutableFuel match {
       case 0 =>
         Nil
       case _ =>
@@ -116,7 +116,7 @@ class SemanticGenerator(language: Language, config: Config)(implicit val random:
     * @param size
     * @return
     */
-  def generateRecursive(generateRecursive: (CGenRecurse, Int, List[Constraint]) => List[(Program, Unifier)])(recurse: CGenRecurse, size: Int, context: List[Constraint]): List[(Program, Unifier)] = {
+  def generateRecursive(generateRecursive: (CGenRecurse, Int, List[Constraint]) => List[(Program, Substitution)])(recurse: CGenRecurse, size: Int, context: List[Constraint]): List[(Program, Substitution)] = {
     if (size > 0) {
       for (rule <- language.rules(recurse)(language).shuffle) {
         val program = Program.fromRule(rule.instantiate().freshen())
@@ -144,10 +144,10 @@ class SemanticGenerator(language: Language, config: Config)(implicit val random:
     * @param context
     * @return
     */
-  def generateProgram(generateRecursive: (CGenRecurse, Int, List[Constraint]) => List[(Program, Unifier)])(program: Program, size: Int, context: List[Constraint]): List[(Program, Unifier)] = {
+  def generateProgram(generateRecursive: (CGenRecurse, Int, List[Constraint]) => List[(Program, Substitution)])(program: Program, size: Int, context: List[Constraint]): List[(Program, Substitution)] = {
     val childSize = (size - 1) / (program.recurse.size max 1)
 
-    program.recurse.shuffle.foldLeftMap(program, Unifier.empty) {
+    program.recurse.shuffle.foldLeftMap(program, Substitution.empty) {
       case ((program, unifier), recurse) =>
         val updatedRecurse = recurse.substitute(unifier)
         val updatedContext = context.substitute(unifier) ++ program.constraints
@@ -174,7 +174,7 @@ class SemanticGenerator(language: Language, config: Config)(implicit val random:
     * @param context
     * @return
     */
-  def clean(pu: (Program, Unifier), context: List[Constraint]): List[(Program, Unifier)] = {
+  def clean(pu: (Program, Substitution), context: List[Constraint]): List[(Program, Substitution)] = {
     pu match {
       case (program, substitution) =>
         // First, solveFixpoint to cleanup any remaining constraints
@@ -200,7 +200,7 @@ class SemanticGenerator(language: Language, config: Config)(implicit val random:
           // Fifth, for all remaining programs, combine the substitution
           return d.map {
             case (program, newSubstitution) =>
-              (program, substitution ++ Unifier(newSubstitution))
+              (program, substitution ++ Substitution(newSubstitution))
           }
         }
     }

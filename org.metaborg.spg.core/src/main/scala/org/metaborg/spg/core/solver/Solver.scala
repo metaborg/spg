@@ -108,7 +108,7 @@ object Solver {
     solveFixpointE(program).get._1
   }
 
-  def solveFixpointE(program: Program)(implicit language: Language): Option[(Program, Unifier)] = {
+  def solveFixpointE(program: Program)(implicit language: Language): Option[(Program, Substitution)] = {
     /**
       * Rewrite a basic constraint.
       *
@@ -116,32 +116,32 @@ object Solver {
       * @param program
       * @return
       */
-    def rewrite(constraint: Constraint, program: Program)(implicit language: Language): Option[(Program, Unifier)] = constraint match {
+    def rewrite(constraint: Constraint, program: Program)(implicit language: Language): Option[(Program, Substitution)] = constraint match {
       case CTrue() =>
-        Some(program, Unifier.empty)
+        Some(program, Substitution.empty)
       case CEqual(t1, t2) =>
         t1.unify(t2).map(unifier =>
-          (program.substitute(unifier), Unifier(unifier))
+          (program.substitute(unifier), Substitution(unifier))
         )
       case CTypeOf(n, t) if n.vars.isEmpty =>
         if (program.typeEnv.contains(n)) {
-          Some(program + CEqual(program.typeEnv(n), t), Unifier.empty)
+          Some(program + CEqual(program.typeEnv(n), t), Substitution.empty)
         } else {
-          Some(program.addBinding(n -> t), Unifier.empty)
+          Some(program.addBinding(n -> t), Substitution.empty)
         }
       case CAssoc(n, s@Var(_)) if Graph(program.constraints).associated(n).nonEmpty =>
         Graph(program.constraints).associated(n).map(scope => {
           val unifier = Map(s -> scope)
 
-          (program.substitute(unifier), Unifier(unifier))
+          (program.substitute(unifier), Substitution(unifier))
         })
       case FSubtype(t1, t2) if (t1.vars ++ t2.vars).isEmpty && !program.subtypes.domain.contains(t1) && !program.subtypes.isSubtype(t2, t1) =>
         val closure = for (ty1 <- program.subtypes.subtypeOf(t1); ty2 <- program.subtypes.supertypeOf(t2))
           yield (ty1, ty2)
 
-        Some(program.copy(subtypes = program.subtypes ++ closure), Unifier.empty)
+        Some(program.copy(subtypes = program.subtypes ++ closure), Substitution.empty)
       case CSubtype(t1, t2) if (t1.vars ++ t2.vars).isEmpty && program.subtypes.isSubtype(t1, t2) =>
-        Some(program, Unifier.empty)
+        Some(program, Substitution.empty)
       case _ =>
         None
     }
@@ -154,11 +154,12 @@ object Solver {
       * @param pu
       * @return
       */
-    def solveAny(pu: (Program, Unifier))(implicit language: Language): (Program, Unifier) = pu match {
+    def solveAny(pu: (Program, Substitution))(implicit language: Language): (Program, Substitution) = pu match {
       case (program, unifier) => {
         for (constraint <- program.constraints) {
           rewrite(constraint, program - constraint) match {
             case Some((program, rewriteUnifier)) =>
+              // TODO: Is the order in which unifier and rewriteUnifier are composed correct?
               return (program, unifier ++ rewriteUnifier)
             case None =>
             // Noop
@@ -169,7 +170,7 @@ object Solver {
       }
     }
 
-    Some(fixedPoint(solveAny, (program, Unifier.empty)))
+    Some(fixedPoint(solveAny, (program, Substitution.empty)))
   }
 
   /**
