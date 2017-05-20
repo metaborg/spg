@@ -29,7 +29,7 @@ Second, build `org.metaborg.spg.eclipse.externaldeps` using:
 mvn -f org.metaborg.spg.eclipse.externaldeps/pom.xml clean install
 ```
 
-Third, build `org.metaborg.spg.eclipse.*` using:
+Third, build `org.metaborg.spg.eclipse*` using:
 
 ```
 mvn -f org.metaborg.spg.eclipse/pom.xml clean install
@@ -37,7 +37,7 @@ mvn -f org.metaborg.spg.eclipse.feature/pom.xml clean install
 mvn -f org.metaborg.spg.eclipse.site/pom.xml clean install
 ```
 
-Alternatively, build `org.metaborg.spg.{eclipse,eclipse.feature,eclipse.site}` together using:
+Alternatively, build `org.metaborg.spg.eclipse*` at once using:
 
 ```
 mvn -f pom.xml clean install
@@ -48,7 +48,7 @@ mvn -f pom.xml clean install
 To create a JAR file with no external dependencies:
 
 ```
-sbt clean assemble
+sbt clean assembly
 ```
 
 To run the  JAR file:
