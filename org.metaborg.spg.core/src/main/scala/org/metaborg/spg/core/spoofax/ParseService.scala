@@ -10,6 +10,7 @@ import org.metaborg.core.resource.ResourceService
 import org.metaborg.spoofax.core.syntax.ISpoofaxSyntaxService
 import org.metaborg.spoofax.core.unit.{ISpoofaxInputUnit, ISpoofaxParseUnit, ISpoofaxUnitService}
 import org.spoofax.interpreter.terms.{IStrategoAppl, IStrategoTerm}
+import scala.collection.JavaConverters._
 
 class ParseService @Inject()(val unitService: ISpoofaxUnitService, val syntaxService: ISpoofaxSyntaxService, val resourceService: ResourceService) {
   /**
@@ -49,7 +50,9 @@ class ParseService @Inject()(val unitService: ISpoofaxUnitService, val syntaxSer
     val parseResult = syntaxService.parse(inputUnit)
 
     if (!parseResult.success()) {
-      throw new RuntimeException(s"Unsuccessful parse of $inputUnit in language ${languageImpl.id()}.")
+      val messages = parseResult.messages().asScala.mkString("\n")
+
+      throw new RuntimeException(s"Unsuccessful parse of ${inputUnit.text} in language ${languageImpl.id()} with messages $messages")
     }
 
     parseResult
