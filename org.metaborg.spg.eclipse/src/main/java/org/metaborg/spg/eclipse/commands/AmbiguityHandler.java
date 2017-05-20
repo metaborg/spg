@@ -10,6 +10,7 @@ import org.metaborg.core.project.IProject;
 import org.metaborg.spg.eclipse.LanguageNotFoundException;
 import org.metaborg.spg.eclipse.ProjectNotFoundException;
 import org.metaborg.spg.eclipse.dialogs.AmbiguityDialog;
+import org.metaborg.spg.core.Config;
 import org.metaborg.spg.eclipse.jobs.IJobFactory;
 
 public class AmbiguityHandler extends SpgHandler {
@@ -28,8 +29,7 @@ public class AmbiguityHandler extends SpgHandler {
 				Job job = jobFactory.createAmbiguityJob(
 					project,
 					language,
-					ambiguityDialog.getTermLimit(),
-					ambiguityDialog.getTermSize()
+					getConfig(ambiguityDialog)
 				);
 				
 				job.setPriority(Job.SHORT);
@@ -43,5 +43,13 @@ public class AmbiguityHandler extends SpgHandler {
 		}
 		
 		return null;
+	}
+	
+	protected Config getConfig(AmbiguityDialog ambiguityDialog) {
+		return new Config(
+			ambiguityDialog.getTermLimit(),
+			0,
+			ambiguityDialog.getTermSize()
+		);
 	}
 }

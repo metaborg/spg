@@ -2,7 +2,7 @@ package org.metaborg.spg.core.solver
 
 import org.metaborg.spg.core._
 import org.metaborg.spg.core.TermBinding
-import org.metaborg.spg.core.spoofax.models.Strategy
+import org.metaborg.spg.core.stratego.Strategy
 import org.metaborg.spg.core.terms.Pattern
 
 case class Subtypes(bindings: List[(Pattern, Pattern)] = Nil) {

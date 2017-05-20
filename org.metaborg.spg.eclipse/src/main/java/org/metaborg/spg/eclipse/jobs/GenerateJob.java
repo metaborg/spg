@@ -12,8 +12,12 @@ import org.metaborg.core.language.ILanguageImpl;
 import org.metaborg.core.project.IProject;
 import org.metaborg.spg.core.Config;
 import org.metaborg.spg.core.SemanticGenerator;
+import org.metaborg.spg.core.SemanticGeneratorFactory;
 import org.metaborg.spg.eclipse.Activator;
 import org.metaborg.spoofax.eclipse.util.ConsoleUtils;
+
+import com.google.inject.Inject;
+import com.google.inject.assistedinject.Assisted;
 
 import rx.Observable;
 
@@ -21,41 +25,41 @@ public class GenerateJob extends Job {
     protected MessageConsole console = ConsoleUtils.get("Spoofax console");
     protected MessageConsoleStream stream = console.newMessageStream();
     
-    protected SemanticGenerator generator;
+    protected SemanticGeneratorFactory generatorFactory;
     
 	protected IProject project;
 	protected ILanguageImpl language;
-	protected int termLimit;
-	protected int termSize;
-	protected int fuel;
-    
-	public GenerateJob(SemanticGenerator generator, IProject project, ILanguageImpl language, int termLimit, int termSize, int fuel) {
+	protected Config config;
+
+	@Inject
+	public GenerateJob(
+		SemanticGeneratorFactory generatorFactory,
+		@Assisted IProject project,
+		@Assisted ILanguageImpl language,
+		@Assisted Config config
+	) {
 		super("Generate");
 		
-		this.generator = generator;
+		this.generatorFactory = generatorFactory;
 		
 		this.project = project;
 		this.language = language;
-		this.termLimit = termLimit;
-		this.termSize = termSize;
-		this.fuel = fuel;
+		this.config = config;
 	}
 	
 	@Override
 	protected IStatus run(IProgressMonitor monitor) {
-		final SubMonitor subMonitor = SubMonitor.convert(monitor, termLimit);
-
-		Config config = new Config(termLimit, fuel, termSize, true, true);
+		final SubMonitor subMonitor = SubMonitor.convert(monitor, config.limit());
 		
-		Observable<? extends String> programs = generator
-			.generate(language, project, config)
+		Observable<? extends String> programs = generatorFactory
+			.create(language, project, config)
 			.asJavaObservable();
-		
+
 		programs.subscribe(program -> {
 			stream.println(program);
 			stream.println("--------------------------------------------");
-			
-			//subMonitor.split(1);
+
+			subMonitor.split(1);
 		}, exception -> {
 			if (exception instanceof OperationCanceledException) {
 				// Swallow cancellation exceptions

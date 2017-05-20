@@ -3,10 +3,12 @@ package org.metaborg.spg.core.solver
 import org.metaborg.spg.core._
 import org.metaborg.spg.core.resolution.{Graph, Occurrence}
 import org.metaborg.spg.core.spoofax.Language
-import org.metaborg.spg.core.spoofax.models.{Sort, SortAppl, SortVar, Strategy}
+import org.metaborg.spg.core.sdf.{SortAppl, SortVar}
 import org.metaborg.spg.core.{NameProvider, Program}
 import org.metaborg.spg.core.resolution.OccurrenceImplicits._
-import org.metaborg.spg.core.spoofax.models.Strategy._
+import org.metaborg.spg.core.sdf.Sort
+import org.metaborg.spg.core.stratego.Strategy._
+import org.metaborg.spg.core.stratego.Strategy
 import org.metaborg.spg.core.terms.{Pattern, TermAppl, TermString, Var}
 
 object Solver {
@@ -61,21 +63,155 @@ object Solver {
       val combis = for (List(a, b, _*) <- names.combinations(2).toList) yield (a, b)
 
       program//.addInequalities(combis)
-    case recurse@CGenRecurse(name, pattern, scopes, typ, sort) =>
-      language.rules(name, sort).flatMap(rule => {
-        val freshRule = rule.instantiate().freshen()
-        val newState = program.apply(recurse, freshRule)
-
-        mergeSorts(newState)(sort, freshRule.sort).map(newState =>
-          mergePatterns(newState)(pattern, freshRule.pattern).flatMap(newState =>
-            mergeTypes(newState)(typ, freshRule.typ).flatMap(newState =>
-              mergeScopes(newState)(scopes, freshRule.scopes)
-            )
-          )
-        )
+    case recurse@CGenRecurse(name, _, _, _, sort, size) =>
+      language.rulesMem(name, sort).flatMap(rule => {
+        program.apply(recurse, rule)
       })
     case _ =>
       Nil
+  }
+
+  /**
+    * Solve all constraints.
+    *
+    * @param program
+    * @return
+    */
+  def solveAll(program: Program)(implicit language: Language): List[Program] = {
+    if (program.properConstraints.isEmpty) {
+      return Some(program)
+    }
+
+    for (constraint <- program.properConstraints) {
+      val result = rewrite(constraint, program - constraint)
+
+      if (result.nonEmpty) {
+        return result.flatMap(solveAll)
+      }
+    }
+
+    Nil
+  }
+
+  /**
+    * Solve all deterministic constraints in the given program.
+    *
+    * A deterministic constraint is one that does not involve a choice. In
+    * essence, they only propagate knowledge. For example, a TypeOf constraint
+    * can only be solved in one way, and if it can be solved, it should be
+    * solved.
+    *
+    * @param program
+    * @return
+    */
+  def solveFixpoint(program: Program)(implicit language: Language): Program = {
+    solveFixpointE(program).get._1
+  }
+
+  def solveFixpointE(program: Program)(implicit language: Language): Option[(Program, Unifier)] = {
+    /**
+      * Rewrite a basic constraint.
+      *
+      * @param constraint
+      * @param program
+      * @return
+      */
+    def rewrite(constraint: Constraint, program: Program)(implicit language: Language): Option[(Program, Unifier)] = constraint match {
+      case CTrue() =>
+        Some(program, Unifier.empty)
+      case CEqual(t1, t2) =>
+        t1.unify(t2).map(unifier =>
+          (program.substitute(unifier), Unifier(unifier))
+        )
+      case CTypeOf(n, t) if n.vars.isEmpty =>
+        if (program.typeEnv.contains(n)) {
+          Some(program + CEqual(program.typeEnv(n), t), Unifier.empty)
+        } else {
+          Some(program.addBinding(n -> t), Unifier.empty)
+        }
+      case CAssoc(n, s@Var(_)) if Graph(program.constraints).associated(n).nonEmpty =>
+        Graph(program.constraints).associated(n).map(scope => {
+          val unifier = Map(s -> scope)
+
+          (program.substitute(unifier), Unifier(unifier))
+        })
+      case FSubtype(t1, t2) if (t1.vars ++ t2.vars).isEmpty && !program.subtypes.domain.contains(t1) && !program.subtypes.isSubtype(t2, t1) =>
+        val closure = for (ty1 <- program.subtypes.subtypeOf(t1); ty2 <- program.subtypes.supertypeOf(t2))
+          yield (ty1, ty2)
+
+        Some(program.copy(subtypes = program.subtypes ++ closure), Unifier.empty)
+      case CSubtype(t1, t2) if (t1.vars ++ t2.vars).isEmpty && program.subtypes.isSubtype(t1, t2) =>
+        Some(program, Unifier.empty)
+      case _ =>
+        None
+    }
+
+    /**
+      * Solve a single constraint or return the program if none can be solved.
+      *
+      * TODO: Split program and unifier arguments instead of matching
+      *
+      * @param pu
+      * @return
+      */
+    def solveAny(pu: (Program, Unifier))(implicit language: Language): (Program, Unifier) = pu match {
+      case (program, unifier) => {
+        for (constraint <- program.constraints) {
+          rewrite(constraint, program - constraint) match {
+            case Some((program, rewriteUnifier)) =>
+              return (program, unifier ++ rewriteUnifier)
+            case None =>
+            // Noop
+          }
+        }
+
+        (program, unifier)
+      }
+    }
+
+    Some(fixedPoint(solveAny, (program, Unifier.empty)))
+  }
+
+  /**
+    * Resolve every reference in the program.
+    *
+    * TODO: For L1, this method is sufficient. For L2-3, a reference may depend
+    * TODO: upon another reference, and we should give this method more slack.
+    *
+    * @param program
+    * @param language
+    * @return
+    */
+  def solveResolve(program: Program)(implicit language: Language): List[Program] = {
+    def solveResolveInner(program: Program)(implicit language: Language): List[Program] = {
+      if (program.resolve.isEmpty) {
+        List(program)
+      } else {
+        for (resolve <- program.resolve) {
+          val declarations = Graph(program.constraints).res(program.resolution)(resolve.n1)
+
+          if (declarations.nonEmpty) {
+            return declarations.toList.flatMap(declaration =>
+              resolve.n2
+                .unify(declaration)
+                .map(program.substitute)
+                .map(_.addResolution(resolve.n1 -> declaration))
+                .map(mergeOccurrences(_)(resolve.n1, declaration))
+            )
+          }
+        }
+
+        Nil
+      }
+    }
+
+    // TODO: After solving a resolve, we need to solveAny to propagate knowledge
+
+    def solveResolves(programs: List[Program]) = {
+      programs.flatMap(solveResolveInner)
+    }
+
+    fixedPoint(solveResolves, List(program))
   }
 
   /**
@@ -128,35 +264,34 @@ object Solver {
     case SortVar(_) =>
       s1.unify(s2).map(program.substituteSort)
     case SortAppl(_, children) =>
-      Sort
-        .injectionsClosure(language.signatures, s1).view
+      language.signature
+        .injectionsClosure(s1).view
         .flatMap(_.unify(s2))
         .headOption
         .map(program.substituteSort)
   }
 
-  // TODO: It is possible that the pattern is aliased, so we should be more specific
-  def mergePatterns(program: Program)(p1: Pattern, p2: Pattern)(implicit language: Language): List[Program] = {
-    rewrite(CEqual(p1, p2), program)
+  def mergePatterns(program: Program)(p1: Pattern, p2: Pattern)(implicit language: Language): Option[Program] = {
+    p1.unify(p2).map(program.substitute)
   }
 
-  def mergeTypes(program: Program)(t1: Option[Pattern], t2: Option[Pattern])(implicit language: Language): List[Program] = (t1, t2) match {
+  def mergeTypes(program: Program)(t1: Option[Pattern], t2: Option[Pattern])(implicit language: Language): Option[Program] = (t1, t2) match {
     case (None, None) =>
       program
-    case (Some(_), Some(_)) =>
-      rewrite(CEqual(t1.get, t2.get), program)
+    case (Some(t1), Some(t2)) =>
+      t1.unify(t2).map(program.substitute)
     case _ =>
-      Nil
+      None
   }
 
-  def mergeScopes(program: Program)(ss1: List[Pattern], ss2: List[Pattern])(implicit language: Language): List[Program] = {
+  def mergeScopes(program: Program)(ss1: List[Pattern], ss2: List[Pattern])(implicit language: Language): Option[Program] = {
     if (ss1.length == ss2.length) {
-      ss1.zip(ss2).foldLeftMap(program) {
+      ss1.zip(ss2).foldLeftWhile(program) {
         case (program, (s1, s2)) =>
-          rewrite(CEqual(s1, s2), program)
+          s1.unify(s2).map(program.substitute)
       }
     } else {
-      Nil
+      None
     }
   }
 }

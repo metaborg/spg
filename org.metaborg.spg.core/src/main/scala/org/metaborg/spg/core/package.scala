@@ -1,7 +1,8 @@
 package org.metaborg.spg
 
+import org.metaborg.spg.core.sdf.{Sort, SortVar}
 import org.metaborg.spg.core.solver.Constraint
-import org.metaborg.spg.core.spoofax.models.{Sort, SortVar, Strategy}
+import org.metaborg.spg.core.stratego.Strategy
 import org.metaborg.spg.core.terms.{Pattern, Var}
 
 import scala.annotation.tailrec
@@ -15,6 +16,9 @@ package object core {
 
   // An instance of the NameProvider made globally available
   val nameProvider = NameProvider(100)
+
+  // Implicitly convert Unifier to Map[Var, Pattern]
+  implicit def unifierToMap(u: Unifier): Map[Var, Pattern] = u.delegate
 
   // Implicitly convert Binding to Tuple
   implicit def bindingToTuple[A, B](b: Binding[A, B]): (A, B) = Tuple2(b.a, b.b)
@@ -189,6 +193,15 @@ package object core {
       o.map(_.substitute(binding))
     }
 
+    def unify(t: Option[Pattern], termBinding: TermBinding = Map.empty): Option[TermBinding] = (o, t) match {
+      case (None, None) =>
+        Some(termBinding)
+      case (Some(p1), Some(p2)) =>
+        p1.unify(p2, termBinding)
+      case _ =>
+        None
+    }
+
     def freshen(nameBinding: Map[String, String]): (Map[String, String], Option[Pattern]) = o match {
       case Some(p) =>
         p.freshen(nameBinding).map {
@@ -214,10 +227,13 @@ package object core {
       fixedPoint(f, fx)
   }
 
-  // Turn a function in a memoized function
-  def memoize[T, R](f: T => R): T => R = {
-    val memory = mutable.Map.empty[T, R]
+  // Returns a function x => f(f(f(x))) with n times f
+  def repeat[T](f: T => T, n: Int): T => T = {
+    @tailrec def repeatAcc(acc: T, n: Int): T = n match {
+      case 0 => acc
+      case _ => repeatAcc(f(acc), n - 1)
+    }
 
-    (t: T) => memory.getOrElseUpdate(t, f(t))
+    (t: T) => repeatAcc(t, n)
   }
 }

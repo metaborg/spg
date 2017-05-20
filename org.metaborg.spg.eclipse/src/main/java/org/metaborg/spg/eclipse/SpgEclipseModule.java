@@ -1,14 +1,13 @@
 package org.metaborg.spg.eclipse;
 
 import org.metaborg.spg.eclipse.jobs.IJobFactory;
-import org.metaborg.spg.eclipse.jobs.JobFactory;
 
 import com.google.inject.AbstractModule;
-import com.google.inject.Singleton;
+import com.google.inject.assistedinject.FactoryModuleBuilder;
 
 public class SpgEclipseModule extends AbstractModule {
 	@Override
 	protected void configure() {
-		bind(IJobFactory.class).to(JobFactory.class).in(Singleton.class);
+		install(new FactoryModuleBuilder().build(IJobFactory.class));
 	}
 }

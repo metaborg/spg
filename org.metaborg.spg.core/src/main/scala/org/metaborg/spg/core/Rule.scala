@@ -1,10 +1,10 @@
 package org.metaborg.spg.core
 
-import org.metaborg.spg.core.resolution.Occurrence
 import org.metaborg.spg.core.resolution.OccurrenceImplicits._
+import org.metaborg.spg.core.sdf.Sort
 import org.metaborg.spg.core.solver.{CGDecl, CGRef, CGenRecurse, Constraint, NewScope}
 import org.metaborg.spg.core.spoofax.Language
-import org.metaborg.spg.core.spoofax.models.{Sort, SortAppl, SortVar}
+import org.metaborg.spg.core.sdf.{SortAppl, SortVar}
 import org.metaborg.spg.core.terms._
 
 /**
@@ -52,8 +52,8 @@ case class Rule(name: String, sort: Sort, pattern: Pattern, scopes: List[Pattern
         (rule - c).substitute(s, TermAppl("s" + nameProvider.next))
     }
 
-    // Substitute Var(x) in an occurrence by TermAppl("NameVar", List(TermString("x1"))
-    val occurrences = constraints.flatMap {
+    // Collect declaration occurrences
+    val decls = constraints.flatMap {
       case CGDecl(_, declaration) =>
         declaration.occurrence.name match {
           case v@Var(_) =>
@@ -61,6 +61,12 @@ case class Rule(name: String, sort: Sort, pattern: Pattern, scopes: List[Pattern
           case _ =>
             None
         }
+      case _ =>
+        None
+    }
+
+    // Collect reference occurrences
+    val refs = constraints.flatMap {
       case CGRef(reference, _) =>
         reference.occurrence.name match {
           case v@Var(_) =>
@@ -72,13 +78,22 @@ case class Rule(name: String, sort: Sort, pattern: Pattern, scopes: List[Pattern
         None
     }
 
-    val varToNameVar: TermBinding = occurrences.zipWith(variable =>
+    // Substitute Var(x) in references by TermAppl("NameVar", List(TermString("x1"))
+    val refVarToNameVar: TermBinding = refs.zipWith(variable =>
       TermAppl("NameVar", List(
         TermString("x" + nameProvider.next)
       ))
     ).toMap
 
-    r2.substitute(varToNameVar)
+    // Substitute Var(x) in declarations by TermAppl("NameVar", List(TermString("x1"))
+    // TODO: For now, we give declarations a concrete name, so we don't need to bother about renaming later on
+    val decVarToName: TermBinding = decls.zipWith(variable =>
+      TermString("x" + nameProvider.next)
+    ).toMap
+
+    r2
+      .substitute(refVarToNameVar)
+      .substitute(decVarToName)
   }
 
   /**
@@ -113,6 +128,64 @@ case class Rule(name: String, sort: Sort, pattern: Pattern, scopes: List[Pattern
     */
   def substitute(a: Var, b: Pattern): Rule = {
     substitute(Map(a -> b))
+  }
+
+  /**
+    * Apply the given sort substitution to the program.
+    *
+    * @param binding
+    * @return
+    */
+  def substituteSort(binding: SortBinding): Rule = {
+    Rule(
+      name =
+        name,
+      sort =
+        sort.substituteSort(binding),
+      pattern =
+        pattern.substituteSort(binding),
+      scopes =
+        scopes,
+      typ =
+        typ,
+      constraints =
+        constraints.substituteSort(binding)
+    )
+  }
+
+  /**
+    * Merges two rules.
+    *
+    * If the given rule is not applicable (e.g. wrong rule name), returns None.
+    *
+    * @param recurse
+    * @param rule
+    * @param language
+    * @return
+    */
+  def merge(recurse: CGenRecurse, rule: Rule)(implicit language: Language): Option[Rule] = {
+    if (rule.name != recurse.name) {
+      return None
+    }
+
+    // Instantiate and freshen the given rule
+    val freshRule = rule
+      .instantiate()
+      .freshen()
+
+    // Remove the recurse
+    val merged = copy(constraints = constraints ++ freshRule.constraints - recurse)
+
+    // Merge sorts, patterns, types, scopes
+    Merger.mergeSorts(merged)(recurse.sort, freshRule.sort).flatMap(merged =>
+      Merger.mergePatterns(merged)(recurse.pattern, freshRule.pattern).flatMap(merged =>
+        Merger.mergeTypes(merged)(recurse.typ, freshRule.typ).flatMap(merged =>
+          Merger.mergeScopes(merged)(recurse.scopes, freshRule.scopes).flatMap(merged =>
+            Some(merged)
+          )
+        )
+      )
+    )
   }
 
   /**
@@ -160,8 +233,8 @@ object Rule {
     case SortVar(_) =>
       s1.unify(s2)
     case SortAppl(_, children) =>
-      Sort
-        .injectionsClosure(language.signatures, s1).view
+      language.signature
+        .injectionsClosure(s1).view
         .flatMap(_.unify(s2))
         .headOption
   }

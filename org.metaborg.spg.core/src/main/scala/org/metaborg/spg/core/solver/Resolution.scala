@@ -2,7 +2,7 @@ package org.metaborg.spg.core.solver
 
 import org.metaborg.spg.core.terms.Pattern
 import org.metaborg.spg.core._
-import org.metaborg.spg.core.spoofax.models.Strategy
+import org.metaborg.spg.core.stratego.Strategy
 
 case class Resolution(bindings: Map[Pattern, Pattern] = Map.empty) {
   def contains(n: Pattern): Boolean =
@@ -29,6 +29,16 @@ case class Resolution(bindings: Map[Pattern, Pattern] = Map.empty) {
 
   def size =
     bindings.size
+
+  /**
+    * Merge the given resolution with this resolution.
+    *
+    * @param resolution
+    * @return
+    */
+  def merge(resolution: Resolution): Resolution = {
+    Resolution(bindings ++ resolution.bindings)
+  }
 
   def freshen(nameBinding: Map[String, String]): (Map[String, String], Resolution) = {
     val freshBindings = bindings.toList.mapFoldLeft(nameBinding) { case (nameBinding, (n1, n2)) =>

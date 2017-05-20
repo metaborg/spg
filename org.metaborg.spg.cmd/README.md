@@ -4,25 +4,38 @@ A command-line interface to SPG.
 
 ## Usage
 
+The CLI supports two modes of operation: generating random _sentences_, which
+can be used to test for _grammar ambiguities_, and generating random _terms_,
+which can be used to test for _type soundness_.
+
 ```
 Usage
 
- generator [options] <sdfPath> <nablPath> <projectPath> : Generate random well-formed terms
+ spg [options] command [command options]
 
 Options
 
-   --fuel=NUM              : Fuel provided to the backtracker (default: 400)
-   --limit=NUM             : Number of terms to generate (default: -1)
-   --seed                  : Seed for the random number geenrator (default: none)
-   --size-limit=NUM        : Maximum size of terms to generate (default: 60)
-   --verbosity=STRING      : Verbosity of the output as log level (default: ERROR)
+   --limit=NUM      : Number of terms to generate (default: 1,000,000)
+   --seed           : Seed for the random number generator (default: random)
+   --size-limit=NUM : Maximum size of terms to generate (default: 60)
 
-Arguments
+Commands
 
-   <sdfPath>     : Path to the SDF language implementation archive
-   <nablPath>    : Path to the NaBL2 language implementation archive
-   <projectPath> : Path to the Spoofax project of the language to generate terms for
+   sentence [command options] <sdfPath> <nablPath> <projectPath> : Generate random sentences
+      --ambiguity : Test each generated sentence for ambiguity
+      <sdfPath>   : Path to the SDF language implementation archive
+      <nablPath>  : Path to the NaBL2 language implementation archive
+      <projectPath> : Path to the Spoofax project of the language to generate terms for
+
+   term [command options] <sdfPath> <nablPath> <projectPath> : Generate random terms
+      --fuel=NUM : Fuel provided to the backtracker (default: 400)
+      <sdfPath>   : Path to the SDF language implementation archive
+      <nablPath>  : Path to the NaBL2 language implementation archive
+      <projectPath> : Path to the Spoofax project of the language to generate terms for
 ```
+
+Setting a seed makes the generator deterministic, which may help with
+reproducing a bug.
 
 ## Examples
 

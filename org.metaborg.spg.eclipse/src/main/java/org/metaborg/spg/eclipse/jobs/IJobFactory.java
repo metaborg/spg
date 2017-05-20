@@ -2,6 +2,7 @@ package org.metaborg.spg.eclipse.jobs;
 
 import org.metaborg.core.language.ILanguageImpl;
 import org.metaborg.core.project.IProject;
+import org.metaborg.spg.core.Config;
 
 public interface IJobFactory {
 	/**
@@ -9,35 +10,30 @@ public interface IJobFactory {
 	 * 
 	 * @param project
 	 * @param language
-	 * @param termLimit
-	 * @param termSize
-	 * @param fuel
+	 * @param config
 	 * @return
 	 */
-	public GenerateJob createGenerateJob(IProject project, ILanguageImpl language, int termLimit, int termSize, int fuel);
+	public GenerateJob createGenerateJob(IProject project, ILanguageImpl language, Config config);
 	
 	/**
 	 * Create an ambiguity job.
 	 * 
 	 * @param project
 	 * @param language
-	 * @param termLimit
-	 * @param termSize
+	 * @param config
 	 * @return
 	 */
-	public AmbiguityJob createAmbiguityJob(IProject project, ILanguageImpl language, int termLimit, int termSize);
+	public AmbiguityJob createAmbiguityJob(IProject project, ILanguageImpl language, Config config);
 	
 	/**
 	 * Create a soundness job.
 	 * 
 	 * @param project
 	 * @param language
-	 * @param termLimit
-	 * @param termSize
-	 * @param fuel
+	 * @param config
 	 * @param interpreter
 	 * @param timeout
 	 * @return
 	 */
-	public SoundnessJob createSoundnessJob(IProject project, ILanguageImpl language, int termLimit, int termSize, int fuel, String interpreter, int timeout);
+	public SoundnessJob createSoundnessJob(IProject project, ILanguageImpl language, Config config, String interpreter, int timeout);
 }

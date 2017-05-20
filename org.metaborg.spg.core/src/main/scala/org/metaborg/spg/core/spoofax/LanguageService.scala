@@ -5,7 +5,9 @@ import com.typesafe.scalalogging.LazyLogging
 import org.metaborg.core.language.ILanguageImpl
 import org.metaborg.core.project.IProject
 import org.metaborg.core.resource.ResourceService
-import org.metaborg.spg.core.spoofax.models._
+import org.metaborg.spg.core.nabl.NablService
+import org.metaborg.spg.core.sdf.{SdfService, Sort, SortAppl, SortVar}
+import org.metaborg.spg.core.stratego.{Constructor, Injection, Operation, Signature}
 import org.metaborg.spoofax.core.syntax.SyntaxFacet
 
 import scala.collection.JavaConverters._
@@ -28,7 +30,8 @@ class LanguageService @Inject()(val resourceSerivce: ResourceService, val sdfSer
     val grammar = sdfService.read(templateLangImpl, project)
 
     logger.trace("Computing signatures")
-    val signatures = Signatures(defaultSignatures ++ grammar.toSignatures)
+    val name = lutLangImpl.belongsTo().name
+    val signatures = Signature(LanguageService.defaultSignatures ++ grammar.effectiveGrammar(name).toConstructors)
 
     logger.trace("Loading static semantics")
     val specification = specificationService.read(nablLangImpl, project)(signatures)
@@ -55,62 +58,44 @@ class LanguageService @Inject()(val resourceSerivce: ResourceService, val sdfSer
       .map(SortAppl(_))
       .toSet
   }
+}
 
+object LanguageService {
   /**
-    * These signatures are defined in the standard library and do not appear in
-    * the signature file. Hence, we add them ourselves.
+    * The constructors for sorts List(a) and Option(a) are implicit in Spoofax.
+    * This method lists these implicit constructors.
     *
-    * The last two signatures define the sort Iter(a) and IterStar(a):
-    *  - Iter(a) is a list with at least one element. This is not supported in
-    * Stratego.
-    *  - IterStar(a) is a list with zero or more elements. It is the same as
-    * List(a), so we define an injection to it.
+    * Moreover, Spoofax uses sort List(a) for both empty and non-empty lists.
+    * However, we do not want to generate empty lists when non-empty lists are
+    * required. We define sorts Iter(a) and IterStar(a) for non-empty lists and
+    * empty lists, respectively.
     *
     * @return
     */
-  def defaultSignatures: List[Signature] = List(
-    // Cons : a * Lits(a) -> List(a)
-    OpDecl("Cons", FunType(
-      List(
-        ConstType(SortVar("a")),
-        ConstType(SortAppl("List", List(SortVar("a"))))
-      ),
-      ConstType(SortAppl("List", List(SortVar("a"))))
-    )),
+  lazy val defaultSignatures: List[Constructor] = List(
+    // Cons : a * List(a) -> List(a)
+    Operation("Cons", List(SortVar("a"), SortAppl("List", List(SortVar("a")))), SortAppl("List", List(SortVar("a")))),
 
     // Nil : List(a)
-    OpDecl("Nil", ConstType(
-      SortAppl("List", List(SortVar("a")))
-    )),
+    Operation("Nil", Nil, SortAppl("List", List(SortVar("a")))),
 
-    // Some : Option(a)
-    OpDecl("Some", FunType(
-      List(
-        ConstType(SortVar("a"))
-      ),
-      ConstType(SortAppl("Option", List(SortVar("a"))))
-    )),
+    // Some : a -> Option(a)
+    Operation("Some", List(SortVar("a")), SortAppl("Option", List(SortVar("a")))),
 
     // None : Option(a)
-    OpDecl("None", ConstType(
-      SortAppl("Option", List(SortVar("a")))
-    )),
+    Operation("None", Nil, SortAppl("Option", List(SortVar("a")))),
 
-    // Conss : a * List(a) -> Iter(a)
-    OpDecl("Conss", FunType(
-      List(
-        ConstType(SortVar("a")),
-        ConstType(SortAppl("List", List(SortVar("a"))))
-      ),
-      ConstType(SortAppl("Iter", List(SortVar("a"))))
-    )),
+    // IterCons : a * List(a) -> Iter(a)
+    //Operation("IterCons", List(SortVar("a"), SortAppl("List", List(SortVar("a")))), SortAppl("Iter", List(SortVar("a")))),
+
+    // Cons : a * List(a) -> Iter(a)
+    Operation("Cons", List(SortVar("a"), SortAppl("List", List(SortVar("a")))), SortAppl("Iter", List(SortVar("a")))),
 
     // : List(a) -> IterStar(a)
-    OpDeclInj(FunType(
-      List(
-        ConstType(SortAppl("List", List(SortVar("a"))))
-      ),
-      ConstType(SortAppl("IterStar", List(SortVar("a"))))
-    ))
+    Injection(SortAppl("List", List(SortVar("a"))), SortAppl("IterStar", List(SortVar("a"))))
+
+    // We made amb part of the signature so we can get its sort. But if we do this, then the sentence generator will generate amb nodes. We should not have amb nodes in the tree to begin with...
+    // amb : List(a) -> a
+    //Operation("amb", List(SortAppl("List", List(SortVar("a")))), SortVar("a"))
   )
 }

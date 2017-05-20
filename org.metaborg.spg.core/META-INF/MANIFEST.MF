@@ -7,7 +7,9 @@ Bundle-SymbolicName: org.metaborg.spg.core
 Bundle-Vendor: org.metaborg
 Bundle-Version: 2.1.0
 Created-By: 1.8.0_05 (Oracle Corporation)
-Export-Package: org.metaborg.spg.core;version="2.1.0"
+Export-Package: org.metaborg.spg.core;version="2.1.0",
+ org.metaborg.spg.core.spoofax,
+ org.metaborg.spg.core.terms
 Import-Package: org.spoofax.interpreter.terms,
  org.spoofax.terms,
  org.metaborg.core,

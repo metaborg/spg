@@ -7,9 +7,8 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.vfs2.FileObject;
@@ -28,6 +27,9 @@ import org.metaborg.core.source.ISourceTextService;
 import org.metaborg.core.syntax.ParseException;
 import org.metaborg.spg.core.Config;
 import org.metaborg.spg.core.SyntaxGenerator;
+import org.metaborg.spg.core.SyntaxGeneratorFactory;
+import org.metaborg.spg.core.SyntaxShrinker;
+import org.metaborg.spg.core.spoofax.*;
 import org.metaborg.spg.eclipse.Activator;
 import org.metaborg.spg.eclipse.rx.MapWithIndex;
 import org.metaborg.spoofax.core.syntax.ISpoofaxSyntaxService;
@@ -39,6 +41,10 @@ import org.spoofax.interpreter.terms.IStrategoAppl;
 import org.spoofax.interpreter.terms.IStrategoTerm;
 
 import com.google.common.base.Joiner;
+import com.google.inject.Inject;
+import com.google.inject.assistedinject.Assisted;
+
+import rx.Observable;
 
 public class AmbiguityJob extends Job {
 	public static Charset UTF_8 = StandardCharsets.UTF_8;
@@ -50,15 +56,26 @@ public class AmbiguityJob extends Job {
     protected ISourceTextService sourceTextService;
     protected ISpoofaxUnitService unitService;
     protected ISpoofaxSyntaxService syntaxService;
-    protected SyntaxGenerator generator;
+    protected SyntaxGeneratorFactory generatorFactory;
+    protected ParseService parseService;
     
 	protected IProject project;
 	protected ILanguageImpl language;
-	protected int termLimit;
-	protected int sizeLimit;
-	protected int timeout;
+	protected Config config;
     
-	public AmbiguityJob(IResourceService resourceService, ISourceTextService sourceTextService, ISpoofaxUnitService unitService, ISpoofaxSyntaxService syntaxService, SyntaxGenerator generator, IProject project, ILanguageImpl language, int termLimit, int sizeLimit) {
+	@Inject
+	public AmbiguityJob(
+		IResourceService resourceService,
+		ISourceTextService sourceTextService,
+		ISpoofaxUnitService unitService,
+		ISpoofaxSyntaxService syntaxService,
+		SyntaxGeneratorFactory generatorFactory,
+		ParseService parseService,
+		
+		@Assisted IProject project,
+		@Assisted ILanguageImpl language,
+		@Assisted Config config
+	) {
 		super("Generate");
 		
 		this.resourceService = resourceService;
@@ -66,35 +83,43 @@ public class AmbiguityJob extends Job {
 		this.unitService = unitService;
 		this.syntaxService = syntaxService;
 		
-		this.generator = generator;
+		this.generatorFactory = generatorFactory;
+		this.parseService = parseService;
 		
 		this.project = project;
 		this.language = language;
-		this.language = language;
-		this.termLimit = termLimit;
-		this.sizeLimit = sizeLimit;
+		this.config = config;
 	}
 	
 	@Override
 	protected IStatus run(IProgressMonitor monitor) {
-		final SubMonitor subMonitor = SubMonitor.convert(monitor, termLimit);
-
-		Config config = new Config(termLimit, 0, sizeLimit, true, true);
+		final SubMonitor subMonitor = SubMonitor.convert(monitor, config.limit());
 		
-		generator
-			.generate(language, project, config)
-			.asJavaObservable()
+		final Language language = generatorFactory.loadLanguage(this.language, project);
+		
+		final SyntaxGenerator generator = generatorFactory.create(this.language, project, config);
+		
+		final SyntaxShrinker shrinker = new SyntaxShrinker(generator, parseService, language, new scala.util.Random(0));
+
+		@SuppressWarnings("unchecked")
+		Observable<String> programs = (Observable<String>) generator
+			.generate()
+			.asJavaObservable();
+		
+		programs
 			.doOnNext(program -> progress(subMonitor, program))
-			.map(program -> store(program))
-			.map(file -> parse(language, file))
+			.map(program -> parse(this.language, program))
 			.filter(parseUnit -> parseUnit.valid())
-			.compose(MapWithIndex.instance())
-			.takeFirst(indexedParseUnit -> ambiguous(indexedParseUnit.value()))
-			.subscribe(indexedParseUnit -> {
-				IStrategoTerm ast = parse(language, indexedParseUnit.value().input().source()).ast();
+			.takeFirst(parseUnit -> ambiguous(parseUnit))
+			.map(parseUnit -> shrink(shrinker, parseUnit))
+			.subscribe(parseUnit -> {
+				IStrategoTerm ast = parseUnit.ast();
+				
+				stream.println("=== Shrunk program ===");
+				stream.println(parseUnit.input().text());
 				
 				stream.println("=== Ambiguities ===");
-				stream.println(Joiner.on("\n").join(ambiguities(ast)));
+				stream.println(Joiner.on("\n").join(ambiguities(ast).collect(Collectors.toList())));
 			}, exception -> {
 				if (exception instanceof OperationCanceledException) {
 					// Swallow cancellation exceptions
@@ -111,7 +136,7 @@ public class AmbiguityJob extends Job {
     };
     
     /**
-     * Show there is some prorgress by printing the program and incrementing
+     * Show there is some progress by printing the program and incrementing
 	 * the submonitor.
      * 
      * @param program
@@ -120,31 +145,7 @@ public class AmbiguityJob extends Job {
     	stream.println("=== Program ===");
     	stream.println(program);
 		
-    	//monitor.split(1);
-    }
-    
-    /**
-     * Store the given program.
-     * 
-     * This implementation stores the program in RAM, using the RAM provider
-     * from VFS.
-     * 
-     * @return
-     * @throws IOException
-     */
-    protected FileObject store(String program) {
-    	try {
-	    	FileObject fileObject = resourceService.resolve("ram://" + System.nanoTime() + ".jav");
-	    	fileObject.createFile();
-	    	
-	    	Writer writer = new PrintWriter(fileObject.getContent().getOutputStream());
-	    	writer.write(program);
-	    	writer.flush();
-	    	
-	    	return fileObject;
-    	} catch (Exception e) {
-    		throw new RuntimeException(e);
-    	}
+    	monitor.split(1);
     }
     
     /**
@@ -154,10 +155,9 @@ public class AmbiguityJob extends Job {
      * @throws IOException 
      * @throws ParseException 
      */
-    protected ISpoofaxParseUnit parse(ILanguageImpl language, FileObject fileObject) {
+    protected ISpoofaxParseUnit parse(ILanguageImpl language, String program) {
     	try {
-    		String text = sourceTextService.text(fileObject);
-        	ISpoofaxInputUnit inputUnit = unitService.inputUnit(fileObject, text, language, null);
+        	ISpoofaxInputUnit inputUnit = unitService.inputUnit(program, language, null);
         	
 			return syntaxService.parse(inputUnit);
     	} catch (Exception e) {
@@ -184,6 +184,18 @@ public class AmbiguityJob extends Job {
     }
     
     /**
+     * Check if the program is ambiguous.
+     * 
+     * @param program
+     * @return
+     */
+    protected boolean ambiguous(String program) {
+    	ISpoofaxParseUnit parseUnit = parse(language, program);
+    	
+    	return ambiguous(parseUnit);
+    }
+    
+    /**
      * Check if the parse unit contains an ambiguous AST.
      * 
      * @param parseUnit
@@ -195,32 +207,57 @@ public class AmbiguityJob extends Job {
     
     /**
      * Check if the AST contains the 'amb' constructor.
-     * 
+     *  
      * @param term
      * @return
      */
     protected boolean ambiguous(IStrategoTerm term) {
-        return !ambiguities(term).isEmpty();
+        return ambiguities(term).findAny().isPresent();
     }
 
     /**
-      * Collect all 'amb' constructors.
-      *
+      * Compute a lazy stream of all 'amb' constructors.
+      * 
       * @param term
       * @return
       */
-    protected List<IStrategoTerm> ambiguities(IStrategoTerm term) {
+    protected Stream<IStrategoTerm> ambiguities(IStrategoTerm term) {
 	    if (term instanceof IStrategoAppl) {
 		    IStrategoAppl appl = (IStrategoAppl) term;
 		    
 		    if (appl.getConstructor().getName() == "amb") {
-			    return Collections.singletonList(term);
+			    return Stream.of(term);
 		    }
 	    }
 
 	    return Arrays
     		.stream(term.getAllSubterms())
-    		.flatMap(child -> ambiguities(child).stream())
-    		.collect(Collectors.toList());
+    		.flatMap(child -> ambiguities(child));
+    }
+    
+    /**
+     * Recursively shrink the given program until it is no longer ambiguous or
+     * cannot be shrunk any further.
+     * 
+     * @param shrinker
+     * @param program
+     * @return
+     */
+    protected ISpoofaxParseUnit shrink(SyntaxShrinker shrinker, ISpoofaxParseUnit parseUnit) {
+		stream.println("=== Shrink ===");
+		stream.println(parseUnit.input().text());
+		
+		@SuppressWarnings("unchecked")
+		Observable<String> shrunkPrograms = (Observable<String>) shrinker
+			.shrink(parseUnit.input().text())
+			.asJavaObservable();
+		
+		return shrunkPrograms
+			.map(shrunkProgram -> parse(language, shrunkProgram))
+			.filter(shrunkParseUnit -> ambiguous(shrunkParseUnit))
+			.map(shrunkParseUnit -> shrink(shrinker, shrunkParseUnit))
+			.firstOrDefault(parseUnit)
+			.toBlocking()
+			.single();
     }
 }

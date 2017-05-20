@@ -4,7 +4,14 @@ lazy val commonSettings = Seq(
   scalaVersion := "2.11.8",
 
   // Allow overwriting non-SNAPSHOT build (http://stackoverflow.com/a/26089552/368220)
-  isSnapshot := true
+  isSnapshot := true,
+
+  // Shade, because we depend on com.netflix.rxjava:rxjava-core (through org.metaborg:core) and io.reactivex:rxjava (through io.reactivex:rxscala)
+  assemblyShadeRules in assembly := Seq(
+    ShadeRule
+      .rename("rx.**" -> "shadeio.@1")
+      .inLibrary("io.reactivex" % "rxjava" % "1.2.2")
+  )
 )
 
 // Jenkins looks for artifacts in a directory dependent on the build; change publishTo to reflect this.
@@ -21,3 +28,6 @@ lazy val core = (project in file("org.metaborg.spg.core"))
 lazy val cmd = (project in file("org.metaborg.spg.cmd"))
   .dependsOn(core)
   .settings(commonSettings)
+  .settings(
+    mainClass in assembly := Some("org.metaborg.spg.cmd.Main")
+  )

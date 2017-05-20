@@ -1,7 +1,9 @@
 package org.metaborg.spg.core
 
-import org.metaborg.spg.core.solver.{CGenRecurse, CResolve, Constraint, Resolution, Subtypes, TypeEnv}
-import org.metaborg.spg.core.spoofax.models.Strategy
+import org.metaborg.spg.core.sdf.Sort
+import org.metaborg.spg.core.solver.{CGenRecurse, CResolve, Constraint, Resolution, Solver, Subtypes, TypeEnv}
+import org.metaborg.spg.core.spoofax.Language
+import org.metaborg.spg.core.stratego.Strategy
 import org.metaborg.spg.core.terms.Pattern
 
 /**
@@ -9,7 +11,7 @@ import org.metaborg.spg.core.terms.Pattern
   *
   * @param pattern
   */
-case class Program(pattern: Pattern, constraints: List[Constraint], typeEnv: TypeEnv, resolution: Resolution, subtypes: Subtypes, inequalities: List[(Pattern, Pattern)]) {
+case class Program(sort: Sort, pattern: Pattern, scopes: List[Pattern], typ: Option[Pattern], constraints: List[Constraint], typeEnv: TypeEnv, resolution: Resolution, subtypes: Subtypes, inequalities: List[(Pattern, Pattern)]) {
   /**
     * Get all recurse constraints.
     */
@@ -38,8 +40,98 @@ case class Program(pattern: Pattern, constraints: List[Constraint], typeEnv: Typ
     *
     * @param rule
     */
-  def apply(recurse: CGenRecurse, rule: Rule) = {
-    copy(constraints = constraints ++ rule.constraints)
+  def apply(recurse: CGenRecurse, rule: Rule)(implicit language: Language): Option[Program] = {
+    if (rule.name != recurse.name) {
+      return None
+    }
+
+    val freshRule = rule.instantiate().freshen()
+
+    // Compute the new balanced size
+    val balancedSize = (recurse.size - rule.pattern.size)/(rule.recurses.length max 1)
+
+    if (balancedSize <= 0) {
+      return None
+    }
+
+    // Update the size in the recurse constraints
+    val newConstraints = freshRule.constraints.map {
+      case CGenRecurse(n, p, s, t, sort, _) =>
+        CGenRecurse(n, p, s, t, sort, balancedSize)
+      case x =>
+        x
+    }
+
+    // TODO: Check that we stay below the balanced size...
+
+    // Create a program that combines the constraints
+    val program = copy(constraints = constraints ++ newConstraints)
+
+    Solver.mergeSorts(program)(recurse.sort, freshRule.sort).flatMap(program =>
+      Solver.mergePatterns(program)(recurse.pattern, freshRule.pattern).flatMap(program =>
+        Solver.mergeTypes(program)(recurse.typ, freshRule.typ).flatMap(program =>
+          Solver.mergeScopes(program)(recurse.scopes, freshRule.scopes)
+        )
+      )
+    )
+  }
+
+  /**
+    * Merge two programs.
+    *
+    * @param recurse
+    * @param program
+    * @param language
+    * @return
+    */
+  def merge(recurse: CGenRecurse, program: Program)(implicit language: Language): Option[(Program, Unifier)] = {
+    assert(this.recurse contains recurse)
+
+    // Freshen the program. After this point, don't use `program` anymore!
+    val freshProgram = program.freshen()
+
+    val newProgram = copy(
+      constraints =
+        (constraints ++ freshProgram.constraints) - recurse,
+      resolution =
+        resolution.merge(freshProgram.resolution)
+    )
+
+    ProgramMerger.mergePatterns(newProgram)(recurse.pattern, freshProgram.pattern).flatMap { case (newProgram, unifier1) =>
+      ProgramMerger.mergeTypes(newProgram)(recurse.typ, freshProgram.typ).flatMap { case (newProgram, unifier2) =>
+        ProgramMerger.mergeScopes(newProgram)(recurse.scopes, freshProgram.scopes).flatMap { case (newProgram, unifier3) =>
+          ProgramMerger.mergeSorts(newProgram)(recurse.sort, freshProgram.sort).flatMap { case (newProgram, unifier4) =>
+            ProgramMerger.mergeTypeEnv(newProgram)(newProgram.typeEnv, freshProgram.typeEnv).flatMap { case (newProgram, unifier5) =>
+              Some(newProgram, unifier1 ++ unifier2 ++ unifier3 ++ unifier4 ++ unifier5)
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /**
+    * Alpha-rename variables to avoid name clashes.
+    *
+    * @param nameBinding
+    * @return
+    */
+  def freshen(nameBinding: Map[String, String] = Map.empty): Program = {
+    pattern.freshen(nameBinding).map { case (nameBinding, pattern) =>
+      scopes.freshen(nameBinding).map { case (nameBinding, scopes) =>
+        typ.freshen(nameBinding).map { case (nameBinding, typ) =>
+          constraints.freshen(nameBinding).map { case (nameBinding, constraints) =>
+            typeEnv.freshen(nameBinding).map { case (nameBinding, typeEnv) =>
+              resolution.freshen(nameBinding).map { case (nameBinding, resolution) =>
+                subtypes.freshen(nameBinding).map { case (nameBinding, subtypes) =>
+                  Program(sort, pattern, scopes, typ, constraints, typeEnv, resolution, subtypes, inequalities)
+                }
+              }
+            }
+          }
+        }
+      }
+    }
   }
 
   /**
@@ -100,8 +192,14 @@ case class Program(pattern: Pattern, constraints: List[Constraint], typeEnv: Typ
     */
   def substitute(substitution: TermBinding): Program = {
     Program(
+      sort =
+        sort,
       pattern =
         pattern.substitute(substitution),
+      scopes =
+        scopes.substitute(substitution),
+      typ =
+        typ.substitute(substitution),
       constraints =
         constraints.substitute(substitution),
       typeEnv =
@@ -122,7 +220,12 @@ case class Program(pattern: Pattern, constraints: List[Constraint], typeEnv: Typ
     * @return
     */
   def substituteSort(binding: SortBinding): Program = {
-    copy(constraints = constraints.substituteSort(binding))
+    copy(
+      sort =
+        sort.substituteSort(binding),
+      constraints =
+        constraints.substituteSort(binding)
+    )
   }
 
   /**
@@ -133,8 +236,14 @@ case class Program(pattern: Pattern, constraints: List[Constraint], typeEnv: Typ
     */
   def rewrite(strategy: Strategy) = {
     Program(
+      sort =
+        sort,
       pattern =
         pattern.rewrite(strategy),
+      scopes =
+        scopes.rewrite(strategy),
+      typ =
+        typ.map(_.rewrite(strategy)),
       constraints =
         constraints.rewrite(strategy),
       typeEnv =
@@ -155,12 +264,18 @@ object Program {
     *
     * @param rule
     */
-  def fromRule(rule: Rule) = {
-    val freshRule = rule.instantiate()
+  def fromRule(rule: Rule): Program = {
+    val freshRule = rule
 
     Program(
+      sort =
+        rule.sort,
       pattern =
         freshRule.pattern,
+      scopes =
+        freshRule.scopes,
+      typ =
+        freshRule.typ,
       constraints =
         freshRule.constraints,
       typeEnv =

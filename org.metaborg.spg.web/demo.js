@@ -15,9 +15,9 @@ function Parent() {
 	return null;
 }
 
-function Program(pattern, constraints, typeEnv, resolution, subtypes) {
+function Program(sort, pattern, scopes, typ, constraints, typeEnv, resolution, subtypes) {
 	if (!(this instanceof Program)) {
-		return new Program(pattern, constraints, typeEnv, resolution, subtypes);
+		return new Program(sort, pattern, scopes, typ, constraints, typeEnv, resolution, subtypes);
 	}
 
 	this.pattern = pattern;
@@ -607,9 +607,9 @@ CGenRecurse.prototype.toString = function () {
 		.join(", ");
 
 	if (this.type == None) {
-		return this.name + " [[ " + this.pattern + " ^ (" + scopes + ") ]] @ " + this.sort;
+		return this.name + " &#x27e6; " + this.pattern + " ^ (" + scopes + ") &#x27e7; @ " + this.sort;
 	} else {
-		return this.name + " [[ " + this.pattern + " ^ (" + scopes + ") : " + this.type + " ]] @ " + this.sort;
+		return this.name + " &#x27e6; " + this.pattern + " ^ (" + scopes + ") : " + this.type + " &#x27e7; @ " + this.sort;
 	}
 };
 

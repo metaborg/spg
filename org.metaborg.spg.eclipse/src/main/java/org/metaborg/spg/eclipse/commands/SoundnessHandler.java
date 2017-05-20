@@ -16,6 +16,7 @@ import org.metaborg.core.project.IProject;
 import org.metaborg.spg.eclipse.LanguageNotFoundException;
 import org.metaborg.spg.eclipse.ProjectNotFoundException;
 import org.metaborg.spg.eclipse.dialogs.SoundnessDialog;
+import org.metaborg.spg.core.Config;
 import org.metaborg.spg.eclipse.jobs.IJobFactory;
 
 public class SoundnessHandler extends SpgHandler {
@@ -34,9 +35,7 @@ public class SoundnessHandler extends SpgHandler {
 				Job job = jobFactory.createSoundnessJob(
 					project,
 					language,
-					soundnessDialog.getTermLimit(),
-					soundnessDialog.getTermSize(),
-					soundnessDialog.getFuel(),
+					getConfig(soundnessDialog),
 					soundnessDialog.getInterpreter(),
 					soundnessDialog.getTimeout()
 				);
@@ -88,5 +87,13 @@ public class SoundnessHandler extends SpgHandler {
     		.toFile()
     		.getCanonicalPath()
     		.toString();
+	}
+	
+	protected Config getConfig(SoundnessDialog soundnessDialog) {
+		return new Config(
+			soundnessDialog.getTermLimit(),
+			soundnessDialog.getFuel(),
+			soundnessDialog.getTermSize()
+		);
 	}
 }

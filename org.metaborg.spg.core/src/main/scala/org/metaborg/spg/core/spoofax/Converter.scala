@@ -1,8 +1,7 @@
 package org.metaborg.spg.core.spoofax
 
-import org.metaborg.spg.core._
-import org.metaborg.spg.core.spoofax.models.Strategy
-import org.metaborg.spg.core.spoofax.models.Strategy._
+import org.metaborg.spg.core.stratego.Strategy._
+import org.metaborg.spg.core.stratego.Strategy
 import org.metaborg.spg.core.terms.{As, Pattern, TermAppl, TermString}
 import org.spoofax.interpreter.terms.{IStrategoConstructor, IStrategoList, IStrategoString, IStrategoTerm}
 import org.spoofax.terms.{StrategoConstructor, StrategoList, StrategoString, TermFactory}
@@ -11,7 +10,7 @@ import org.spoofax.terms.{StrategoConstructor, StrategoList, StrategoString, Ter
 object Converter {
   val termFactory = new TermFactory
 
-  def toTerm(term: Pattern): IStrategoTerm = conssToCons(term) match {
+  def toTerm(term: Pattern): IStrategoTerm = iterConsToCons(term) match {
     case As(_, term) =>
       toTerm(term)
     case TermAppl(cons, children) =>
@@ -34,16 +33,16 @@ object Converter {
     new StrategoString(value, null, 0)
 
   /**
-    * Replace "Conss" by "Cons". We use "Conss" internally as a constructor of
-    * sort Iter(a), i.e. non-empty lists.
+    * Replace "IterCons" by "Cons". We use "IterCons" internally as a
+    * constructor of sort Iter(a), i.e. non-empty lists.
     *
     * @param term
     * @return
     */
-  def conssToCons(term: Pattern): Pattern = {
+  def iterConsToCons(term: Pattern): Pattern = {
     val rewrite = new Strategy {
       override def apply(p: Pattern): Option[Pattern] = p match {
-        case TermAppl("Conss", children) =>
+        case TermAppl("IterCons", children) =>
           Some(TermAppl("Cons", children))
         case _ =>
           None

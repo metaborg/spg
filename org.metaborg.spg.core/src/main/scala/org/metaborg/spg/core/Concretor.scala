@@ -4,14 +4,14 @@ import org.metaborg.spg.core.lexical.LexicalGenerator
 import org.metaborg.spg.core.resolution.{Graph, Occurrence}
 import org.metaborg.spg.core.solver._
 import org.metaborg.spg.core.spoofax.Language
-import org.metaborg.spg.core.spoofax.models.Strategy
-import org.metaborg.spg.core.spoofax.models.Strategy._
+import org.metaborg.spg.core.stratego.Strategy._
+import org.metaborg.spg.core.stratego.Strategy
 import org.metaborg.spg.core.terms.{Pattern, TermAppl, TermString, Var}
 
 import scala.util.Random
 
 case class Concretor(language: Language)(implicit val random: Random) {
-  val generator = new LexicalGenerator(language.grammar)
+  val generator = new LexicalGenerator(language)
 
   def computeNamingConstraints(state: Program)(implicit language: Language): List[NamingConstraint] = {
     val graph = Graph(state.constraints)
@@ -67,7 +67,7 @@ case class Concretor(language: Language)(implicit val random: Random) {
     // Replace variables by a random value that satisfies their sort
     val r4 = r3.substitute(
       r3.vars.map(v => {
-        val sortOpt = language.signatures.sortForPattern(r3, v)
+        val sortOpt = language.signature.getSort(r3, v)
         val value = sortOpt.map(generator.generate)
 
         v -> TermString(value.getOrElse(throw new RuntimeException("Could not determine Sort for TermVar")))

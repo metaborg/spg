@@ -1,9 +1,11 @@
 package org.metaborg.spg.core.spoofax
 
 import org.metaborg.core.language.ILanguageImpl
-import org.metaborg.spg.core.spoofax.models._
-import org.metaborg.spg.core.terms.{Pattern, TermAppl}
-import org.metaborg.spg.core.Rule
+import org.metaborg.spg.core.{Merger, Rule}
+import org.metaborg.spg.core.nabl.Specification
+import org.metaborg.spg.core.sdf.{Grammar, Sort}
+import org.metaborg.spg.core.solver.CGenRecurse
+import org.metaborg.spg.core.stratego.Signature
 import org.spoofax.interpreter.terms.IStrategoTerm
 
 import scala.collection.mutable
@@ -13,15 +15,13 @@ import scala.collection.mutable
   * specification, printer, startSymbols, and implementation.
   *
   * @param grammar
-  * @param signatures
+  * @param signature
   * @param specification
   * @param printer
   * @param startSymbols
   * @param implementation
   */
-case class Language(grammar: Grammar, signatures: Signatures, specification: Specification, printer: IStrategoTerm => String, startSymbols: Set[Sort], implementation: ILanguageImpl) {
-  val cache = mutable.Map[(String, Sort), List[Rule]]()
-
+case class Language(grammar: Grammar, signature: Signature, specification: Specification, printer: IStrategoTerm => String, startSymbols: Set[Sort], implementation: ILanguageImpl) {
   /**
     * Check if the given sort is a start symbol. A sort is a start symbol if it
     * is part of the transitive closure of the injection relation.
@@ -30,7 +30,7 @@ case class Language(grammar: Grammar, signatures: Signatures, specification: Spe
     * @return
     */
   def isStartSymbol(sort: Sort): Boolean = {
-    Sort.injectionsClosure(signatures, startSymbols).contains(sort)
+    signature.injectionsClosure(startSymbols).contains(sort)
   }
 
   /**
@@ -72,58 +72,6 @@ case class Language(grammar: Grammar, signatures: Signatures, specification: Spe
   }
 
   /**
-    * Get all the sorts of the language.
-    *
-    * @return
-    */
-  def sorts: List[Sort] = signatures.list.map {
-    case OpDecl(_, FunType(_, ConstType(resultType))) =>
-      resultType
-    case OpDeclInj(FunType(_, ConstType(resultType))) =>
-      resultType
-    case OpDecl(_, ConstType(resultType)) =>
-      resultType
-  }.distinct
-
-  /**
-    * Get signatures for the given pattern based on its constructor name.
-    *
-    * TODO: This ignores overloaded and duplicate constructors!
-    *
-    * @param pattern
-    * @return
-    */
-  def signatures(pattern: Pattern): List[Signature] = pattern match {
-    case termAppl: TermAppl =>
-      signatures
-        .list
-        .filter(_.isInstanceOf[OpDecl])
-        .map(_.asInstanceOf[OpDecl])
-        .filter(_.name == termAppl.cons)
-    case _ =>
-      Nil
-  }
-
-  /**
-    * Get the constructor names for the language.
-    *
-    * @return
-    */
-  def constructors: List[String] = signatures.list.collect {
-    case OpDecl(constructor, _) =>
-      constructor
-  }
-
-  /**
-    * Get all distinct rule names.
-    *
-    * @return
-    */
-  def ruleNames: List[String] = {
-    specification.rules.map(_.name).distinct
-  }
-
-  /**
     * Get rules for the given name and sort.
     *
     * Rules have polymorphic sorts, e.g. List(a). This makes it impossible to
@@ -136,8 +84,47 @@ case class Language(grammar: Grammar, signatures: Signatures, specification: Spe
     * @return
     */
   def rules(name: String, sort: Sort): List[Rule] = {
-    cache.getOrElseUpdate((name, sort), specification.rules.filter(rule =>
-      name == rule.name && Sort.injectionsClosure(signatures, sort).flatMap(_.unify(rule.sort)).nonEmpty
-    ))
+    specification.rules.filter(rule =>
+      name == rule.name && signature.injectionsClosure(sort).flatMap(_.unify(rule.sort)).nonEmpty
+    )
+  }
+
+  /**
+    * Get all rules that are applicable for the given recurse constraint.
+    *
+    * @param recurse
+    * @return
+    */
+  def rules(recurse: CGenRecurse)(implicit language: Language): List[Rule] = {
+    rulesMem(recurse.name, recurse.sort).flatMap(rule =>
+      Merger.mergeTypes(rule)(recurse.typ, rule.typ).flatMap(rule =>
+        Merger.mergeSorts(rule)(recurse.sort, rule.sort).flatMap(rule =>
+          Merger.mergeScopes(rule)(recurse.scopes, rule.scopes)
+        )
+      )
+    )
+  }
+
+  /**
+    * A memoized version of the rules function.
+    */
+  lazy val rulesMem: (String, Sort) => List[Rule] = {
+    val memory = mutable.Map.empty[(String, Sort), List[Rule]]
+
+    (s: String, t: Sort) => memory.getOrElseUpdate((s, t), rules(s, t))
+  }
+
+  /**
+    * Get the language name from the main facet.
+    */
+  lazy val name: String = {
+    implementation.belongsTo().name()
+  }
+
+  /**
+    * Compute the effective grammar using the language name as entry point.
+    */
+  lazy val effectiveGrammar: Grammar = {
+    grammar.effectiveGrammar(name)
   }
 }

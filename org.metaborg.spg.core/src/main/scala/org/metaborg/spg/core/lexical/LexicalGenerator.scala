@@ -1,35 +1,42 @@
 package org.metaborg.spg.core.lexical
 
-import org.metaborg.spg.core.spoofax.models._
 import org.metaborg.spg.core._
-import org.metaborg.spg.core.spoofax.models.{CharacterRange, IterSep, IterStar, Symbol}
+import org.metaborg.spg.core.sdf._
+import org.metaborg.spg.core.spoofax.Language
 
 import scala.util.Random
 
 /**
   * A recursive-descent generator for a context-free grammar
   */
-class LexicalGenerator(val grammar: Grammar)(implicit val random: Random) {
+class LexicalGenerator(val language: Language)(implicit val random: Random) {
   /**
     * Generate a string for the given symbol
     */
   def generate(symbol: Symbol): String = symbol match {
     // Recursively generate sort
     case SortAppl(_, Nil) =>
-      val productionOpt = grammar.productions
+      val productionOpt = language
+        .effectiveGrammar
+        .productions
         .filter(_.sort == symbol)
         .filter(!_.isReject)
         .randomOption
-
+      
       productionOpt
         .map(_.rhs.map(generate).mkString)
         .getOrElse(throw new IllegalStateException("No production for sort " + symbol))
     // Return literal text as-is
     case Lit(text) =>
       text
-    // Return literal text as-is (TODO: Create variants with capitalization)
+    // Return string with random casing
     case CiLit(text) =>
-      text
+      text.toList match {
+        case x :: xs =>
+          List(x.toLower, x.toUpper).random + generate(CiLit(xs.mkString))
+        case _ =>
+          ""
+      }
     // One or more repetitions
     case Iter(s) =>
       generate(s) + generate(IterStar(s))
@@ -83,8 +90,8 @@ class LexicalGenerator(val grammar: Grammar)(implicit val random: Random) {
       } else {
         generate(s2)
       }
-    case Sequence(s1, s2) =>
-      generate(s1) ++ generate(s2)
+    case Sequence(s, ss) =>
+      generate(s) ++ ss.map(generate).mkString
   }
 
   /**
