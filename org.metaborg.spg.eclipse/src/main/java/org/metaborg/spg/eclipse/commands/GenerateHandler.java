@@ -37,7 +37,7 @@ public class GenerateHandler extends SpgHandler {
 				job.schedule();
 			}
 		} catch (ProjectNotFoundException e) {
-			MessageDialog.openError(null, "Project not found", "Cannot find a Spoofax project for generation.");
+			MessageDialog.openError(null, "Project not found", "Cannot find a Spoofax project for generation. Did you select it in the Package Explorer?");
 		} catch (LanguageNotFoundException e) {
 			MessageDialog.openError(null, "Language not found", "Cannot find a Spoofax language for generation. Did you build the project?");
 		}
