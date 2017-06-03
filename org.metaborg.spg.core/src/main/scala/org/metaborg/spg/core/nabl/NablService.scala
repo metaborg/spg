@@ -289,7 +289,7 @@ class NablService @Inject()(val parseService: ParseService) extends LazyLogging 
   def toRuleName(term: IStrategoTerm): String = term match {
     case appl: StrategoAppl if appl.getConstructor.getName == "NoName" =>
       "Default"
-    case appl: StrategoAppl if appl.getConstructor.getName == "Name" =>
+    case appl: StrategoAppl if appl.getConstructor.getName == "NameNoArgs" =>
       toString(appl.getSubterm(0))
   }
 
