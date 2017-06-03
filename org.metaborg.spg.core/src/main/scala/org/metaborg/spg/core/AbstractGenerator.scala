@@ -16,8 +16,8 @@ abstract class AbstractGenerator(val languageService: LanguageService, val baseL
     * @return
     */
   def generate(lut: ILanguageImpl, project: IProject, config: Config): Observable[String] = {
-    val templateLang = getLanguage("org.metaborg:org.metaborg.meta.lang.template:2.1.0")
-    val nablLang = getLanguage("org.metaborg:org.metaborg.meta.nabl2.lang:2.1.0")
+    val templateLang = getLanguage("org.metaborg:org.metaborg.meta.lang.template:2.2.1")
+    val nablLang = getLanguage("org.metaborg:org.metaborg.meta.nabl2.lang:2.2.1")
     val language = languageService.load(templateLang, nablLang, lut, project)
 
     generate(language, config)

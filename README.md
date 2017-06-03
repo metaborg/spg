@@ -20,7 +20,7 @@ This repository contains the following sub-projects:
 First, build `org.metaborg.spg.{cmd,core}` using:
 
 ```
-sbt clean compile publish-m2
+sbt clean assembly publish-m2
 ```
 
 Second, build `org.metaborg.spg.eclipse.externaldeps` using:
@@ -42,22 +42,6 @@ Alternatively, build `org.metaborg.spg.eclipse*` at once using:
 ```
 mvn -f pom.xml clean install
 ```
-
-### Assembling
-
-To create a JAR file with no external dependencies:
-
-```
-sbt clean assembly
-```
-
-To run the  JAR file:
-
-```
-java -jar org.metaborg.spg.cmd/target/scala-2.11/org.metaborg.spg.cmd-assembly-2.1.0.jar
-```
-
-For detailed instructions on how to use the CLI, see `org.metaborg.spg.cmd`.
 
 ## Usage
 

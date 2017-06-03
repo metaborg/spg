@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <site>
-   <feature url="features/org.metaborg.spg.eclipse.feature_2.1.0.qualifier.jar" id="org.metaborg.spg.eclipse.feature" version="2.1.0.qualifier">
+   <feature url="features/org.metaborg.spg.eclipse.feature_2.2.1.qualifier.jar" id="org.metaborg.spg.eclipse.feature" version="2.2.1.qualifier">
       <category name="Spoofax_Generator"/>
    </feature>
    <category-def name="Spoofax_Generator" label="Spoofax Generator">

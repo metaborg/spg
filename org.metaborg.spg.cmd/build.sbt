@@ -1,6 +1,6 @@
 name := "org.metaborg.spg.cmd"
 
-version := "2.1.0"
+version := "2.2.1"
 
 scalaVersion := "2.11.8"
 
@@ -22,7 +22,7 @@ libraryDependencies += "org.backuity.clist" %% "clist-core" % "3.2.2"
 libraryDependencies += "org.backuity.clist" %% "clist-macros" % "3.2.2" % "provided"
 
 // Spoofax
-libraryDependencies += "org.metaborg" % "org.metaborg.spoofax.core" % "2.1.0"
+libraryDependencies += "org.metaborg" % "org.metaborg.spoofax.core" % "2.2.1"
 
 // SPG
-libraryDependencies += "org.metaborg" % "org.metaborg.spg.core" % "2.1.0"
+libraryDependencies += "org.metaborg" % "org.metaborg.spg.core" % "2.2.1"

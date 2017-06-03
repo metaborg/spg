@@ -22,5 +22,5 @@ This plugin depends on `org.metaborg.spg.core`. Because it is an Eclipse plugin,
 
 After building the project, the update site will be located at
 `org.metaborg.spg.eclipse.site/target/site`. Use this update site in Spoofax
-Eclipse 2.1.0 to install the plugin.
+Eclipse 2.2.1 to install the plugin.
 

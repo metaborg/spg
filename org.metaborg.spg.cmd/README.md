@@ -4,6 +4,14 @@ A command-line interface to SPG.
 
 ## Usage
 
+If you've followed the build instructions on the parent project there will be
+a fat JAR located at `org.metaborg.spg.cmd/target/scala-2.11/`. You can invoke
+this JAR using:
+
+```
+java -jar org.metaborg.spg.cmd/target/scala-2.11/org.metaborg.spg.cmd-assembly-2.2.1.jar
+```
+
 The CLI supports two modes of operation: generating random _sentences_, which
 can be used to test for _grammar ambiguities_, and generating random _terms_,
 which can be used to test for _type soundness_.
@@ -37,36 +45,3 @@ Commands
 Setting a seed makes the generator deterministic, which may help with
 reproducing a bug.
 
-## Examples
-
-The `examples/` directory contains Spoofax implementations for the following
-languages in the form of git submodules: `L1`, `L2`, `L3`, `MiniJava`, and
-`Tiger`.
-
-1. Download the submodules (the `--remote` flag will fetch the latest
-changes from upstream in each submodule):
-
-  ```
-  git submodule update --init --recursive --remote
-  ```
-
-2. Build some or all of the example languages using:
-
-  ```
-  (cd examples/scopes-frames/L1 && mvn clean verify)
-  (cd examples/scopes-frames/L2 && mvn clean verify)
-  (cd examples/scopes-frames/L3 && mvn clean verify)
-  (cd examples/minijava && mvn clean verify)
-  (cd examples/tiger/org.metaborg.lang.tiger/correct && mvn clean verify)
-  ```
-
-3. Run the generator. For example, in case of `Tiger`:
-
-  ```
-  sbt "run-main org.metaborg.spg.cmd.Main <sdf-path> <nabl-path> examples/tiger/org.metaborg.lang.tiger/correct"
-  ```
-
-Note: Bash uses an exclamation mark for [history
-expansions](http://unix.stackexchange.com/a/33340/92581). If your SDF or NaBL
-path contains an exclamation mark you may need to escape it or disable history
-expansions.

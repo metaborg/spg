@@ -1,6 +1,6 @@
 lazy val commonSettings = Seq(
   organization := "org.metaborg",
-  version := "2.1.0",
+  version := "2.2.1",
   scalaVersion := "2.11.8",
 
   // Allow overwriting non-SNAPSHOT build (http://stackoverflow.com/a/26089552/368220)

@@ -2,7 +2,7 @@ name := "org.metaborg.spg.core"
 
 organization := "org.metaborg"
 
-version := "2.1.0"
+version := "2.2.1"
 
 scalaVersion := "2.11.8"
 
@@ -36,9 +36,9 @@ libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0"
 libraryDependencies += "org.scalatest" % "scalatest_2.11" % "2.2.6" % "test"
 
 // Metaborg (Spoofax)
-libraryDependencies += "org.metaborg" % "org.metaborg.core" % "2.1.0"
-libraryDependencies += "org.metaborg" % "org.metaborg.util" % "2.1.0"
-libraryDependencies += "org.metaborg" % "org.metaborg.spoofax.core" % "2.1.0"
+libraryDependencies += "org.metaborg" % "org.metaborg.core" % "2.2.1"
+libraryDependencies += "org.metaborg" % "org.metaborg.util" % "2.2.1"
+libraryDependencies += "org.metaborg" % "org.metaborg.spoofax.core" % "2.2.1"
 
 // Observables
 libraryDependencies += "io.reactivex" %% "rxscala" % "0.26.4"

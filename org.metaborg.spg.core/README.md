@@ -4,7 +4,7 @@ The Spoofax generator.
 
 ## Requirements
 
-- Spoofax 2.1.0
+- Spoofax 2.2.1
 
 ## Building
 

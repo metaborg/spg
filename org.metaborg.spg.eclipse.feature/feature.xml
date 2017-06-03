@@ -2,7 +2,7 @@
 <feature
       id="org.metaborg.spg.eclipse.feature"
       label="Spoofax Generator"
-      version="2.1.0"
+      version="2.2.1"
       provider-name="org.metaborg">
 
    <description url="https://github.com/metaborg/spg">
@@ -11,17 +11,17 @@
 
    <includes
          id="org.metaborg.spoofax.eclipse.feature"
-         version="2.1.0"/>
+         version="2.2.1"/>
 
    <includes
          id="org.metaborg.spoofax.eclipse.meta.feature"
-         version="2.1.0"/>
+         version="2.2.1"/>
 
    <plugin
          id="org.metaborg.spg.core"
          download-size="0"
          install-size="0"
-         version="2.1.0"
+         version="2.2.1"
          unpack="false"/>
 
    <plugin

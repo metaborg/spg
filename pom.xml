@@ -5,13 +5,13 @@
 
   <modelVersion>4.0.0</modelVersion>
   <artifactId>org.metaborg.spg.build</artifactId>
-  <version>2.1.0</version>
+  <version>2.2.1</version>
   <packaging>pom</packaging>
 
   <parent>
     <groupId>org.metaborg</groupId>
     <artifactId>parent</artifactId>
-    <version>2.1.0</version>
+    <version>2.2.1</version>
     <relativePath />
   </parent>
 
@@ -24,7 +24,7 @@
   <repositories>
     <repository>
       <id>metaborg-spoofax-repo</id>
-      <url>http://artifacts.metaborg.org/content/unzip/releases-unzipped/org/metaborg/org.metaborg.spoofax.eclipse.updatesite/2.1.0/org.metaborg.spoofax.eclipse.updatesite-2.1.0-assembly.zip-unzip/</url>
+      <url>http://artifacts.metaborg.org/content/unzip/releases-unzipped/org/metaborg/org.metaborg.spoofax.eclipse.updatesite/2.2.1/org.metaborg.spoofax.eclipse.updatesite-2.2.1-assembly.zip-unzip/</url>
       <layout>p2</layout>
       <releases>
         <enabled>false</enabled>

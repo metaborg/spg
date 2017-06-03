@@ -20,7 +20,7 @@
     <parent>
     <groupId>org.metaborg</groupId>
     <artifactId>parent.eclipse.plugin</artifactId>
-    <version>2.1.0</version>
+    <version>2.2.1</version>
     <relativePath />
   </parent>
   
@@ -32,19 +32,19 @@
     <dependency>
       <groupId>org.metaborg</groupId>
       <artifactId>org.metaborg.spg.core</artifactId>
-      <version>2.1.0</version>
+      <version>2.2.1</version>
     </dependency>
     <dependency>
       <groupId>org.metaborg</groupId>
       <artifactId>org.metaborg.spg.eclipse.externaldeps</artifactId>
-      <version>2.1.0</version>
+      <version>2.2.1</version>
     </dependency>
   </dependencies>
 
   <repositories>
     <repository>
       <id>metaborg-spoofax-repo</id>
-      <url>http://artifacts.metaborg.org/content/unzip/releases-unzipped/org/metaborg/org.metaborg.spoofax.eclipse.updatesite/2.1.0/org.metaborg.spoofax.eclipse.updatesite-2.1.0-assembly.zip-unzip/</url>
+      <url>http://artifacts.metaborg.org/content/unzip/releases-unzipped/org/metaborg/org.metaborg.spoofax.eclipse.updatesite/2.2.1/org.metaborg.spoofax.eclipse.updatesite-2.2.1-assembly.zip-unzip/</url>
       <layout>p2</layout>
       <releases>
         <enabled>false</enabled>
@@ -52,13 +52,6 @@
       <snapshots>
         <enabled>false</enabled>
       </snapshots>
-    </repository>
-    
-    <!-- Mars comes with org.eclipse.equinox.common 3.7, but we depend on 3.8, so we add Neon repository. -->
-    <repository>
-      <id>eclipse-neon</id>
-      <layout>p2</layout>
-      <url>http://eclipse.mirror.triple-it.nl/releases/neon/</url>
     </repository>
   </repositories>
 </project>

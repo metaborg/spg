@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Generator
 Bundle-SymbolicName: org.metaborg.spg.eclipse;singleton:=true
-Bundle-Version: 2.1.0
+Bundle-Version: 2.2.1
 Bundle-Activator: org.metaborg.spg.eclipse.Activator
 Bundle-Vendor: Metaborg
 Require-Bundle: org.metaborg.spoofax.eclipse.externaldeps,
