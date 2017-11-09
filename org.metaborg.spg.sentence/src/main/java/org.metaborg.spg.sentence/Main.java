@@ -1,31 +1,21 @@
 package org.metaborg.spg.sentence;
 
-import java.io.File;
-import java.util.Collections;
-import java.util.List;
+import java.util.Optional;
 
-import org.metaborg.sdf2table.grammar.IProduction;
-import org.metaborg.sdf2table.grammar.NormGrammar;
-import org.metaborg.sdf2table.io.GrammarReader;
-import org.spoofax.terms.TermFactory;
+import org.spoofax.interpreter.terms.IStrategoTerm;
 
 public class Main {
   public static void main(String[] args) throws Exception {
-    TermFactory termFactory = new TermFactory();
-    GrammarReader grammarReader = new GrammarReader(termFactory);
+    // TODO: Use Spoofax Core to get the project. In the Eclipse integration, the project can be passed to the generator directly.
 
-    //File input = new File("/tmp/metaborg-scopes-frames/L1/src-gen/syntax/normalized/Common-norm.aterm");
-    File input = new File("/tmp/metaborg-scopes-frames/L1/src-gen/syntax/normalized/L1-norm.aterm");
-    List<String> paths = Collections.emptyList();
-    NormGrammar grammar = grammarReader.readGrammar(input, paths);
+    SentenceGenerator sentenceGenerator = new SentenceGenerator(null);
 
-    System.out.println(grammar);
+    for (int i = 0; i < 1000; i++) {
+      Optional<IStrategoTerm> termOpt = sentenceGenerator.generate();
 
-    for (IProduction production : grammar.getCacheProductionsRead().values()) {
-      System.out.println(production);
+      termOpt.ifPresent(System.out::println);
     }
 
-    // TODO: How to generate from the normalized grammar?
+    // TODO: pretty-print term
   }
 }
-

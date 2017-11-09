@@ -13,8 +13,17 @@
   <dependencies>
     <dependency>
       <groupId>org.metaborg</groupId>
+      <artifactId>org.metaborg.core</artifactId>
+      <version>${metaborg-version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.metaborg</groupId>
       <artifactId>sdf2table</artifactId>
       <version>${metaborg-version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
     </dependency>
 
     <!--
