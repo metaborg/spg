@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+  <extension
+      point="org.eclipse.ui.menus">
+    <menuContribution
+        allPopups="true"
+        locationURI="menu:org.metaborg.spoofax.eclipse.meta.menu.main">
+      <menu
+          id="spgMenu"
+          label="SPG">
+        <command
+           commandId="org.metaborg.spg.sentence.eclipse.command.sentence"
+           label="Generate sentences"
+           style="push">
+        </command>
+      </menu>
+    </menuContribution>
+  </extension>
+
+  <extension
+      point="org.eclipse.ui.commands">
+    <command
+        id="org.metaborg.spg.sentence.eclipse.command.sentence"
+        name="Generate sentences"
+        defaultHandler="org.metaborg.spg.sentence.eclipse.handler.SentenceHandler">
+    </command>
+  </extension>
+</plugin>
