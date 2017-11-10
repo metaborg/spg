@@ -17,27 +17,35 @@ public class Main {
       ILanguageImpl language = loadLanguage(spoofax, new File(args[0]));
       IProject project = getOrCreateProject(spoofax, new File(args[1]));
 
+      ParseService parseService = spoofax.injector.getInstance(ParseService.class);
+
       PrettyPrinterFactory prettyPrinterFactory = spoofax.injector.getInstance(PrettyPrinterFactory.class);
       PrettyPrinter prettyPrinter = prettyPrinterFactory.create(language, project);
 
-      SentenceGeneratorFactory sentenceGeneratorFactory = spoofax.injector.getInstance(SentenceGeneratorFactory.class);
-      SentenceGenerator sentenceGenerator = sentenceGeneratorFactory.create(language, project);
+      GeneratorFactory generatorFactory = spoofax.injector.getInstance(GeneratorFactory.class);
+      Generator generator = generatorFactory.create(language, project);
+
+      ShrinkerFactory shrinkerFactory = spoofax.injector.getInstance(ShrinkerFactory.class);
+      Shrinker shrinker = shrinkerFactory.create(language, project, generator, spoofax.termFactoryService.getGeneric());
 
       for (int i = 0; i < 1000; i++) {
-        Optional<IStrategoTerm> termOpt = sentenceGenerator.generate();
+        Optional<IStrategoTerm> termOpt = generator.generate(1000);
 
         if (termOpt.isPresent()) {
           IStrategoTerm term = termOpt.get();
-
+          String text = prettyPrinter.prettyPrint(term);
           System.out.println("=== Program ===");
-          System.out.println(prettyPrinter.prettyPrint(term));
-        }
+          System.out.println(text);
 
-        // TODO:
-        // 1) pretty-print generated term
-        // 2) parse pretty-printed term
-        // 3) test for ambiguity
-        // 4) shrink
+          IStrategoTerm parsedTerm = parseService.parse(language, text);
+
+          if (parseService.isAmbiguous(parsedTerm)) {
+            System.out.println("=== Ambiguous ===");
+            System.out.println(parsedTerm);
+
+            shrinker.shrink(parsedTerm);
+          }
+        }
       }
     } catch (MetaborgException e) {
       e.printStackTrace();

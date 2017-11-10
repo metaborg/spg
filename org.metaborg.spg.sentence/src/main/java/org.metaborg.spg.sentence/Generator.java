@@ -13,6 +13,9 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.inject.Inject;
 import org.metaborg.sdf2table.grammar.CharacterClass;
+import org.metaborg.sdf2table.grammar.CharacterClassConc;
+import org.metaborg.sdf2table.grammar.CharacterClassNumeric;
+import org.metaborg.sdf2table.grammar.CharacterClassRange;
 import org.metaborg.sdf2table.grammar.ConstructorAttribute;
 import org.metaborg.sdf2table.grammar.ContextFreeSymbol;
 import org.metaborg.sdf2table.grammar.FileStartSymbol;
@@ -25,13 +28,12 @@ import org.metaborg.sdf2table.grammar.Sort;
 import org.metaborg.sdf2table.grammar.StartSymbol;
 import org.metaborg.sdf2table.grammar.Symbol;
 import org.spoofax.interpreter.terms.IStrategoConstructor;
-import org.spoofax.interpreter.terms.IStrategoString;
 import org.spoofax.interpreter.terms.IStrategoTerm;
 import org.spoofax.interpreter.terms.ITermFactory;
 import org.spoofax.terms.StrategoConstructor;
 
-public class SentenceGenerator {
-  public static Random random = new Random();
+public class Generator {
+  public static Random random = new Random(0);
 
   private final ITermFactory termFactory;
   private final NormGrammar grammar;
@@ -39,17 +41,17 @@ public class SentenceGenerator {
   private final ListMultimap<Symbol, IProduction> productionsMap;
 
   @Inject
-  public SentenceGenerator(ITermFactory termFactory, NormGrammar grammar) throws Exception {
+  public Generator(ITermFactory termFactory, NormGrammar grammar) {
     this.termFactory = termFactory;
     this.grammar = grammar;
     this.productions = retainRealProductions(grammar.getCacheProductionsRead().values());
     this.productionsMap = createProductionMap(productions);
   }
 
-  public Optional<IStrategoTerm> generate() throws Exception {
+  public Optional<IStrategoTerm> generate(int size) {
     IProduction initialProduction = grammar.getInitialProduction();
 
-    return generate(initialProduction.leftHand(), 10000);
+    return generate(initialProduction.leftHand(), size);
   }
 
   public Optional<IStrategoTerm> generate(Symbol symbol, int size) {
@@ -62,23 +64,45 @@ public class SentenceGenerator {
 
   public String generateLex(Symbol symbol) {
     if (symbol instanceof CharacterClass) {
-      return generateCharacterClass((CharacterClass) symbol);
+      return generateLex(((CharacterClass) symbol).symbol());
+    } else if (symbol instanceof CharacterClassConc) {
+      return generateCharacterClassConc((CharacterClassConc) symbol);
+    } else if (symbol instanceof CharacterClassRange) {
+      return generateCharacterClassRange((CharacterClassRange) symbol);
     } else if (symbol instanceof LexicalSymbol || symbol instanceof Sort) {
       return generateLexicalSymbol(symbol);
+    } else if (symbol instanceof CharacterClassNumeric) {
+      return generateCharacterClassNumeric((CharacterClassNumeric) symbol);
     }
 
     throw new IllegalStateException("Unknown symbol: " + symbol);
   }
 
-  public String generateCharacterClass(CharacterClass characterClass) {
-    int range = characterClass.maximum() - characterClass.minimum() + 1;
-    char character = (char) (characterClass.minimum() + random.nextInt(range));
+  public String generateCharacterClassConc(CharacterClassConc characterClassConc) {
+    String first = generateLex(characterClassConc.first());
+    String second = generateLex(characterClassConc.second());
+
+    return first + second;
+  }
+
+  public String generateCharacterClassRange(CharacterClassRange characterClassRange) {
+    int range = characterClassRange.maximum() - characterClassRange.minimum() + 1;
+    char character = (char) (characterClassRange.minimum() + random.nextInt(range));
 
     return String.valueOf(character);
   }
 
+  public String generateCharacterClassNumeric(CharacterClassNumeric characterClassNumeric) {
+    return String.valueOf(characterClassNumeric.getCharacter());
+  }
+
   public String generateLexicalSymbol(Symbol symbol) {
     List<IProduction> productions = productionsMap.get(symbol);
+
+    if (productions.isEmpty()) {
+      throw new IllegalStateException("No productions found for symbol " + symbol);
+    }
+
     IProduction production = random(productions);
 
     return production.rightHand().stream().map(this::generateLex).collect(Collectors.joining());
@@ -135,24 +159,6 @@ public class SentenceGenerator {
     IStrategoTerm[] terms = new IStrategoTerm[children.size()];
 
     return termFactory.makeAppl(constructor, children.toArray(terms));
-  }
-
-  /**
-   * Create a term based on the given child terms.
-   *
-   * @param children
-   * @return
-   */
-  protected IStrategoTerm makeString(List<IStrategoTerm> children) {
-    StringBuilder stringBuilder = new StringBuilder();
-
-    for (IStrategoTerm child : children) {
-      IStrategoString childString = (IStrategoString) child;
-
-      stringBuilder.append(childString.stringValue());
-    }
-
-    return termFactory.makeString(stringBuilder.toString());
   }
 
   /**

@@ -14,17 +14,17 @@ import org.metaborg.spoofax.core.build.SpoofaxCommonPaths;
 import org.metaborg.spoofax.core.terms.ITermFactoryService;
 import org.spoofax.interpreter.terms.ITermFactory;
 
-public class SentenceGeneratorFactory {
+public class GeneratorFactory {
   private final IResourceService resourceService;
   private final ITermFactoryService termFactoryService;
 
   @Inject
-  public SentenceGeneratorFactory(IResourceService resourceService, ITermFactoryService termFactoryService) {
+  public GeneratorFactory(IResourceService resourceService, ITermFactoryService termFactoryService) {
     this.resourceService = resourceService;
     this.termFactoryService = termFactoryService;
   }
 
-  public SentenceGenerator create(ILanguageImpl language, IProject project) throws Exception {
+  public Generator create(ILanguageImpl language, IProject project) throws Exception {
     ITermFactory termFactory = termFactoryService.getGeneric();
     GrammarReader grammarReader = new GrammarReader(termFactory);
     SpoofaxCommonPaths spoofaxCommonPaths = new SpoofaxCommonPaths(project.location());
@@ -33,7 +33,7 @@ public class SentenceGeneratorFactory {
     List<String> syntaxPath = getSyntaxPath(spoofaxCommonPaths);
     NormGrammar grammar = grammarReader.readGrammar(syntaxMainFile, syntaxPath);
 
-    return new SentenceGenerator(termFactory, grammar);
+    return new Generator(termFactory, grammar);
   }
 
   protected File getSyntaxMainFile(SpoofaxCommonPaths spoofaxCommonPaths, ILanguageImpl language) {
