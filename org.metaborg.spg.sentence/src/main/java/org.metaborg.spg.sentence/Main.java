@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
+import java.util.stream.Stream;
 
 import org.apache.commons.vfs2.FileObject;
 import org.metaborg.core.MetaborgException;
@@ -61,13 +62,12 @@ public class Main {
     System.out.println("=== Shrink ==");
     System.out.println(term);
 
-    List<IStrategoTerm> shrunkTerms = shrinker.shrink(term);
+    Stream<IStrategoTerm> shrunkTerms = shrinker.shrink(term);
+    Optional<IStrategoTerm> ShrunkTermOpt = shrunkTerms.findAny();
 
-    if (!shrunkTerms.isEmpty()) {
-      IStrategoTerm randomShrunkTerm = shrunkTerms.get(random.nextInt(shrunkTerms.size()));
-
-      shrink(shrinker, randomShrunkTerm);
-    }
+    ShrunkTermOpt.ifPresent(shrunkTerm -> {
+      shrink(shrinker, shrunkTerm);
+    });
   }
 
   public static ILanguageImpl loadLanguage(Spoofax spoofax, File file) throws MetaborgException {

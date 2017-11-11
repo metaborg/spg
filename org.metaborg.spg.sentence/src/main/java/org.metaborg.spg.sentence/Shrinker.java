@@ -1,23 +1,19 @@
 package org.metaborg.spg.sentence;
 
-import com.google.common.collect.Iterables;
 import org.metaborg.core.MetaborgException;
-import org.metaborg.core.syntax.ParseException;
 import org.metaborg.sdf2table.grammar.ContextFreeSymbol;
 import org.metaborg.sdf2table.grammar.Sort;
 import org.metaborg.sdf2table.grammar.Symbol;
 import org.metaborg.spg.sentence.signature.Constructor;
-import org.metaborg.spg.sentence.signature.Signature;
 import org.spoofax.interpreter.terms.*;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Shrinker {
     private final ParseService parseService;
@@ -45,18 +41,14 @@ public class Shrinker {
     /**
      * Given an ambiguous term, try to generate a smaller yet still ambiguous term.
      *
-     * TODO: Make this lazy
-     *
      * @param term
      * @return
      */
-    public List<IStrategoTerm> shrink(IStrategoTerm term) {
+    public Stream<IStrategoTerm> shrink(IStrategoTerm term) {
         IStrategoTerm nonambiguousTerm = disambiguate(term);
 
         return shrinkTerm(nonambiguousTerm)
-                .stream()
-                .filter(uncheckException(this::isAmbiguous))
-                .collect(Collectors.toList());
+                .filter(uncheckException(this::isAmbiguous));
     }
 
     /**
@@ -80,18 +72,15 @@ public class Shrinker {
      * A random sub-term from the given term is selected and a strictly smaller term of the same sort
      * is generated. If no such term can be generated, this sub-term cannot be made any smaller.
      *
-     * TODO: Make this lazy
-     *
      * @param nonambiguousTerm
      * @return
      */
-    private List<IStrategoTerm> shrinkTerm(IStrategoTerm nonambiguousTerm) {
+    private Stream<IStrategoTerm> shrinkTerm(IStrategoTerm nonambiguousTerm) {
         List<IStrategoTerm> subTerms = subTerms(nonambiguousTerm);
 
-        return subTerms
-                .stream()
-                .flatMap(subTerm -> shrinkTerm(nonambiguousTerm, subTerm).stream())
-                .collect(Collectors.toList());
+        return subTerms.stream().flatMap(subTerm ->
+                shrinkTerm(nonambiguousTerm, subTerm).stream()
+        );
     }
 
     /**
