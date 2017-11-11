@@ -11,7 +11,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -35,7 +34,12 @@ public class Shrinker {
      * @return
      */
     public Optional<IStrategoTerm> shrinkStar(IStrategoTerm term) {
-        return null;
+        Stream<IStrategoTerm> shrunkTerms = shrink(term);
+
+        return shrunkTerms
+                .findAny()
+                .map(this::shrinkStar)
+                .orElse(Optional.of(term));
     }
 
     /**
@@ -47,8 +51,7 @@ public class Shrinker {
     public Stream<IStrategoTerm> shrink(IStrategoTerm term) {
         IStrategoTerm nonambiguousTerm = disambiguate(term);
 
-        return shrinkTerm(nonambiguousTerm)
-                .filter(uncheckException(this::isAmbiguous));
+        return shrinkTerm(nonambiguousTerm).filter(Utils.uncheckException(this::isAmbiguous));
     }
 
     /**
@@ -258,20 +261,5 @@ public class Shrinker {
     @FunctionalInterface
     interface CheckedPredicate<T, E extends Exception> {
         boolean test(T element) throws E;
-    }
-
-    <T> Predicate<T> uncheckException(CheckedPredicate<T, Exception> function) {
-        return element -> {
-            try {
-                return function.test(element);
-            } catch (Exception ex) {
-                // thanks to Christian Schneider for pointing out
-                // that unchecked exceptions need not be wrapped again
-                if (ex instanceof RuntimeException)
-                    throw (RuntimeException) ex;
-                else
-                    throw new RuntimeException(ex);
-            }
-        };
     }
 }
