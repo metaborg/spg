@@ -19,13 +19,14 @@ import org.eclipse.ui.handlers.HandlerUtil;
 import org.metaborg.core.config.ConfigRequest;
 import org.metaborg.core.config.ILanguageComponentConfig;
 import org.metaborg.core.config.ILanguageComponentConfigService;
+import org.metaborg.core.language.ILanguage;
 import org.metaborg.core.language.ILanguageImpl;
 import org.metaborg.core.language.ILanguageService;
 import org.metaborg.core.messages.IMessage;
 import org.metaborg.core.project.IProject;
 import org.metaborg.core.project.IProjectService;
 import org.metaborg.spg.sentence.eclipse.Activator;
-import org.metaborg.spg.sentence.eclipse.SentenceModule;
+import org.metaborg.spg.sentence.eclipse.SentenceEclipseModule;
 import org.metaborg.spg.sentence.eclipse.config.SentenceHandlerConfig;
 import org.metaborg.spg.sentence.eclipse.dialog.SentenceDialog;
 import org.metaborg.spg.sentence.eclipse.exception.LanguageNotFoundException;
@@ -38,20 +39,21 @@ public class SentenceHandler extends AbstractHandler {
     private final Injector injector;
 
     public SentenceHandler() {
-        this.injector = SpoofaxPlugin.spoofax().injector.createChildInjector(new SentenceModule());
+        this.injector = SpoofaxPlugin.spoofax().injector.createChildInjector(new SentenceEclipseModule());
     }
 
     public Object execute(ExecutionEvent executionEvent) throws ExecutionException {
         try {
             IProject project = getProject(executionEvent);
             ILanguageImpl language = getLanguage(project);
+            ILanguageImpl strategoLanguage = getLanguage("Stratego-Sugar");
 
             SentenceDialog sentenceDialog = new SentenceDialog(getShell(executionEvent));
             sentenceDialog.create();
 
             if (sentenceDialog.open() == Window.OK) {
                 SentenceJobFactory jobFactory = injector.getInstance(SentenceJobFactory.class);
-                Job job = jobFactory.createSentenceJob(project, language, getConfig(sentenceDialog));
+                Job job = jobFactory.createSentenceJob(project, language, strategoLanguage, getConfig(sentenceDialog));
 
                 job.setPriority(Job.SHORT);
                 job.setUser(true);
@@ -102,6 +104,13 @@ public class SentenceHandler extends AbstractHandler {
         }
 
         throw new ProjectNotFoundException("Selected object is not an IResource or IJavaProject.");
+    }
+
+    protected ILanguageImpl getLanguage(String name) {
+        ILanguageService languageService = injector.getInstance(ILanguageService.class);
+        ILanguage language = languageService.getLanguage(name);
+
+        return language.activeImpl();
     }
 
     protected ILanguageImpl getLanguage(IProject project) throws LanguageNotFoundException {

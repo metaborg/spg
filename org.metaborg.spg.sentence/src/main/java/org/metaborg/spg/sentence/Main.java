@@ -16,7 +16,7 @@ public class Main {
     public static Random random = new Random(0);
 
     public static void main(String[] args) throws Exception {
-        try (final Spoofax spoofax = new Spoofax(new Module())) {
+        try (final Spoofax spoofax = new Spoofax(new SentenceModule())) {
             ILanguageImpl strategoLanguage = loadLanguage(spoofax, new File(args[0]));
             ILanguageImpl objectLanguage = loadLanguage(spoofax, new File(args[1]));
             IProject project = getOrCreateProject(spoofax, new File(args[2]));

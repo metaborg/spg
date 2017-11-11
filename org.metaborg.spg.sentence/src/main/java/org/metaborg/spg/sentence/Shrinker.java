@@ -51,7 +51,7 @@ public class Shrinker {
     public Stream<IStrategoTerm> shrink(IStrategoTerm term) {
         IStrategoTerm nonambiguousTerm = disambiguate(term);
 
-        return shrinkTerm(nonambiguousTerm).filter(Utils.uncheckException(this::isAmbiguous));
+        return shrinkTerm(nonambiguousTerm).filter(Utils.uncheckPredicate(this::isAmbiguous));
     }
 
     /**
@@ -256,10 +256,5 @@ public class Shrinker {
         }
 
         return term;
-    }
-
-    @FunctionalInterface
-    interface CheckedPredicate<T, E extends Exception> {
-        boolean test(T element) throws E;
     }
 }

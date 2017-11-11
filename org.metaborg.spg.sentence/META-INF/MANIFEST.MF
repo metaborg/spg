@@ -1,5 +1,5 @@
 Manifest-Version: 1.0
-Bnd-LastModified: 1510423919821
+Bnd-LastModified: 1510437459113
 Build-Jdk: 1.8.0_121
 Built-By: martijn
 Bundle-Description: Maven parent POM for Java projects
@@ -11,8 +11,8 @@ Bundle-Version: 2.4.0.qualifier
 Created-By: Apache Maven Bundle Plugin
 Eclipse-BuddyPolicy: registered
 Embed-Transitive: true
-Export-Package: org.metaborg.spg.sentence,org.metaborg.spg.sentence.sign
- ature
+Export-Package: org.metaborg.spg.sentence,org.metaborg.spg.sentence.func
+ tional,org.metaborg.spg.sentence.signature
 Import-Package: org.spoofax.interpreter.terms,org.spoofax.terms,org.meta
  borg.core,org.metaborg.core.context,org.metaborg.core.language,org.meta
  borg.core.project,org.metaborg.core.resource,org.metaborg.core.source,o

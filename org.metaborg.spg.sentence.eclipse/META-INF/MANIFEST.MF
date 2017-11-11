@@ -22,3 +22,4 @@ Require-Bundle: org.metaborg.spoofax.eclipse.externaldeps,
  org.eclipse.core.resources
 Bundle-RequiredExecutionEnvironment: JavaSE-1.8
 Export-Package: org.metaborg.spg.sentence.eclipse
+Import-Package: org.metaborg.spg.sentence
