@@ -1,5 +1,5 @@
 Manifest-Version: 1.0
-Bnd-LastModified: 1510350917765
+Bnd-LastModified: 1510423919821
 Build-Jdk: 1.8.0_121
 Built-By: martijn
 Bundle-Description: Maven parent POM for Java projects
@@ -15,13 +15,15 @@ Export-Package: org.metaborg.spg.sentence,org.metaborg.spg.sentence.sign
  ature
 Import-Package: org.spoofax.interpreter.terms,org.spoofax.terms,org.meta
  borg.core,org.metaborg.core.context,org.metaborg.core.language,org.meta
- borg.core.project,org.metaborg.core.resource,org.metaborg.core.syntax,o
- rg.metaborg.sdf2table.grammar,org.metaborg.sdf2table.io,org.metaborg.sp
- oofax.core,org.metaborg.spoofax.core.build,org.metaborg.spoofax.core.st
- ratego,org.metaborg.spoofax.core.syntax,org.metaborg.spoofax.core.terms
- ,org.metaborg.spoofax.core.unit,org.strategoxt,com.google.common.collec
- t;provider=metaborg;mandatory:=provider;version=0,com.google.inject;pro
- vider=metaborg;mandatory:=provider;version=0,org.apache.commons.vfs2;pr
- ovider=metaborg;mandatory:=provider;version=0
+ borg.core.project,org.metaborg.core.resource,org.metaborg.core.source,o
+ rg.metaborg.core.syntax,org.metaborg.sdf2table.grammar,org.metaborg.sdf
+ 2table.io,org.metaborg.spoofax.core,org.metaborg.spoofax.core.build,org
+ .metaborg.spoofax.core.stratego,org.metaborg.spoofax.core.syntax,org.me
+ taborg.spoofax.core.terms,org.metaborg.spoofax.core.unit,org.strategoxt
+ ,com.google.common.collect;provider=metaborg;mandatory:=provider;versio
+ n=0,com.google.inject;provider=metaborg;mandatory:=provider;version=0,c
+ om.google.inject.assistedinject;provider=metaborg;mandatory:=provider;v
+ ersion=0,org.apache.commons.vfs2;provider=metaborg;mandatory:=provider;
+ version=0
 Require-Capability: osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=1.8))"
 Tool: Bnd-2.4.1.201501161923
