@@ -3,7 +3,7 @@ package org.metaborg.spg.sentence;
 import org.metaborg.sdf2table.grammar.ContextFreeSymbol;
 import org.metaborg.sdf2table.grammar.Sort;
 import org.metaborg.sdf2table.grammar.Symbol;
-import org.metaborg.spg.sentence.signature.Operation;
+import org.metaborg.spg.sentence.signature.Constructor;
 import org.metaborg.spg.sentence.signature.Signature;
 import org.spoofax.interpreter.terms.*;
 
@@ -143,7 +143,7 @@ public class Shrinker {
             if (haystack instanceof IStrategoAppl) {
                 IStrategoAppl nonambiguousAppl = (IStrategoAppl) haystack;
                 IStrategoConstructor constructor = nonambiguousAppl.getConstructor();
-                Operation operation = signature.getOperation(constructor);
+                Constructor operation = signature.getOperation(constructor);
 
                 for (int i = 0; i < nonambiguousAppl.getSubtermCount(); i++) {
                     IStrategoTerm subTerm = nonambiguousAppl.getSubterm(i);

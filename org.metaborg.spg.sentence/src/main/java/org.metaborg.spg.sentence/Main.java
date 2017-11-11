@@ -13,20 +13,21 @@ import org.spoofax.interpreter.terms.IStrategoTerm;
 
 public class Main {
   public static void main(String[] args) throws Exception {
-    try (final Spoofax spoofax = new Spoofax()) {
-      ILanguageImpl language = loadLanguage(spoofax, new File(args[0]));
-      IProject project = getOrCreateProject(spoofax, new File(args[1]));
+    try (final Spoofax spoofax = new Spoofax(new Module())) {
+      ILanguageImpl strategoLanguage = loadLanguage(spoofax, new File(args[0]));
+      ILanguageImpl objectLanguage = loadLanguage(spoofax, new File(args[1]));
+      IProject project = getOrCreateProject(spoofax, new File(args[2]));
 
       ParseService parseService = spoofax.injector.getInstance(ParseService.class);
 
       PrettyPrinterFactory prettyPrinterFactory = spoofax.injector.getInstance(PrettyPrinterFactory.class);
-      PrettyPrinter prettyPrinter = prettyPrinterFactory.create(language, project);
+      PrettyPrinter prettyPrinter = prettyPrinterFactory.create(objectLanguage, project);
 
       GeneratorFactory generatorFactory = spoofax.injector.getInstance(GeneratorFactory.class);
-      Generator generator = generatorFactory.create(language, project);
+      Generator generator = generatorFactory.create(objectLanguage, project);
 
       ShrinkerFactory shrinkerFactory = spoofax.injector.getInstance(ShrinkerFactory.class);
-      Shrinker shrinker = shrinkerFactory.create(language, project, generator, spoofax.termFactoryService.getGeneric());
+      Shrinker shrinker = shrinkerFactory.create(objectLanguage, project, generator, spoofax.termFactoryService.getGeneric(), strategoLanguage);
 
       for (int i = 0; i < 1000; i++) {
         Optional<IStrategoTerm> termOpt = generator.generate(1000);
@@ -37,7 +38,7 @@ public class Main {
           System.out.println("=== Program ===");
           System.out.println(text);
 
-          IStrategoTerm parsedTerm = parseService.parse(language, text);
+          IStrategoTerm parsedTerm = parseService.parse(objectLanguage, text);
 
           if (parseService.isAmbiguous(parsedTerm)) {
             System.out.println("=== Ambiguous ===");

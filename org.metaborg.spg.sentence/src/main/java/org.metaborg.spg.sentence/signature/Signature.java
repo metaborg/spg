@@ -5,18 +5,18 @@ import java.util.List;
 import org.spoofax.interpreter.terms.IStrategoConstructor;
 
 public class Signature {
-  private final List<Operation> operations;
+  private final List<Constructor> constructors;
 
-  public Signature(List<Operation> operations) {
-    this.operations = operations;
+  public Signature(List<Constructor> constructors) {
+    this.constructors = constructors;
   }
 
-  public List<Operation> getOperations() {
-    return operations;
+  public List<Constructor> getConstructors() {
+    return constructors;
   }
 
-  public Operation getOperation(IStrategoConstructor constructor) {
-    for (Operation operation : operations) {
+  public Constructor getOperation(IStrategoConstructor constructor) {
+    for (Constructor operation : constructors) {
       if (operation.matches(constructor)) {
         return operation;
       }

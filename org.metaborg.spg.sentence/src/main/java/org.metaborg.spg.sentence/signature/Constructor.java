@@ -5,12 +5,12 @@ import java.util.List;
 import org.metaborg.sdf2table.grammar.Sort;
 import org.spoofax.interpreter.terms.IStrategoConstructor;
 
-public class Operation {
+public class Constructor {
   private final String name;
   private final List<Sort> arguments;
   private final Sort result;
 
-  public Operation(String name, List<Sort> arguments, Sort result) {
+  public Constructor(String name, List<Sort> arguments, Sort result) {
     this.name = name;
     this.arguments = arguments;
     this.result = result;
