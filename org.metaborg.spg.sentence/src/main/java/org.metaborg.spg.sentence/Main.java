@@ -1,7 +1,9 @@
 package org.metaborg.spg.sentence;
 
 import java.io.File;
+import java.util.List;
 import java.util.Optional;
+import java.util.Random;
 
 import org.apache.commons.vfs2.FileObject;
 import org.metaborg.core.MetaborgException;
@@ -12,6 +14,8 @@ import org.metaborg.spoofax.core.Spoofax;
 import org.spoofax.interpreter.terms.IStrategoTerm;
 
 public class Main {
+  public static Random random = new Random(0);
+
   public static void main(String[] args) throws Exception {
     try (final Spoofax spoofax = new Spoofax(new Module())) {
       ILanguageImpl strategoLanguage = loadLanguage(spoofax, new File(args[0]));
@@ -27,7 +31,7 @@ public class Main {
       Generator generator = generatorFactory.create(objectLanguage, project);
 
       ShrinkerFactory shrinkerFactory = spoofax.injector.getInstance(ShrinkerFactory.class);
-      Shrinker shrinker = shrinkerFactory.create(objectLanguage, project, generator, spoofax.termFactoryService.getGeneric(), strategoLanguage);
+      Shrinker shrinker = shrinkerFactory.create(objectLanguage, project, prettyPrinter, generator, spoofax.termFactoryService.getGeneric(), strategoLanguage);
 
       for (int i = 0; i < 1000; i++) {
         Optional<IStrategoTerm> termOpt = generator.generate(1000);
@@ -44,12 +48,25 @@ public class Main {
             System.out.println("=== Ambiguous ===");
             System.out.println(parsedTerm);
 
-            shrinker.shrink(parsedTerm);
+            shrink(shrinker, parsedTerm);
           }
         }
       }
     } catch (MetaborgException e) {
       e.printStackTrace();
+    }
+  }
+
+  public static void shrink(Shrinker shrinker, IStrategoTerm term) {
+    System.out.println("=== Shrink ==");
+    System.out.println(term);
+
+    List<IStrategoTerm> shrunkTerms = shrinker.shrink(term);
+
+    if (!shrunkTerms.isEmpty()) {
+      IStrategoTerm randomShrunkTerm = shrunkTerms.get(random.nextInt(shrunkTerms.size()));
+
+      shrink(shrinker, randomShrunkTerm);
     }
   }
 

@@ -1,5 +1,8 @@
 package org.metaborg.spg.sentence;
 
+import com.google.common.collect.Iterables;
+import org.metaborg.core.MetaborgException;
+import org.metaborg.core.syntax.ParseException;
 import org.metaborg.sdf2table.grammar.ContextFreeSymbol;
 import org.metaborg.sdf2table.grammar.Sort;
 import org.metaborg.sdf2table.grammar.Symbol;
@@ -11,24 +14,37 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class Shrinker {
+    private final ParseService parseService;
     private final Generator generator;
     private final ITermFactory termFactory;
-    private final Signature signature;
-    private final String rootSort;
+    private final ShrinkerInput shrinkerInput;
 
-    public Shrinker(Generator generator, ITermFactory termFactory, Signature signature, String rootSort) {
+    public Shrinker(ParseService parseService, Generator generator, ITermFactory termFactory, ShrinkerInput shrinkerInput) {
+        this.parseService = parseService;
         this.generator = generator;
         this.termFactory = termFactory;
-        this.signature = signature;
-        this.rootSort = rootSort;
+        this.shrinkerInput = shrinkerInput;
+    }
+
+    /**
+     * Repeatedly shrink the term until a local minimum is found.
+     *
+     * @param term
+     * @return
+     */
+    public Optional<IStrategoTerm> shrinkStar(IStrategoTerm term) {
+        return null;
     }
 
     /**
      * Given an ambiguous term, try to generate a smaller yet still ambiguous term.
-     * <p>
+     *
      * TODO: Make this lazy
      *
      * @param term
@@ -37,16 +53,33 @@ public class Shrinker {
     public List<IStrategoTerm> shrink(IStrategoTerm term) {
         IStrategoTerm nonambiguousTerm = disambiguate(term);
 
-        // TODO: Filter this result on ambiguous terms (i.e. print, parse, filter(isAmbiguous))
-        return shrinkTerm(nonambiguousTerm);
+        return shrinkTerm(nonambiguousTerm)
+                .stream()
+                .filter(uncheckException(this::isAmbiguous))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Check if the given term is ambiguous.
+     *
+     * The term is first pretty-printed, then parsed, and the resulting AST is tested.
+     *
+     * @param term
+     * @return
+     */
+    private boolean isAmbiguous(IStrategoTerm term) throws MetaborgException {
+        String shrunkenText = shrinkerInput.getPrettyPrinter().prettyPrint(term);
+        IStrategoTerm parsedTerm = parseService.parse(shrinkerInput.getLanguage(), shrunkenText);
+
+        return parseService.isAmbiguous(parsedTerm);
     }
 
     /**
      * Given a non-ambiguous term, create an iterable of smaller terms.
-     * <p>
+     *
      * A random sub-term from the given term is selected and a strictly smaller term of the same sort
      * is generated. If no such term can be generated, this sub-term cannot be made any smaller.
-     * <p>
+     *
      * TODO: Make this lazy
      *
      * @param nonambiguousTerm
@@ -73,7 +106,7 @@ public class Shrinker {
         Sort sort = recoverSort(haystack, needle);
         Symbol symbol = new ContextFreeSymbol(sort);
 
-        Optional<IStrategoTerm> generatedSubTerm = generator.generate(symbol, size);
+        Optional<IStrategoTerm> generatedSubTerm = generator.generate(symbol, size - 1);
 
         if (generatedSubTerm.isPresent()) {
             return Collections.singletonList(replaceTerm(haystack, needle, generatedSubTerm.get()));
@@ -119,7 +152,7 @@ public class Shrinker {
      * @return
      */
     private Sort recoverSort(IStrategoTerm haystack, IStrategoTerm needle) {
-        Optional<Sort> sortOptional = recoverSort(haystack, needle, new Sort(rootSort));
+        Optional<Sort> sortOptional = recoverSort(haystack, needle, new Sort(shrinkerInput.getRootSort()));
 
         if (!sortOptional.isPresent()) {
             throw new IllegalStateException("Cannot recover the sort of needle, because it was not found in haystack.");
@@ -143,7 +176,7 @@ public class Shrinker {
             if (haystack instanceof IStrategoAppl) {
                 IStrategoAppl nonambiguousAppl = (IStrategoAppl) haystack;
                 IStrategoConstructor constructor = nonambiguousAppl.getConstructor();
-                Constructor operation = signature.getOperation(constructor);
+                Constructor operation = shrinkerInput.getSignature().getOperation(constructor);
 
                 for (int i = 0; i < nonambiguousAppl.getSubtermCount(); i++) {
                     IStrategoTerm subTerm = nonambiguousAppl.getSubterm(i);
@@ -233,13 +266,23 @@ public class Shrinker {
         return term;
     }
 
-    /**
-     * Repeatedly shrink the term until a local minimum is found.
-     *
-     * @param term
-     * @return
-     */
-    public Optional<IStrategoTerm> shrinkStar(IStrategoTerm term) {
-        return null;
+    @FunctionalInterface
+    interface CheckedPredicate<T, E extends Exception> {
+        boolean test(T element) throws E;
+    }
+
+    <T> Predicate<T> uncheckException(CheckedPredicate<T, Exception> function) {
+        return element -> {
+            try {
+                return function.test(element);
+            } catch (Exception ex) {
+                // thanks to Christian Schneider for pointing out
+                // that unchecked exceptions need not be wrapped again
+                if (ex instanceof RuntimeException)
+                    throw (RuntimeException) ex;
+                else
+                    throw new RuntimeException(ex);
+            }
+        };
     }
 }

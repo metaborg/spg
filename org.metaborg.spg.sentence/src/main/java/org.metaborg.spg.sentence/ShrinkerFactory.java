@@ -19,14 +19,17 @@ import java.io.IOException;
 public class ShrinkerFactory {
     private final SignatureReaderFactory signatureReaderFactory;
     private IResourceService resourceService;
+    private final ParseService parseService;
 
     @Inject
-    public ShrinkerFactory(SignatureReaderFactory signatureReaderFactory, IResourceService resourceService) {
+    public ShrinkerFactory(SignatureReaderFactory signatureReaderFactory, IResourceService resourceService, ParseService parseService) {
         this.signatureReaderFactory = signatureReaderFactory;
         this.resourceService = resourceService;
+        this.parseService = parseService;
     }
 
-    public Shrinker create(ILanguageImpl language, IProject project, Generator generator, ITermFactory termFactory, ILanguageImpl strategoLanguage) throws IOException, ParseException {
+    // TODO: Reduce number of arguments.
+    public Shrinker create(ILanguageImpl language, IProject project, PrettyPrinter prettyPrinter, Generator generator, ITermFactory termFactory, ILanguageImpl strategoLanguage) throws IOException, ParseException {
         SpoofaxCommonPaths spoofaxCommonPaths = new SpoofaxCommonPaths(project.location());
 
         FileObject mainSignatureFile = getMainSignatureFile(spoofaxCommonPaths, language.id().id);
@@ -36,8 +39,9 @@ public class ShrinkerFactory {
         Signature signature = signatureReader.read(mainSignatureFile, includePath);
 
         String rootSort = getRootSort(language);
+        ShrinkerInput shrinkerInput = new ShrinkerInput(language, signature, rootSort, prettyPrinter);
 
-        return new Shrinker(generator, termFactory, signature, rootSort);
+        return new Shrinker(parseService, generator, termFactory, shrinkerInput);
     }
 
     // TODO: Move to SpoofaxCommonPaths in org.metaborg.spoofax.core
