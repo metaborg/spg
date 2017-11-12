@@ -17,6 +17,7 @@ import org.metaborg.spg.sentence.eclipse.config.SentenceHandlerConfig;
 import org.metaborg.spoofax.core.terms.ITermFactoryService;
 import org.metaborg.spoofax.eclipse.util.ConsoleUtils;
 import org.spoofax.interpreter.terms.IStrategoTerm;
+import org.spoofax.interpreter.terms.ITermFactory;
 
 import java.util.Optional;
 
@@ -64,9 +65,10 @@ public class SentenceJob extends Job {
         try {
             final SubMonitor subMonitor = SubMonitor.convert(monitor, config.getLimit());
 
+            ITermFactory termFactory = termFactoryService.getGeneric();
             PrettyPrinter prettyPrinter = prettyPrinterFactory.create(language, project);
             Generator generator = generatorFactory.create(language, project);
-            Shrinker shrinker = shrinkerFactory.create(language, project, prettyPrinter, generator, termFactoryService.getGeneric(), strategoLanguage);
+            Shrinker shrinker = shrinkerFactory.create(language, project, prettyPrinter, generator, termFactory, strategoLanguage);
 
             for (int i = 0; i < config.getLimit(); i++) {
                 Optional<IStrategoTerm> termOpt = generator.generate(config.getMaxSize());

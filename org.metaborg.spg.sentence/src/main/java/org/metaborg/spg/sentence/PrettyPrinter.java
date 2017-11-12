@@ -16,13 +16,17 @@ public class PrettyPrinter {
     this.interpreter = interpreter;
   }
 
-  public String prettyPrint(IStrategoTerm term) throws MetaborgException {
-    IStrategoTerm program = stratego.invoke(interpreter, term, PRETTY_PRINT_STRATEGY);
+  public String prettyPrint(IStrategoTerm term) {
+    try {
+      IStrategoTerm program = stratego.invoke(interpreter, term, PRETTY_PRINT_STRATEGY);
 
-    if (!(program instanceof IStrategoString)) {
-      throw new IllegalStateException("The pretty-printer returned a non-string.");
+      if (!(program instanceof IStrategoString)) {
+        throw new IllegalStateException("The pretty-printer returned a non-string.");
+      }
+
+      return ((IStrategoString) program).stringValue();
+    } catch (MetaborgException e) {
+      throw new RuntimeException("Failed to pretty-print", e);
     }
-
-    return ((IStrategoString) program).stringValue();
   }
 }

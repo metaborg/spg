@@ -35,26 +35,35 @@ import org.spoofax.terms.StrategoConstructor;
 public class Generator {
   public static Random random = new Random(0);
 
+  private final PrettyPrinter prettyPrinter;
   private final ITermFactory termFactory;
   private final NormGrammar grammar;
   private final Collection<IProduction> productions;
   private final ListMultimap<Symbol, IProduction> productionsMap;
 
   @Inject
-  public Generator(ITermFactory termFactory, NormGrammar grammar) {
+  public Generator(PrettyPrinter prettyPrinter, ITermFactory termFactory, NormGrammar grammar) {
+    this.prettyPrinter = prettyPrinter;
     this.termFactory = termFactory;
     this.grammar = grammar;
     this.productions = retainRealProductions(grammar.getCacheProductionsRead().values());
     this.productionsMap = createProductionMap(productions);
   }
 
-  public Optional<IStrategoTerm> generate(int size) {
+  public Optional<String> generate(int size) {
     IProduction initialProduction = grammar.getInitialProduction();
+    Optional<IStrategoTerm> termOpt = generateTerm(initialProduction.leftHand(), size);
 
-    return generate(initialProduction.leftHand(), size);
+    return termOpt.map(prettyPrinter::prettyPrint);
   }
 
-  public Optional<IStrategoTerm> generate(Symbol symbol, int size) {
+  public Optional<IStrategoTerm> generateTerm(int size) {
+    IProduction initialProduction = grammar.getInitialProduction();
+
+    return generateTerm(initialProduction.leftHand(), size);
+  }
+
+  public Optional<IStrategoTerm> generateTerm(Symbol symbol, int size) {
     if (symbol.name().endsWith("-LEX")) {
       return Optional.of(termFactory.makeString(generateLex(symbol)));
     } else {
@@ -125,7 +134,7 @@ public class Generator {
     List<IStrategoTerm> children = new ArrayList<>();
 
     for (Symbol rhsSymbol : symbols) {
-      Optional<IStrategoTerm> childTerm = generate(rhsSymbol, childSize);
+      Optional<IStrategoTerm> childTerm = generateTerm(rhsSymbol, childSize);
 
       if (!childTerm.isPresent()) {
         return Optional.empty();

@@ -27,6 +27,20 @@ public class ParseService {
     return parseUnit.ast();
   }
 
+  public ISpoofaxParseUnit parseUnit(ILanguageImpl language, String text) {
+    try {
+      ISpoofaxInputUnit inputUnit = unitService.inputUnit(text, language, null);
+
+      return syntaxService.parse(inputUnit);
+    } catch (ParseException e) {
+      throw new RuntimeException("Unable to parse", e);
+    }
+  }
+  
+  public boolean isAmbiguous(ISpoofaxParseUnit parseUnit) {
+    return isAmbiguous(parseUnit.ast());
+  }
+
   public boolean isAmbiguous(IStrategoTerm term) {
     if (term instanceof IStrategoAppl) {
       IStrategoAppl appl = (IStrategoAppl) term;

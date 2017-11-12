@@ -7,14 +7,12 @@ import org.metaborg.core.project.IProject;
 import org.metaborg.core.project.SimpleProjectService;
 import org.metaborg.spoofax.core.Spoofax;
 import org.spoofax.interpreter.terms.IStrategoTerm;
+import org.spoofax.interpreter.terms.ITermFactory;
 
 import java.io.File;
 import java.util.Optional;
-import java.util.Random;
 
 public class Main {
-    public static Random random = new Random(0);
-
     public static void main(String[] args) throws Exception {
         try (final Spoofax spoofax = new Spoofax(new SentenceModule())) {
             ILanguageImpl strategoLanguage = loadLanguage(spoofax, new File(args[0]));
@@ -27,27 +25,25 @@ public class Main {
             PrettyPrinter prettyPrinter = prettyPrinterFactory.create(objectLanguage, project);
 
             GeneratorFactory generatorFactory = spoofax.injector.getInstance(GeneratorFactory.class);
-            Generator generator = generatorFactory.create(objectLanguage, project);
+            Generator generator = generatorFactory.create(objectLanguage, project, prettyPrinter);
 
+            ITermFactory termFactory = spoofax.termFactoryService.getGeneric();
             ShrinkerFactory shrinkerFactory = spoofax.injector.getInstance(ShrinkerFactory.class);
-            Shrinker shrinker = shrinkerFactory.create(objectLanguage, project, prettyPrinter, generator, spoofax.termFactoryService.getGeneric(), strategoLanguage);
+            Shrinker shrinker = shrinkerFactory.create(objectLanguage, project, prettyPrinter, generator, termFactory, strategoLanguage);
 
             for (int i = 0; i < 1000; i++) {
-                Optional<IStrategoTerm> termOpt = generator.generate(1000);
+                Optional<String> textOpt = generator.generate(1000);
 
-                if (termOpt.isPresent()) {
-                    IStrategoTerm term = termOpt.get();
-                    String text = prettyPrinter.prettyPrint(term);
+                if (textOpt.isPresent()) {
+                    String text = textOpt.get();
+
                     System.out.println("=== Program ===");
                     System.out.println(text);
 
-                    IStrategoTerm parsedTerm = parseService.parse(objectLanguage, text);
+                    IStrategoTerm term = parseService.parse(objectLanguage, text);
 
-                    if (parseService.isAmbiguous(parsedTerm)) {
-                        System.out.println("=== Ambiguous ===");
-                        System.out.println(parsedTerm);
-
-                        shrink(shrinker, parsedTerm);
+                    if (parseService.isAmbiguous(term)) {
+                        shrink(shrinker, new ShrinkerUnit(term, text));
                     }
                 }
             }
@@ -56,11 +52,11 @@ public class Main {
         }
     }
 
-    public static void shrink(Shrinker shrinker, IStrategoTerm term) {
+    public static void shrink(Shrinker shrinker, ShrinkerUnit shrinkerUnit) {
         System.out.println("=== Shrink ==");
-        System.out.println(term);
+        System.out.println(shrinkerUnit.getText());
 
-        shrinker.shrink(term)
+        shrinker.shrink(shrinkerUnit)
                 .findAny()
                 .ifPresent(shrunkTerm -> shrink(shrinker, shrunkTerm));
     }

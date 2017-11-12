@@ -39,9 +39,9 @@ public class ShrinkerFactory {
         Signature signature = signatureReader.read(mainSignatureFile, includePath);
 
         String rootSort = getRootSort(language);
-        ShrinkerInput shrinkerInput = new ShrinkerInput(language, signature, rootSort, prettyPrinter);
+        ShrinkerConfig shrinkerConfig = new ShrinkerConfig(language, signature, rootSort, prettyPrinter);
 
-        return new Shrinker(parseService, generator, termFactory, shrinkerInput);
+        return new Shrinker(parseService, generator, termFactory, shrinkerConfig);
     }
 
     // TODO: Move to SpoofaxCommonPaths in org.metaborg.spoofax.core

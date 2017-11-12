@@ -24,7 +24,7 @@ public class GeneratorFactory {
     this.termFactoryService = termFactoryService;
   }
 
-  public Generator create(ILanguageImpl language, IProject project) throws Exception {
+  public Generator create(ILanguageImpl language, IProject project, PrettyPrinter prettyPrinter) throws Exception {
     ITermFactory termFactory = termFactoryService.getGeneric();
     GrammarReader grammarReader = new GrammarReader(termFactory);
     SpoofaxCommonPaths spoofaxCommonPaths = new SpoofaxCommonPaths(project.location());
@@ -33,7 +33,7 @@ public class GeneratorFactory {
     List<String> syntaxPath = getSyntaxPath(spoofaxCommonPaths);
     NormGrammar grammar = grammarReader.readGrammar(syntaxMainFile, syntaxPath);
 
-    return new Generator(termFactory, grammar);
+    return new Generator(prettyPrinter, termFactory, grammar);
   }
 
   protected File getSyntaxMainFile(SpoofaxCommonPaths spoofaxCommonPaths, ILanguageImpl language) {

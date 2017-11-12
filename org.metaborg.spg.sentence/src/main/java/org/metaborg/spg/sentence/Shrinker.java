@@ -1,6 +1,5 @@
 package org.metaborg.spg.sentence;
 
-import org.metaborg.core.MetaborgException;
 import org.metaborg.sdf2table.grammar.ContextFreeSymbol;
 import org.metaborg.sdf2table.grammar.Sort;
 import org.metaborg.sdf2table.grammar.Symbol;
@@ -17,55 +16,44 @@ public class Shrinker {
     private final ParseService parseService;
     private final Generator generator;
     private final ITermFactory termFactory;
-    private final ShrinkerInput shrinkerInput;
+    private final ShrinkerConfig shrinkerConfig;
 
-    public Shrinker(ParseService parseService, Generator generator, ITermFactory termFactory, ShrinkerInput shrinkerInput) {
+    public Shrinker(ParseService parseService, Generator generator, ITermFactory termFactory, ShrinkerConfig shrinkerConfig) {
         this.parseService = parseService;
         this.generator = generator;
         this.termFactory = termFactory;
-        this.shrinkerInput = shrinkerInput;
+        this.shrinkerConfig = shrinkerConfig;
     }
 
     /**
      * Repeatedly shrink the term until a local minimum is found.
      *
-     * @param term
+     * @param shrinkerUnit
      * @return
      */
-    public Optional<IStrategoTerm> shrinkStar(IStrategoTerm term) {
-        Stream<IStrategoTerm> shrunkTerms = shrink(term);
+    public Optional<ShrinkerUnit> shrinkStar(ShrinkerUnit shrinkerUnit) {
+        Stream<ShrinkerUnit> shrunkTerms = shrink(shrinkerUnit);
 
         return shrunkTerms
                 .findAny()
                 .map(this::shrinkStar)
-                .orElse(Optional.of(term));
+                .orElse(Optional.of(shrinkerUnit));
     }
 
     /**
-     * Given an ambiguous term, try to generate a smaller yet still ambiguous term.
+     * Given an ambiguous parse unit, try to generate a smaller yet ambiguous term.
      *
-     * @param term
+     * @param shrinkerUnit
      * @return
      */
-    public Stream<IStrategoTerm> shrink(IStrategoTerm term) {
-        IStrategoTerm nonambiguousTerm = disambiguate(term);
+    public Stream<ShrinkerUnit> shrink(ShrinkerUnit shrinkerUnit) {
+        IStrategoTerm nonambiguousTerm = disambiguate(shrinkerUnit.getTerm());
 
-        return shrinkTerm(nonambiguousTerm).filter(Utils.uncheckPredicate(this::isAmbiguous));
-    }
-
-    /**
-     * Check if the given term is ambiguous.
-     *
-     * The term is first pretty-printed, then parsed, and the resulting AST is tested.
-     *
-     * @param term
-     * @return
-     */
-    private boolean isAmbiguous(IStrategoTerm term) throws MetaborgException {
-        String shrunkenText = shrinkerInput.getPrettyPrinter().prettyPrint(term);
-        IStrategoTerm parsedTerm = parseService.parse(shrinkerInput.getLanguage(), shrunkenText);
-
-        return parseService.isAmbiguous(parsedTerm);
+        return shrink(nonambiguousTerm)
+                .map(term -> shrinkerConfig.getPrettyPrinter().prettyPrint(term))
+                .map(term -> parseService.parseUnit(shrinkerConfig.getLanguage(), term))
+                .map(ShrinkerUnit::new)
+                .filter(shrunkenUnit -> parseService.isAmbiguous(shrunkenUnit.getTerm()));
     }
 
     /**
@@ -77,7 +65,7 @@ public class Shrinker {
      * @param nonambiguousTerm
      * @return
      */
-    private Stream<IStrategoTerm> shrinkTerm(IStrategoTerm nonambiguousTerm) {
+    public Stream<IStrategoTerm> shrink(IStrategoTerm nonambiguousTerm) {
         Stream<IStrategoTerm> subTerms = subTerms(nonambiguousTerm);
 
         return subTerms.flatMap(subTerm ->
@@ -92,12 +80,12 @@ public class Shrinker {
      * @param needle
      * @return
      */
-    private Stream<IStrategoTerm> shrinkTerm(IStrategoTerm haystack, IStrategoTerm needle) {
+    protected Stream<IStrategoTerm> shrinkTerm(IStrategoTerm haystack, IStrategoTerm needle) {
         int size = size(needle);
         Sort sort = recoverSort(haystack, needle);
         Symbol symbol = new ContextFreeSymbol(sort);
 
-        Optional<IStrategoTerm> generatedSubTerm = generator.generate(symbol, size - 1);
+        Optional<IStrategoTerm> generatedSubTerm = generator.generateTerm(symbol, size - 1);
 
         if (generatedSubTerm.isPresent()) {
             return of(replaceTerm(haystack, needle, generatedSubTerm.get()));
@@ -142,8 +130,8 @@ public class Shrinker {
      * @param needle
      * @return
      */
-    private Sort recoverSort(IStrategoTerm haystack, IStrategoTerm needle) {
-        Optional<Sort> sortOptional = recoverSort(haystack, needle, new Sort(shrinkerInput.getRootSort()));
+    protected Sort recoverSort(IStrategoTerm haystack, IStrategoTerm needle) {
+        Optional<Sort> sortOptional = recoverSort(haystack, needle, new Sort(shrinkerConfig.getRootSort()));
 
         if (!sortOptional.isPresent()) {
             throw new IllegalStateException("Cannot recover the sort of needle, because it was not found in haystack.");
@@ -160,14 +148,14 @@ public class Shrinker {
      * @param sort
      * @return
      */
-    private Optional<Sort> recoverSort(IStrategoTerm haystack, IStrategoTerm needle, Sort sort) {
+    protected Optional<Sort> recoverSort(IStrategoTerm haystack, IStrategoTerm needle, Sort sort) {
         if (haystack == needle) {
             return Optional.of(sort);
         } else {
             if (haystack instanceof IStrategoAppl) {
                 IStrategoAppl nonambiguousAppl = (IStrategoAppl) haystack;
                 IStrategoConstructor constructor = nonambiguousAppl.getConstructor();
-                Constructor operation = shrinkerInput.getSignature().getOperation(constructor);
+                Constructor operation = shrinkerConfig.getSignature().getOperation(constructor);
 
                 for (int i = 0; i < nonambiguousAppl.getSubtermCount(); i++) {
                     IStrategoTerm subTerm = nonambiguousAppl.getSubterm(i);
@@ -191,7 +179,7 @@ public class Shrinker {
      * @param term
      * @return
      */
-    private int size(IStrategoTerm term) {
+    protected int size(IStrategoTerm term) {
         if (term instanceof IStrategoString) {
             return 1;
         } else if (term instanceof IStrategoAppl || term instanceof IStrategoList) {
@@ -207,7 +195,7 @@ public class Shrinker {
      * @param term
      * @return
      */
-    private Stream<IStrategoTerm> subTerms(IStrategoTerm term) {
+    protected Stream<IStrategoTerm> subTerms(IStrategoTerm term) {
         if (term instanceof IStrategoString) {
             return of(term);
         } else if (term instanceof IStrategoAppl) {
@@ -231,7 +219,7 @@ public class Shrinker {
      * @param term
      * @return
      */
-    public IStrategoTerm disambiguate(IStrategoTerm term) {
+    protected IStrategoTerm disambiguate(IStrategoTerm term) {
         if (term instanceof IStrategoAppl) {
             IStrategoAppl appl = (IStrategoAppl) term;
 
