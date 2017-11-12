@@ -8,11 +8,10 @@ import org.metaborg.spg.sentence.signature.Constructor;
 import org.spoofax.interpreter.terms.*;
 
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static java.util.stream.Stream.*;
 
 public class Shrinker {
     private final ParseService parseService;
@@ -79,10 +78,10 @@ public class Shrinker {
      * @return
      */
     private Stream<IStrategoTerm> shrinkTerm(IStrategoTerm nonambiguousTerm) {
-        List<IStrategoTerm> subTerms = subTerms(nonambiguousTerm);
+        Stream<IStrategoTerm> subTerms = subTerms(nonambiguousTerm);
 
-        return subTerms.stream().flatMap(subTerm ->
-                shrinkTerm(nonambiguousTerm, subTerm).stream()
+        return subTerms.flatMap(subTerm ->
+                shrinkTerm(nonambiguousTerm, subTerm)
         );
     }
 
@@ -93,7 +92,7 @@ public class Shrinker {
      * @param needle
      * @return
      */
-    private List<IStrategoTerm> shrinkTerm(IStrategoTerm haystack, IStrategoTerm needle) {
+    private Stream<IStrategoTerm> shrinkTerm(IStrategoTerm haystack, IStrategoTerm needle) {
         int size = size(needle);
         Sort sort = recoverSort(haystack, needle);
         Symbol symbol = new ContextFreeSymbol(sort);
@@ -101,10 +100,10 @@ public class Shrinker {
         Optional<IStrategoTerm> generatedSubTerm = generator.generate(symbol, size - 1);
 
         if (generatedSubTerm.isPresent()) {
-            return Collections.singletonList(replaceTerm(haystack, needle, generatedSubTerm.get()));
+            return of(replaceTerm(haystack, needle, generatedSubTerm.get()));
         }
 
-        return Collections.emptyList();
+        return empty();
     }
 
     /**
@@ -208,24 +207,19 @@ public class Shrinker {
      * @param term
      * @return
      */
-    private List<IStrategoTerm> subTerms(IStrategoTerm term) {
+    private Stream<IStrategoTerm> subTerms(IStrategoTerm term) {
         if (term instanceof IStrategoString) {
-            return Collections.singletonList(term);
+            return of(term);
         } else if (term instanceof IStrategoAppl) {
-            List<IStrategoTerm> terms = Arrays
+            Stream<IStrategoTerm> terms = Arrays
                     .stream(term.getAllSubterms())
-                    .flatMap(subTerm -> subTerms(subTerm).stream())
-                    .collect(Collectors.toList());
+                    .flatMap(this::subTerms);
 
-            // TODO: is there a nicer way to "cons" a Java list?
-            terms.add(0, term);
-
-            return terms;
+            return concat(of(term), terms);
         } else if (term instanceof IStrategoList) {
             return Arrays
                     .stream(term.getAllSubterms())
-                    .flatMap(subTerm -> subTerms(subTerm).stream())
-                    .collect(Collectors.toList());
+                    .flatMap(this::subTerms);
         }
 
         throw new IllegalStateException("Unknown term: " + term);
