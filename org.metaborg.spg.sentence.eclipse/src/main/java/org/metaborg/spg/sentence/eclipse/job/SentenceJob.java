@@ -12,7 +12,8 @@ import org.eclipse.ui.console.MessageConsoleStream;
 import org.metaborg.core.MetaborgException;
 import org.metaborg.core.language.ILanguageImpl;
 import org.metaborg.core.project.IProject;
-import org.metaborg.spg.sentence.*;
+import org.metaborg.spg.sentence.ParseService;
+import org.metaborg.spg.sentence.Utils;
 import org.metaborg.spg.sentence.eclipse.config.SentenceHandlerConfig;
 import org.metaborg.spg.sentence.generator.Generator;
 import org.metaborg.spg.sentence.generator.GeneratorFactory;
@@ -39,7 +40,6 @@ public class SentenceJob extends Job {
 
     private final IProject project;
     private final ILanguageImpl language;
-    private final ILanguageImpl strategoLanguage;
     private final SentenceHandlerConfig config;
 
     @Inject
@@ -50,8 +50,7 @@ public class SentenceJob extends Job {
             PrinterFactory printerFactory,
             ITermFactoryService termFactoryService,
             @Assisted IProject project,
-            @Assisted("language") ILanguageImpl language,
-            @Assisted("strategoLanguage") ILanguageImpl strategoLanguage,
+            @Assisted ILanguageImpl language,
             @Assisted SentenceHandlerConfig config) {
         super("Generate");
 
@@ -63,7 +62,6 @@ public class SentenceJob extends Job {
 
         this.project = project;
         this.language = language;
-        this.strategoLanguage = strategoLanguage;
         this.config = config;
     }
 
@@ -75,13 +73,13 @@ public class SentenceJob extends Job {
             ITermFactory termFactory = termFactoryService.getGeneric();
             Printer printer = printerFactory.create(language, project);
             Generator generator = generatorFactory.create(language, project, printer);
-            Shrinker shrinker = shrinkerFactory.create(language, project, printer, generator, termFactory, strategoLanguage);
+            Shrinker shrinker = shrinkerFactory.create(language, project, printer, generator, termFactory);
 
             for (int i = 0; i < config.getLimit(); i++) {
                 Optional<String> textOpt = generator.generate(config.getMaxSize());
-                
+
                 textOpt.ifPresent(Utils.uncheckConsumer(text ->
-                    process(subMonitor, shrinker, text)
+                        process(subMonitor, shrinker, text)
                 ));
             }
 
@@ -93,9 +91,9 @@ public class SentenceJob extends Job {
 
     private void process(SubMonitor subMonitor, Shrinker shrinker, String text) throws MetaborgException {
         progress(subMonitor, text);
-        
+
         IStrategoTerm term = parseService.parse(language, text);
-        
+
         if (parseService.isAmbiguous(term)) {
             shrink(shrinker, new ShrinkerUnit(term, text));
         }

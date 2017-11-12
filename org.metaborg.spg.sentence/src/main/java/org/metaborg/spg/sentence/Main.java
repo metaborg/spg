@@ -21,10 +21,9 @@ import java.util.Optional;
 
 public class Main {
     public static void main(String[] args) throws Exception {
-        try (final Spoofax spoofax = new Spoofax(new SentenceModule())) {
-            ILanguageImpl strategoLanguage = loadLanguage(spoofax, new File(args[0]));
-            ILanguageImpl objectLanguage = loadLanguage(spoofax, new File(args[1]));
-            IProject project = getOrCreateProject(spoofax, new File(args[2]));
+        try (final Spoofax spoofax = new Spoofax()) {
+            ILanguageImpl objectLanguage = loadLanguage(spoofax, new File(args[0]));
+            IProject project = getOrCreateProject(spoofax, new File(args[1]));
 
             ParseService parseService = spoofax.injector.getInstance(ParseService.class);
 
@@ -36,8 +35,8 @@ public class Main {
 
             ITermFactory termFactory = spoofax.termFactoryService.getGeneric();
             ShrinkerFactory shrinkerFactory = spoofax.injector.getInstance(ShrinkerFactory.class);
-            Shrinker shrinker = shrinkerFactory.create(objectLanguage, project, printer, generator, termFactory, strategoLanguage);
-
+            Shrinker shrinker = shrinkerFactory.create(objectLanguage, project, printer, generator, termFactory);
+            
             for (int i = 0; i < 1000; i++) {
                 Optional<String> textOpt = generator.generate(1000);
 

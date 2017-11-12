@@ -5,8 +5,9 @@ import org.metaborg.sdf2table.grammar.Sort;
 import org.metaborg.sdf2table.grammar.Symbol;
 import org.metaborg.spg.sentence.ParseService;
 import org.metaborg.spg.sentence.generator.Generator;
-import org.metaborg.spg.sentence.signature.Constructor;
 import org.spoofax.interpreter.terms.*;
+import org.spoofax.jsglr.client.imploder.ImploderAttachment;
+import org.spoofax.terms.attachments.OriginAttachment;
 
 import java.util.Arrays;
 import java.util.Optional;
@@ -84,7 +85,7 @@ public class Shrinker {
      */
     protected Stream<IStrategoTerm> shrinkTerm(IStrategoTerm haystack, IStrategoTerm needle) {
         int size = size(needle);
-        Sort sort = recoverSort(haystack, needle);
+        Sort sort = getSort(needle);
         Symbol symbol = new ContextFreeSymbol(sort);
 
         Optional<IStrategoTerm> generatedSubTerm = generator.generateTerm(symbol, size - 1);
@@ -115,9 +116,13 @@ public class Shrinker {
                 .toArray(IStrategoTerm[]::new);
 
         if (haystack instanceof IStrategoAppl) {
-            return termFactory.makeAppl(((IStrategoAppl) haystack).getConstructor(), children, termFactory.makeList());
+            IStrategoAppl appl = (IStrategoAppl) haystack;
+
+            return termFactory.replaceAppl(appl.getConstructor(), children, appl);
         } else if (haystack instanceof IStrategoList) {
-            return termFactory.makeList(children, termFactory.makeList());
+            IStrategoList list = (IStrategoList) haystack;
+
+            return termFactory.replaceList(children, list);
         } else if (haystack instanceof IStrategoString) {
             return haystack;
         }
@@ -126,53 +131,23 @@ public class Shrinker {
     }
 
     /**
-     * Find the sort of needle within haystack.
+     * Get the sort of given term.
      *
-     * @param haystack
-     * @param needle
+     * @param term
      * @return
      */
-    protected Sort recoverSort(IStrategoTerm haystack, IStrategoTerm needle) {
-        Optional<Sort> sortOptional = recoverSort(haystack, needle, new Sort(shrinkerConfig.getRootSort()));
+    protected Sort getSort(IStrategoTerm term) {
+        OriginAttachment originAttachment = term.getAttachment(OriginAttachment.TYPE);
 
-        if (!sortOptional.isPresent()) {
-            throw new IllegalStateException("Cannot recover the sort of needle, because it was not found in haystack.");
+        if (originAttachment != null) {
+            return getSort(originAttachment.getOrigin());
         }
 
-        return sortOptional.get();
-    }
+        ImploderAttachment attachment = term.getAttachment(ImploderAttachment.TYPE);
 
-    /**
-     * Find the sort of needle within haystack. The sort parameter is the sort of haystack.
-     *
-     * @param haystack
-     * @param needle
-     * @param sort
-     * @return
-     */
-    protected Optional<Sort> recoverSort(IStrategoTerm haystack, IStrategoTerm needle, Sort sort) {
-        if (haystack == needle) {
-            return Optional.of(sort);
-        } else {
-            if (haystack instanceof IStrategoAppl) {
-                IStrategoAppl nonambiguousAppl = (IStrategoAppl) haystack;
-                IStrategoConstructor constructor = nonambiguousAppl.getConstructor();
-                Constructor operation = shrinkerConfig.getSignature().getOperation(constructor);
+        String sort = attachment.getElementSort();
 
-                for (int i = 0; i < nonambiguousAppl.getSubtermCount(); i++) {
-                    IStrategoTerm subTerm = nonambiguousAppl.getSubterm(i);
-                    Sort subSort = operation.getArgument(i);
-
-                    Optional<Sort> sortOptional = recoverSort(subTerm, needle, subSort);
-
-                    if (sortOptional.isPresent()) {
-                        return sortOptional;
-                    }
-                }
-            }
-        }
-
-        return Optional.empty();
+        return new Sort(sort);
     }
 
     /**
@@ -235,7 +210,7 @@ public class Shrinker {
                         .map(this::disambiguate)
                         .toArray(IStrategoTerm[]::new);
 
-                return termFactory.makeAppl(appl.getConstructor(), children, termFactory.makeList());
+                return termFactory.replaceAppl(appl.getConstructor(), children, appl);
             }
         }
 
