@@ -15,7 +15,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class Generator {
-    public static Random random = new Random(0);
+    public static Random random = new Random();
 
     private final Printer printer;
     private final ITermFactory termFactory;
@@ -183,10 +183,19 @@ public class Generator {
      * @return
      */
     protected List<Symbol> cleanRhs(List<Symbol> rightHand) {
-        return rightHand.stream().filter(
-                symbol -> !"LAYOUT?-CF".equals(symbol.name()) && (symbol instanceof ContextFreeSymbol
-                        || symbol instanceof FileStartSymbol || symbol instanceof StartSymbol || symbol instanceof LexicalSymbol))
+        return rightHand
+                .stream()
+                .filter(this::isProperSymbol)
                 .collect(Collectors.toList());
+    }
+
+    protected boolean isProperSymbol(Symbol symbol) {
+        return !"LAYOUT?-CF".equals(symbol.name()) && (
+                symbol instanceof ContextFreeSymbol
+                        || symbol instanceof FileStartSymbol
+                        || symbol instanceof StartSymbol
+                        || symbol instanceof LexicalSymbol
+        );
     }
 
     /**
@@ -210,38 +219,38 @@ public class Generator {
     }
 
     protected boolean isRealProduction(IProduction production) {
-        return !isPlaceholder(production) && !isRecover(production);
+        return !isPlaceholder(production) && !isRecover(production) && !isReject(production);
     }
 
     protected boolean isPlaceholder(IProduction production) {
-        Optional<IAttribute> findAttribute = findAttribute(production, this::isPlaceholderAttribute);
-
-        return findAttribute.isPresent();
+        return findAttribute(production, this::isPlaceholderAttribute).isPresent();
     }
 
     protected boolean isPlaceholderAttribute(IAttribute attribute) {
-        if (attribute instanceof GeneralAttribute) {
-            GeneralAttribute generalAttribute = (GeneralAttribute) attribute;
-
-            if ("placeholder".equals(generalAttribute.getName())) {
-                return true;
-            }
-        }
-
-        return false;
+        return isAttribute(attribute, "placeholder");
     }
 
     protected boolean isRecover(IProduction production) {
-        Optional<IAttribute> findAttribute = findAttribute(production, this::isRecoverAttribute);
-
-        return findAttribute.isPresent();
+        return findAttribute(production, this::isRecoverAttribute).isPresent();
     }
 
     protected boolean isRecoverAttribute(IAttribute attribute) {
+        return isAttribute(attribute, "recover");
+    }
+
+    protected boolean isReject(IProduction production) {
+        return findAttribute(production, this::isRejectAttribute).isPresent();
+    }
+
+    protected boolean isRejectAttribute(IAttribute attribute) {
+        return isAttribute(attribute, "reject");
+    }
+
+    protected boolean isAttribute(IAttribute attribute, String name) {
         if (attribute instanceof GeneralAttribute) {
             GeneralAttribute generalAttribute = (GeneralAttribute) attribute;
 
-            if ("recover".equals(generalAttribute.getName())) {
+            if (name.equals(generalAttribute.getName())) {
                 return true;
             }
         }
