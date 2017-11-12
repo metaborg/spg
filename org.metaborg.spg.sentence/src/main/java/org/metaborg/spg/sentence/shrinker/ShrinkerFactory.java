@@ -35,7 +35,7 @@ public class ShrinkerFactory {
     public Shrinker create(ILanguageImpl language, IProject project, Printer printer, Generator generator, ITermFactory termFactory, ILanguageImpl strategoLanguage) throws IOException, ParseException {
         SpoofaxCommonPaths spoofaxCommonPaths = new SpoofaxCommonPaths(project.location());
 
-        FileObject mainSignatureFile = getMainSignatureFile(spoofaxCommonPaths, language.id().id);
+        FileObject mainSignatureFile = getMainSignatureFile(spoofaxCommonPaths, language.belongsTo().name());
         FileObject includePath = spoofaxCommonPaths.syntaxSrcGenSignatureDir();
 
         SignatureReader signatureReader = signatureReaderFactory.create(strategoLanguage);

@@ -38,7 +38,7 @@ public class GeneratorFactory {
     }
 
     protected File getSyntaxMainFile(SpoofaxCommonPaths spoofaxCommonPaths, ILanguageImpl language) {
-        return resourceService.localFile(spoofaxCommonPaths.syntaxSrcGenMainNormFile(language.id().id));
+        return resourceService.localFile(spoofaxCommonPaths.syntaxSrcGenMainNormFile(language.belongsTo().name()));
     }
 
     protected File getSyntaxDirectory(SpoofaxCommonPaths spoofaxCommonPaths) {
