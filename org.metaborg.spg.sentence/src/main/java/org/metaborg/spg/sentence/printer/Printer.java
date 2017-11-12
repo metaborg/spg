@@ -26,7 +26,7 @@ public class Printer {
 
             return ((IStrategoString) program).stringValue();
         } catch (MetaborgException e) {
-            throw new RuntimeException("Failed to pretty-print", e);
+            throw new RuntimeException("Failed to pretty-print term: " + term, e);
         }
     }
 }

@@ -47,7 +47,9 @@ public class Generator {
 
     public Optional<IStrategoTerm> generateTerm(Symbol symbol, int size) {
         if (symbol.name().endsWith("-LEX")) {
-            return Optional.of(termFactory.makeString(generateLex(symbol)));
+            String generatedString = generateLex(symbol);
+
+            return Optional.of(termFactory.makeString(generatedString));
         } else {
             return generateCf(symbol, size);
         }
@@ -84,7 +86,7 @@ public class Generator {
     }
 
     public String generateCharacterClassNumeric(CharacterClassNumeric characterClassNumeric) {
-        return String.valueOf(characterClassNumeric.getCharacter());
+        return String.valueOf(Character.toChars(characterClassNumeric.getCharacter()));
     }
 
     public String generateLexicalSymbol(Symbol symbol) {
