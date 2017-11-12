@@ -2,15 +2,10 @@
 
 ## Building
 
-First, build `org.metaborg.spg.sentence`:
+Pom-first and manifest-first projects cannot be mixed in the same reactor build ([source](https://goo.gl/akexsK)), so we need to separately build `org.metaborg.spg.sentence` and `org.metaborg.spg.sentence.eclipse*`:
 
 ```
 mvn clean install -f org.metaborg.spg.sentence/pom.xml
-```
-
-Then, build `org.metaborg.spg.sentence.eclipse*`:
-
-```
 mvn clean install -f pom.xml
 ```
 

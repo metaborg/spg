@@ -14,6 +14,12 @@ import org.metaborg.core.language.ILanguageImpl;
 import org.metaborg.core.project.IProject;
 import org.metaborg.spg.sentence.*;
 import org.metaborg.spg.sentence.eclipse.config.SentenceHandlerConfig;
+import org.metaborg.spg.sentence.generator.Generator;
+import org.metaborg.spg.sentence.generator.GeneratorFactory;
+import org.metaborg.spg.sentence.printer.Printer;
+import org.metaborg.spg.sentence.printer.PrinterFactory;
+import org.metaborg.spg.sentence.shrinker.Shrinker;
+import org.metaborg.spg.sentence.shrinker.ShrinkerFactory;
 import org.metaborg.spoofax.core.terms.ITermFactoryService;
 import org.metaborg.spoofax.eclipse.util.ConsoleUtils;
 import org.spoofax.interpreter.terms.IStrategoTerm;
@@ -27,7 +33,7 @@ public class SentenceJob extends Job {
     private final ParseService parseService;
     private final GeneratorFactory generatorFactory;
     private final ShrinkerFactory shrinkerFactory;
-    private final PrettyPrinterFactory prettyPrinterFactory;
+    private final PrinterFactory printerFactory;
     private final ITermFactoryService termFactoryService;
 
     private final IProject project;
@@ -40,7 +46,7 @@ public class SentenceJob extends Job {
             ParseService parseService,
             GeneratorFactory generatorFactory,
             ShrinkerFactory shrinkerFactory,
-            PrettyPrinterFactory prettyPrinterFactory,
+            PrinterFactory printerFactory,
             ITermFactoryService termFactoryService,
             @Assisted IProject project,
             @Assisted("language") ILanguageImpl language,
@@ -51,7 +57,7 @@ public class SentenceJob extends Job {
         this.parseService = parseService;
         this.generatorFactory = generatorFactory;
         this.shrinkerFactory = shrinkerFactory;
-        this.prettyPrinterFactory = prettyPrinterFactory;
+        this.printerFactory = printerFactory;
         this.termFactoryService = termFactoryService;
 
         this.project = project;
@@ -66,15 +72,15 @@ public class SentenceJob extends Job {
             final SubMonitor subMonitor = SubMonitor.convert(monitor, config.getLimit());
 
             ITermFactory termFactory = termFactoryService.getGeneric();
-            PrettyPrinter prettyPrinter = prettyPrinterFactory.create(language, project);
-            Generator generator = generatorFactory.create(language, project);
-            Shrinker shrinker = shrinkerFactory.create(language, project, prettyPrinter, generator, termFactory, strategoLanguage);
+            Printer printer = printerFactory.create(language, project);
+            Generator generator = generatorFactory.create(language, project, printer);
+            Shrinker shrinker = shrinkerFactory.create(language, project, printer, generator, termFactory, strategoLanguage);
 
             for (int i = 0; i < config.getLimit(); i++) {
-                Optional<IStrategoTerm> termOpt = generator.generate(config.getMaxSize());
+                Optional<String> textOpt = generator.generate(config.getMaxSize());
                 
-                termOpt.ifPresent(Utils.uncheckConsumer(term ->
-                    process(subMonitor, prettyPrinter, shrinker, term)
+                textOpt.ifPresent(Utils.uncheckConsumer(text ->
+                    process(subMonitor, shrinker, text)
                 ));
             }
 
@@ -84,25 +90,19 @@ public class SentenceJob extends Job {
         }
     }
 
-    private void process(SubMonitor subMonitor, PrettyPrinter prettyPrinter, Shrinker shrinker, IStrategoTerm term) throws MetaborgException {
-        progress(subMonitor, term.toString());
+    private void process(SubMonitor subMonitor, Shrinker shrinker, String text) throws MetaborgException {
+        progress(subMonitor, text);
         
-        IStrategoTerm printParsedTerm = printParse(prettyPrinter, term);
+        IStrategoTerm term = parseService.parse(language, text);
         
-        if (parseService.isAmbiguous(printParsedTerm)) {
+        if (parseService.isAmbiguous(term)) {
             shrink(shrinker, term);
         }
     }
-    
-    protected IStrategoTerm printParse(PrettyPrinter prettyPrinter, IStrategoTerm term) throws MetaborgException {
-    		String text = prettyPrinter.prettyPrint(term);
-    		
-    		return parseService.parse(language, text);
-    }
 
-    protected void progress(SubMonitor monitor, String program) {
+    protected void progress(SubMonitor monitor, String text) {
         stream.println("=== Program ===");
-        stream.println(program);
+        stream.println(text);
 
         monitor.split(1);
     }
