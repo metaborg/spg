@@ -20,6 +20,7 @@ import org.metaborg.spg.sentence.printer.Printer;
 import org.metaborg.spg.sentence.printer.PrinterFactory;
 import org.metaborg.spg.sentence.shrinker.Shrinker;
 import org.metaborg.spg.sentence.shrinker.ShrinkerFactory;
+import org.metaborg.spg.sentence.shrinker.ShrinkerUnit;
 import org.metaborg.spoofax.core.terms.ITermFactoryService;
 import org.metaborg.spoofax.eclipse.util.ConsoleUtils;
 import org.spoofax.interpreter.terms.IStrategoTerm;
@@ -96,7 +97,7 @@ public class SentenceJob extends Job {
         IStrategoTerm term = parseService.parse(language, text);
         
         if (parseService.isAmbiguous(term)) {
-            shrink(shrinker, term);
+            shrink(shrinker, new ShrinkerUnit(term, text));
         }
     }
 
@@ -107,12 +108,12 @@ public class SentenceJob extends Job {
         monitor.split(1);
     }
 
-    protected void shrink(Shrinker shrinker, IStrategoTerm term) {
+    protected void shrink(Shrinker shrinker, ShrinkerUnit shrinkerUnit) {
         stream.println("=== Shrink ==");
-        stream.println(term.toString());
+        stream.println(shrinkerUnit.getText());
 
-        shrinker.shrink(term)
+        shrinker.shrink(shrinkerUnit)
                 .findAny()
-                .ifPresent(shrunkTerm -> shrink(shrinker, shrunkTerm));
+                .ifPresent(shrunkUnit -> shrink(shrinker, shrunkUnit));
     }
 }
