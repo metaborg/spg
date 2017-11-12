@@ -5,6 +5,13 @@ import org.metaborg.core.MetaborgException;
 import org.metaborg.core.language.ILanguageImpl;
 import org.metaborg.core.project.IProject;
 import org.metaborg.core.project.SimpleProjectService;
+import org.metaborg.spg.sentence.generator.Generator;
+import org.metaborg.spg.sentence.generator.GeneratorFactory;
+import org.metaborg.spg.sentence.printer.Printer;
+import org.metaborg.spg.sentence.printer.PrinterFactory;
+import org.metaborg.spg.sentence.shrinker.Shrinker;
+import org.metaborg.spg.sentence.shrinker.ShrinkerFactory;
+import org.metaborg.spg.sentence.shrinker.ShrinkerUnit;
 import org.metaborg.spoofax.core.Spoofax;
 import org.spoofax.interpreter.terms.IStrategoTerm;
 import org.spoofax.interpreter.terms.ITermFactory;
@@ -21,15 +28,15 @@ public class Main {
 
             ParseService parseService = spoofax.injector.getInstance(ParseService.class);
 
-            PrettyPrinterFactory prettyPrinterFactory = spoofax.injector.getInstance(PrettyPrinterFactory.class);
-            PrettyPrinter prettyPrinter = prettyPrinterFactory.create(objectLanguage, project);
+            PrinterFactory printerFactory = spoofax.injector.getInstance(PrinterFactory.class);
+            Printer printer = printerFactory.create(objectLanguage, project);
 
             GeneratorFactory generatorFactory = spoofax.injector.getInstance(GeneratorFactory.class);
-            Generator generator = generatorFactory.create(objectLanguage, project, prettyPrinter);
+            Generator generator = generatorFactory.create(objectLanguage, project, printer);
 
             ITermFactory termFactory = spoofax.termFactoryService.getGeneric();
             ShrinkerFactory shrinkerFactory = spoofax.injector.getInstance(ShrinkerFactory.class);
-            Shrinker shrinker = shrinkerFactory.create(objectLanguage, project, prettyPrinter, generator, termFactory, strategoLanguage);
+            Shrinker shrinker = shrinkerFactory.create(objectLanguage, project, printer, generator, termFactory, strategoLanguage);
 
             for (int i = 0; i < 1000; i++) {
                 Optional<String> textOpt = generator.generate(1000);

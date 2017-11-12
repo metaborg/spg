@@ -1,4 +1,4 @@
-package org.metaborg.spg.sentence;
+package org.metaborg.spg.sentence.shrinker;
 
 import com.google.common.collect.Iterables;
 import com.google.inject.Inject;
@@ -7,6 +7,9 @@ import org.metaborg.core.language.ILanguageImpl;
 import org.metaborg.core.project.IProject;
 import org.metaborg.core.resource.IResourceService;
 import org.metaborg.core.syntax.ParseException;
+import org.metaborg.spg.sentence.ParseService;
+import org.metaborg.spg.sentence.generator.Generator;
+import org.metaborg.spg.sentence.printer.Printer;
 import org.metaborg.spg.sentence.signature.Signature;
 import org.metaborg.spg.sentence.signature.SignatureReader;
 import org.metaborg.spg.sentence.signature.SignatureReaderFactory;
@@ -29,7 +32,7 @@ public class ShrinkerFactory {
     }
 
     // TODO: Reduce number of arguments.
-    public Shrinker create(ILanguageImpl language, IProject project, PrettyPrinter prettyPrinter, Generator generator, ITermFactory termFactory, ILanguageImpl strategoLanguage) throws IOException, ParseException {
+    public Shrinker create(ILanguageImpl language, IProject project, Printer printer, Generator generator, ITermFactory termFactory, ILanguageImpl strategoLanguage) throws IOException, ParseException {
         SpoofaxCommonPaths spoofaxCommonPaths = new SpoofaxCommonPaths(project.location());
 
         FileObject mainSignatureFile = getMainSignatureFile(spoofaxCommonPaths, language.id().id);
@@ -39,7 +42,7 @@ public class ShrinkerFactory {
         Signature signature = signatureReader.read(mainSignatureFile, includePath);
 
         String rootSort = getRootSort(language);
-        ShrinkerConfig shrinkerConfig = new ShrinkerConfig(language, signature, rootSort, prettyPrinter);
+        ShrinkerConfig shrinkerConfig = new ShrinkerConfig(language, signature, rootSort, printer);
 
         return new Shrinker(parseService, generator, termFactory, shrinkerConfig);
     }

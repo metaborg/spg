@@ -11,51 +11,51 @@ import org.spoofax.interpreter.terms.IStrategoAppl;
 import org.spoofax.interpreter.terms.IStrategoTerm;
 
 public class ParseService {
-  private ISpoofaxSyntaxService syntaxService;
-  private ISpoofaxUnitService unitService;
+    private ISpoofaxSyntaxService syntaxService;
+    private ISpoofaxUnitService unitService;
 
-  @Inject
-  public ParseService(ISpoofaxSyntaxService syntaxService, ISpoofaxUnitService unitService) {
-    this.syntaxService = syntaxService;
-    this.unitService = unitService;
-  }
-
-  public IStrategoTerm parse(ILanguageImpl language, String text) throws ParseException {
-    ISpoofaxInputUnit inputUnit = unitService.inputUnit(text, language, null);
-    ISpoofaxParseUnit parseUnit = syntaxService.parse(inputUnit);
-
-    return parseUnit.ast();
-  }
-
-  public ISpoofaxParseUnit parseUnit(ILanguageImpl language, String text) {
-    try {
-      ISpoofaxInputUnit inputUnit = unitService.inputUnit(text, language, null);
-
-      return syntaxService.parse(inputUnit);
-    } catch (ParseException e) {
-      throw new RuntimeException("Unable to parse", e);
-    }
-  }
-  
-  public boolean isAmbiguous(ISpoofaxParseUnit parseUnit) {
-    return isAmbiguous(parseUnit.ast());
-  }
-
-  public boolean isAmbiguous(IStrategoTerm term) {
-    if (term instanceof IStrategoAppl) {
-      IStrategoAppl appl = (IStrategoAppl) term;
-
-      if ("amb".equals(appl.getConstructor().getName())) {
-        return true;
-      }
+    @Inject
+    public ParseService(ISpoofaxSyntaxService syntaxService, ISpoofaxUnitService unitService) {
+        this.syntaxService = syntaxService;
+        this.unitService = unitService;
     }
 
-    for (IStrategoTerm subterm : term.getAllSubterms()) {
-      if (isAmbiguous(subterm)) {
-        return true;
-      }
+    public IStrategoTerm parse(ILanguageImpl language, String text) throws ParseException {
+        ISpoofaxInputUnit inputUnit = unitService.inputUnit(text, language, null);
+        ISpoofaxParseUnit parseUnit = syntaxService.parse(inputUnit);
+
+        return parseUnit.ast();
     }
 
-    return false;
-  }
+    public ISpoofaxParseUnit parseUnit(ILanguageImpl language, String text) {
+        try {
+            ISpoofaxInputUnit inputUnit = unitService.inputUnit(text, language, null);
+
+            return syntaxService.parse(inputUnit);
+        } catch (ParseException e) {
+            throw new RuntimeException("Unable to parse", e);
+        }
+    }
+
+    public boolean isAmbiguous(ISpoofaxParseUnit parseUnit) {
+        return isAmbiguous(parseUnit.ast());
+    }
+
+    public boolean isAmbiguous(IStrategoTerm term) {
+        if (term instanceof IStrategoAppl) {
+            IStrategoAppl appl = (IStrategoAppl) term;
+
+            if ("amb".equals(appl.getConstructor().getName())) {
+                return true;
+            }
+        }
+
+        for (IStrategoTerm subterm : term.getAllSubterms()) {
+            if (isAmbiguous(subterm)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

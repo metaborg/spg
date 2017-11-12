@@ -20,7 +20,7 @@ public class Utils {
             }
         };
     }
-    
+
     public static <T> Consumer<T> uncheckConsumer(CheckedConsumer<T, Exception> function) {
         return element -> {
             try {

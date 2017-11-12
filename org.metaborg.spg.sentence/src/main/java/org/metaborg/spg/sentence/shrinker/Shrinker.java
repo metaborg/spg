@@ -1,8 +1,10 @@
-package org.metaborg.spg.sentence;
+package org.metaborg.spg.sentence.shrinker;
 
 import org.metaborg.sdf2table.grammar.ContextFreeSymbol;
 import org.metaborg.sdf2table.grammar.Sort;
 import org.metaborg.sdf2table.grammar.Symbol;
+import org.metaborg.spg.sentence.ParseService;
+import org.metaborg.spg.sentence.generator.Generator;
 import org.metaborg.spg.sentence.signature.Constructor;
 import org.spoofax.interpreter.terms.*;
 
@@ -50,7 +52,7 @@ public class Shrinker {
         IStrategoTerm nonambiguousTerm = disambiguate(shrinkerUnit.getTerm());
 
         return shrink(nonambiguousTerm)
-                .map(term -> shrinkerConfig.getPrettyPrinter().prettyPrint(term))
+                .map(term -> shrinkerConfig.getPrinter().print(term))
                 .map(term -> parseService.parseUnit(shrinkerConfig.getLanguage(), term))
                 .map(ShrinkerUnit::new)
                 .filter(shrunkenUnit -> parseService.isAmbiguous(shrunkenUnit.getTerm()));

@@ -1,19 +1,20 @@
-package org.metaborg.spg.sentence;
+package org.metaborg.spg.sentence.shrinker;
 
 import org.metaborg.core.language.ILanguageImpl;
+import org.metaborg.spg.sentence.printer.Printer;
 import org.metaborg.spg.sentence.signature.Signature;
 
 public class ShrinkerConfig {
     private final ILanguageImpl language;
     private final Signature signature;
     private final String rootSort;
-    private final PrettyPrinter prettyPrinter;
+    private final Printer printer;
 
-    public ShrinkerConfig(ILanguageImpl language, Signature signature, String rootSort, PrettyPrinter prettyPrinter) {
+    public ShrinkerConfig(ILanguageImpl language, Signature signature, String rootSort, Printer printer) {
         this.language = language;
         this.signature = signature;
         this.rootSort = rootSort;
-        this.prettyPrinter = prettyPrinter;
+        this.printer = printer;
     }
 
     public ILanguageImpl getLanguage() {
@@ -28,7 +29,7 @@ public class ShrinkerConfig {
         return rootSort;
     }
 
-    public PrettyPrinter getPrettyPrinter() {
-        return prettyPrinter;
+    public Printer getPrinter() {
+        return printer;
     }
 }

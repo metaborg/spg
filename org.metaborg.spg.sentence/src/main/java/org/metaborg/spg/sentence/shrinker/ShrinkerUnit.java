@@ -1,4 +1,4 @@
-package org.metaborg.spg.sentence;
+package org.metaborg.spg.sentence.shrinker;
 
 import org.metaborg.spoofax.core.unit.ISpoofaxParseUnit;
 import org.spoofax.interpreter.terms.IStrategoTerm;
