@@ -4,8 +4,10 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.inject.Inject;
 import org.metaborg.sdf2table.grammar.*;
+import org.metaborg.spg.sentence.Utils;
 import org.metaborg.spg.sentence.printer.Printer;
 import org.spoofax.interpreter.terms.IStrategoConstructor;
+import org.spoofax.interpreter.terms.IStrategoList;
 import org.spoofax.interpreter.terms.IStrategoTerm;
 import org.spoofax.interpreter.terms.ITermFactory;
 import org.spoofax.terms.StrategoConstructor;
@@ -15,7 +17,9 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class Generator {
-    public static Random random = new Random();
+    public static final int MINIMUM_PRINTABLE = 32;
+    public static final int MAXIMUM_PRINTABLE = 126;
+    public static final Random random = new Random();
 
     private final Printer printer;
     private final ITermFactory termFactory;
@@ -46,13 +50,65 @@ public class Generator {
     }
 
     public Optional<IStrategoTerm> generateTerm(Symbol symbol, int size) {
-        if (symbol.name().endsWith("-LEX")) {
+        if (size <= 0) {
+            return Optional.empty();
+        }
+
+        if (symbol instanceof LexicalSymbol) {
             String generatedString = generateLex(symbol);
 
             return Optional.of(termFactory.makeString(generatedString));
+        } else if (symbol instanceof ContextFreeSymbol) {
+            Symbol innerSymbol = ((ContextFreeSymbol) symbol).getSymbol();
+
+            if (innerSymbol instanceof IterSymbol) {
+                return generateIter(new ContextFreeSymbol(((IterSymbol) innerSymbol).getSymbol()), size);
+            } else if (innerSymbol instanceof IterSepSymbol) {
+                return generateIter(new ContextFreeSymbol(((IterSepSymbol) innerSymbol).getSymbol()), size);
+            } else if (innerSymbol instanceof IterStarSymbol) {
+                return generateIterStar(new ContextFreeSymbol(((IterStarSymbol) innerSymbol).getSymbol()), size);
+            } else if (innerSymbol instanceof IterStarSepSymbol) {
+                return generateIterStar(new ContextFreeSymbol(((IterStarSepSymbol) innerSymbol).getSymbol()), size);
+            } else if (innerSymbol instanceof Sort) {
+                return generateCf(symbol, size);
+            }
         } else {
             return generateCf(symbol, size);
         }
+
+        throw new IllegalStateException("Unknown symbol: " + symbol);
+    }
+
+    private Optional<IStrategoTerm> generateIterStar(Symbol innerSymbol, int size) {
+        if (random.nextInt(2) == 0) {
+            return Optional.of(termFactory.makeList());
+        } else {
+            Optional<IStrategoTerm> headOpt = generateTerm(innerSymbol, size);
+
+            if (headOpt.isPresent()) {
+                Optional<IStrategoTerm> tailOpt = generateIter(innerSymbol, size);
+
+                if (tailOpt.isPresent()) {
+                    return Optional.of(termFactory.makeListCons(headOpt.get(), (IStrategoList) tailOpt.get()));
+                }
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    private Optional<IStrategoTerm> generateIter(Symbol innerSymbol, int size) {
+        Optional<IStrategoTerm> headOpt = generateTerm(innerSymbol, size / 2);
+
+        if (headOpt.isPresent()) {
+            Optional<IStrategoTerm> tailOpt = generateIterStar(innerSymbol, size / 2);
+
+            if (tailOpt.isPresent()) {
+                return Optional.of(termFactory.makeListCons(headOpt.get(), (IStrategoList) tailOpt.get()));
+            }
+        }
+
+        return Optional.empty();
     }
 
     public String generateLex(Symbol symbol) {
@@ -78,8 +134,23 @@ public class Generator {
         return first + second;
     }
 
+    // TODO: Generate for lexical sorts
+
+    // TODO: Generate for list
+
+    // TODO: Generate for optional
+
+    /**
+     * Generate a string consisting of a printable character from the given character range.
+     *
+     * @param characterClassRange
+     * @return
+     */
     public String generateCharacterClassRange(CharacterClassRange characterClassRange) {
-        int range = characterClassRange.maximum() - characterClassRange.minimum() + 1;
+        int minimumPrintable = Math.max(characterClassRange.minimum(), MINIMUM_PRINTABLE);
+        int maximumPrintable = Math.min(characterClassRange.maximum(), MAXIMUM_PRINTABLE);
+
+        int range = maximumPrintable - minimumPrintable + 1;
         char character = (char) (characterClassRange.minimum() + random.nextInt(range));
 
         return String.valueOf(character);
@@ -98,42 +169,47 @@ public class Generator {
 
         IProduction production = random(productions);
 
-        return production.rightHand().stream().map(this::generateLex).collect(Collectors.joining());
+        return production
+                .rightHand()
+                .stream()
+                .map(this::generateLex)
+                .collect(Collectors.joining());
     }
 
     public Optional<IStrategoTerm> generateCf(Symbol symbol, int size) {
-        if (size <= 0) {
-            return Optional.empty();
-        }
-
         List<IProduction> productions = productionsMap.get(symbol);
 
         if (productions.isEmpty()) {
             return Optional.empty();
         }
 
-        IProduction production = random(productions);
-        List<Symbol> symbols = cleanRhs(production.rightHand());
-        int childSize = (size - 1) / Math.max(1, symbols.size());
-        List<IStrategoTerm> children = new ArrayList<>();
+        for (IProduction production : Utils.shuffle(productions)) {
+            List<Symbol> rhsSymbols = cleanRhs(production.rightHand());
+            int childSize = (size - 1) / Math.max(1, rhsSymbols.size());
+            List<IStrategoTerm> children = new ArrayList<>();
 
-        for (Symbol rhsSymbol : symbols) {
-            Optional<IStrategoTerm> childTerm = generateTerm(rhsSymbol, childSize);
+            for (Symbol rhsSymbol : rhsSymbols) {
+                Optional<IStrategoTerm> childTerm = generateTerm(rhsSymbol, childSize);
 
-            if (!childTerm.isPresent()) {
-                return Optional.empty();
-            } else {
-                children.add(childTerm.get());
+                if (childTerm.isPresent()) {
+                    children.add(childTerm.get());
+                } else {
+                    break;
+                }
+            }
+
+            if (children.size() == rhsSymbols.size()) {
+                Optional<String> constructor = getConstructor(production);
+
+                if (constructor.isPresent()) {
+                    return Optional.of(makeAppl(constructor.get(), children));
+                } else {
+                    return Optional.of(children.get(0));
+                }
             }
         }
 
-        Optional<String> constructor = getConstructor(production);
-
-        if (constructor.isPresent()) {
-            return Optional.of(makeAppl(constructor.get(), children));
-        } else {
-            return Optional.of(children.get(0));
-        }
+        return Optional.empty();
     }
 
     protected <T> T random(List<T> list) {
