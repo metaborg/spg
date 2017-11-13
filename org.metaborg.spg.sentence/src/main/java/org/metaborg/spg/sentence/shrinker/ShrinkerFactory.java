@@ -4,7 +4,7 @@ import com.google.inject.Inject;
 import org.metaborg.core.language.ILanguageImpl;
 import org.metaborg.core.project.IProject;
 import org.metaborg.core.syntax.ParseException;
-import org.metaborg.spg.sentence.ParseService;
+import org.metaborg.spg.sentence.parser.ParseService;
 import org.metaborg.spg.sentence.generator.Generator;
 import org.metaborg.spg.sentence.printer.Printer;
 import org.spoofax.interpreter.terms.ITermFactory;

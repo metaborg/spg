@@ -3,6 +3,8 @@ package org.metaborg.spg.sentence;
 import org.metaborg.spg.sentence.functional.CheckedConsumer;
 import org.metaborg.spg.sentence.functional.CheckedPredicate;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -33,5 +35,11 @@ public class Utils {
                 }
             }
         };
+    }
+
+    public static <T> Iterable<T> shuffle(List<T> list) {
+        Collections.shuffle(list);
+
+        return list;
     }
 }

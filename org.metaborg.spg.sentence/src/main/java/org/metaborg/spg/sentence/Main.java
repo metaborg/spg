@@ -7,8 +7,11 @@ import org.metaborg.core.project.IProject;
 import org.metaborg.core.project.SimpleProjectService;
 import org.metaborg.spg.sentence.generator.Generator;
 import org.metaborg.spg.sentence.generator.GeneratorFactory;
+import org.metaborg.spg.sentence.parser.ParseRuntimeException;
+import org.metaborg.spg.sentence.parser.ParseService;
 import org.metaborg.spg.sentence.printer.Printer;
 import org.metaborg.spg.sentence.printer.PrinterFactory;
+import org.metaborg.spg.sentence.printer.PrinterRuntimeException;
 import org.metaborg.spg.sentence.shrinker.Shrinker;
 import org.metaborg.spg.sentence.shrinker.ShrinkerFactory;
 import org.metaborg.spg.sentence.shrinker.ShrinkerUnit;
@@ -38,19 +41,23 @@ public class Main {
             Shrinker shrinker = shrinkerFactory.create(objectLanguage, project, printer, generator, termFactory);
             
             for (int i = 0; i < 1000; i++) {
-                Optional<String> textOpt = generator.generate(1000);
+                try {
+                    Optional<String> textOpt = generator.generate(1000);
 
-                if (textOpt.isPresent()) {
-                    String text = textOpt.get();
+                    if (textOpt.isPresent()) {
+                        String text = textOpt.get();
 
-                    System.out.println("=== Program ===");
-                    System.out.println(text);
+                        System.out.println("=== Program ===");
+                        System.out.println(text);
 
-                    IStrategoTerm term = parseService.parse(objectLanguage, text);
+                        IStrategoTerm term = parseService.parse(objectLanguage, text);
 
-                    if (parseService.isAmbiguous(term)) {
-                        shrink(shrinker, new ShrinkerUnit(term, text));
+                        if (parseService.isAmbiguous(term)) {
+                            shrink(shrinker, new ShrinkerUnit(term, text));
+                        }
                     }
+                } catch (PrinterRuntimeException | ParseRuntimeException e) {
+                    e.printStackTrace();
                 }
             }
         } catch (MetaborgException e) {
