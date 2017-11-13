@@ -21,12 +21,12 @@ public class Printer {
             IStrategoTerm program = stratego.invoke(interpreter, term, PRETTY_PRINT_STRATEGY);
 
             if (!(program instanceof IStrategoString)) {
-                throw new IllegalStateException("The pretty-printer returned a non-string.");
+                throw new PrinterRuntimeException("The pretty-printer returned a non-string.");
             }
 
             return ((IStrategoString) program).stringValue();
         } catch (MetaborgException e) {
-            throw new RuntimeException("Failed to pretty-print term: " + term, e);
+            throw new PrinterRuntimeException("Failed to pretty-print term: " + term, e);
         }
     }
 }

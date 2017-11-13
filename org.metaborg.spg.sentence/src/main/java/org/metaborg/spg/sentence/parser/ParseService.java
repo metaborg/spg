@@ -1,4 +1,4 @@
-package org.metaborg.spg.sentence;
+package org.metaborg.spg.sentence.parser;
 
 import com.google.inject.Inject;
 import org.metaborg.core.language.ILanguageImpl;
@@ -20,20 +20,23 @@ public class ParseService {
         this.unitService = unitService;
     }
 
-    public IStrategoTerm parse(ILanguageImpl language, String text) throws ParseException {
-        ISpoofaxInputUnit inputUnit = unitService.inputUnit(text, language, null);
-        ISpoofaxParseUnit parseUnit = syntaxService.parse(inputUnit);
-
-        return parseUnit.ast();
+    public IStrategoTerm parse(ILanguageImpl language, String text) {
+        return parseUnit(language, text).ast();
     }
 
     public ISpoofaxParseUnit parseUnit(ILanguageImpl language, String text) {
-        try {
-            ISpoofaxInputUnit inputUnit = unitService.inputUnit(text, language, null);
+        ISpoofaxInputUnit inputUnit = unitService.inputUnit(text, language, null);
 
-            return syntaxService.parse(inputUnit);
+        try {
+            ISpoofaxParseUnit parseUnit = syntaxService.parse(inputUnit);
+
+            if (!parseUnit.success()) {
+                throw new ParseRuntimeException("Unable to parse: " + text);
+            }
+
+            return parseUnit;
         } catch (ParseException e) {
-            throw new RuntimeException("Unable to parse", e);
+            throw new ParseRuntimeException("Unable to parse: " + text, e);
         }
     }
 
