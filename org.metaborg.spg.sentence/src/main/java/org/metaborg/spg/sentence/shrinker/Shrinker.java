@@ -1,16 +1,20 @@
 package org.metaborg.spg.sentence.shrinker;
 
 import org.metaborg.sdf2table.grammar.ContextFreeSymbol;
+import org.metaborg.sdf2table.grammar.OptionalSymbol;
 import org.metaborg.sdf2table.grammar.Sort;
 import org.metaborg.sdf2table.grammar.Symbol;
-import org.metaborg.spg.sentence.ParseService;
+import org.metaborg.spg.sentence.Utils;
+import org.metaborg.spg.sentence.parser.ParseService;
 import org.metaborg.spg.sentence.generator.Generator;
 import org.spoofax.interpreter.terms.*;
 import org.spoofax.jsglr.client.imploder.ImploderAttachment;
 import org.spoofax.terms.attachments.OriginAttachment;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.stream.Stream.*;
@@ -54,7 +58,7 @@ public class Shrinker {
 
         return shrink(nonambiguousTerm)
                 .map(term -> shrinkerConfig.getPrinter().print(term))
-                .map(term -> parseService.parseUnit(shrinkerConfig.getLanguage(), term))
+                .map(text -> parseService.parseUnit(shrinkerConfig.getLanguage(), text))
                 .map(ShrinkerUnit::new)
                 .filter(shrunkenUnit -> parseService.isAmbiguous(shrunkenUnit.getTerm()));
     }
@@ -69,9 +73,12 @@ public class Shrinker {
      * @return
      */
     public Stream<IStrategoTerm> shrink(IStrategoTerm nonambiguousTerm) {
-        Stream<IStrategoTerm> subTerms = subTerms(nonambiguousTerm);
+        List<IStrategoTerm> subTerms = subTerms(nonambiguousTerm).collect(Collectors.toList());
 
-        return subTerms.flatMap(subTerm ->
+        // In-place shuffle
+        Utils.shuffle(subTerms);
+
+        return subTerms.stream().flatMap(subTerm ->
                 shrinkTerm(nonambiguousTerm, subTerm)
         );
     }
@@ -84,17 +91,34 @@ public class Shrinker {
      * @return
      */
     protected Stream<IStrategoTerm> shrinkTerm(IStrategoTerm haystack, IStrategoTerm needle) {
-        int size = size(needle);
-        Sort sort = getSort(needle);
-        Symbol symbol = new ContextFreeSymbol(sort);
-
-        Optional<IStrategoTerm> generatedSubTerm = generator.generateTerm(symbol, size - 1);
+        Symbol symbol = getRealSymbol(needle);
+        Optional<IStrategoTerm> generatedSubTerm = generator.generateTerm(symbol, size(needle) - 1);
 
         if (generatedSubTerm.isPresent()) {
             return of(replaceTerm(haystack, needle, generatedSubTerm.get()));
         }
 
         return empty();
+    }
+
+    /**
+     * If the term is a Some/None term, then its sort is actually Optional.
+     *
+     * @param term
+     * @return
+     */
+    protected Symbol getRealSymbol(IStrategoTerm term) {
+        Sort sort = getSort(term);
+
+        if (term instanceof IStrategoAppl) {
+            IStrategoAppl appl = (IStrategoAppl) term;
+
+            if ("None".equals(appl.getConstructor().getName()) || "Some".equals(appl.getConstructor().getName())) {
+                return new ContextFreeSymbol(new OptionalSymbol(sort));
+            }
+        }
+
+        return new ContextFreeSymbol(sort);
     }
 
     /**
@@ -202,18 +226,84 @@ public class Shrinker {
 
             if ("amb".equals(appl.getConstructor().getName())) {
                 IStrategoTerm alternatives = appl.getSubterm(0);
+                IStrategoTerm alternative = alternatives.getSubterm(0);
 
-                return disambiguate(alternatives.getSubterm(0));
+                return disambiguate(alternative);
             } else {
-                IStrategoTerm[] children = Arrays
-                        .stream(appl.getAllSubterms())
-                        .map(this::disambiguate)
-                        .toArray(IStrategoTerm[]::new);
+                IStrategoTerm[] children = disambiguateChildren(appl);
 
                 return termFactory.replaceAppl(appl.getConstructor(), children, appl);
+            }
+        } else if (term instanceof IStrategoList) {
+            IStrategoList list = (IStrategoList) term;
+            IStrategoTerm[] children = disambiguateChildren(list);
+
+            if (isAmbiguousList(list)) {
+                return flatten(termFactory.replaceList(children, list));
+            } else {
+                return termFactory.replaceList(children, list);
             }
         }
 
         return term;
+    }
+
+    private IStrategoTerm[] disambiguateChildren(IStrategoTerm term) {
+        return Arrays
+                .stream(term.getAllSubterms())
+                .map(this::disambiguate)
+                .toArray(IStrategoTerm[]::new);
+    }
+
+    /**
+     * Check if the given list contains an amb-node.
+     *
+     * @param term
+     * @return
+     */
+    private boolean isAmbiguousList(IStrategoTerm term) {
+        return Arrays
+                .stream(term.getAllSubterms())
+                .anyMatch(this::isAmbiguousNode);
+    }
+
+    /**
+     * Check if the given term is an amb-node.
+     *
+     * @param term
+     * @return
+     */
+    private boolean isAmbiguousNode(IStrategoTerm term) {
+        if (term instanceof IStrategoAppl) {
+            IStrategoAppl appl = (IStrategoAppl) term;
+
+            if ("amb".equals(appl.getConstructor().getName())) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Flatten a list of a list to a single list (one level).
+     *
+     * @param term
+     * @return
+     */
+    private IStrategoTerm flatten(IStrategoTerm term) {
+        if (term instanceof IStrategoList) {
+            Stream<IStrategoTerm> children = Arrays.stream(term.getAllSubterms()).flatMap(subTerm -> {
+                if (subTerm instanceof IStrategoList) {
+                    return Arrays.stream(subTerm.getAllSubterms());
+                } else {
+                    return Stream.of(subTerm);
+                }
+            });
+
+            return termFactory.makeList(children.collect(Collectors.toList()));
+        } else {
+            return term;
+        }
     }
 }
