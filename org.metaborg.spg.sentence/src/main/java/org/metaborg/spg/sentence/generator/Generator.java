@@ -69,6 +69,8 @@ public class Generator {
                 return generateIterStar(new ContextFreeSymbol(((IterStarSymbol) innerSymbol).getSymbol()), size);
             } else if (innerSymbol instanceof IterStarSepSymbol) {
                 return generateIterStar(new ContextFreeSymbol(((IterStarSepSymbol) innerSymbol).getSymbol()), size);
+            } else if (innerSymbol instanceof OptionalSymbol) {
+                return generateOptional(new ContextFreeSymbol(((OptionalSymbol) innerSymbol).getSymbol()), size);
             } else if (innerSymbol instanceof Sort) {
                 return generateCf(symbol, size);
             }
@@ -79,14 +81,14 @@ public class Generator {
         throw new IllegalStateException("Unknown symbol: " + symbol);
     }
 
-    private Optional<IStrategoTerm> generateIterStar(Symbol innerSymbol, int size) {
+    private Optional<IStrategoTerm> generateIterStar(Symbol symbol, int size) {
         if (random.nextInt(2) == 0) {
             return Optional.of(termFactory.makeList());
         } else {
-            Optional<IStrategoTerm> headOpt = generateTerm(innerSymbol, size);
+            Optional<IStrategoTerm> headOpt = generateTerm(symbol, size);
 
             if (headOpt.isPresent()) {
-                Optional<IStrategoTerm> tailOpt = generateIter(innerSymbol, size);
+                Optional<IStrategoTerm> tailOpt = generateIter(symbol, size);
 
                 if (tailOpt.isPresent()) {
                     return Optional.of(termFactory.makeListCons(headOpt.get(), (IStrategoList) tailOpt.get()));
@@ -97,11 +99,11 @@ public class Generator {
         return Optional.empty();
     }
 
-    private Optional<IStrategoTerm> generateIter(Symbol innerSymbol, int size) {
-        Optional<IStrategoTerm> headOpt = generateTerm(innerSymbol, size / 2);
+    private Optional<IStrategoTerm> generateIter(Symbol symbol, int size) {
+        Optional<IStrategoTerm> headOpt = generateTerm(symbol, size / 2);
 
         if (headOpt.isPresent()) {
-            Optional<IStrategoTerm> tailOpt = generateIterStar(innerSymbol, size / 2);
+            Optional<IStrategoTerm> tailOpt = generateIterStar(symbol, size / 2);
 
             if (tailOpt.isPresent()) {
                 return Optional.of(termFactory.makeListCons(headOpt.get(), (IStrategoList) tailOpt.get()));
@@ -111,6 +113,24 @@ public class Generator {
         return Optional.empty();
     }
 
+    private Optional<IStrategoTerm> generateOptional(Symbol symbol, int size) {
+        if (random.nextInt(2) == 0) {
+            return Optional.of(makeNone());
+        } else {
+            Optional<IStrategoTerm> term = generateTerm(symbol, size - 1);
+
+            return term.map(this::makeSome);
+        }
+    }
+
+    private IStrategoTerm makeSome(IStrategoTerm term) {
+        return termFactory.makeAppl(termFactory.makeConstructor("Some", 1), term);
+    }
+
+    private IStrategoTerm makeNone() {
+        return termFactory.makeAppl(termFactory.makeConstructor("None", 0));
+    }
+
     public String generateLex(Symbol symbol) {
         if (symbol instanceof CharacterClass) {
             return generateLex(((CharacterClass) symbol).symbol());
@@ -118,10 +138,10 @@ public class Generator {
             return generateCharacterClassConc((CharacterClassConc) symbol);
         } else if (symbol instanceof CharacterClassRange) {
             return generateCharacterClassRange((CharacterClassRange) symbol);
-        } else if (symbol instanceof LexicalSymbol || symbol instanceof Sort) {
-            return generateLexicalSymbol(symbol);
         } else if (symbol instanceof CharacterClassNumeric) {
             return generateCharacterClassNumeric((CharacterClassNumeric) symbol);
+        } else if (symbol instanceof LexicalSymbol || symbol instanceof Sort) {
+            return generateLexicalSymbol(symbol);
         }
 
         throw new IllegalStateException("Unknown symbol: " + symbol);
@@ -134,12 +154,6 @@ public class Generator {
         return first + second;
     }
 
-    // TODO: Generate for lexical sorts
-
-    // TODO: Generate for list
-
-    // TODO: Generate for optional
-
     /**
      * Generate a string consisting of a printable character from the given character range.
      *
@@ -151,15 +165,17 @@ public class Generator {
         int maximumPrintable = Math.min(characterClassRange.maximum(), MAXIMUM_PRINTABLE);
 
         int range = maximumPrintable - minimumPrintable + 1;
-        char character = (char) (characterClassRange.minimum() + random.nextInt(range));
+        char character = (char) (minimumPrintable + random.nextInt(range));
 
         return String.valueOf(character);
     }
 
+    // TODO: String concatenation is slow?
     public String generateCharacterClassNumeric(CharacterClassNumeric characterClassNumeric) {
         return String.valueOf(Character.toChars(characterClassNumeric.getCharacter()));
     }
 
+    // TODO: Backtracking?
     public String generateLexicalSymbol(Symbol symbol) {
         List<IProduction> productions = productionsMap.get(symbol);
 
