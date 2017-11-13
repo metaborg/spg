@@ -25,6 +25,7 @@ import org.metaborg.core.messages.IMessage;
 import org.metaborg.core.project.IProject;
 import org.metaborg.core.project.IProjectService;
 import org.metaborg.spg.sentence.eclipse.Activator;
+import org.metaborg.spg.sentence.eclipse.SentenceEclipseModule;
 import org.metaborg.spg.sentence.eclipse.config.SentenceHandlerConfig;
 import org.metaborg.spg.sentence.eclipse.dialog.SentenceDialog;
 import org.metaborg.spg.sentence.eclipse.exception.LanguageNotFoundException;
@@ -37,7 +38,7 @@ public class SentenceHandler extends AbstractHandler {
     private final Injector injector;
 
     public SentenceHandler() {
-        this.injector = SpoofaxPlugin.spoofax().injector;
+        this.injector = SpoofaxPlugin.spoofax().injector.createChildInjector(new SentenceEclipseModule());
     }
 
     public Object execute(ExecutionEvent executionEvent) throws ExecutionException {
