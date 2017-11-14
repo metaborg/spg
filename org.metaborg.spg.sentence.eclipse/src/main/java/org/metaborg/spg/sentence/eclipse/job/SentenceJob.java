@@ -2,32 +2,19 @@ package org.metaborg.spg.sentence.eclipse.job;
 
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
-import org.eclipse.core.runtime.IProgressMonitor;
-import org.eclipse.core.runtime.IStatus;
-import org.eclipse.core.runtime.Status;
-import org.eclipse.core.runtime.SubMonitor;
+import org.eclipse.core.runtime.*;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.ui.console.MessageConsole;
 import org.eclipse.ui.console.MessageConsoleStream;
-import org.metaborg.core.MetaborgException;
 import org.metaborg.core.language.ILanguageImpl;
 import org.metaborg.core.project.IProject;
-import org.metaborg.spg.sentence.Utils;
-import org.metaborg.spg.sentence.eclipse.config.SentenceHandlerConfig;
-import org.metaborg.spg.sentence.generator.Generator;
+import org.metaborg.spg.sentence.ambiguity.*;
 import org.metaborg.spg.sentence.generator.GeneratorFactory;
 import org.metaborg.spg.sentence.parser.ParseService;
-import org.metaborg.spg.sentence.printer.Printer;
 import org.metaborg.spg.sentence.printer.PrinterFactory;
-import org.metaborg.spg.sentence.shrinker.Shrinker;
 import org.metaborg.spg.sentence.shrinker.ShrinkerFactory;
-import org.metaborg.spg.sentence.shrinker.ShrinkerUnit;
 import org.metaborg.spoofax.core.terms.ITermFactoryService;
 import org.metaborg.spoofax.eclipse.util.ConsoleUtils;
-import org.spoofax.interpreter.terms.IStrategoTerm;
-import org.spoofax.interpreter.terms.ITermFactory;
-
-import java.util.Optional;
 
 public class SentenceJob extends Job {
     private final MessageConsole console = ConsoleUtils.get("Spoofax console");
@@ -40,7 +27,7 @@ public class SentenceJob extends Job {
 
     private final IProject project;
     private final ILanguageImpl language;
-    private final SentenceHandlerConfig config;
+    private final AmbiguityTesterConfig config;
 
     @Inject
     public SentenceJob(
@@ -51,7 +38,7 @@ public class SentenceJob extends Job {
             ITermFactoryService termFactoryService,
             @Assisted IProject project,
             @Assisted ILanguageImpl language,
-            @Assisted SentenceHandlerConfig config) {
+            @Assisted AmbiguityTesterConfig config) {
         super("Generate");
 
         this.parseService = parseService;
@@ -68,50 +55,47 @@ public class SentenceJob extends Job {
     @Override
     protected IStatus run(IProgressMonitor monitor) {
         try {
-            final SubMonitor subMonitor = SubMonitor.convert(monitor, config.getLimit());
+            final SubMonitor subMonitor = SubMonitor.convert(monitor, config.getMaxNumberOfTerms());
 
-            ITermFactory termFactory = termFactoryService.getGeneric();
-            Printer printer = printerFactory.create(language, project);
-            Generator generator = generatorFactory.create(language, project, printer);
-            Shrinker shrinker = shrinkerFactory.create(language, project, printer, generator, termFactory);
+            AmbiguityTester ambiguityTester = new AmbiguityTester(
+                    parseService,
+                    termFactoryService,
+                    printerFactory,
+                    generatorFactory,
+                    shrinkerFactory
+            );
 
-            for (int i = 0; i < config.getLimit(); i++) {
-                Optional<String> textOpt = generator.generate(config.getMaxSize());
+            AmbiguityTesterProgress progress = new AmbiguityTesterProgress() {
+                @Override
+                public void sentenceGenerated(String text) {
+                    stream.println("=== Program ===");
+                    stream.println(text);
 
-                textOpt.ifPresent(Utils.uncheckConsumer(text ->
-                        process(subMonitor, shrinker, text)
-                ));
+                    try {
+                        subMonitor.split(1);
+                    } catch (OperationCanceledException e) {
+                        throw new AmbiguityTesterCancelledException(e);
+                    }
+                }
+
+                @Override
+                public void sentenceShrinked(String text) {
+                    stream.println("=== Shrink ==");
+                    stream.println(text);
+                }
+            };
+
+            AmbiguityTesterResult ambiguityTesterResult = ambiguityTester.findAmbiguity(language, project, config, progress);
+
+            if (ambiguityTesterResult.foundAmbiguity()) {
+                stream.println("Found ambiguous sentence after " + ambiguityTesterResult.getTerms() + " terms (" + ambiguityTesterResult.getDuration() + " ms).");
+            } else {
+                stream.println("No sentence found after " + ambiguityTesterResult.getTerms() + " terms (" + ambiguityTesterResult.getDuration() + " ms).");
             }
 
             return Status.OK_STATUS;
         } catch (Exception e) {
             return Status.CANCEL_STATUS;
         }
-    }
-
-    private void process(SubMonitor subMonitor, Shrinker shrinker, String text) throws MetaborgException {
-        progress(subMonitor, text);
-
-        IStrategoTerm term = parseService.parse(language, text);
-
-        if (parseService.isAmbiguous(term)) {
-            shrink(shrinker, new ShrinkerUnit(term, text));
-        }
-    }
-
-    protected void progress(SubMonitor monitor, String text) {
-        stream.println("=== Program ===");
-        stream.println(text);
-
-        monitor.split(1);
-    }
-
-    protected void shrink(Shrinker shrinker, ShrinkerUnit shrinkerUnit) {
-        stream.println("=== Shrink ==");
-        stream.println(shrinkerUnit.getText());
-
-        shrinker.shrink(shrinkerUnit)
-                .findAny()
-                .ifPresent(shrunkUnit -> shrink(shrinker, shrunkUnit));
     }
 }

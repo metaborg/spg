@@ -5,73 +5,77 @@ import org.metaborg.core.MetaborgException;
 import org.metaborg.core.language.ILanguageImpl;
 import org.metaborg.core.project.IProject;
 import org.metaborg.core.project.SimpleProjectService;
+import org.metaborg.spg.sentence.ambiguity.AmbiguityTester;
+import org.metaborg.spg.sentence.ambiguity.AmbiguityTesterConfig;
+import org.metaborg.spg.sentence.ambiguity.AmbiguityTesterProgress;
+import org.metaborg.spg.sentence.ambiguity.AmbiguityTesterResult;
 import org.metaborg.spg.sentence.generator.Generator;
 import org.metaborg.spg.sentence.generator.GeneratorFactory;
-import org.metaborg.spg.sentence.parser.ParseRuntimeException;
 import org.metaborg.spg.sentence.parser.ParseService;
 import org.metaborg.spg.sentence.printer.Printer;
 import org.metaborg.spg.sentence.printer.PrinterFactory;
-import org.metaborg.spg.sentence.printer.PrinterRuntimeException;
 import org.metaborg.spg.sentence.shrinker.Shrinker;
 import org.metaborg.spg.sentence.shrinker.ShrinkerFactory;
-import org.metaborg.spg.sentence.shrinker.ShrinkerUnit;
 import org.metaborg.spoofax.core.Spoofax;
-import org.spoofax.interpreter.terms.IStrategoTerm;
+import org.metaborg.spoofax.core.terms.ITermFactoryService;
 import org.spoofax.interpreter.terms.ITermFactory;
 
 import java.io.File;
-import java.util.Optional;
 
 public class Main {
     public static void main(String[] args) throws Exception {
         try (final Spoofax spoofax = new Spoofax()) {
-            ILanguageImpl objectLanguage = loadLanguage(spoofax, new File(args[0]));
+            ILanguageImpl language = loadLanguage(spoofax, new File(args[0]));
             IProject project = getOrCreateProject(spoofax, new File(args[1]));
 
             ParseService parseService = spoofax.injector.getInstance(ParseService.class);
 
             PrinterFactory printerFactory = spoofax.injector.getInstance(PrinterFactory.class);
-            Printer printer = printerFactory.create(objectLanguage, project);
+            Printer printer = printerFactory.create(language, project);
 
             GeneratorFactory generatorFactory = spoofax.injector.getInstance(GeneratorFactory.class);
-            Generator generator = generatorFactory.create(objectLanguage, project, printer);
+            Generator generator = generatorFactory.create(language, project, printer);
 
+            ITermFactoryService termFactoryService = spoofax.termFactoryService;
             ITermFactory termFactory = spoofax.termFactoryService.getGeneric();
+
             ShrinkerFactory shrinkerFactory = spoofax.injector.getInstance(ShrinkerFactory.class);
-            Shrinker shrinker = shrinkerFactory.create(objectLanguage, project, printer, generator, termFactory);
-            
-            for (int i = 0; i < 1000; i++) {
-                try {
-                    Optional<String> textOpt = generator.generate(1000);
+            Shrinker shrinker = shrinkerFactory.create(language, project, printer, generator, termFactory);
 
-                    if (textOpt.isPresent()) {
-                        String text = textOpt.get();
+            AmbiguityTester ambiguityTester = new AmbiguityTester(
+                    parseService,
+                    termFactoryService,
+                    printerFactory,
+                    generatorFactory,
+                    shrinkerFactory
+            );
 
-                        System.out.println("=== Program ===");
-                        System.out.println(text);
-
-                        IStrategoTerm term = parseService.parse(objectLanguage, text);
-
-                        if (parseService.isAmbiguous(term)) {
-                            shrink(shrinker, new ShrinkerUnit(term, text));
-                        }
-                    }
-                } catch (PrinterRuntimeException | ParseRuntimeException e) {
-                    e.printStackTrace();
+            AmbiguityTesterProgress progress = new AmbiguityTesterProgress() {
+                @Override
+                public void sentenceGenerated(String text) {
+                    System.out.println("=== Program ===");
+                    System.out.println(text);
                 }
+
+                @Override
+                public void sentenceShrinked(String text) {
+                    System.out.println("=== Shrink ==");
+                    System.out.println(text);
+                }
+            };
+
+            AmbiguityTesterConfig config = new AmbiguityTesterConfig(1000, 1000);
+
+            AmbiguityTesterResult ambiguityTesterResult = ambiguityTester.findAmbiguity(language, project, config, progress);
+
+            if (ambiguityTesterResult.foundAmbiguity()) {
+                System.out.println("Found ambiguous sentence after " + ambiguityTesterResult.getTerms() + " terms (" + ambiguityTesterResult.getDuration() + " ms).");
+            } else {
+                System.out.println("No sentence found after " + ambiguityTesterResult.getTerms() + " terms (" + ambiguityTesterResult.getDuration() + " ms).");
             }
         } catch (MetaborgException e) {
             e.printStackTrace();
         }
-    }
-
-    public static void shrink(Shrinker shrinker, ShrinkerUnit shrinkerUnit) {
-        System.out.println("=== Shrink ==");
-        System.out.println(shrinkerUnit.getText());
-
-        shrinker.shrink(shrinkerUnit)
-                .findAny()
-                .ifPresent(shrunkTerm -> shrink(shrinker, shrunkTerm));
     }
 
     public static ILanguageImpl loadLanguage(Spoofax spoofax, File file) throws MetaborgException {
