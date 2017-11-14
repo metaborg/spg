@@ -1,5 +1,6 @@
 package org.metaborg.spg.sentence.ambiguity;
 
+import com.google.inject.Inject;
 import org.metaborg.core.language.ILanguageImpl;
 import org.metaborg.core.project.IProject;
 import org.metaborg.spg.sentence.generator.Generator;
@@ -10,7 +11,6 @@ import org.metaborg.spg.sentence.printer.PrinterFactory;
 import org.metaborg.spg.sentence.shrinker.Shrinker;
 import org.metaborg.spg.sentence.shrinker.ShrinkerFactory;
 import org.metaborg.spg.sentence.shrinker.ShrinkerUnit;
-import org.metaborg.spoofax.core.terms.ITermFactoryService;
 import org.spoofax.interpreter.terms.IStrategoTerm;
 import org.spoofax.interpreter.terms.ITermFactory;
 
@@ -18,19 +18,20 @@ import java.util.Optional;
 
 public class AmbiguityTester {
     private final ParseService parseService;
-    private final ITermFactoryService termFactoryService;
+    private final ITermFactory termFactory;
     private final PrinterFactory printerFactory;
     private final GeneratorFactory generatorFactory;
     private final ShrinkerFactory shrinkerFactory;
 
+    @Inject
     public AmbiguityTester(
             ParseService parseService,
-            ITermFactoryService termFactoryService,
+            ITermFactory termFactory,
             PrinterFactory printerFactory,
             GeneratorFactory generatorFactory,
             ShrinkerFactory shrinkerFactory) {
         this.parseService = parseService;
-        this.termFactoryService = termFactoryService;
+        this.termFactory = termFactory;
         this.printerFactory = printerFactory;
         this.generatorFactory = generatorFactory;
         this.shrinkerFactory = shrinkerFactory;
@@ -41,7 +42,6 @@ public class AmbiguityTester {
             IProject project,
             AmbiguityTesterConfig config,
             AmbiguityTesterProgress progress) throws Exception {
-        ITermFactory termFactory = termFactoryService.getGeneric();
         Printer printer = printerFactory.create(language, project);
         Generator generator = generatorFactory.create(language, project, printer);
         Shrinker shrinker = shrinkerFactory.create(language, project, printer, generator, termFactory);

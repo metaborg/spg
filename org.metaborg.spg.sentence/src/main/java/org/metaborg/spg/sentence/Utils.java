@@ -1,12 +1,19 @@
 package org.metaborg.spg.sentence;
 
+import org.apache.commons.vfs2.FileObject;
+import org.metaborg.core.MetaborgException;
+import org.metaborg.core.language.ILanguageImpl;
+import org.metaborg.core.project.IProject;
+import org.metaborg.core.project.SimpleProjectService;
 import org.metaborg.sdf2table.grammar.CharacterClassConc;
 import org.metaborg.sdf2table.grammar.CharacterClassNumeric;
 import org.metaborg.sdf2table.grammar.CharacterClassRange;
 import org.metaborg.sdf2table.grammar.Symbol;
 import org.metaborg.spg.sentence.functional.CheckedConsumer;
 import org.metaborg.spg.sentence.functional.CheckedPredicate;
+import org.metaborg.spoofax.core.Spoofax;
 
+import java.io.File;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
@@ -21,6 +28,24 @@ import static org.metaborg.spg.sentence.generator.Generator.MAXIMUM_PRINTABLE;
 import static org.metaborg.spg.sentence.generator.Generator.MINIMUM_PRINTABLE;
 
 public class Utils {
+    public static ILanguageImpl loadLanguage(Spoofax spoofax, File file) throws MetaborgException {
+        FileObject languageLocation = spoofax.resourceService.resolve(file);
+
+        return spoofax.languageDiscoveryService.languageFromArchive(languageLocation);
+    }
+
+    public static IProject getOrCreateProject(Spoofax spoofax, File file) throws MetaborgException {
+        SimpleProjectService simpleProjectService = spoofax.injector.getInstance(SimpleProjectService.class);
+        FileObject resource = spoofax.resourceService.resolve(file);
+        IProject project = simpleProjectService.get(resource);
+
+        if (project == null) {
+            return simpleProjectService.create(resource);
+        } else {
+            return project;
+        }
+    }
+
     public static <T> Predicate<T> uncheckPredicate(CheckedPredicate<T, Exception> function) {
         return element -> {
             try {
