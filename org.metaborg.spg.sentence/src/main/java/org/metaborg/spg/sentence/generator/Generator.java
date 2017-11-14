@@ -148,10 +148,30 @@ public class Generator {
     }
 
     public String generateCharacterClassConc(CharacterClassConc characterClassConc) {
-        String first = generateLex(characterClassConc.first());
-        String second = generateLex(characterClassConc.second());
+        CharacterClassRange characterClassRange = (CharacterClassRange) characterClassConc.first();
 
-        return first + second;
+        return generateCharacterClassRange(characterClassRange);
+
+        /*
+        Symbol printableCharacters = Utils.toPrintable(characterClassConc);
+
+        if (printableCharacters instanceof CharacterClassRange) {
+            return generateCharacterClassRange((CharacterClassRange) printableCharacters);
+        } else if (printableCharacters instanceof CharacterClassConc) {
+            CharacterClassRange range = (CharacterClassRange) characterClassConc.first();
+
+            return generateCharacterClassRange(range);
+
+            // TODO:
+            // 1. Get all ranges from the conc
+            // 2. Get the sum of the size of the ranges
+            // 3. Pick a random number from this size
+            // 4. Index in this thing.
+            // Pfff.
+        }
+
+        throw new IllegalStateException("Unknown symbol: " + printableCharacters);
+        */
     }
 
     /**

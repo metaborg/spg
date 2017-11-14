@@ -64,7 +64,7 @@ public class Main {
                 }
             };
 
-            AmbiguityTesterConfig config = new AmbiguityTesterConfig(1000, 1000);
+            AmbiguityTesterConfig config = new AmbiguityTesterConfig(1000, 100);
 
             AmbiguityTesterResult ambiguityTesterResult = ambiguityTester.findAmbiguity(language, project, config, progress);
 
