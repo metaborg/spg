@@ -91,6 +91,10 @@ public class Utils {
         if (symbols.size() == 0) {
             return empty();
         } else if (symbols.size() == 1) {
+            if (symbols.get(0) instanceof CharacterClassNumeric) {
+                return of(symbols.get(0));
+            }
+
             CharacterClassRange characterClassRange = (CharacterClassRange) symbols.get(0);
 
             return of(new CharacterClassRange(
@@ -98,25 +102,48 @@ public class Utils {
                     new CharacterClassNumeric(Math.min(MAXIMUM_PRINTABLE, characterClassRange.maximum()))
             ));
         } else {
-            CharacterClassRange head = (CharacterClassRange) symbols.get(0);
+            Symbol head = symbols.get(0);
+            int headMinimum = getMinimum(head);
+            int headMaximum = getMaximum(head);
+
             Stream<Symbol> tail = toPrintable(tail(symbols));
 
-            if (head.minimum() < MINIMUM_PRINTABLE) {
-                if (head.maximum() < MINIMUM_PRINTABLE) {
+            if (headMinimum < MINIMUM_PRINTABLE) {
+                if (headMaximum < MINIMUM_PRINTABLE) {
                     return tail;
                 } else {
-                    Symbol nhead = range(MINIMUM_PRINTABLE, head.maximum());
+                    Symbol nhead = range(MINIMUM_PRINTABLE, headMaximum);
 
                     return concat(of(nhead), tail);
                 }
             } else {
-                if (head.maximum() > MAXIMUM_PRINTABLE) {
+                if (headMaximum > MAXIMUM_PRINTABLE) {
                     return empty();
                 } else {
                     return concat(of(head), tail);
                 }
             }
         }
+    }
+
+    private static int getMinimum(Symbol symbol) {
+        if (symbol instanceof CharacterClassRange) {
+            return ((CharacterClassRange) symbol).minimum();
+        } else if (symbol instanceof CharacterClassNumeric) {
+            return ((CharacterClassNumeric) symbol).minimum();
+        }
+
+        throw new IllegalStateException();
+    }
+
+    private static int getMaximum(Symbol symbol) {
+        if (symbol instanceof CharacterClassRange) {
+            return ((CharacterClassRange) symbol).maximum();
+        } else if (symbol instanceof CharacterClassNumeric) {
+            return ((CharacterClassNumeric) symbol).maximum();
+        }
+
+        throw new IllegalStateException();
     }
 
     private static Stream<Symbol> characterClassToList(Symbol characterClass) {
@@ -127,6 +154,8 @@ public class Utils {
 
             return concat(of(first), characterClassToList(second));
         } else if (characterClass instanceof CharacterClassRange) {
+            return of(characterClass);
+        } else if (characterClass instanceof CharacterClassNumeric) {
             return of(characterClass);
         }
 

@@ -5,6 +5,7 @@ import org.metaborg.core.language.ILanguageImpl;
 import org.metaborg.core.project.IProject;
 import org.metaborg.spg.sentence.generator.Generator;
 import org.metaborg.spg.sentence.generator.GeneratorFactory;
+import org.metaborg.spg.sentence.parser.ParseRuntimeException;
 import org.metaborg.spg.sentence.parser.ParseService;
 import org.metaborg.spg.sentence.printer.Printer;
 import org.metaborg.spg.sentence.printer.PrinterFactory;
@@ -70,6 +71,8 @@ public class AmbiguityTester {
                 long duration = System.currentTimeMillis() - startTime;
 
                 return new AmbiguityTesterResult(i, duration);
+            } catch (ParseRuntimeException e) {
+                e.printStackTrace();
             }
         }
 

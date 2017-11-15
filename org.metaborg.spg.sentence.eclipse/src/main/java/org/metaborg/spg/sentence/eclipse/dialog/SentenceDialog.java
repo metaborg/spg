@@ -14,13 +14,14 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 
 public class SentenceDialog extends TitleAreaDialog {
-    public static String DEFAULT_TERM_SIZE = "100";
+    public static String DEFAULT_MAX_NUMBER_OF_TERMS = "100";
+    public static String DEFAULT_MAX_TERM_SIZE = "1000";
 
-    private Text txtTermLimit;
-    private Text txtTermSize;
+    private Text txtMaxNumberOfTerms;
+    private Text txtMaxTermSize;
 
-    private String termLimit;
-    private String termSize;
+    private String maxNumberOfTerms;
+    private String maxTermSize;
 
     public SentenceDialog(Shell parentShell) {
         super(parentShell);
@@ -31,7 +32,7 @@ public class SentenceDialog extends TitleAreaDialog {
         super.create();
 
         setTitle("Spoofax Generation");
-        setMessage("Term generation configuration", IMessageProvider.INFORMATION);
+        setMessage("Sentence generation configuration", IMessageProvider.INFORMATION);
     }
 
     @Override
@@ -43,8 +44,8 @@ public class SentenceDialog extends TitleAreaDialog {
         group.setLayoutData(new GridData(SWT.FILL, SWT.BEGINNING, true, false));
         group.setLayout(new GridLayout(2, false));
 
-        txtTermLimit = createField(group, "Term Limit:", getDefaultTermLimit());
-        txtTermSize = createField(group, "Term Size:", DEFAULT_TERM_SIZE);
+        txtMaxNumberOfTerms = createField(group, "Max number of terms:", DEFAULT_MAX_NUMBER_OF_TERMS);
+        txtMaxTermSize = createField(group, "Max term size:", DEFAULT_MAX_TERM_SIZE);
 
         return area;
     }
@@ -76,8 +77,8 @@ public class SentenceDialog extends TitleAreaDialog {
 
     @Override
     protected void okPressed() {
-        termLimit = txtTermLimit.getText();
-        termSize = txtTermSize.getText();
+        maxNumberOfTerms = txtMaxNumberOfTerms.getText();
+        maxTermSize = txtMaxTermSize.getText();
 
         super.okPressed();
     }
@@ -87,15 +88,11 @@ public class SentenceDialog extends TitleAreaDialog {
         return true;
     }
 
-    protected String getDefaultTermLimit() {
-        return "100";
+    public Integer getMaxNumberOfTerms() {
+        return Integer.valueOf(maxNumberOfTerms);
     }
 
-    public Integer getTermLimit() {
-        return Integer.valueOf(termLimit);
-    }
-
-    public Integer getTermSize() {
-        return Integer.valueOf(termSize);
+    public Integer getMaxTermSize() {
+        return Integer.valueOf(maxTermSize);
     }
 }

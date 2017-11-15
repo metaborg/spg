@@ -51,7 +51,7 @@ public class SentenceHandler extends AbstractHandler {
 
             if (sentenceDialog.open() == Window.OK) {
                 SentenceJobFactory jobFactory = injector.getInstance(SentenceJobFactory.class);
-                Job job = jobFactory.createSentenceJob(project, language, getConfig(sentenceDialog));
+                Job job = jobFactory.createSentenceJob(getConfig(sentenceDialog), project, language);
 
                 job.setPriority(Job.SHORT);
                 job.setUser(true);
@@ -139,8 +139,8 @@ public class SentenceHandler extends AbstractHandler {
     }
 
     protected AmbiguityTesterConfig getConfig(SentenceDialog generateDialog) {
-        int maxNumberOfTerms = generateDialog.getTermLimit();
-        int maxTermSize = generateDialog.getTermSize();
+        int maxNumberOfTerms = generateDialog.getMaxNumberOfTerms();
+        int maxTermSize = generateDialog.getMaxTermSize();
 
         return new AmbiguityTesterConfig(maxNumberOfTerms, maxTermSize);
     }

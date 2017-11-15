@@ -147,31 +147,30 @@ public class Generator {
         throw new IllegalStateException("Unknown symbol: " + symbol);
     }
 
+    // TODO: toPrintableCharacter can and should be done in preprocessing. It takes precious time when done at runtime.
+    // TODO: Right now, it just generates from the head of CharacterClassConc, it ignores characters in the tail
     public String generateCharacterClassConc(CharacterClassConc characterClassConc) {
-        CharacterClassRange characterClassRange = (CharacterClassRange) characterClassConc.first();
-
-        return generateCharacterClassRange(characterClassRange);
-
-        /*
         Symbol printableCharacters = Utils.toPrintable(characterClassConc);
 
-        if (printableCharacters instanceof CharacterClassRange) {
+        if (printableCharacters instanceof CharacterClassNumeric) {
+            return generateCharacterClassNumeric((CharacterClassNumeric) printableCharacters);
+        } else if (printableCharacters instanceof CharacterClassRange) {
             return generateCharacterClassRange((CharacterClassRange) printableCharacters);
         } else if (printableCharacters instanceof CharacterClassConc) {
-            CharacterClassRange range = (CharacterClassRange) characterClassConc.first();
+            Symbol first = ((CharacterClassConc) printableCharacters).first();
 
-            return generateCharacterClassRange(range);
+            if (first instanceof CharacterClassRange) {
+                CharacterClassRange range = (CharacterClassRange) first;
 
-            // TODO:
-            // 1. Get all ranges from the conc
-            // 2. Get the sum of the size of the ranges
-            // 3. Pick a random number from this size
-            // 4. Index in this thing.
-            // Pfff.
+                return generateCharacterClassRange(range);
+            } else if (first instanceof CharacterClassNumeric) {
+                CharacterClassNumeric numeric = (CharacterClassNumeric) first;
+
+                return generateCharacterClassNumeric(numeric);
+            }
         }
 
         throw new IllegalStateException("Unknown symbol: " + printableCharacters);
-        */
     }
 
     /**
@@ -185,9 +184,14 @@ public class Generator {
         int maximumPrintable = Math.min(characterClassRange.maximum(), MAXIMUM_PRINTABLE);
 
         int range = maximumPrintable - minimumPrintable + 1;
-        char character = (char) (minimumPrintable + random.nextInt(range));
 
-        return String.valueOf(character);
+        if (range > 0) {
+            char character = (char) (minimumPrintable + random.nextInt(range));
+
+            return String.valueOf(character);
+        } else {
+            return "";
+        }
     }
 
     // TODO: String concatenation is slow?
@@ -195,7 +199,6 @@ public class Generator {
         return String.valueOf(Character.toChars(characterClassNumeric.getCharacter()));
     }
 
-    // TODO: Backtracking?
     public String generateLexicalSymbol(Symbol symbol) {
         List<IProduction> productions = productionsMap.get(symbol);
 

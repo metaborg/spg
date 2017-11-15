@@ -5,5 +5,5 @@ import org.metaborg.core.project.IProject;
 import org.metaborg.spg.sentence.ambiguity.AmbiguityTesterConfig;
 
 public interface SentenceJobFactory {
-    SentenceJob createSentenceJob(IProject project, ILanguageImpl language, AmbiguityTesterConfig config);
+    SentenceJob createSentenceJob(AmbiguityTesterConfig config, IProject project, ILanguageImpl language);
 }

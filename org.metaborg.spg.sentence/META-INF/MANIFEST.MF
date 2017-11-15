@@ -1,6 +1,6 @@
 Manifest-Version: 1.0
-Bnd-LastModified: 1510502856831
-Build-Jdk: 1.8.0_121
+Bnd-LastModified: 1510750481739
+Build-Jdk: 1.8.0_144
 Built-By: martijn
 Bundle-Description: Maven parent POM for Java projects
 Bundle-License: https://www.apache.org/licenses/LICENSE-2.0.txt
@@ -11,21 +11,22 @@ Bundle-Version: 2.4.0.qualifier
 Created-By: Apache Maven Bundle Plugin
 Eclipse-BuddyPolicy: registered
 Embed-Transitive: true
-Export-Package: org.metaborg.spg.sentence,org.metaborg.spg.sentence.func
- tional,org.metaborg.spg.sentence.generator,org.metaborg.spg.sentence.pr
- inter,org.metaborg.spg.sentence.shrinker,org.metaborg.spg.sentence.sign
- ature
-Import-Package: org.spoofax.interpreter.terms,org.spoofax.terms,org.meta
- borg.core,org.metaborg.core.context,org.metaborg.core.language,org.meta
- borg.core.project,org.metaborg.core.resource,org.metaborg.core.source,o
- rg.metaborg.core.syntax,org.metaborg.sdf2table.grammar,org.metaborg.sdf
- 2table.io,org.metaborg.spoofax.core,org.metaborg.spoofax.core.build,org
- .metaborg.spoofax.core.stratego,org.metaborg.spoofax.core.syntax,org.me
- taborg.spoofax.core.terms,org.metaborg.spoofax.core.unit,org.strategoxt
- ,com.google.common.collect;provider=metaborg;mandatory:=provider;versio
- n=0,com.google.inject;provider=metaborg;mandatory:=provider;version=0,c
- om.google.inject.assistedinject;provider=metaborg;mandatory:=provider;v
- ersion=0,org.apache.commons.vfs2;provider=metaborg;mandatory:=provider;
- version=0
+Export-Package: org.metaborg.spg.sentence,org.metaborg.spg.sentence.ambi
+ guity,org.metaborg.spg.sentence.functional,org.metaborg.spg.sentence.ge
+ nerator,org.metaborg.spg.sentence.guice,org.metaborg.spg.sentence.parse
+ r,org.metaborg.spg.sentence.printer,org.metaborg.spg.sentence.shrinker
+Import-Package: org.spoofax.interpreter.terms,org.spoofax.jsglr.client.i
+ mploder,org.spoofax.terms,org.spoofax.terms.attachments,org.metaborg.co
+ re,org.metaborg.core.context,org.metaborg.core.language,org.metaborg.co
+ re.project,org.metaborg.core.resource,org.metaborg.core.syntax,org.meta
+ borg.sdf2table.grammar,org.metaborg.sdf2table.io,org.metaborg.spoofax.c
+ ore,org.metaborg.spoofax.core.build,org.metaborg.spoofax.core.stratego,
+ org.metaborg.spoofax.core.syntax,org.metaborg.spoofax.core.terms,org.me
+ taborg.spoofax.core.unit,org.strategoxt,com.google.common.collect;provi
+ der=metaborg;mandatory:=provider;version=0,com.google.inject;provider=m
+ etaborg;mandatory:=provider;version=0,com.google.inject.assistedinject;
+ provider=metaborg;mandatory:=provider;version=0,com.google.inject.binde
+ r;provider=metaborg;mandatory:=provider;version=0,org.apache.commons.vf
+ s2;provider=metaborg;mandatory:=provider;version=0
 Require-Capability: osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=1.8))"
 Tool: Bnd-2.4.1.201501161923
