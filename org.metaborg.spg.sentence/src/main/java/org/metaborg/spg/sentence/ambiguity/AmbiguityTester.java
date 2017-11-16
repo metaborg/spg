@@ -45,7 +45,7 @@ public class AmbiguityTester {
             AmbiguityTesterProgress progress) throws Exception {
         Printer printer = printerFactory.create(language, project);
         Generator generator = generatorFactory.create(language, project, printer);
-        Shrinker shrinker = shrinkerFactory.create(language, project, printer, generator, termFactory);
+        Shrinker shrinker = shrinkerFactory.create(language, printer, generator, termFactory);
 
         long startTime = System.currentTimeMillis();
 

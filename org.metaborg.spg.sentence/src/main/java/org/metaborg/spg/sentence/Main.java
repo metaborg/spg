@@ -1,5 +1,6 @@
 package org.metaborg.spg.sentence;
 
+import com.google.inject.Injector;
 import org.metaborg.core.MetaborgException;
 import org.metaborg.core.language.ILanguageImpl;
 import org.metaborg.core.project.IProject;
@@ -18,10 +19,14 @@ public class Main {
             ILanguageImpl language = loadLanguage(spoofax, new File(args[0]));
             IProject project = getOrCreateProject(spoofax, new File(args[1]));
 
-            AmbiguityTesterFactory ambiguityTesterFactory = spoofax.injector.getInstance(AmbiguityTesterFactory.class);
+            int maxNumberOfTerms = 1000;
+            int maxTermSize = 100;
+
+            Injector injector = spoofax.injector;
+            AmbiguityTesterFactory ambiguityTesterFactory = injector.getInstance(AmbiguityTesterFactory.class);
             AmbiguityTester ambiguityTester = ambiguityTesterFactory.create();
             AmbiguityTesterProgress progress = new AmbiguityTesterProgressDefault();
-            AmbiguityTesterConfig config = new AmbiguityTesterConfig(1000, 1000);
+            AmbiguityTesterConfig config = new AmbiguityTesterConfig(maxNumberOfTerms, maxTermSize);
             AmbiguityTesterResult result = ambiguityTester.findAmbiguity(language, project, config, progress);
 
             if (result.foundAmbiguity()) {
