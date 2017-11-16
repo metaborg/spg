@@ -1,5 +1,7 @@
 # Spoofax Generator
 
+[![Build Status](http://buildfarm.metaborg.org/buildStatus/icon?job=metaborg/spg/master)](http://buildfarm.metaborg.org/job/metaborg/job/spg/job/master/)
+
 ## Building
 
 Pom-first and manifest-first projects cannot be mixed in the same reactor build ([source](https://goo.gl/akexsK)), so we need to separately build `org.metaborg.spg.sentence` and `org.metaborg.spg.sentence.eclipse*`:
@@ -8,14 +10,9 @@ Pom-first and manifest-first projects cannot be mixed in the same reactor build 
 mvn clean install -f org.metaborg.spg.sentence/pom.xml
 mvn clean install -f pom.xml
 ```
-
-## Developing
-
-Import all projects in Spoofax Eclipse. Until the modified `org.metaborg.sdf2table` lands in master, also import that project.
-
 ## Usage
 
-The generator is used differently dependong in the subproject. In any case, make sure you're using the Java parse table generator by adding to `metaborg.yaml`:
+Every subproject is used differently. What follows is an explanation on how to use each subproject. For every subproject, make sure you're using the Java parse table generator by adding to `metaborg.yaml`:
 
 ```
 language:
@@ -23,20 +20,31 @@ language:
     sdf2table: java
 ```
 
-### org.metaborg.spg.sentence
+### Using org.metaborg.spg.sentence
 
 The `Main` class expects as its first and second argument the path to a Spoofax language artifact and the path to a Spoofax project, respectively.
 
-### org.metaborg.spg.sentence.eclipse*
+### Using org.metaborg.spg.sentence.eclipse*
 
-With the Eclipse plugin:
+An update site is generated at `org.metaborg.spg.sentence.eclipse.site/target/site/`. To install the plugin in Eclipse:
+
+1. _Help_ > _Install New Software..._
+2. _Work with_: the built update site.
+3. Check the _Spoofax Generator Eclipse Plugin_
+4. Follow the installation process.
+
+After installing the Eclipse plugin:
 
 1. Select the project in the _Package Explorer_.
 2. Click _Spoofax (meta)_ > _SPG_ > _Generate sentences_.
 3. Choose a maximum term size and maximum number of terms.
 4. The generated sentences appear in the _Console_.
 
-### org.metaborg.spg.sentence.evaluation
+### Using org.metaborg.spg.sentence.evaluation
 
-The `Main` class runs the generator on a predefined list of languages.
+The `Main` class runs the generator on a predefined list of languages. These projects can be found [here](https://github.com/spg-subjects). Use `download.sh` to download these languages. To run the main class:
+
+```
+mvn clean package exec:java
+```
 
