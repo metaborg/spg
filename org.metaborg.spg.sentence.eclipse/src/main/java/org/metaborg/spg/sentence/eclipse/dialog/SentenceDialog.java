@@ -14,7 +14,7 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 
 public class SentenceDialog extends TitleAreaDialog {
-    public static String DEFAULT_MAX_NUMBER_OF_TERMS = "100";
+    public static String DEFAULT_MAX_NUMBER_OF_TERMS = "1000";
     public static String DEFAULT_MAX_TERM_SIZE = "1000";
 
     private Text txtMaxNumberOfTerms;
