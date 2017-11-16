@@ -15,6 +15,7 @@ import org.eclipse.jface.viewers.ITreeSelection;
 import org.eclipse.jface.viewers.TreePath;
 import org.eclipse.jface.window.Window;
 import org.eclipse.swt.widgets.Shell;
+import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.handlers.HandlerUtil;
 import org.metaborg.core.config.ConfigRequest;
 import org.metaborg.core.config.ILanguageComponentConfig;
@@ -44,15 +45,15 @@ public class SentenceHandler extends AbstractHandler {
     public Object execute(ExecutionEvent executionEvent) throws ExecutionException {
         try {
             IProject project = getProject(executionEvent);
-            ILanguageImpl language = getLanguage(project);
+            ILanguageImpl languageImpl = getLanguageImpl(project);
 
             SentenceDialog sentenceDialog = new SentenceDialog(getShell(executionEvent));
             sentenceDialog.create();
 
             if (sentenceDialog.open() == Window.OK) {
                 SentenceJobFactory jobFactory = injector.getInstance(SentenceJobFactory.class);
-                Job job = jobFactory.createSentenceJob(getConfig(sentenceDialog), project, language);
 
+                Job job = jobFactory.createSentenceJob(getConfig(sentenceDialog), project, languageImpl);
                 job.setPriority(Job.SHORT);
                 job.setUser(true);
                 job.schedule();
@@ -67,44 +68,74 @@ public class SentenceHandler extends AbstractHandler {
     }
 
     protected IProject getProject(ExecutionEvent event) throws ProjectNotFoundException, ExecutionException {
+        FileObject projectFile = getProjectFile(event);
+
         return injector
                 .getInstance(IProjectService.class)
-                .get(getProjectFile(event));
+                .get(projectFile);
     }
 
     protected FileObject getProjectFile(ExecutionEvent event) throws ProjectNotFoundException, ExecutionException {
-        ISelection selection = HandlerUtil.getCurrentSelectionChecked(event);
+        FileObject selectionProjectFile = getProjectFile(HandlerUtil.getCurrentSelectionChecked(event));
 
-        if (selection instanceof ITreeSelection) {
-            ITreeSelection treeSelection = (ITreeSelection) selection;
+        if (selectionProjectFile != null) {
+            return selectionProjectFile;
+        }
 
-            for (TreePath treePath : treeSelection.getPaths()) {
-                return getProject(treePath);
-            }
+        FileObject workBenchProjectFile = getProjectFile(HandlerUtil.getActiveEditorInput(event));
+
+        if (workBenchProjectFile != null) {
+            return workBenchProjectFile;
         }
 
         throw new ProjectNotFoundException("Cannot find a project for generation.");
     }
 
-    protected FileObject getProject(TreePath treePath) throws ProjectNotFoundException {
-        Object selectedObject = treePath.getLastSegment();
+    protected FileObject getProjectFile(ISelection selection) {
+        if (selection instanceof ITreeSelection) {
+            ITreeSelection treeSelection = (ITreeSelection) selection;
+
+            for (TreePath treePath : treeSelection.getPaths()) {
+                return getProjectFile(treePath);
+            }
+        }
+
+        return null;
+    }
+
+    protected FileObject getProjectFile(IEditorInput editorInput) {
+        if (editorInput != null) {
+            return injector
+                    .getInstance(IEclipseResourceService.class)
+                    .resolve(editorInput);
+        }
+
+        return null;
+    }
+
+    protected FileObject getProjectFile(TreePath treePath) {
+        IResource resource = getResource(treePath.getLastSegment());
+
+        if (resource == null) {
+            return null;
+        }
 
         return injector
                 .getInstance(IEclipseResourceService.class)
-                .resolve(getResource(selectedObject));
+                .resolve(resource);
     }
 
-    protected IResource getResource(Object selectedObject) throws ProjectNotFoundException {
+    protected IResource getResource(Object selectedObject) {
         if (selectedObject instanceof IResource) {
             return (IResource) selectedObject;
         } else if (selectedObject instanceof IJavaProject) {
             return ((IJavaProject) selectedObject).getProject();
         }
 
-        throw new ProjectNotFoundException("Selected object is not an IResource or IJavaProject.");
+        return null;
     }
 
-    protected ILanguageImpl getLanguage(IProject project) throws LanguageNotFoundException {
+    protected ILanguageImpl getLanguageImpl(IProject project) throws LanguageNotFoundException {
         ConfigRequest<ILanguageComponentConfig> projectConfig = injector
                 .getInstance(ILanguageComponentConfigService.class)
                 .get(project.location());
