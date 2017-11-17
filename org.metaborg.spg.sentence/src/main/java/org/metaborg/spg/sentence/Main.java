@@ -20,7 +20,7 @@ public class Main {
             IProject project = getOrCreateProject(spoofax, new File(args[1]));
 
             int maxNumberOfTerms = 1000;
-            int maxTermSize = 100;
+            int maxTermSize = 1000;
 
             Injector injector = spoofax.injector;
             AmbiguityTesterFactory ambiguityTesterFactory = injector.getInstance(AmbiguityTesterFactory.class);

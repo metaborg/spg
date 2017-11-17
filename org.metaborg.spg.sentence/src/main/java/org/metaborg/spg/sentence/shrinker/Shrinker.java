@@ -1,9 +1,6 @@
 package org.metaborg.spg.sentence.shrinker;
 
-import org.metaborg.sdf2table.grammar.ContextFreeSymbol;
-import org.metaborg.sdf2table.grammar.OptionalSymbol;
-import org.metaborg.sdf2table.grammar.Sort;
-import org.metaborg.sdf2table.grammar.Symbol;
+import org.metaborg.sdf2table.grammar.*;
 import org.metaborg.spg.sentence.Utils;
 import org.metaborg.spg.sentence.parser.ParseService;
 import org.metaborg.spg.sentence.generator.Generator;
@@ -108,15 +105,21 @@ public class Shrinker {
      * @return
      */
     protected Symbol getRealSymbol(IStrategoTerm term) {
-        Sort sort = getSort(term);
-
         if (term instanceof IStrategoAppl) {
+            Sort sort = getSort(term);
             IStrategoAppl appl = (IStrategoAppl) term;
 
             if ("None".equals(appl.getConstructor().getName()) || "Some".equals(appl.getConstructor().getName())) {
                 return new ContextFreeSymbol(new OptionalSymbol(sort));
             }
+        } else if (term instanceof IStrategoList) {
+            IStrategoList list = (IStrategoList) term;
+            Sort sort = getSort(list.head());
+            
+            return new ContextFreeSymbol(new IterSymbol(sort));
         }
+
+        Sort sort = getSort(term);
 
         return new ContextFreeSymbol(sort);
     }
@@ -200,18 +203,24 @@ public class Shrinker {
         if (term instanceof IStrategoString) {
             return of(term);
         } else if (term instanceof IStrategoAppl) {
-            Stream<IStrategoTerm> terms = Arrays
-                    .stream(term.getAllSubterms())
-                    .flatMap(this::subTerms);
-
-            return concat(of(term), terms);
+            return concat(of(term), subTerms(term.getAllSubterms()));
         } else if (term instanceof IStrategoList) {
-            return Arrays
-                    .stream(term.getAllSubterms())
-                    .flatMap(this::subTerms);
+            IStrategoList list = (IStrategoList) term;
+
+            if (list.isEmpty()) {
+                return empty();
+            } else {
+                return concat(of(term), subTerms(term.getAllSubterms()));
+            }
         }
 
         throw new IllegalStateException("Unknown term: " + term);
+    }
+
+    protected Stream<IStrategoTerm> subTerms(IStrategoTerm[] terms) {
+        return Arrays
+                .stream(terms)
+                .flatMap(this::subTerms);
     }
 
     /**
