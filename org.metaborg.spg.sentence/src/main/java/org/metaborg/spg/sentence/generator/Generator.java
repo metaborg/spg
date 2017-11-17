@@ -4,6 +4,7 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.inject.Inject;
 import org.metaborg.sdf2table.grammar.*;
+import org.metaborg.spg.sentence.IRandom;
 import org.metaborg.spg.sentence.Utils;
 import org.spoofax.interpreter.terms.IStrategoConstructor;
 import org.spoofax.interpreter.terms.IStrategoList;
@@ -18,17 +19,18 @@ import java.util.stream.Collectors;
 public class Generator {
     public static final int MINIMUM_PRINTABLE = 32;
     public static final int MAXIMUM_PRINTABLE = 126;
-    public static final Random random = new Random();
 
     private final ITermFactory termFactory;
+    private final IRandom random;
     private final String startSymbol;
     private final NormGrammar grammar;
     private final Collection<IProduction> productions;
     private final ListMultimap<Symbol, IProduction> productionsMap;
 
     @Inject
-    public Generator(ITermFactory termFactory, String startSymbol, NormGrammar grammar) {
+    public Generator(ITermFactory termFactory, IRandom random, String startSymbol, NormGrammar grammar) {
         this.termFactory = termFactory;
+        this.random = random;
         this.startSymbol = startSymbol;
         this.grammar = grammar;
         this.productions = retainRealProductions(grammar.getCacheProductionsRead().values());
@@ -74,7 +76,7 @@ public class Generator {
     }
 
     private Optional<IStrategoTerm> generateIterStar(Symbol symbol, int size) {
-        if (random.nextInt(2) == 0) {
+        if (random.flip()) {
             return Optional.of(termFactory.makeList());
         } else {
             Optional<IStrategoTerm> headOpt = generateSymbol(symbol, size);
@@ -106,7 +108,7 @@ public class Generator {
     }
 
     private Optional<IStrategoTerm> generateOptional(Symbol symbol, int size) {
-        if (random.nextInt(2) == 0) {
+        if (random.flip()) {
             return Optional.of(makeNone());
         } else {
             Optional<IStrategoTerm> term = generateSymbol(symbol, size - 1);
@@ -178,7 +180,7 @@ public class Generator {
         int range = maximumPrintable - minimumPrintable + 1;
 
         if (range > 0) {
-            char character = (char) (minimumPrintable + random.nextInt(range));
+            char character = (char) (minimumPrintable + random.fromRange(range));
 
             return String.valueOf(character);
         } else {
@@ -198,7 +200,7 @@ public class Generator {
             throw new IllegalStateException("No productions found for symbol " + symbol);
         }
 
-        IProduction production = random(productions);
+        IProduction production = random.fromList(productions);
 
         return production
                 .rightHand()
@@ -214,7 +216,7 @@ public class Generator {
             return Optional.empty();
         }
 
-        for (IProduction production : Utils.shuffle(productions)) {
+        for (IProduction production : random.shuffle(productions)) {
             List<Symbol> rhsSymbols = cleanRhs(production.rightHand());
             int childSize = (size - 1) / Math.max(1, rhsSymbols.size());
             List<IStrategoTerm> children = new ArrayList<>();
@@ -241,10 +243,6 @@ public class Generator {
         }
 
         return Optional.empty();
-    }
-
-    protected <T> T random(List<T> list) {
-        return list.get(new java.util.Random().nextInt(list.size()));
     }
 
     /**

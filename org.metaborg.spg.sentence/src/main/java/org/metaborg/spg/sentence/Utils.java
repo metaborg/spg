@@ -72,12 +72,6 @@ public class Utils {
         };
     }
 
-    public static <T> Iterable<T> shuffle(List<T> list) {
-        Collections.shuffle(list);
-
-        return list;
-    }
-
     public static Symbol toPrintable(CharacterClassConc characterClassConc) {
         List<Symbol> symbols = characterClassToList(characterClassConc).collect(Collectors.toList());
         List<Symbol> printableSymbols = toPrintable(symbols).collect(Collectors.toList());

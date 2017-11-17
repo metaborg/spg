@@ -1,9 +1,9 @@
 package org.metaborg.spg.sentence.shrinker;
 
 import org.metaborg.sdf2table.grammar.*;
-import org.metaborg.spg.sentence.Utils;
-import org.metaborg.spg.sentence.parser.ParseService;
+import org.metaborg.spg.sentence.IRandom;
 import org.metaborg.spg.sentence.generator.Generator;
+import org.metaborg.spg.sentence.parser.ParseService;
 import org.spoofax.interpreter.terms.*;
 import org.spoofax.jsglr.client.imploder.ImploderAttachment;
 import org.spoofax.terms.attachments.OriginAttachment;
@@ -17,12 +17,14 @@ import java.util.stream.Stream;
 import static java.util.stream.Stream.*;
 
 public class Shrinker {
+    private final IRandom random;
     private final ParseService parseService;
     private final Generator generator;
     private final ITermFactory termFactory;
     private final ShrinkerConfig shrinkerConfig;
 
-    public Shrinker(ParseService parseService, Generator generator, ITermFactory termFactory, ShrinkerConfig shrinkerConfig) {
+    public Shrinker(IRandom random, ParseService parseService, Generator generator, ITermFactory termFactory, ShrinkerConfig shrinkerConfig) {
+        this.random = random;
         this.parseService = parseService;
         this.generator = generator;
         this.termFactory = termFactory;
@@ -72,10 +74,7 @@ public class Shrinker {
     public Stream<IStrategoTerm> shrink(IStrategoTerm nonambiguousTerm) {
         List<IStrategoTerm> subTerms = subTerms(nonambiguousTerm).collect(Collectors.toList());
 
-        // In-place shuffle
-        Utils.shuffle(subTerms);
-
-        return subTerms.stream().flatMap(subTerm ->
+        return random.shuffle(subTerms).stream().flatMap(subTerm ->
                 shrinkTerm(nonambiguousTerm, subTerm)
         );
     }
@@ -115,7 +114,7 @@ public class Shrinker {
         } else if (term instanceof IStrategoList) {
             IStrategoList list = (IStrategoList) term;
             Sort sort = getSort(list.head());
-            
+
             return new ContextFreeSymbol(new IterSymbol(sort));
         }
 
