@@ -21,9 +21,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static java.util.stream.Stream.concat;
-import static java.util.stream.Stream.empty;
-import static java.util.stream.Stream.of;
+import static java.util.stream.Stream.*;
 import static org.metaborg.spg.sentence.generator.Generator.MAXIMUM_PRINTABLE;
 import static org.metaborg.spg.sentence.generator.Generator.MINIMUM_PRINTABLE;
 

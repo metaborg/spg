@@ -5,7 +5,6 @@ import com.google.common.collect.ListMultimap;
 import com.google.inject.Inject;
 import org.metaborg.sdf2table.grammar.*;
 import org.metaborg.spg.sentence.Utils;
-import org.metaborg.spg.sentence.printer.Printer;
 import org.spoofax.interpreter.terms.IStrategoConstructor;
 import org.spoofax.interpreter.terms.IStrategoList;
 import org.spoofax.interpreter.terms.IStrategoTerm;
@@ -21,35 +20,28 @@ public class Generator {
     public static final int MAXIMUM_PRINTABLE = 126;
     public static final Random random = new Random();
 
-    private final Printer printer;
     private final ITermFactory termFactory;
+    private final String startSymbol;
     private final NormGrammar grammar;
     private final Collection<IProduction> productions;
     private final ListMultimap<Symbol, IProduction> productionsMap;
 
     @Inject
-    public Generator(Printer printer, ITermFactory termFactory, NormGrammar grammar) {
-        this.printer = printer;
+    public Generator(ITermFactory termFactory, String startSymbol, NormGrammar grammar) {
         this.termFactory = termFactory;
+        this.startSymbol = startSymbol;
         this.grammar = grammar;
         this.productions = retainRealProductions(grammar.getCacheProductionsRead().values());
         this.productionsMap = createProductionMap(productions);
     }
 
-    public Optional<String> generate(int size) {
-        IProduction initialProduction = grammar.getInitialProduction();
-        Optional<IStrategoTerm> termOpt = generateTerm(initialProduction.leftHand(), size);
+    public Optional<IStrategoTerm> generate(int size) {
+        ContextFreeSymbol symbol = new ContextFreeSymbol(new Sort(startSymbol));
 
-        return termOpt.map(printer::print);
+        return generateSymbol(symbol, size);
     }
 
-    public Optional<IStrategoTerm> generateTerm(int size) {
-        IProduction initialProduction = grammar.getInitialProduction();
-
-        return generateTerm(initialProduction.leftHand(), size);
-    }
-
-    public Optional<IStrategoTerm> generateTerm(Symbol symbol, int size) {
+    public Optional<IStrategoTerm> generateSymbol(Symbol symbol, int size) {
         if (size <= 0) {
             return Optional.empty();
         }
@@ -85,7 +77,7 @@ public class Generator {
         if (random.nextInt(2) == 0) {
             return Optional.of(termFactory.makeList());
         } else {
-            Optional<IStrategoTerm> headOpt = generateTerm(symbol, size);
+            Optional<IStrategoTerm> headOpt = generateSymbol(symbol, size);
 
             if (headOpt.isPresent()) {
                 Optional<IStrategoTerm> tailOpt = generateIter(symbol, size);
@@ -100,7 +92,7 @@ public class Generator {
     }
 
     private Optional<IStrategoTerm> generateIter(Symbol symbol, int size) {
-        Optional<IStrategoTerm> headOpt = generateTerm(symbol, size / 2);
+        Optional<IStrategoTerm> headOpt = generateSymbol(symbol, size / 2);
 
         if (headOpt.isPresent()) {
             Optional<IStrategoTerm> tailOpt = generateIterStar(symbol, size / 2);
@@ -117,7 +109,7 @@ public class Generator {
         if (random.nextInt(2) == 0) {
             return Optional.of(makeNone());
         } else {
-            Optional<IStrategoTerm> term = generateTerm(symbol, size - 1);
+            Optional<IStrategoTerm> term = generateSymbol(symbol, size - 1);
 
             return term.map(this::makeSome);
         }
@@ -228,7 +220,7 @@ public class Generator {
             List<IStrategoTerm> children = new ArrayList<>();
 
             for (Symbol rhsSymbol : rhsSymbols) {
-                Optional<IStrategoTerm> childTerm = generateTerm(rhsSymbol, childSize);
+                Optional<IStrategoTerm> childTerm = generateSymbol(rhsSymbol, childSize);
 
                 if (childTerm.isPresent()) {
                     children.add(childTerm.get());

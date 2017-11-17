@@ -92,7 +92,7 @@ public class Shrinker {
      */
     protected Stream<IStrategoTerm> shrinkTerm(IStrategoTerm haystack, IStrategoTerm needle) {
         Symbol symbol = getRealSymbol(needle);
-        Optional<IStrategoTerm> generatedSubTerm = generator.generateTerm(symbol, size(needle) - 1);
+        Optional<IStrategoTerm> generatedSubTerm = generator.generateSymbol(symbol, size(needle) - 1);
 
         if (generatedSubTerm.isPresent()) {
             return of(replaceTerm(haystack, needle, generatedSubTerm.get()));

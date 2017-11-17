@@ -44,25 +44,27 @@ public class AmbiguityTester {
             AmbiguityTesterConfig config,
             AmbiguityTesterProgress progress) throws Exception {
         Printer printer = printerFactory.create(language, project);
-        Generator generator = generatorFactory.create(language, project, printer);
+        Generator generator = generatorFactory.create(language, project);
         Shrinker shrinker = shrinkerFactory.create(language, printer, generator, termFactory);
 
         long startTime = System.currentTimeMillis();
 
         for (int i = 0; i < config.getMaxNumberOfTerms(); i++) {
             try {
-                Optional<String> textOpt = generator.generate(config.getMaxTermSize());
+                Optional<IStrategoTerm> termOpt = generator.generate(config.getMaxTermSize());
 
-                if (textOpt.isPresent()) {
-                    String text = textOpt.get();
+                if (termOpt.isPresent()) {
+                    IStrategoTerm term = termOpt.get();
+                    String text = printer.print(term);
+
                     progress.sentenceGenerated(text);
 
-                    IStrategoTerm term = parseService.parse(language, text);
+                    IStrategoTerm parsedTerm = parseService.parse(language, text);
 
-                    if (parseService.isAmbiguous(term)) {
+                    if (parseService.isAmbiguous(parsedTerm)) {
                         long duration = System.currentTimeMillis() - startTime;
 
-                        shrink(shrinker, new ShrinkerUnit(term, text), progress);
+                        shrink(shrinker, new ShrinkerUnit(parsedTerm, text), progress);
 
                         return new AmbiguityTesterResult(i, duration, text);
                     }

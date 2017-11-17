@@ -1,13 +1,14 @@
 package org.metaborg.spg.sentence.generator;
 
+import com.google.common.collect.Iterables;
 import com.google.inject.Inject;
 import org.metaborg.core.language.ILanguageImpl;
 import org.metaborg.core.project.IProject;
 import org.metaborg.core.resource.IResourceService;
 import org.metaborg.sdf2table.grammar.NormGrammar;
 import org.metaborg.sdf2table.io.GrammarReader;
-import org.metaborg.spg.sentence.printer.Printer;
 import org.metaborg.spoofax.core.build.SpoofaxCommonPaths;
+import org.metaborg.spoofax.core.syntax.SyntaxFacet;
 import org.metaborg.spoofax.core.terms.ITermFactoryService;
 import org.spoofax.interpreter.terms.ITermFactory;
 
@@ -25,7 +26,7 @@ public class GeneratorFactory {
         this.termFactoryService = termFactoryService;
     }
 
-    public Generator create(ILanguageImpl language, IProject project, Printer printer) throws Exception {
+    public Generator create(ILanguageImpl language, IProject project) throws Exception {
         ITermFactory termFactory = termFactoryService.getGeneric();
         GrammarReader grammarReader = new GrammarReader(termFactory);
         SpoofaxCommonPaths spoofaxCommonPaths = new SpoofaxCommonPaths(project.location());
@@ -34,7 +35,9 @@ public class GeneratorFactory {
         List<String> syntaxPath = getSyntaxPath(spoofaxCommonPaths);
         NormGrammar grammar = grammarReader.readGrammar(syntaxMainFile, syntaxPath);
 
-        return new Generator(printer, termFactory, grammar);
+        String startSymbol = getStartSymbol(language);
+
+        return new Generator(termFactory, startSymbol, grammar);
     }
 
     protected File getSyntaxMainFile(SpoofaxCommonPaths spoofaxCommonPaths, ILanguageImpl language) {
@@ -49,5 +52,15 @@ public class GeneratorFactory {
         File syntaxDirectory = getSyntaxDirectory(spoofaxCommonPaths);
 
         return Collections.singletonList(syntaxDirectory.getAbsolutePath());
+    }
+
+    public String getStartSymbol(ILanguageImpl languageImpl) {
+        SyntaxFacet syntaxFacet = languageImpl.facet(SyntaxFacet.class);
+
+        if (syntaxFacet == null) {
+            return null;
+        }
+
+        return Iterables.getFirst(syntaxFacet.startSymbols, null);
     }
 }
