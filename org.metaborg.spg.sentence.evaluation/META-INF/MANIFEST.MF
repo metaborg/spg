@@ -1,0 +1,22 @@
+Manifest-Version: 1.0
+Bnd-LastModified: 1510838939490
+Build-Jdk: 1.8.0_121
+Built-By: martijn
+Bundle-Description: Maven parent POM for Java projects
+Bundle-License: https://www.apache.org/licenses/LICENSE-2.0.txt
+Bundle-ManifestVersion: 2
+Bundle-Name: org.metaborg.spg.sentence.evaluation
+Bundle-SymbolicName: org.metaborg.spg.sentence.evaluation
+Bundle-Version: 2.4.0.qualifier
+Created-By: Apache Maven Bundle Plugin
+Eclipse-BuddyPolicy: registered
+Embed-Transitive: true
+Export-Package: logback.xml,org.metaborg.spg.sentence.evaluation
+Import-Package: org.metaborg.core,org.metaborg.core.editor,org.metaborg.
+ core.language,org.metaborg.core.project,org.metaborg.spg.sentence,org.m
+ etaborg.spg.sentence.ambiguity,org.metaborg.spg.sentence.guice,org.meta
+ borg.spoofax.core,com.google.inject;provider=metaborg;mandatory:=provid
+ er;version=0,com.google.inject.binder;provider=metaborg;mandatory:=prov
+ ider;version=0
+Require-Capability: osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=1.8))"
+Tool: Bnd-2.4.1.201501161923
