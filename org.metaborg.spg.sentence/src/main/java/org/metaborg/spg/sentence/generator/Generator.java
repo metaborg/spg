@@ -24,7 +24,6 @@ public class Generator {
     private final IRandom random;
     private final String startSymbol;
     private final NormGrammar grammar;
-    private final Collection<IProduction> productions;
     private final ListMultimap<Symbol, IProduction> productionsMap;
 
     @Inject
@@ -33,7 +32,8 @@ public class Generator {
         this.random = random;
         this.startSymbol = startSymbol;
         this.grammar = grammar;
-        this.productions = retainRealProductions(grammar.getCacheProductionsRead().values());
+
+        Collection<IProduction> productions = retainRealProductions(grammar.getCacheProductionsRead().values());
         this.productionsMap = createProductionMap(productions);
     }
 
@@ -49,7 +49,7 @@ public class Generator {
         }
 
         if (symbol instanceof LexicalSymbol) {
-            String generatedString = generateLex(symbol);
+            String generatedString = generateLexicalSymbol(symbol);
 
             return Optional.of(termFactory.makeString(generatedString));
         } else if (symbol instanceof ContextFreeSymbol) {
@@ -79,10 +79,10 @@ public class Generator {
         if (random.flip()) {
             return Optional.of(termFactory.makeList());
         } else {
-            Optional<IStrategoTerm> headOpt = generateSymbol(symbol, size);
+            Optional<IStrategoTerm> headOpt = generateSymbol(symbol, size / 2);
 
             if (headOpt.isPresent()) {
-                Optional<IStrategoTerm> tailOpt = generateIter(symbol, size);
+                Optional<IStrategoTerm> tailOpt = generateIterStar(symbol, size / 2);
 
                 if (tailOpt.isPresent()) {
                     return Optional.of(termFactory.makeListCons(headOpt.get(), (IStrategoList) tailOpt.get()));
@@ -167,12 +167,6 @@ public class Generator {
         throw new IllegalStateException("Unknown symbol: " + printableCharacters);
     }
 
-    /**
-     * Generate a string consisting of a printable character from the given character range.
-     *
-     * @param characterClassRange
-     * @return
-     */
     public String generateCharacterClassRange(CharacterClassRange characterClassRange) {
         int minimumPrintable = Math.max(characterClassRange.minimum(), MINIMUM_PRINTABLE);
         int maximumPrintable = Math.min(characterClassRange.maximum(), MAXIMUM_PRINTABLE);
@@ -212,33 +206,44 @@ public class Generator {
     public Optional<IStrategoTerm> generateCf(Symbol symbol, int size) {
         List<IProduction> productions = productionsMap.get(symbol);
 
-        if (productions.isEmpty()) {
-            return Optional.empty();
+        for (IProduction production : random.shuffle(productions)) {
+            Optional<IStrategoTerm> term = generateProduction(production, size);
+
+            if (term.isPresent()) {
+                return term;
+            }
         }
 
-        for (IProduction production : random.shuffle(productions)) {
-            List<Symbol> rhsSymbols = cleanRhs(production.rightHand());
-            int childSize = (size - 1) / Math.max(1, rhsSymbols.size());
-            List<IStrategoTerm> children = new ArrayList<>();
+        return Optional.empty();
+    }
+    
+    public Optional<IStrategoTerm> generateProduction(IProduction production, int size) {
+        List<Symbol> rhsSymbols = cleanRhs(production.rightHand());
+        List<IStrategoTerm> children = new ArrayList<>();
 
-            for (Symbol rhsSymbol : rhsSymbols) {
-                Optional<IStrategoTerm> childTerm = generateSymbol(rhsSymbol, childSize);
+        int childSize = (size - 1) / Math.max(1, rhsSymbols.size());
 
-                if (childTerm.isPresent()) {
-                    children.add(childTerm.get());
-                } else {
-                    break;
-                }
+        for (Symbol rhsSymbol : rhsSymbols) {
+            Optional<IStrategoTerm> childTerm = generateSymbol(rhsSymbol, childSize);
+
+            if (childTerm.isPresent()) {
+                children.add(childTerm.get());
+            } else {
+                break;
             }
+        }
 
-            if (children.size() == rhsSymbols.size()) {
-                Optional<String> constructor = getConstructor(production);
+        if (children.size() == rhsSymbols.size()) {
+            Optional<String> constructor = getConstructor(production);
 
-                if (constructor.isPresent()) {
-                    return Optional.of(makeAppl(constructor.get(), children));
-                } else {
-                    return Optional.of(children.get(0));
+            if (constructor.isPresent()) {
+                return Optional.of(makeAppl(constructor.get(), children));
+            } else {
+                if (children.size() == 0) {
+                    throw new IllegalStateException("No constructor, but right-hand side has no context-free symbol.");
                 }
+
+                return Optional.of(children.get(0));
             }
         }
 
@@ -303,12 +308,6 @@ public class Generator {
         );
     }
 
-    /**
-     * Create a multimap from left-hand symbol to production.
-     *
-     * @param productions
-     * @return
-     */
     protected ListMultimap<Symbol, IProduction> createProductionMap(Collection<IProduction> productions) {
         ListMultimap<Symbol, IProduction> productionsMap = ArrayListMultimap.create();
 
