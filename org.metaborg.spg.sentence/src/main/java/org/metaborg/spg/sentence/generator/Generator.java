@@ -141,8 +141,6 @@ public class Generator {
         throw new IllegalStateException("Unknown symbol: " + symbol);
     }
 
-    // TODO: toPrintableCharacter can and should be done in preprocessing. It takes precious time when done at runtime.
-    // TODO: Right now, it just generates from the head of CharacterClassConc, it ignores characters in the tail
     public String generateCharacterClassConc(CharacterClassConc characterClassConc) {
         Symbol printableCharacters = Utils.toPrintable(characterClassConc);
 
@@ -151,17 +149,10 @@ public class Generator {
         } else if (printableCharacters instanceof CharacterClassRange) {
             return generateCharacterClassRange((CharacterClassRange) printableCharacters);
         } else if (printableCharacters instanceof CharacterClassConc) {
-            Symbol first = ((CharacterClassConc) printableCharacters).first();
+            int characterClassSize = Utils.size(printableCharacters);
+            int randomCharacter = random.fromRange(characterClassSize);
 
-            if (first instanceof CharacterClassRange) {
-                CharacterClassRange range = (CharacterClassRange) first;
-
-                return generateCharacterClassRange(range);
-            } else if (first instanceof CharacterClassNumeric) {
-                CharacterClassNumeric numeric = (CharacterClassNumeric) first;
-
-                return generateCharacterClassNumeric(numeric);
-            }
+            return String.valueOf(Utils.get(printableCharacters, randomCharacter));
         }
 
         throw new IllegalStateException("Unknown symbol: " + printableCharacters);
@@ -182,7 +173,6 @@ public class Generator {
         }
     }
 
-    // TODO: String concatenation is slow?
     public String generateCharacterClassNumeric(CharacterClassNumeric characterClassNumeric) {
         return String.valueOf(Character.toChars(characterClassNumeric.getCharacter()));
     }
@@ -216,7 +206,7 @@ public class Generator {
 
         return Optional.empty();
     }
-    
+
     public Optional<IStrategoTerm> generateProduction(IProduction production, int size) {
         List<Symbol> rhsSymbols = cleanRhs(production.rightHand());
         List<IStrategoTerm> children = new ArrayList<>();
@@ -250,13 +240,6 @@ public class Generator {
         return Optional.empty();
     }
 
-    /**
-     * Create a term based on the given constructor and child terms.
-     *
-     * @param constructorName
-     * @param children
-     * @return
-     */
     protected IStrategoTerm makeAppl(String constructorName, List<IStrategoTerm> children) {
         IStrategoConstructor constructor = new StrategoConstructor(constructorName, children.size());
         IStrategoTerm[] terms = new IStrategoTerm[children.size()];
@@ -264,34 +247,16 @@ public class Generator {
         return termFactory.makeAppl(constructor, children.toArray(terms));
     }
 
-    /**
-     * Get the constructor for the given attribute.
-     *
-     * @param production
-     * @return
-     */
     protected Optional<String> getConstructor(IProduction production) {
         Optional<IAttribute> findAttribute = findAttribute(production, this::isConstructorAttribute);
 
         return findAttribute.map(attribute -> ((ConstructorAttribute) attribute).getConstructor());
     }
 
-    /**
-     * Check if the given attribute is a constructor attribute.
-     *
-     * @param attribute
-     * @return
-     */
     protected boolean isConstructorAttribute(IAttribute attribute) {
         return attribute instanceof ConstructorAttribute;
     }
 
-    /**
-     * Remove LAYOUT from a list of symbols (e.g. the right-hand side of a production).
-     *
-     * @param rightHand
-     * @return
-     */
     protected List<Symbol> cleanRhs(List<Symbol> rightHand) {
         return rightHand
                 .stream()
@@ -300,12 +265,16 @@ public class Generator {
     }
 
     protected boolean isProperSymbol(Symbol symbol) {
-        return !"LAYOUT?-CF".equals(symbol.name()) && (
-                symbol instanceof ContextFreeSymbol
-                        || symbol instanceof FileStartSymbol
-                        || symbol instanceof StartSymbol
-                        || symbol instanceof LexicalSymbol
-        );
+        if ("LAYOUT?-CF".equals(symbol.name())) {
+            return false;
+        }
+
+        // @formatter:off
+        return symbol instanceof ContextFreeSymbol
+            || symbol instanceof FileStartSymbol
+            || symbol instanceof StartSymbol
+            || symbol instanceof LexicalSymbol;
+        // @formatter:on
     }
 
     protected ListMultimap<Symbol, IProduction> createProductionMap(Collection<IProduction> productions) {

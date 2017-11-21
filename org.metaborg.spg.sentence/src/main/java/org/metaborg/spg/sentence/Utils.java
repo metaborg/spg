@@ -162,6 +162,55 @@ public class Utils {
         }
     }
 
+    public static char get(Symbol symbol, int index) {
+        if (symbol instanceof CharacterClassConc) {
+            CharacterClassConc characterClassConc = (CharacterClassConc) symbol;
+            int characterClassConcSize = size(characterClassConc.first());
+
+            if (index < characterClassConcSize) {
+                return get(characterClassConc.first(), index);
+            } else {
+                return get(characterClassConc.second(), index - characterClassConcSize);
+            }
+        } else if (symbol instanceof CharacterClassRange) {
+            CharacterClassRange characterClassRange = (CharacterClassRange) symbol;
+
+            return (char) (number(characterClassRange.start()) + index);
+        } else if (symbol instanceof CharacterClassNumeric) {
+            CharacterClassNumeric characterClassNumeric = (CharacterClassNumeric) symbol;
+
+            return (char) number(characterClassNumeric);
+        }
+
+        throw new IllegalStateException("Unknown symbol: " + symbol);
+    }
+
+    public static int size(Symbol symbol) {
+        if (symbol instanceof CharacterClassConc) {
+            CharacterClassConc characterClassConc = (CharacterClassConc) symbol;
+
+            return size(characterClassConc.first()) + size(characterClassConc.second());
+        } else if (symbol instanceof CharacterClassRange) {
+            CharacterClassRange characterClassRange = (CharacterClassRange) symbol;
+
+            return number(characterClassRange.end()) - number(characterClassRange.start()) + 1;
+        } else if (symbol instanceof CharacterClassNumeric) {
+            return 1;
+        }
+
+        throw new IllegalStateException("Unexpected symbol: " + symbol);
+    }
+
+    public static int number(Symbol symbol) {
+        if (symbol instanceof CharacterClassNumeric) {
+            CharacterClassNumeric characterClassNumeric = (CharacterClassNumeric) symbol;
+
+            return characterClassNumeric.getCharacter();
+        }
+
+        throw new IllegalStateException("Unexpected symbol: " + symbol);
+    }
+
     private static Symbol range(int min, int max) {
         return new CharacterClassRange(
                 new CharacterClassNumeric(min),
