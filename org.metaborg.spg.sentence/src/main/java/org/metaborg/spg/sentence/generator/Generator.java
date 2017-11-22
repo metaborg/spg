@@ -230,7 +230,7 @@ public class Generator {
                 return Optional.of(makeAppl(constructor.get(), children));
             } else {
                 if (children.size() == 0) {
-                    throw new IllegalStateException("No constructor, but right-hand side has no context-free symbol.");
+                    return Optional.empty();
                 }
 
                 return Optional.of(children.get(0));
