@@ -1,6 +1,6 @@
 package org.metaborg.spg.sentence.antlr.grammar;
 
-public class Literal extends Element {
+public class Literal implements Element {
     private final String text;
 
     public Literal(String text) {
@@ -9,6 +9,11 @@ public class Literal extends Element {
 
     public String getText() {
         return text;
+    }
+
+    @Override
+    public int size() {
+        return 1;
     }
 
     @Override

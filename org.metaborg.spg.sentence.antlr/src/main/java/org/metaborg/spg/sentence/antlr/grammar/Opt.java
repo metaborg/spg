@@ -1,6 +1,6 @@
 package org.metaborg.spg.sentence.antlr.grammar;
 
-public class Opt extends Element {
+public class Opt implements Element {
     private final Element element;
 
     public Opt(Element element) {
@@ -9,6 +9,11 @@ public class Opt extends Element {
 
     public Element getElement() {
         return element;
+    }
+
+    @Override
+    public int size() {
+        return 1;
     }
 
     @Override

@@ -1,6 +1,6 @@
 package org.metaborg.spg.sentence.antlr.grammar;
 
-public class CharacterClass extends Element {
+public class CharacterClass implements Element {
     private final Ranges ranges;
 
     public CharacterClass(Ranges ranges) {
@@ -9,5 +9,10 @@ public class CharacterClass extends Element {
 
     public Ranges getRanges() {
         return ranges;
+    }
+
+    @Override
+    public int size() {
+        return 1;
     }
 }

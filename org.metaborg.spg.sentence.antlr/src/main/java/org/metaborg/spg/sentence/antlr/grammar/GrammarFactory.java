@@ -63,9 +63,19 @@ public class GrammarFactory {
 
     protected Rule toRule(IStrategoTerm term) {
         String name = termToString(term.getSubterm(1));
-        Element element = toElement(term.getSubterm(2));
+        ElementOpt elementOpt = toElementOpt(term.getSubterm(2));
 
-        return new Rule(name, element);
+        return new Rule(name, elementOpt);
+    }
+
+    private ElementOpt toElementOpt(IStrategoTerm term) {
+        IStrategoAppl appl = (IStrategoAppl) term;
+
+        if ("Empty".equals(appl.getConstructor().getName())) {
+            return new Empty();
+        } else {
+            return toElement(appl);
+        }
     }
 
     protected Element toElement(IStrategoTerm term) {
@@ -86,11 +96,13 @@ public class GrammarFactory {
                 return toNonterminal(appl);
             case "Literal":
                 return toLiteral(appl);
-            case "CharacterClass":
+            case "CharClass":
                 return toCharacterClass(appl);
+            case "EOF":
+                return toEOF(appl);
         }
 
-        throw new IllegalArgumentException("Unknonw element: " + appl);
+        throw new IllegalArgumentException("Unknown element: " + appl);
     }
 
     protected Element toConc(IStrategoAppl appl) {
@@ -141,6 +153,10 @@ public class GrammarFactory {
         Ranges ranges = toRanges(appl.getSubterm(0));
 
         return new CharacterClass(ranges);
+    }
+
+    protected Element toEOF(IStrategoAppl appl) {
+        return new EOF();
     }
 
     private Ranges toRanges(IStrategoTerm term) {

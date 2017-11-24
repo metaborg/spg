@@ -1,12 +1,10 @@
 package org.metaborg.spg.sentence.antlr.grammar;
 
-import org.apache.commons.lang3.StringUtils;
-
 public class Rule {
     private final String name;
-    private final Element element;
+    private final ElementOpt element;
 
-    public Rule(String name, Element element) {
+    public Rule(String name, ElementOpt element) {
         this.name = name;
         this.element = element;
     }
@@ -15,7 +13,7 @@ public class Rule {
         return name;
     }
 
-    public Element getElement() {
+    public ElementOpt getElement() {
         return element;
     }
 

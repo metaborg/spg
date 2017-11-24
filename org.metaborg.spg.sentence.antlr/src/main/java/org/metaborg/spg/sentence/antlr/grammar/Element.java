@@ -1,4 +1,5 @@
 package org.metaborg.spg.sentence.antlr.grammar;
 
-public abstract class Element {
+public interface Element extends ElementOpt {
+    int size();
 }

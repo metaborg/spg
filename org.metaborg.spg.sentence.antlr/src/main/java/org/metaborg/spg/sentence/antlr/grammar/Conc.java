@@ -1,6 +1,6 @@
 package org.metaborg.spg.sentence.antlr.grammar;
 
-public class Conc extends Element {
+public class Conc implements Element {
     private final Element first;
     private final Element second;
 
@@ -15,6 +15,11 @@ public class Conc extends Element {
 
     public Element getSecond() {
         return second;
+    }
+
+    @Override
+    public int size() {
+        return first.size() + second.size();
     }
 
     @Override
