@@ -13,6 +13,11 @@ public class Leaf implements Tree {
     }
 
     @Override
+    public Tree[] getChildren() {
+        return new Tree[0];
+    }
+
+    @Override
     public String toString() {
         return text;
     }

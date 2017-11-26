@@ -15,6 +15,7 @@ public class Node implements Tree {
         return element;
     }
 
+    @Override
     public Tree[] getChildren() {
         return children;
     }
