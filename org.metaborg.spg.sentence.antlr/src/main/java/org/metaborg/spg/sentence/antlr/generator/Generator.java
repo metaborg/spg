@@ -3,11 +3,11 @@ package org.metaborg.spg.sentence.antlr.generator;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
-import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.metaborg.spg.sentence.antlr.grammar.*;
+import org.metaborg.spg.sentence.antlr.tree.Leaf;
+import org.metaborg.spg.sentence.antlr.tree.Node;
+import org.metaborg.spg.sentence.antlr.tree.Tree;
 
-import java.util.Arrays;
 import java.util.Optional;
 import java.util.Random;
 
@@ -33,14 +33,13 @@ public class Generator {
         return multimap;
     }
 
-    public Optional<String> generate(String startSymbol, int size) {
+    public Optional<Tree> generate(String startSymbol, int size) {
         Nonterminal start = new Nonterminal(startSymbol);
-        Optional<String[]> stringsOpt = generateNonterminal(start, size);
 
-        return stringsOpt.map(StringUtils::join);
+        return generateNonterminal(start, size);
     }
 
-    public Optional<String[]> generateNonterminal(Nonterminal nonterminal, int size) {
+    public Optional<Tree> generateNonterminal(Nonterminal nonterminal, int size) {
         if (size <= 0) {
             return empty();
         }
@@ -48,37 +47,27 @@ public class Generator {
         assert(cache.get(nonterminal.getName()).size() > 0);
 
         for (Rule rule : cache.get(nonterminal.getName())) {
-            Optional<String[]> sentenceOpt = forRule(rule, size);
+            Optional<Tree> treeOpt = forRule(rule, size);
 
-            if (sentenceOpt.isPresent()) {
-                return sentenceOpt;
+            if (treeOpt.isPresent()) {
+                return treeOpt;
             }
         }
 
         return empty();
     }
 
-    public Optional<String[]> forRule(Rule rule, int size) {
-        Optional<String[]> sentenceOpt = forElement(rule.getElement(), size);
+    public Optional<Tree> forRule(Rule rule, int size) {
+        Optional<Tree> treeOpt = forElement(rule.getElement(), size);
 
         if (rule.isLexical()) {
-            return sentenceOpt.map(this::join);
+            return treeOpt.map(this::join);
         } else {
-            return sentenceOpt.map(this::intersperse).map(this::lift);
+            return treeOpt;
         }
     }
 
-    private String[] join(String[] strings) {
-        return new String[]{
-                StringUtils.join(strings)
-        };
-    }
-
-    private String intersperse(String[] strings) {
-        return String.join(" ", strings);
-    }
-
-    public Optional<String[]> forElement(ElementOpt element, int size) {
+    public Optional<Tree> forElement(ElementOpt element, int size) {
         if (size <= 0) {
             return empty();
         }
@@ -108,34 +97,34 @@ public class Generator {
         throw new IllegalStateException("Unknown element: " + element);
     }
 
-    private Optional<String[]> generateEmpty(Empty element, int size) {
-        return of(new String[]{});
+    private Optional<Tree> generateEmpty(Empty element, int size) {
+        return of(Leaf.EMPTY);
     }
 
-    private Optional<String[]> generateLiteral(Literal element, int size) {
-        return of(lift(element.getText()));
+    private Optional<Tree> generateLiteral(Literal element, int size) {
+        return of(leaf(element.getText()));
     }
 
-    private Optional<String[]> generateConc(Conc element, int size) {
+    private Optional<Tree> generateConc(Conc element, int size) {
         int headSize = (int) (1.0 / element.size() * size);
         int tailSize = size - headSize;
 
-        Optional<String[]> headOpt = forElement(element.getFirst(), headSize);
+        Optional<Tree> headOpt = forElement(element.getFirst(), headSize);
 
         if (headOpt.isPresent()) {
-            Optional<String[]> tailOpt = forElement(element.getSecond(), tailSize);
+            Optional<Tree> tailOpt = forElement(element.getSecond(), tailSize);
 
             if (tailOpt.isPresent()) {
-                return of(concat(headOpt.get(), tailOpt.get()));
+                return of(node(element, headOpt.get(), tailOpt.get()));
             }
         }
 
         return empty();
     }
 
-    private Optional<String[]> generateAlt(Alt element, int size) {
+    private Optional<Tree> generateAlt(Alt element, int size) {
         if (random.nextInt(element.size()) == 0) {
-            Optional<String[]> firstResultOpt = forElement(element.getFirst(), size);
+            Optional<Tree> firstResultOpt = forElement(element.getFirst(), size);
 
             if (!firstResultOpt.isPresent()) {
                 return forElement(element.getSecond(), size);
@@ -143,7 +132,7 @@ public class Generator {
                 return firstResultOpt;
             }
         } else {
-            Optional<String[]> secondResultOpt = forElement(element.getSecond(), size);
+            Optional<Tree> secondResultOpt = forElement(element.getSecond(), size);
 
             if (!secondResultOpt.isPresent()) {
                 return forElement(element.getFirst(), size);
@@ -153,55 +142,55 @@ public class Generator {
         }
     }
 
-    private Optional<String[]> generateOpt(Opt element, int size) {
+    private Optional<Tree> generateOpt(Opt element, int size) {
         if (random.nextInt(2) == 0) {
-            return of(lift(""));
+            return of(Leaf.EMPTY);
         } else {
             return forElement(element.getElement(), size);
         }
     }
 
-    private Optional<String[]> generateStar(Star element, int size) {
+    private Optional<Tree> generateStar(Star element, int size) {
         if (random.nextInt(2) == 0) {
-            return of(new String[]{""});
+            return of(Leaf.EMPTY);
         } else {
             int headSize = size / 4;
             int tailSize = size - headSize;
 
-            Optional<String[]> tailOpt = forElement(element, tailSize);
+            Optional<Tree> tailOpt = forElement(element, tailSize);
 
             return tailOpt.map(tail -> prepend(element.getElement(), tail, headSize));
         }
     }
 
-    private String[] prepend(Element element, String[] tail, int size) {
-        Optional<String[]> headOpt = forElement(element, size);
+    private Optional<Tree> generatePlus(Plus element, int size) {
+        int headSize = size / 4;
+        int tailSize = size - headSize;
+
+        Optional<Tree> tailOpt = generateStar(new Star(element.getElement()), tailSize);
+
+        return tailOpt.map(tail -> prepend(element.getElement(), tail, headSize));
+    }
+
+    private Tree prepend(Element element, Tree tail, int size) {
+        Optional<Tree> headOpt = forElement(element, size);
 
         if (headOpt.isPresent()) {
-            return concat(headOpt.get(), tail);
+            return node(element, headOpt.get(), tail);
         } else {
             return tail;
         }
     }
 
-    private Optional<String[]> generatePlus(Plus element, int size) {
-        int headSize = size / 4;
-        int tailSize = size - headSize;
-
-        Optional<String[]> tailOpt = generateStar(new Star(element.getElement()), tailSize);
-
-        return tailOpt.map(tail -> prepend(element.getElement(), tail, headSize));
-    }
-
-    private Optional<String[]> generateCharacterClass(CharacterClass element, int size) {
+    private Optional<Tree> generateCharacterClass(CharacterClass element, int size) {
         return generateRanges(element.getRanges(), size);
     }
 
-    private Optional<String[]> generateEof(EOF element, int size) {
-        return of(new String[]{});
+    private Optional<Tree> generateEof(EOF element, int size) {
+        return of(Leaf.EMPTY);
     }
 
-    private Optional<String[]> generateRanges(Ranges ranges, int size) {
+    private Optional<Tree> generateRanges(Ranges ranges, int size) {
         if (ranges instanceof RangesConc) {
             return generateRangesConc((RangesConc) ranges);
         } else if (ranges instanceof Range) {
@@ -211,14 +200,14 @@ public class Generator {
         throw new IllegalStateException("Unknown ranges: " + ranges);
     }
 
-    private Optional<String[]> generateRangesConc(RangesConc ranges) {
+    private Optional<Tree> generateRangesConc(RangesConc ranges) {
         int size = ranges.size();
         int rand = random.nextInt(size);
 
-        return of(lift(String.valueOf(ranges.get(rand))));
+        return of(leaf(String.valueOf(ranges.get(rand))));
     }
 
-    private Optional<String[]> generateRange(Range range, int size) {
+    private Optional<Tree> generateRange(Range range, int size) {
         if (range instanceof CharRange) {
             return generateCharRange((CharRange) range);
         } else if (range instanceof Char) {
@@ -228,14 +217,14 @@ public class Generator {
         throw new IllegalStateException("Unknown range: " + range);
     }
 
-    private Optional<String[]> generateCharRange(CharRange range) {
+    private Optional<Tree> generateCharRange(CharRange range) {
         int size = range.size();
         int rand = random.nextInt(size);
 
-        return of(lift(String.valueOf(range.get(rand))));
+        return of(leaf(String.valueOf(range.get(rand))));
     }
 
-    private Optional<String[]> generateChar(Char c, int size) {
+    private Optional<Tree> generateChar(Char c, int size) {
         if (c instanceof Single) {
             return generateSingle((Single) c, size);
         }
@@ -243,22 +232,19 @@ public class Generator {
         throw new IllegalStateException("Unknown char: " + c);
     }
 
-    private Optional<String[]> generateSingle(Single s, int size) {
-        return of(lift(s.getText()));
+    private Optional<Tree> generateSingle(Single s, int size) {
+        return of(leaf(s.getText()));
     }
 
-    private String[] lift(String... strings) {
-        return strings;
+    private Tree join(Tree tree) {
+        return leaf(tree.toString(false));
     }
 
-    private String[] concat(String[] s1, String[] s2) {
-        return ArrayUtils.addAll(s1, s2);
+    private Tree node(ElementOpt elementOpt, Tree... children) {
+        return new Node(elementOpt, children);
     }
 
-    private int size(String[] strings) {
-        return Arrays
-                .stream(strings)
-                .mapToInt(String::length)
-                .sum();
+    private Tree leaf(String text) {
+        return new Leaf(text);
     }
 }

@@ -10,6 +10,7 @@ import org.metaborg.spg.sentence.antlr.generator.Generator;
 import org.metaborg.spg.sentence.antlr.generator.GeneratorFactory;
 import org.metaborg.spg.sentence.antlr.grammar.Grammar;
 import org.metaborg.spg.sentence.antlr.grammar.GrammarFactory;
+import org.metaborg.spg.sentence.antlr.tree.Tree;
 import org.metaborg.spoofax.core.Spoofax;
 import org.metaborg.spoofax.core.unit.ISpoofaxInputUnit;
 import org.metaborg.spoofax.core.unit.ISpoofaxParseUnit;
@@ -61,10 +62,12 @@ public class Main {
             org.antlr.v4.tool.Grammar antlrGrammar = org.antlr.v4.tool.Grammar.load(args[1]);
 
             for (int i = 0; i < 10000; i++) {
-                Optional<String> sentenceOpt = generator.generate(antlrStartSymbol, maxSize);
+                Optional<Tree> treeOpt = generator.generate(antlrStartSymbol, maxSize);
 
-                if (sentenceOpt.isPresent()) {
-                    String sentence = sentenceOpt.get();
+                if (treeOpt.isPresent()) {
+                    Tree tree = treeOpt.get();
+                    String sentence = tree.toString(true);
+
                     System.out.println(sentence);
                     boolean antlrResult = parse(antlrGrammar, antlrStartSymbol, sentence);
 
