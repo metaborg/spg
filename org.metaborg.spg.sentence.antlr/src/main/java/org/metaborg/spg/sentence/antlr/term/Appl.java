@@ -1,12 +1,12 @@
-package org.metaborg.spg.sentence.antlr.tree;
+package org.metaborg.spg.sentence.antlr.term;
 
 import org.metaborg.spg.sentence.antlr.grammar.ElementOpt;
 
-public class Node implements Tree {
+public class Appl implements Term {
     private final ElementOpt element;
-    private final Tree[] children;
+    private final Term[] children;
 
-    public Node(ElementOpt element, Tree[] children) {
+    public Appl(ElementOpt element, Term[] children) {
         this.element = element;
         this.children = children;
     }
@@ -16,7 +16,7 @@ public class Node implements Tree {
     }
 
     @Override
-    public Tree[] getChildren() {
+    public Term[] getChildren() {
         return children;
     }
 
@@ -29,7 +29,7 @@ public class Node implements Tree {
     public String toString(boolean whitespace) {
         StringBuilder stringBuilder = new StringBuilder();
 
-        for (Tree child : children) {
+        for (Term child : children) {
             stringBuilder.append(child.toString(whitespace));
 
             if (whitespace) {

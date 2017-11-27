@@ -12,14 +12,18 @@ import org.metaborg.spg.sentence.antlr.grammar.Grammar;
 import org.metaborg.spg.sentence.antlr.grammar.GrammarFactory;
 import org.metaborg.spg.sentence.antlr.shrinker.Shrinker;
 import org.metaborg.spg.sentence.antlr.shrinker.ShrinkerFactory;
-import org.metaborg.spg.sentence.antlr.tree.Tree;
+import org.metaborg.spg.sentence.antlr.shrinker.ShrinkerIterable;
+import org.metaborg.spg.sentence.antlr.shrinker.ShrinkerIterator;
+import org.metaborg.spg.sentence.antlr.term.Term;
 import org.metaborg.spoofax.core.Spoofax;
 import org.metaborg.spoofax.core.unit.ISpoofaxInputUnit;
 import org.metaborg.spoofax.core.unit.ISpoofaxParseUnit;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Optional;
+import java.util.OptionalDouble;
 import java.util.stream.Stream;
 
 import static org.metaborg.spg.sentence.antlr.functional.Utils.uncheck;
@@ -70,13 +74,13 @@ public class Main {
             org.antlr.v4.tool.Grammar antlrGrammar = org.antlr.v4.tool.Grammar.load(args[1]);
 
             for (int i = 0; i < 10000; i++) {
-                Optional<Tree> treeOpt = generator.generate(antlrStartSymbol, maxSize);
+                Optional<Term> treeOpt = generator.generate(antlrStartSymbol, maxSize);
 
                 if (treeOpt.isPresent()) {
-                    Tree tree = treeOpt.get();
-                    String sentence = tree.toString(true);
+                    Term term = treeOpt.get();
+                    String sentence = term.toString(true);
 
-                    // System.out.println(sentence);
+                    System.out.println(sentence);
 
                     boolean antlrResult = parse(antlrGrammar, antlrStartSymbol, sentence);
 
@@ -84,16 +88,15 @@ public class Main {
                         ISpoofaxParseUnit parseUnit = parse(spoofax, minijavaLanguageImpl, sentence);
 
                         if (!parseUnit.success()) {
-                            System.out.println("Generate sentence from ANTLRv4 yields unsuccesful parse in SDF3:");
-                            System.out.println("===============================================================");
+                            System.out.println("Legal ANTLRv4 illegal SDF3 sentence:");
                             System.out.println(sentence);
+                            
+                            while (true) {
+                                Stream<Term> shrunkTrees = shrinker.shrink(term);
 
-                            for (int j = 0; j < 100; j++) {
-                                Stream<Tree> shrunkTrees = shrinker.shrink(tree);
-
-                                Optional<Tree> anyShrunkTree = shrunkTrees.filter(uncheck(shrunkTree ->
-                                        parse(antlrGrammar, antlrStartSymbol, shrunkTree.toString(true)))
-                                ).filter(uncheck(shrunkTree ->
+                                Optional<Term> anyShrunkTree = shrunkTrees.filter(uncheck(shrunkTree ->
+                                        parse(antlrGrammar, antlrStartSymbol, shrunkTree.toString(true))
+                                )).filter(uncheck(shrunkTree ->
                                         !parse(spoofax, minijavaLanguageImpl, shrunkTree.toString(true)).success()
                                 )).findAny();
 
@@ -101,7 +104,7 @@ public class Main {
                                     System.out.println("Shrunk sentence to smaller sentence:");
                                     System.out.println(anyShrunkTree.get().toString(true));
 
-                                    tree = anyShrunkTree.get();
+                                    term = anyShrunkTree.get();
                                 } else {
                                     break;
                                 }

@@ -1,10 +1,10 @@
-package org.metaborg.spg.sentence.antlr.tree;
+package org.metaborg.spg.sentence.antlr.term;
 
-public class Leaf implements Tree {
-    public static final Leaf EMPTY = new Leaf("");
+public class Text implements Term {
+    public static final Text EMPTY = new Text("");
     private final String text;
 
-    public Leaf(String text) {
+    public Text(String text) {
         this.text = text;
     }
 
@@ -13,8 +13,8 @@ public class Leaf implements Tree {
     }
 
     @Override
-    public Tree[] getChildren() {
-        return new Tree[0];
+    public Term[] getChildren() {
+        return new Term[0];
     }
 
     @Override

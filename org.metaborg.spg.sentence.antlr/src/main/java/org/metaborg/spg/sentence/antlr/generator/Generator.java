@@ -4,9 +4,10 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
 import org.metaborg.spg.sentence.antlr.grammar.*;
-import org.metaborg.spg.sentence.antlr.tree.Leaf;
-import org.metaborg.spg.sentence.antlr.tree.Node;
-import org.metaborg.spg.sentence.antlr.tree.Tree;
+import org.metaborg.spg.sentence.antlr.term.TermList;
+import org.metaborg.spg.sentence.antlr.term.Text;
+import org.metaborg.spg.sentence.antlr.term.Appl;
+import org.metaborg.spg.sentence.antlr.term.Term;
 
 import java.util.Optional;
 import java.util.Random;
@@ -33,13 +34,13 @@ public class Generator {
         return multimap;
     }
 
-    public Optional<Tree> generate(String startSymbol, int size) {
+    public Optional<Term> generate(String startSymbol, int size) {
         Nonterminal start = new Nonterminal(startSymbol);
 
         return generateNonterminal(start, size);
     }
 
-    public Optional<Tree> generateNonterminal(Nonterminal nonterminal, int size) {
+    public Optional<Term> generateNonterminal(Nonterminal nonterminal, int size) {
         if (size <= 0) {
             return empty();
         }
@@ -47,7 +48,7 @@ public class Generator {
         assert(cache.get(nonterminal.getName()).size() > 0);
 
         for (Rule rule : cache.get(nonterminal.getName())) {
-            Optional<Tree> treeOpt = forRule(rule, size);
+            Optional<Term> treeOpt = forRule(rule, size);
 
             if (treeOpt.isPresent()) {
                 return treeOpt;
@@ -57,8 +58,8 @@ public class Generator {
         return empty();
     }
 
-    public Optional<Tree> forRule(Rule rule, int size) {
-        Optional<Tree> treeOpt = forElement(rule.getElement(), size);
+    public Optional<Term> forRule(Rule rule, int size) {
+        Optional<Term> treeOpt = forElement(rule.getElement(), size);
 
         if (rule.isLexical()) {
             return treeOpt.map(this::join);
@@ -67,7 +68,7 @@ public class Generator {
         }
     }
 
-    public Optional<Tree> forElement(ElementOpt element, int size) {
+    public Optional<Term> forElement(ElementOpt element, int size) {
         if (size <= 0) {
             return empty();
         }
@@ -97,22 +98,22 @@ public class Generator {
         throw new IllegalStateException("Unknown element: " + element);
     }
 
-    private Optional<Tree> generateEmpty(Empty element, int size) {
-        return of(Leaf.EMPTY);
+    private Optional<Term> generateEmpty(Empty element, int size) {
+        return of(Text.EMPTY);
     }
 
-    private Optional<Tree> generateLiteral(Literal element, int size) {
+    private Optional<Term> generateLiteral(Literal element, int size) {
         return of(leaf(element.getText()));
     }
 
-    private Optional<Tree> generateConc(Conc element, int size) {
+    private Optional<Term> generateConc(Conc element, int size) {
         int headSize = (int) (1.0 / element.size() * size);
         int tailSize = size - headSize;
 
-        Optional<Tree> headOpt = forElement(element.getFirst(), headSize);
+        Optional<Term> headOpt = forElement(element.getFirst(), headSize);
 
         if (headOpt.isPresent()) {
-            Optional<Tree> tailOpt = forElement(element.getSecond(), tailSize);
+            Optional<Term> tailOpt = forElement(element.getSecond(), tailSize);
 
             if (tailOpt.isPresent()) {
                 return of(node(element, headOpt.get(), tailOpt.get()));
@@ -122,9 +123,9 @@ public class Generator {
         return empty();
     }
 
-    private Optional<Tree> generateAlt(Alt element, int size) {
+    private Optional<Term> generateAlt(Alt element, int size) {
         if (random.nextInt(element.size()) == 0) {
-            Optional<Tree> firstResultOpt = forElement(element.getFirst(), size);
+            Optional<Term> firstResultOpt = forElement(element.getFirst(), size);
 
             if (!firstResultOpt.isPresent()) {
                 return forElement(element.getSecond(), size);
@@ -132,7 +133,7 @@ public class Generator {
                 return firstResultOpt;
             }
         } else {
-            Optional<Tree> secondResultOpt = forElement(element.getSecond(), size);
+            Optional<Term> secondResultOpt = forElement(element.getSecond(), size);
 
             if (!secondResultOpt.isPresent()) {
                 return forElement(element.getFirst(), size);
@@ -142,55 +143,58 @@ public class Generator {
         }
     }
 
-    private Optional<Tree> generateOpt(Opt element, int size) {
+    private Optional<Term> generateOpt(Opt element, int size) {
         if (random.nextInt(2) == 0) {
-            return of(Leaf.EMPTY);
+            return of(Text.EMPTY);
         } else {
             return forElement(element.getElement(), size);
         }
     }
 
-    private Optional<Tree> generateStar(Star element, int size) {
+    private Optional<Term> generateStar(Star element, int size) {
         if (random.nextInt(2) == 0) {
-            return of(Leaf.EMPTY);
+            return of(list(element));
         } else {
             int headSize = size / 4;
             int tailSize = size - headSize;
 
-            Optional<Tree> tailOpt = forElement(element, tailSize);
+            Optional<Term> tailOpt = forElement(element, tailSize);
 
-            return tailOpt.map(tail -> prepend(element.getElement(), tail, headSize));
+            return tailOpt.map(tail -> prepend(element, element.getElement(), tail, headSize));
         }
     }
 
-    private Optional<Tree> generatePlus(Plus element, int size) {
+    // TODO: This is wrong; it may return empty lists!
+    private Optional<Term> generatePlus(Plus element, int size) {
         int headSize = size / 4;
         int tailSize = size - headSize;
 
-        Optional<Tree> tailOpt = generateStar(new Star(element.getElement()), tailSize);
+        Optional<Term> tailOpt = generateStar(new Star(element.getElement()), tailSize);
 
-        return tailOpt.map(tail -> prepend(element.getElement(), tail, headSize));
+        return tailOpt.map(tail -> prepend(element, element.getElement(), tail, headSize));
     }
 
-    private Tree prepend(Element element, Tree tail, int size) {
-        Optional<Tree> headOpt = forElement(element, size);
+    private Term prepend(Element operation, Element element, Term tail, int size) {
+        Optional<Term> headOpt = forElement(element, size);
 
         if (headOpt.isPresent()) {
-            return node(element, headOpt.get(), tail);
+            TermList termList = (TermList) tail;
+
+            return list(operation, headOpt.get(), termList);
         } else {
             return tail;
         }
     }
 
-    private Optional<Tree> generateCharacterClass(CharacterClass element, int size) {
+    private Optional<Term> generateCharacterClass(CharacterClass element, int size) {
         return generateRanges(element.getRanges(), size);
     }
 
-    private Optional<Tree> generateEof(EOF element, int size) {
-        return of(Leaf.EMPTY);
+    private Optional<Term> generateEof(EOF element, int size) {
+        return of(Text.EMPTY);
     }
 
-    private Optional<Tree> generateRanges(Ranges ranges, int size) {
+    private Optional<Term> generateRanges(Ranges ranges, int size) {
         if (ranges instanceof RangesConc) {
             return generateRangesConc((RangesConc) ranges);
         } else if (ranges instanceof Range) {
@@ -200,14 +204,14 @@ public class Generator {
         throw new IllegalStateException("Unknown ranges: " + ranges);
     }
 
-    private Optional<Tree> generateRangesConc(RangesConc ranges) {
+    private Optional<Term> generateRangesConc(RangesConc ranges) {
         int size = ranges.size();
         int rand = random.nextInt(size);
 
         return of(leaf(String.valueOf(ranges.get(rand))));
     }
 
-    private Optional<Tree> generateRange(Range range, int size) {
+    private Optional<Term> generateRange(Range range, int size) {
         if (range instanceof CharRange) {
             return generateCharRange((CharRange) range);
         } else if (range instanceof Char) {
@@ -217,14 +221,14 @@ public class Generator {
         throw new IllegalStateException("Unknown range: " + range);
     }
 
-    private Optional<Tree> generateCharRange(CharRange range) {
+    private Optional<Term> generateCharRange(CharRange range) {
         int size = range.size();
         int rand = random.nextInt(size);
 
         return of(leaf(String.valueOf(range.get(rand))));
     }
 
-    private Optional<Tree> generateChar(Char c, int size) {
+    private Optional<Term> generateChar(Char c, int size) {
         if (c instanceof Single) {
             return generateSingle((Single) c, size);
         }
@@ -232,19 +236,35 @@ public class Generator {
         throw new IllegalStateException("Unknown char: " + c);
     }
 
-    private Optional<Tree> generateSingle(Single s, int size) {
+    private Optional<Term> generateSingle(Single s, int size) {
         return of(leaf(s.getText()));
     }
 
-    private Tree join(Tree tree) {
-        return leaf(tree.toString(false));
+    private Term join(Term term) {
+        return leaf(term.toString(false));
     }
 
-    private Tree node(ElementOpt elementOpt, Tree... children) {
-        return new Node(elementOpt, children);
+    private TermList list(Element element, Term term, Term[] tail) {
+        return new TermList(element, term, tail);
     }
 
-    private Tree leaf(String text) {
-        return new Leaf(text);
+    private TermList list(Element element, Term term, TermList tail) {
+        return new TermList(element, term, tail);
+    }
+
+    private TermList list(Element element, Term[] tail) {
+        return new TermList(element, tail);
+    }
+
+    private TermList list(Star element) {
+        return new TermList(element);
+    }
+
+    private Term node(ElementOpt elementOpt, Term... children) {
+        return new Appl(elementOpt, children);
+    }
+
+    private Term leaf(String text) {
+        return new Text(text);
     }
 }

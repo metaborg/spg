@@ -18,6 +18,6 @@ public class Plus implements Element {
 
     @Override
     public String toString() {
-        return element + "+";
+        return "(" + element + ")+";
     }
 }
