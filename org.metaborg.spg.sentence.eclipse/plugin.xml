@@ -10,8 +10,13 @@
           id="spgMenu"
           label="SPG">
         <command
-           commandId="org.metaborg.spg.sentence.eclipse.command.sentence"
-           label="Generate sentences"
+           commandId="org.metaborg.spg.sentence.eclipse.command.ambiguity"
+           label="Ambiguity test"
+           style="push">
+        </command>
+        <command
+           commandId="org.metaborg.spg.sentence.eclipse.command.difference"
+           label="Difference test"
            style="push">
         </command>
       </menu>
@@ -21,9 +26,14 @@
   <extension
       point="org.eclipse.ui.commands">
     <command
-        id="org.metaborg.spg.sentence.eclipse.command.sentence"
-        name="Generate sentences"
-        defaultHandler="org.metaborg.spg.sentence.eclipse.handler.SentenceHandler">
+        id="org.metaborg.spg.sentence.eclipse.command.ambiguity"
+        name="Ambiguity test"
+        defaultHandler="org.metaborg.spg.sentence.eclipse.handler.AmbiguityHandler">
+    </command>
+    <command
+        id="org.metaborg.spg.sentence.eclipse.command.difference"
+        name="Difference test"
+        defaultHandler="org.metaborg.spg.sentence.eclipse.handler.DifferenceHandler">
     </command>
   </extension>
 </plugin>

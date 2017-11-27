@@ -33,6 +33,12 @@ public class Grammar {
     }
 
     public Rule getRule(String name) {
+        Rule rule = ruleCache.get(name);
+
+        if (rule == null) {
+            throw new IllegalArgumentException("No rule with name " + name);
+        }
+
         return ruleCache.get(name);
     }
 

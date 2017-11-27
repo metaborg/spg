@@ -4,9 +4,6 @@ import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import static java.util.stream.Stream.empty;
-import static java.util.stream.Stream.of;
-
 public class Utils {
     public static <T> Predicate<T> uncheck(CheckedPredicate<T, Exception> function) {
         return element -> {
@@ -23,10 +20,8 @@ public class Utils {
     }
 
     public static <U> Stream<U> lift(Optional<U> optional) {
-        if (optional.isPresent()) {
-            return of(optional.get());
-        } else {
-            return empty();
-        }
+        return optional
+                .map(Stream::of)
+                .orElseGet(Stream::empty);
     }
 }

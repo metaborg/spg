@@ -1,3 +1,5 @@
+package org.metaborg.spg.sentence.antlr;
+
 import com.google.common.collect.ImmutableSet;
 import org.junit.Test;
 import org.metaborg.spg.sentence.antlr.grammar.*;
@@ -5,7 +7,6 @@ import org.metaborg.spg.sentence.antlr.grammar.*;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -17,6 +18,9 @@ public class GrammarTest {
          * conditionalOrExpression:
          *   conditionalAndExpression
          * | conditionalOrExpression '||" conditionalAndExpression;
+         *
+         * conditionalAndExpression:
+         *   '42';
          */
 
         Grammar grammar = new Grammar("TestGrammar", Arrays.asList(
@@ -29,13 +33,16 @@ public class GrammarTest {
                                 ),
                                 new Nonterminal("conditionalAndExpression")
                         )
-                ))
+                )),
+
+                new Rule("conditionalAndExpression", new Literal("42"))
         ));
 
         Set<Nonterminal> injections = grammar
                 .getInjections(new Nonterminal("conditionalOrExpression"));
 
-        Set<Nonterminal> expected = Collections.singleton(
+        Set<Nonterminal> expected = ImmutableSet.of(
+                new Nonterminal("conditionalOrExpression"),
                 new Nonterminal("conditionalAndExpression")
         );
 
