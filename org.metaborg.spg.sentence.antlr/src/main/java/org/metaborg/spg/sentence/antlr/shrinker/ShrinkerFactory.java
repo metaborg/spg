@@ -14,7 +14,7 @@ public class ShrinkerFactory {
         this.random = random;
     }
 
-    public Shrinker create(Generator generator) {
-        return new Shrinker(random, generator);
+    public Shrinker create(Generator generator, Grammar grammar) {
+        return new Shrinker(random, generator, grammar);
     }
 }

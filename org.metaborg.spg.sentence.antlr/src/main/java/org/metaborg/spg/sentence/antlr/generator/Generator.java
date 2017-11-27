@@ -36,7 +36,7 @@ public class Generator {
 
         Rule rule = grammar.getRule(nonterminal.getName());
 
-        return forRule(rule, size);
+        return forRule(rule, size).map(term -> node(nonterminal, term));
 
     }
 

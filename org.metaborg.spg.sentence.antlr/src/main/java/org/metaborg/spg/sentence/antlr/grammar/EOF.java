@@ -5,4 +5,9 @@ public class EOF implements Element {
     public int size() {
         return 0;
     }
+
+    @Override
+    public String toString() {
+        return "EOF";
+    }
 }

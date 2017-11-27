@@ -61,12 +61,12 @@ public class Main {
 
             GrammarFactory grammarFactory = spoofax.injector.getInstance(GrammarFactory.class);
             Grammar grammar = grammarFactory.create(grammarFile, antlrLanguageImpl);
-            
+
             GeneratorFactory generatorFactory = spoofax.injector.getInstance(GeneratorFactory.class);
             Generator generator = generatorFactory.create(grammar);
 
             ShrinkerFactory shrinkerFactory = spoofax.injector.getInstance(ShrinkerFactory.class);
-            Shrinker shrinker = shrinkerFactory.create(generator);
+            Shrinker shrinker = shrinkerFactory.create(generator, grammar);
 
             org.antlr.v4.tool.Grammar antlrGrammar = org.antlr.v4.tool.Grammar.load(args[1]);
 
@@ -91,15 +91,14 @@ public class Main {
                             while (true) {
                                 Stream<Term> shrunkTrees = shrinker.shrink(term);
 
-                                Optional<Term> anyShrunkTree = shrunkTrees.filter(uncheck(shrunkTree ->
-                                        !parse(spoofax, minijavaLanguageImpl, shrunkTree.toString(true)).success()
-                                )).filter(uncheck(shrunkTree ->
-                                        parse(antlrGrammar, antlrStartSymbol, shrunkTree.toString(true))
-                                )).findAny();
+                                Optional<Term> anyShrunkTree = shrunkTrees
+                                        .filter(uncheck(shrunkTree -> !parse(spoofax, minijavaLanguageImpl, shrunkTree.toString()).success()))
+                                        .filter(uncheck(shrunkTree -> parse(antlrGrammar, antlrStartSymbol, shrunkTree.toString())))
+                                        .findFirst();
 
                                 if (anyShrunkTree.isPresent()) {
                                     System.out.println("Shrunk sentence to smaller sentence:");
-                                    System.out.println(anyShrunkTree.get().toString(true));
+                                    System.out.println(anyShrunkTree.get().toString());
 
                                     term = anyShrunkTree.get();
                                 } else {

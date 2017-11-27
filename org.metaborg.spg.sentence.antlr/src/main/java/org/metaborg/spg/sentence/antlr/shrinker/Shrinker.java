@@ -2,9 +2,7 @@ package org.metaborg.spg.sentence.antlr.shrinker;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.metaborg.spg.sentence.antlr.generator.Generator;
-import org.metaborg.spg.sentence.antlr.grammar.ElementOpt;
-import org.metaborg.spg.sentence.antlr.grammar.Plus;
-import org.metaborg.spg.sentence.antlr.grammar.Star;
+import org.metaborg.spg.sentence.antlr.grammar.*;
 import org.metaborg.spg.sentence.antlr.term.Appl;
 import org.metaborg.spg.sentence.antlr.term.Term;
 import org.metaborg.spg.sentence.antlr.term.TermList;
@@ -16,25 +14,28 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static java.util.stream.Stream.*;
+import static org.metaborg.spg.sentence.antlr.functional.FlatMappingSpliterator.flatMap;
 import static org.metaborg.spg.sentence.antlr.functional.Utils.lift;
 
 public class Shrinker {
     private final Random random;
     private final Generator generator;
+    private final Grammar grammar;
 
-    public Shrinker(Random random, Generator generator) {
+    public Shrinker(Random random, Generator generator, Grammar grammar) {
         this.random = random;
         this.generator = generator;
+        this.grammar = grammar;
     }
 
     public Stream<Term> shrink(Term term) {
-        List<Term> subtrees = subtrees(term)
+        List<Term> subtrees = subterms(term)
                 .filter(this::isLargeList)
                 .collect(Collectors.toList());
 
         Collections.shuffle(subtrees, random);
 
-        return subtrees.stream().flatMap(subTree ->
+        return flatMap(subtrees.stream(), subTree ->
                 shrink(term, subTree)
         );
     }
@@ -43,12 +44,44 @@ public class Shrinker {
         if (subTerm instanceof Text) {
             return of(term);
         } else if (subTerm instanceof Appl) {
-            return shrinkAppl(term, (Appl) subTerm);
+            return shrinkRecursive(term, (Appl) subTerm);
         } else if (subTerm instanceof TermList) {
             return shrinkList(term, (TermList) subTerm);
         }
 
+        // TODO: Do we still want/need shrinkAppl? shrinkAppl(term, (Appl) subTerm);
+
         throw new IllegalStateException("Unknown term: " + term);
+    }
+
+    private Stream<Term> shrinkRecursive(Term term, Appl appl) {
+        if (appl.getElementOpt() instanceof Nonterminal) {
+            Nonterminal nonterminal = (Nonterminal) appl.getElementOpt();
+            List<Term> descendants = descendants(appl).collect(Collectors.toList());
+            Set<Nonterminal> injections = grammar.getInjections(nonterminal);
+
+            Collections.shuffle(descendants, random);
+
+            return descendants.stream()
+                    .filter(descendant -> isValidDescendant(descendant, injections))
+                    .map(descendant -> replace(term, appl, descendant));
+        }
+
+        return empty();
+    }
+
+    private boolean isValidDescendant(Term descendant, Set<Nonterminal> injections) {
+        if (descendant instanceof Appl) {
+            ElementOpt elementOpt = ((Appl) descendant).getElementOpt();
+
+            if (elementOpt instanceof Nonterminal) {
+                Nonterminal nonterminal = (Nonterminal) elementOpt;
+
+                return injections.contains(nonterminal);
+            }
+        }
+
+        return false;
     }
 
     private Stream<Term> shrinkAppl(Term term, Appl appl) {
@@ -132,15 +165,25 @@ public class Shrinker {
                 .sum();
     }
 
-    public Stream<Term> subtrees(Term term) {
+    public Stream<Term> subterms(Term term) {
         if (term instanceof Text) {
             return empty();
         } else {
             Stream<Term> children = Arrays
                     .stream(term.getChildren())
-                    .flatMap(this::subtrees);
+                    .flatMap(this::subterms);
 
             return concat(of(term), children);
+        }
+    }
+
+    public Stream<Term> descendants(Term term) {
+        if (term instanceof Text) {
+            return empty();
+        } else {
+            return Arrays
+                    .stream(term.getChildren())
+                    .flatMap(this::subterms);
         }
     }
 }

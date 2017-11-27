@@ -33,8 +33,7 @@ public class GrammarTest {
         ));
 
         Set<Nonterminal> injections = grammar
-                .injections(new Nonterminal("conditionalOrExpression"))
-                .collect(Collectors.toSet());
+                .getInjections(new Nonterminal("conditionalOrExpression"));
 
         Set<Nonterminal> expected = Collections.singleton(
                 new Nonterminal("conditionalAndExpression")
@@ -85,8 +84,7 @@ public class GrammarTest {
         ));
 
         Set<Nonterminal> injectionsClosure = grammar
-                .injectionsClosure(new Nonterminal("conditionalOrExpression"))
-                .collect(Collectors.toSet());
+                .getInjections(new Nonterminal("conditionalOrExpression"));
 
         Set<Nonterminal> expected = ImmutableSet.of(
                 new Nonterminal("conditionalOrExpression"),
