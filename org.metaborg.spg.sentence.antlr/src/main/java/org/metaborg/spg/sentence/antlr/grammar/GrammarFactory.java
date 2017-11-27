@@ -16,6 +16,7 @@ import org.spoofax.interpreter.terms.IStrategoTerm;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Collectors;
 
 public class GrammarFactory {
@@ -49,12 +50,12 @@ public class GrammarFactory {
 
     protected Grammar toGrammar(IStrategoTerm term) {
         String name = termToString(term.getSubterm(0));
-        Iterable<Rule> rules = toRules(term.getSubterm(1));
+        List<Rule> rules = toRules(term.getSubterm(1));
 
         return new Grammar(name, rules);
     }
 
-    protected Iterable<Rule> toRules(IStrategoTerm term) {
+    protected List<Rule> toRules(IStrategoTerm term) {
         return Arrays
                 .stream(term.getAllSubterms())
                 .map(this::toRule)

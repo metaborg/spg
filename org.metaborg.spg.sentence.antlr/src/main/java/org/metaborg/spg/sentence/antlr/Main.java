@@ -10,10 +10,9 @@ import org.metaborg.spg.sentence.antlr.generator.Generator;
 import org.metaborg.spg.sentence.antlr.generator.GeneratorFactory;
 import org.metaborg.spg.sentence.antlr.grammar.Grammar;
 import org.metaborg.spg.sentence.antlr.grammar.GrammarFactory;
+import org.metaborg.spg.sentence.antlr.grammar.Nonterminal;
 import org.metaborg.spg.sentence.antlr.shrinker.Shrinker;
 import org.metaborg.spg.sentence.antlr.shrinker.ShrinkerFactory;
-import org.metaborg.spg.sentence.antlr.shrinker.ShrinkerIterable;
-import org.metaborg.spg.sentence.antlr.shrinker.ShrinkerIterator;
 import org.metaborg.spg.sentence.antlr.term.Term;
 import org.metaborg.spoofax.core.Spoofax;
 import org.metaborg.spoofax.core.unit.ISpoofaxInputUnit;
@@ -21,9 +20,7 @@ import org.metaborg.spoofax.core.unit.ISpoofaxParseUnit;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Optional;
-import java.util.OptionalDouble;
 import java.util.stream.Stream;
 
 import static org.metaborg.spg.sentence.antlr.functional.Utils.uncheck;
@@ -45,7 +42,7 @@ public class Main {
 
             return;
         }
-        
+
         File minijavaLanguageFile = new File(args[2]);
 
         if (!minijavaLanguageFile.exists()) {
@@ -64,7 +61,7 @@ public class Main {
 
             GrammarFactory grammarFactory = spoofax.injector.getInstance(GrammarFactory.class);
             Grammar grammar = grammarFactory.create(grammarFile, antlrLanguageImpl);
-
+            
             GeneratorFactory generatorFactory = spoofax.injector.getInstance(GeneratorFactory.class);
             Generator generator = generatorFactory.create(grammar);
 
@@ -82,22 +79,22 @@ public class Main {
 
                     System.out.println(sentence);
 
-                    boolean antlrResult = parse(antlrGrammar, antlrStartSymbol, sentence);
+                    ISpoofaxParseUnit parseUnit = parse(spoofax, minijavaLanguageImpl, sentence);
 
-                    if (antlrResult) {
-                        ISpoofaxParseUnit parseUnit = parse(spoofax, minijavaLanguageImpl, sentence);
+                    if (!parseUnit.success()) {
+                        boolean antlrResult = parse(antlrGrammar, antlrStartSymbol, sentence);
 
-                        if (!parseUnit.success()) {
+                        if (antlrResult) {
                             System.out.println("Legal ANTLRv4 illegal SDF3 sentence:");
                             System.out.println(sentence);
-                            
+
                             while (true) {
                                 Stream<Term> shrunkTrees = shrinker.shrink(term);
 
                                 Optional<Term> anyShrunkTree = shrunkTrees.filter(uncheck(shrunkTree ->
-                                        parse(antlrGrammar, antlrStartSymbol, shrunkTree.toString(true))
-                                )).filter(uncheck(shrunkTree ->
                                         !parse(spoofax, minijavaLanguageImpl, shrunkTree.toString(true)).success()
+                                )).filter(uncheck(shrunkTree ->
+                                        parse(antlrGrammar, antlrStartSymbol, shrunkTree.toString(true))
                                 )).findAny();
 
                                 if (anyShrunkTree.isPresent()) {
@@ -109,9 +106,9 @@ public class Main {
                                     break;
                                 }
                             }
+                        } else {
+                            System.err.println("Unparsable sentence: " + sentence);
                         }
-                    } else {
-                        System.err.println("Unparsable sentence: " + sentence);
                     }
                 }
             }

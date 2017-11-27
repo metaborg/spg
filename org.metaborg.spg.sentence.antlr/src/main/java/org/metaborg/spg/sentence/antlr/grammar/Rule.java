@@ -1,5 +1,7 @@
 package org.metaborg.spg.sentence.antlr.grammar;
 
+import java.util.stream.Stream;
+
 public class Rule {
     private final String name;
     private final ElementOpt element;
@@ -24,5 +26,9 @@ public class Rule {
     @Override
     public String toString() {
         return name + ": " + element + ";";
+    }
+
+    public Stream<Nonterminal> getNonterminals() {
+        return null;
     }
 }

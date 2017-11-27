@@ -1,14 +1,13 @@
 package org.metaborg.spg.sentence.antlr.generator;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.Maps;
 import org.metaborg.spg.sentence.antlr.grammar.*;
-import org.metaborg.spg.sentence.antlr.term.TermList;
-import org.metaborg.spg.sentence.antlr.term.Text;
 import org.metaborg.spg.sentence.antlr.term.Appl;
 import org.metaborg.spg.sentence.antlr.term.Term;
+import org.metaborg.spg.sentence.antlr.term.TermList;
+import org.metaborg.spg.sentence.antlr.term.Text;
 
+import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 
@@ -17,21 +16,11 @@ import static java.util.Optional.of;
 
 public class Generator {
     private final Random random;
-    private final Multimap<String, Rule> cache;
+    private final Grammar grammar;
 
     public Generator(Random random, Grammar grammar) {
         this.random = random;
-        this.cache = createCache(grammar);
-    }
-
-    private Multimap<String, Rule> createCache(Grammar grammar) {
-        ListMultimap<String, Rule> multimap = ArrayListMultimap.create();
-
-        for (Rule rule : grammar.getRules()) {
-            multimap.put(rule.getName(), rule);
-        }
-
-        return multimap;
+        this.grammar = grammar;
     }
 
     public Optional<Term> generate(String startSymbol, int size) {
@@ -45,17 +34,10 @@ public class Generator {
             return empty();
         }
 
-        assert(cache.get(nonterminal.getName()).size() > 0);
+        Rule rule = grammar.getRule(nonterminal.getName());
 
-        for (Rule rule : cache.get(nonterminal.getName())) {
-            Optional<Term> treeOpt = forRule(rule, size);
+        return forRule(rule, size);
 
-            if (treeOpt.isPresent()) {
-                return treeOpt;
-            }
-        }
-
-        return empty();
     }
 
     public Optional<Term> forRule(Rule rule, int size) {
