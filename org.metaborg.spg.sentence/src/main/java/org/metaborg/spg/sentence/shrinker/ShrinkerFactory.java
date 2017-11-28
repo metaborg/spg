@@ -21,6 +21,6 @@ public class ShrinkerFactory {
     public Shrinker create(ILanguageImpl language, Printer printer, Generator generator, ITermFactory termFactory) {
         ShrinkerConfig shrinkerConfig = new ShrinkerConfig(language, printer);
 
-        return new Shrinker(random, parseService, generator, termFactory, shrinkerConfig);
+        return new Shrinker(random, generator, termFactory);
     }
 }

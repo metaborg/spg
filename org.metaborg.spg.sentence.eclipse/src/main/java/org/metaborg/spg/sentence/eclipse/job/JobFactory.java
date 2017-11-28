@@ -7,5 +7,7 @@ import org.metaborg.spg.sentence.ambiguity.AmbiguityTesterConfig;
 public interface JobFactory {
     AmbiguityJob createAmbiguityJob(AmbiguityTesterConfig config, IProject project, ILanguageImpl language);
 
-    DifferenceJob createDifferenceJob(IProject project, ILanguageImpl language);
+    LiberalDifferenceJob createLiberalDifferenceJob(IProject project, ILanguageImpl languageImpl);
+
+    RestrictiveDifferenceJob createRestrictiveDifferenceJob(IProject project, ILanguageImpl languageImpl);
 }

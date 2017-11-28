@@ -12,7 +12,7 @@ import org.metaborg.spg.sentence.eclipse.exception.LanguageNotFoundException;
 import org.metaborg.spg.sentence.eclipse.exception.ProjectNotFoundException;
 import org.metaborg.spg.sentence.eclipse.job.JobFactory;
 
-public class DifferenceHandler extends SentenceHandler {
+public class LiberalDifferenceHandler extends SentenceHandler {
     public Object execute(ExecutionEvent executionEvent) throws ExecutionException {
         try {
             IProject project = getProject(executionEvent);
@@ -24,7 +24,7 @@ public class DifferenceHandler extends SentenceHandler {
             if (differenceDialog.open() == Window.OK) {
                 JobFactory jobFactory = injector.getInstance(JobFactory.class);
 
-                Job job = jobFactory.createDifferenceJob(project, languageImpl);
+                Job job = jobFactory.createLiberalDifferenceJob(project, languageImpl);
                 job.setPriority(Job.SHORT);
                 job.setUser(true);
                 job.schedule();
@@ -37,13 +37,4 @@ public class DifferenceHandler extends SentenceHandler {
 
         return null;
     }
-
-    /*
-    protected AmbiguityTesterConfig getConfig(AmbiguityDialog generateDialog) {
-        int maxNumberOfTerms = generateDialog.getMaxNumberOfTerms();
-        int maxTermSize = generateDialog.getMaxTermSize();
-
-        return new AmbiguityTesterConfig(maxNumberOfTerms, maxTermSize);
-    }
-    */
 }

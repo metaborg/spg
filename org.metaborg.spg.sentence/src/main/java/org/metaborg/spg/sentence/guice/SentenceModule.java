@@ -10,17 +10,12 @@ import org.spoofax.interpreter.terms.ITermFactory;
 public class SentenceModule extends AbstractModule {
     @Override
     protected void configure() {
-        bind(ITermFactory.class)
-                .toProvider(TermFactoryProvider.class);
-
-        install(new FactoryModuleBuilder()
-                .build(AmbiguityTesterFactory.class));
+        bind(ITermFactory.class).toProvider(TermFactoryProvider.class);
 
         bindRandom();
     }
 
     protected void bindRandom() {
-        bind(IRandom.class)
-                .toInstance(new Random());
+        bind(IRandom.class).toInstance(new Random());
     }
 }

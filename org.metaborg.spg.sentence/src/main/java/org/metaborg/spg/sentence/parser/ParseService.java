@@ -39,26 +39,4 @@ public class ParseService {
             throw new ParseRuntimeException("Unable to parse: " + text, e);
         }
     }
-
-    public boolean isAmbiguous(ISpoofaxParseUnit parseUnit) {
-        return isAmbiguous(parseUnit.ast());
-    }
-
-    public boolean isAmbiguous(IStrategoTerm term) {
-        if (term instanceof IStrategoAppl) {
-            IStrategoAppl appl = (IStrategoAppl) term;
-
-            if ("amb".equals(appl.getConstructor().getName())) {
-                return true;
-            }
-        }
-
-        for (IStrategoTerm subterm : term.getAllSubterms()) {
-            if (isAmbiguous(subterm)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
 }

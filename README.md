@@ -10,9 +10,18 @@ Pom-first and manifest-first projects cannot be mixed in the same reactor build 
 mvn clean install -f org.metaborg.spg.sentence/pom.xml
 mvn clean install -f pom.xml
 ```
+
+## Testing
+
+Only the `org.metaborg.spg.sentence` project contains tests. To run the tests:
+
+```
+mvn test -f org.metaborg.spg.sentence/pom.xml
+```
+
 ## Usage
 
-Every subproject is used differently. What follows is an explanation on how to use each subproject. For every subproject, make sure you're using the Java parse table generator by adding to `metaborg.yaml`:
+Make sure you are using the Java parse table generator. This is the case when `metaborg.yaml` contains the following:
 
 ```
 language:
@@ -39,6 +48,8 @@ After installing the Eclipse plugin:
 2. Click _Spoofax (meta)_ > _SPG_ > _Generate sentences_.
 3. Choose a maximum term size and maximum number of terms.
 4. The generated sentences appear in the _Console_.
+
+Warning: If you rebuild this project, uninstall the Eclipse plugin, and reinstall the Eclipse plugin, then Eclipse still uses the old (now uninstalled) version. The only solution I have found is to download a fresh Spoofax Eclipse from [spoofax.org](https://spoofax.org).
 
 ### Using org.metaborg.spg.sentence.evaluation
 

@@ -24,10 +24,10 @@ public class Main {
 
             Injector injector = spoofax.injector;
             AmbiguityTesterFactory ambiguityTesterFactory = injector.getInstance(AmbiguityTesterFactory.class);
-            AmbiguityTester ambiguityTester = ambiguityTesterFactory.create();
+            AmbiguityTester ambiguityTester = ambiguityTesterFactory.create(language, project);
             AmbiguityTesterProgress progress = new AmbiguityTesterProgressDefault();
             AmbiguityTesterConfig config = new AmbiguityTesterConfig(maxNumberOfTerms, maxTermSize);
-            AmbiguityTesterResult result = ambiguityTester.findAmbiguity(language, project, config, progress);
+            AmbiguityTesterResult result = ambiguityTester.findAmbiguity(config, progress);
 
             if (result.foundAmbiguity()) {
                 System.out.println("Found ambiguous sentence after " + result.getTerms() + " terms (" + result.getDuration() + " ms).");
