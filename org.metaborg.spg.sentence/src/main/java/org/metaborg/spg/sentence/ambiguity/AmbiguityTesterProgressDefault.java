@@ -9,7 +9,7 @@ public class AmbiguityTesterProgressDefault implements AmbiguityTesterProgress {
 
     @Override
     public void sentenceShrinked(String text) {
-        System.out.println("=== Shrink ==");
+        System.out.println("=== Shrink ===");
         System.out.println(text);
     }
 }

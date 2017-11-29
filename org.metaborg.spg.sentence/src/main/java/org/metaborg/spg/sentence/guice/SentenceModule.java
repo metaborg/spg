@@ -8,6 +8,16 @@ import org.metaborg.spg.sentence.ambiguity.AmbiguityTesterFactory;
 import org.spoofax.interpreter.terms.ITermFactory;
 
 public class SentenceModule extends AbstractModule {
+    private Random random;
+
+    public SentenceModule() {
+        this.random = new Random();
+    }
+
+    public SentenceModule(long seed) {
+        this.random = new Random(seed);
+    }
+
     @Override
     protected void configure() {
         bind(ITermFactory.class).toProvider(TermFactoryProvider.class);
@@ -16,6 +26,6 @@ public class SentenceModule extends AbstractModule {
     }
 
     protected void bindRandom() {
-        bind(IRandom.class).toInstance(new Random());
+        bind(IRandom.class).toInstance(random);
     }
 }

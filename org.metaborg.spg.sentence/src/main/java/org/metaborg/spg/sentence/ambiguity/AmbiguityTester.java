@@ -15,7 +15,6 @@ import org.spoofax.interpreter.terms.ITermFactory;
 
 import java.util.Arrays;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class AmbiguityTester {
@@ -125,9 +124,9 @@ public class AmbiguityTester {
             IStrategoTerm[] children = disambiguateChildren(list);
 
             if (isAmbiguousList(list)) {
-                return flatten(termFactory.replaceList(children, list));
+                return flatten(replaceList(children, list));
             } else {
-                return termFactory.replaceList(children, list);
+                return replaceList(children, list);
             }
         }
 
@@ -146,7 +145,7 @@ public class AmbiguityTester {
             Stream<IStrategoTerm> oldChildren = Arrays.stream(term.getAllSubterms());
             Stream<IStrategoTerm> newChildren = oldChildren.flatMap(this::flattenOne);
 
-            return termFactory.makeList(newChildren.collect(Collectors.toList()));
+            return makeList(newChildren.toArray(IStrategoTerm[]::new), term);
         } else {
             return term;
         }
@@ -194,5 +193,31 @@ public class AmbiguityTester {
         }
 
         return false;
+    }
+
+    /**
+     * Spoofax' default OriginTermFactory does not copy attachments when replacing a list.
+     *
+     * @param children
+     * @param oldList
+     * @return
+     */
+    private IStrategoTerm replaceList(IStrategoTerm[] children, IStrategoList oldList) {
+        IStrategoList newList = termFactory.replaceList(children, oldList);
+
+        return termFactory.copyAttachments(oldList, newList);
+    }
+
+    /**
+     * Spoofax' default OriginTermFactory does not copy attachments when replacing a list.
+     *
+     * @param children
+     * @param oldList
+     * @return
+     */
+    private IStrategoTerm makeList(IStrategoTerm[] children, IStrategoTerm oldList) {
+        IStrategoList newList = termFactory.makeList(children);
+
+        return termFactory.copyAttachments(oldList, newList);
     }
 }
