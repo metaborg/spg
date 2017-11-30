@@ -22,6 +22,16 @@
     </dependency>
     <dependency>
       <groupId>org.metaborg</groupId>
+      <artifactId>org.metaborg.spg.sentence.antlr</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.metaborg</groupId>
+      <artifactId>org.metaborg.spg.sentence.eclipse.externaldeps</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.metaborg</groupId>
       <artifactId>org.metaborg.core</artifactId>
       <version>${project.version}</version>
     </dependency>

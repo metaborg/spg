@@ -16,8 +16,10 @@ node {
     mavenLocalRepo: '.repository',
     mavenOpts: '-Xmx1024m -Xss16m'
   ){
-    // Build org.metaborg.spg.sentence separately. Maven and Tycho dependencies in a single reactor build are not supported? (https://goo.gl/akexsK)
+    // Build pom-first projects first. Maven and Tycho dependencies in a single reactor build are not supported? (https://goo.gl/akexsK)
     sh "mvn -B -U clean install -f org.metaborg.spg.sentence/pom.xml"
+    sh "mvn -B -U clean install -f org.metaborg.spg.sentence.antlr/pom.xml"
+    sh "mvn -B -U clean install -f org.metaborg.spg.sentence.eclipse.externaldeps/pom.xml"
 
     // Build the rest
     sh "mvn -B -U clean install -f pom.xml -DforceContextQualifier=\$(date +%Y%m%d%H%M)"

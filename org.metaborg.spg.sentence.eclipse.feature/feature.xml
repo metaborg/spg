@@ -17,7 +17,21 @@
          unpack="false"/>
 
    <plugin
+         id="org.metaborg.spg.sentence.antlr"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"
+         unpack="false"/>
+
+   <plugin
          id="org.metaborg.spg.sentence.eclipse"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"
+         unpack="false"/>
+
+   <plugin
+         id="org.metaborg.spg.sentence.eclipse.externaldeps"
          download-size="0"
          install-size="0"
          version="0.0.0"

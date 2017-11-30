@@ -8,6 +8,8 @@ Pom-first and manifest-first projects cannot be mixed in the same reactor build 
 
 ```
 mvn clean install -f org.metaborg.spg.sentence/pom.xml
+mvn clean install -f org.metaborg.spg.sentence.antlr/pom.xml
+mvn clean install -f org.metaborg.spg.sentence.eclipse.externaldeps/pom.xml
 mvn clean install -f pom.xml
 ```
 
@@ -17,6 +19,7 @@ Only the `org.metaborg.spg.sentence` project contains tests. To run the tests:
 
 ```
 mvn test -f org.metaborg.spg.sentence/pom.xml
+mvn test -f org.metaborg.spg.sentence.antlr/pom.xml
 ```
 
 ## Usage
