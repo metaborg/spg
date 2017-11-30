@@ -1,26 +1,21 @@
 package org.metaborg.spg.sentence.shrinker;
 
 import com.google.inject.Inject;
-import org.metaborg.core.language.ILanguageImpl;
-import org.metaborg.spg.sentence.IRandom;
+import org.metaborg.spg.sentence.random.IRandom;
 import org.metaborg.spg.sentence.generator.Generator;
-import org.metaborg.spg.sentence.parser.ParseService;
-import org.metaborg.spg.sentence.printer.Printer;
 import org.spoofax.interpreter.terms.ITermFactory;
 
 public class ShrinkerFactory {
     private final IRandom random;
-    private final ParseService parseService;
+    private final ITermFactory termFactory;
 
     @Inject
-    public ShrinkerFactory(IRandom random, ParseService parseService) {
+    public ShrinkerFactory(IRandom random, ITermFactory termFactory) {
         this.random = random;
-        this.parseService = parseService;
+        this.termFactory = termFactory;
     }
 
-    public Shrinker create(ILanguageImpl language, Printer printer, Generator generator, ITermFactory termFactory) {
-        ShrinkerConfig shrinkerConfig = new ShrinkerConfig(language, printer);
-
-        return new Shrinker(random, generator, termFactory);
+    public Shrinker create(Generator generator) {
+        return new Shrinker(random, termFactory, generator);
     }
 }

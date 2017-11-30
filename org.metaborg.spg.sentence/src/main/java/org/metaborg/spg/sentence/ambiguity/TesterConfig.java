@@ -1,10 +1,10 @@
 package org.metaborg.spg.sentence.ambiguity;
 
-public class AmbiguityTesterConfig {
+public class TesterConfig {
     private final int maxNumberOfTerms;
     private final int maxTermSize;
 
-    public AmbiguityTesterConfig(int maxNumberOfTerms, int maxTermSize) {
+    public TesterConfig(int maxNumberOfTerms, int maxTermSize) {
         this.maxNumberOfTerms = maxNumberOfTerms;
         this.maxTermSize = maxTermSize;
     }

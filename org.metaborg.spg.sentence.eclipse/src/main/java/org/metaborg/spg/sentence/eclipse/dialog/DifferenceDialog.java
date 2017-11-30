@@ -1,29 +1,35 @@
 package org.metaborg.spg.sentence.eclipse.dialog;
 
+import org.antlr.v4.tool.Grammar;
+import org.antlr.v4.tool.Rule;
 import org.eclipse.jface.dialogs.IMessageProvider;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.SelectionAdapter;
+import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.*;
+import org.metaborg.spg.sentence.eclipse.widget.SmartCombo;
+
+import java.io.File;
+import java.util.Arrays;
 
 public class DifferenceDialog extends SentenceDialog {
     private static final String TITLE = "Difference test";
-    private static final String MESSAGE = "Specify the generator- and ANTLR-configuration.";
+    private static final String MESSAGE = "Specify the ANTLR- and generator-configuration.";
 
-    private static final String DEFAULT_MAX_NUMBER_OF_TERMS = "1000";
-    private static final String DEFAULT_MAX_TERM_SIZE = "1000";
-    private static final String DEFAULT_ANTLR_GRAMMAR = "";
-    private static final String DEFAULT_ANTLR_RULE = "";
+    private static final String DEFAULT_MAX_NUMBER_OF_TERMS = "10000";
+    private static final String DEFAULT_MAX_TERM_SIZE = "10000";
 
     private Text txtMaxNumberOfTerms;
     private Text txtMaxTermSize;
-    private Text txtAntlrGrammar;
-    private Text txtAntlrRule;
+    private Combo txtAntlrGrammar;
+    private Combo txtAntlrStartSymbol;
 
     private String maxNumberOfTerms;
     private String maxTermSize;
     private String antlrGrammar;
-    private String antlrRule;
+    private String antlrStartSymbol;
 
     public DifferenceDialog(Shell parentShell) {
         super(parentShell);
@@ -41,8 +47,8 @@ public class DifferenceDialog extends SentenceDialog {
     protected Control createDialogArea(Composite parent) {
         Composite area = (Composite) super.createDialogArea(parent);
 
-        createGenerationConfiguration(area);
         createAntlrConfiguration(area);
+        createGenerationConfiguration(area);
 
         return area;
     }
@@ -63,18 +69,114 @@ public class DifferenceDialog extends SentenceDialog {
         group.setLayoutData(new GridData(SWT.FILL, SWT.BEGINNING, true, false));
         group.setLayout(new GridLayout(2, false));
 
-        txtAntlrGrammar = createField(group, "ANTLR grammar:", DEFAULT_ANTLR_GRAMMAR);
-        txtAntlrRule = createField(group, "ANTLR start rule:", DEFAULT_ANTLR_RULE);
+        txtAntlrGrammar = createSmartCombo("antlrGrammar", group, "ANTLR grammar:");
+        txtAntlrGrammar.setFocus();
+
+        txtAntlrStartSymbol = createCombo(group, "ANTLR start symbol:");
+
+        txtAntlrGrammar.addListener(SWT.Traverse, e -> {
+            if (e.keyCode == SWT.CR) {
+                if (e.detail == SWT.TRAVERSE_RETURN) {
+                    e.doit = false;
+                }
+
+                scanGrammar(txtAntlrGrammar.getText().trim());
+            }
+        });
+
+        txtAntlrGrammar.addSelectionListener(new SelectionAdapter() {
+            public void widgetDefaultSelected(SelectionEvent e) {
+                scanGrammar(txtAntlrGrammar.getText().trim());
+            }
+
+            public void widgetSelected(SelectionEvent e) {
+                Display.getDefault().asyncExec(() ->
+                        scanGrammar(txtAntlrGrammar.getText().trim())
+                );
+            }
+        });
+    }
+
+    protected SmartCombo createSmartCombo(String id, Composite container, String fieldLabel) {
+        Label label = new Label(container, SWT.NONE);
+        label.setText(fieldLabel);
+
+        GridData gridData = new GridData();
+        gridData.grabExcessHorizontalSpace = true;
+        gridData.horizontalAlignment = GridData.FILL;
+
+        SmartCombo smartCombo = new SmartCombo(id, container, SWT.NONE);
+        smartCombo.setLayoutData(gridData);
+
+        return smartCombo;
+    }
+
+    protected Combo createCombo(Composite container, String fieldLabel) {
+        Label label = new Label(container, SWT.NONE);
+        label.setText(fieldLabel);
+
+        GridData gridData = new GridData();
+        gridData.grabExcessHorizontalSpace = true;
+        gridData.horizontalAlignment = GridData.FILL;
+
+        Combo combo = new Combo(container, SWT.NONE);
+        combo.setLayoutData(gridData);
+
+        return combo;
+    }
+
+    protected void scanGrammar(String location) {
+        if (!new File(location).exists()) {
+            return;
+        }
+
+        String[] rules = Grammar.load(location).getRuleNames();
+        Arrays.sort(rules);
+
+        populateStartSymbols(rules);
+    }
+
+    protected void populateStartSymbols(String[] symbols) {
+        txtAntlrStartSymbol.setItems(symbols);
     }
 
     @Override
     protected void okPressed() {
+        if (!validate()) {
+            return;
+        }
+
         maxNumberOfTerms = txtMaxNumberOfTerms.getText();
         maxTermSize = txtMaxTermSize.getText();
         antlrGrammar = txtAntlrGrammar.getText();
-        antlrRule = txtAntlrRule.getText();
+        antlrStartSymbol = txtAntlrStartSymbol.getText();
 
         super.okPressed();
+    }
+
+    protected boolean validate() {
+        String location = txtAntlrGrammar.getText();
+
+        if (!new File(location).exists()) {
+            setErrorMessage("Could not find the ANTLR grammar.");
+            return false;
+        }
+
+        Grammar grammar = Grammar.load(location);
+
+        if (grammar == null) {
+            setErrorMessage("Could not load the ANTLR grammar.");
+            return false;
+        }
+
+        Rule rule = grammar.getRule(txtAntlrStartSymbol.getText());
+
+        if (rule == null) {
+            setErrorMessage("Could not find the given start symbol.");
+            return false;
+        }
+
+        return true;
     }
 
     @Override
@@ -94,7 +196,7 @@ public class DifferenceDialog extends SentenceDialog {
         return antlrGrammar;
     }
 
-    public String getAntlrRulee() {
-        return antlrRule;
+    public String getAntlrStartSymbol() {
+        return antlrStartSymbol;
     }
 }

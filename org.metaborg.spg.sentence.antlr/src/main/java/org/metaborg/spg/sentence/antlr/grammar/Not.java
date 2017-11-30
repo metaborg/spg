@@ -1,9 +1,9 @@
 package org.metaborg.spg.sentence.antlr.grammar;
 
-public class Plus implements Element {
+public class Not implements Element {
     private final Element element;
 
-    public Plus(Element element) {
+    public Not(Element element) {
         this.element = element;
     }
 
@@ -18,6 +18,6 @@ public class Plus implements Element {
 
     @Override
     public String toString() {
-        return "(" + element + ")+";
+        return "~(" + element + ")?";
     }
 }

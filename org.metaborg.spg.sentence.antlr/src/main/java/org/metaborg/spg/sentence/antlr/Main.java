@@ -10,11 +10,11 @@ import org.metaborg.spg.sentence.antlr.generator.Generator;
 import org.metaborg.spg.sentence.antlr.generator.GeneratorFactory;
 import org.metaborg.spg.sentence.antlr.grammar.Grammar;
 import org.metaborg.spg.sentence.antlr.grammar.GrammarFactory;
-import org.metaborg.spg.sentence.antlr.grammar.Nonterminal;
 import org.metaborg.spg.sentence.antlr.shrinker.Shrinker;
 import org.metaborg.spg.sentence.antlr.shrinker.ShrinkerFactory;
 import org.metaborg.spg.sentence.antlr.term.Term;
 import org.metaborg.spoofax.core.Spoofax;
+import org.metaborg.spoofax.core.syntax.JSGLRParserConfiguration;
 import org.metaborg.spoofax.core.unit.ISpoofaxInputUnit;
 import org.metaborg.spoofax.core.unit.ISpoofaxParseUnit;
 
@@ -26,6 +26,14 @@ import java.util.stream.Stream;
 import static org.metaborg.spg.sentence.antlr.functional.Utils.uncheck;
 
 public class Main {
+    public static final JSGLRParserConfiguration JSGLR_PARSER_CONFIGURATION = new JSGLRParserConfiguration(
+            false,
+            false,
+            false,
+            30000,
+            Integer.MAX_VALUE
+    );
+
     public static void main(String[] args) {
         File antlrLanguageFile = new File(args[0]);
 
@@ -71,18 +79,18 @@ public class Main {
             org.antlr.v4.tool.Grammar antlrGrammar = org.antlr.v4.tool.Grammar.load(args[1]);
 
             for (int i = 0; i < 10000; i++) {
-                Optional<Term> treeOpt = generator.generate(antlrStartSymbol, maxSize);
+                Optional<Term> termOpt = generator.generate(antlrStartSymbol, maxSize);
 
-                if (treeOpt.isPresent()) {
-                    Term term = treeOpt.get();
+                if (termOpt.isPresent()) {
+                    Term term = termOpt.get();
                     String sentence = term.toString(true);
 
                     System.out.println(sentence);
 
-                    ISpoofaxParseUnit parseUnit = parse(spoofax, minijavaLanguageImpl, sentence);
+                    boolean spoofaxResult = canParse(spoofax, minijavaLanguageImpl, sentence);
 
-                    if (!parseUnit.success()) {
-                        boolean antlrResult = parse(antlrGrammar, antlrStartSymbol, sentence);
+                    if (!spoofaxResult) {
+                        boolean antlrResult = canParse(antlrGrammar, antlrStartSymbol, sentence);
 
                         if (antlrResult) {
                             System.out.println("Legal ANTLRv4 illegal SDF3 sentence:");
@@ -92,8 +100,8 @@ public class Main {
                                 Stream<Term> shrunkTrees = shrinker.shrink(term);
 
                                 Optional<Term> anyShrunkTree = shrunkTrees
-                                        .filter(uncheck(shrunkTree -> !parse(spoofax, minijavaLanguageImpl, shrunkTree.toString()).success()))
-                                        .filter(uncheck(shrunkTree -> parse(antlrGrammar, antlrStartSymbol, shrunkTree.toString())))
+                                        .filter(uncheck(shrunkTree -> !canParse(spoofax, minijavaLanguageImpl, shrunkTree.toString())))
+                                        .filter(uncheck(shrunkTree -> canParse(antlrGrammar, antlrStartSymbol, shrunkTree.toString())))
                                         .findFirst();
 
                                 if (anyShrunkTree.isPresent()) {
@@ -105,6 +113,8 @@ public class Main {
                                     break;
                                 }
                             }
+
+                            return;
                         } else {
                             System.err.println("Unparsable sentence: " + sentence);
                         }
@@ -122,7 +132,7 @@ public class Main {
         return spoofax.languageDiscoveryService.languageFromArchive(languageLocation);
     }
 
-    private static boolean parse(org.antlr.v4.tool.Grammar grammar, String antlrStartSymbol, String text) throws IOException {
+    private static boolean canParse(org.antlr.v4.tool.Grammar grammar, String antlrStartSymbol, String text) throws IOException {
         CharStream charStream = CharStreams.fromString(text);
         LexerInterpreter lexer = grammar.createLexerInterpreter(charStream);
         lexer.removeErrorListener(ConsoleErrorListener.INSTANCE);
@@ -138,8 +148,12 @@ public class Main {
         return parser.getNumberOfSyntaxErrors() == 0;
     }
 
+    private static boolean canParse(Spoofax spoofax, ILanguageImpl languageImpl, String text) throws ParseException {
+        return parse(spoofax, languageImpl, text).success();
+    }
+
     private static ISpoofaxParseUnit parse(Spoofax spoofax, ILanguageImpl languageImpl, String text) throws ParseException {
-        ISpoofaxInputUnit inputUnit = spoofax.unitService.inputUnit(text, languageImpl, null);
+        ISpoofaxInputUnit inputUnit = spoofax.unitService.inputUnit(text, languageImpl, null, JSGLR_PARSER_CONFIGURATION);
 
         return spoofax.syntaxService.parse(inputUnit);
     }

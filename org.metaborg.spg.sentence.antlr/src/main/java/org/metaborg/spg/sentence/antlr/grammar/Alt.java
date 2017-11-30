@@ -1,19 +1,19 @@
 package org.metaborg.spg.sentence.antlr.grammar;
 
 public class Alt implements Element {
-    private final Element first;
-    private final Element second;
+    private final EmptyElement first;
+    private final EmptyElement second;
 
-    public Alt(Element first, Element second) {
+    public Alt(EmptyElement first, EmptyElement second) {
         this.first = first;
         this.second = second;
     }
 
-    public Element getFirst() {
+    public EmptyElement getFirst() {
         return first;
     }
 
-    public Element getSecond() {
+    public EmptyElement getSecond() {
         return second;
     }
 

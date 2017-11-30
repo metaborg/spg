@@ -7,6 +7,7 @@ import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.window.Window;
 import org.metaborg.core.language.ILanguageImpl;
 import org.metaborg.core.project.IProject;
+import org.metaborg.spg.sentence.eclipse.config.DifferenceJobConfig;
 import org.metaborg.spg.sentence.eclipse.dialog.DifferenceDialog;
 import org.metaborg.spg.sentence.eclipse.exception.LanguageNotFoundException;
 import org.metaborg.spg.sentence.eclipse.exception.ProjectNotFoundException;
@@ -24,7 +25,7 @@ public class LiberalDifferenceHandler extends SentenceHandler {
             if (differenceDialog.open() == Window.OK) {
                 JobFactory jobFactory = injector.getInstance(JobFactory.class);
 
-                Job job = jobFactory.createLiberalDifferenceJob(project, languageImpl);
+                Job job = jobFactory.createLiberalDifferenceJob(getConfig(differenceDialog, languageImpl, project));
                 job.setPriority(Job.SHORT);
                 job.setUser(true);
                 job.schedule();
@@ -36,5 +37,16 @@ public class LiberalDifferenceHandler extends SentenceHandler {
         }
 
         return null;
+    }
+
+    private DifferenceJobConfig getConfig(DifferenceDialog differenceDialog, ILanguageImpl languageImpl, IProject project) {
+        return new DifferenceJobConfig(
+                languageImpl,
+                project,
+                differenceDialog.getMaxNumberOfTerms(),
+                differenceDialog.getMaxTermSize(),
+                differenceDialog.getAntlrGrammar(),
+                differenceDialog.getAntlrStartSymbol()
+        );
     }
 }

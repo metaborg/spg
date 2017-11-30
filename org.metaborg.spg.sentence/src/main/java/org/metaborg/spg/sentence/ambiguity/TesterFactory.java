@@ -5,39 +5,43 @@ import org.metaborg.core.language.ILanguageImpl;
 import org.metaborg.core.project.IProject;
 import org.metaborg.spg.sentence.generator.Generator;
 import org.metaborg.spg.sentence.generator.GeneratorFactory;
-import org.metaborg.spg.sentence.parser.ParseService;
 import org.metaborg.spg.sentence.printer.Printer;
 import org.metaborg.spg.sentence.printer.PrinterFactory;
 import org.metaborg.spg.sentence.shrinker.Shrinker;
 import org.metaborg.spg.sentence.shrinker.ShrinkerFactory;
+import org.metaborg.spoofax.core.syntax.ISpoofaxSyntaxService;
+import org.metaborg.spoofax.core.unit.ISpoofaxUnitService;
 import org.spoofax.interpreter.terms.ITermFactory;
 
-public class AmbiguityTesterFactory {
+public class TesterFactory {
     private final ITermFactory termFactory;
-    private final ParseService parseService;
+    private final ISpoofaxUnitService unitService;
+    private final ISpoofaxSyntaxService syntaxService;
     private final PrinterFactory printerFactory;
     private final GeneratorFactory generatorFactory;
     private final ShrinkerFactory shrinkerFactory;
 
     @Inject
-    public AmbiguityTesterFactory(
+    public TesterFactory(
             ITermFactory termFactory,
-            ParseService parseService,
+            ISpoofaxUnitService unitService,
+            ISpoofaxSyntaxService syntaxService,
             PrinterFactory printerFactory,
             GeneratorFactory generatorFactory,
             ShrinkerFactory shrinkerFactory) {
-        this.parseService = parseService;
+        this.termFactory = termFactory;
+        this.unitService = unitService;
+        this.syntaxService = syntaxService;
         this.printerFactory = printerFactory;
         this.generatorFactory = generatorFactory;
         this.shrinkerFactory = shrinkerFactory;
-        this.termFactory = termFactory;
     }
 
-    public AmbiguityTester create(ILanguageImpl languageImpl, IProject project) throws Exception {
+    public Tester create(ILanguageImpl languageImpl, IProject project) throws Exception {
         Printer printer = printerFactory.create(languageImpl, project);
         Generator generator = generatorFactory.create(languageImpl, project);
-        Shrinker shrinker = shrinkerFactory.create(languageImpl, printer, generator, termFactory);
+        Shrinker shrinker = shrinkerFactory.create(generator);
 
-        return new AmbiguityTester(parseService, termFactory, languageImpl, printer, generator, shrinker);
+        return new Tester(termFactory, unitService, syntaxService, languageImpl, printer, generator, shrinker);
     }
 }

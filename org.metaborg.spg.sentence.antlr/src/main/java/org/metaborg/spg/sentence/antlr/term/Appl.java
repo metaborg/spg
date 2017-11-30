@@ -1,18 +1,18 @@
 package org.metaborg.spg.sentence.antlr.term;
 
-import org.metaborg.spg.sentence.antlr.grammar.ElementOpt;
+import org.metaborg.spg.sentence.antlr.grammar.EmptyElement;
 
 public class Appl implements Term {
-    private final ElementOpt element;
+    private final EmptyElement emptyElement;
     private final Term[] children;
 
-    public Appl(ElementOpt element, Term[] children) {
-        this.element = element;
+    public Appl(EmptyElement emptyElement, Term[] children) {
+        this.emptyElement = emptyElement;
         this.children = children;
     }
 
-    public ElementOpt getElementOpt() {
-        return element;
+    public EmptyElement getEmptyElement() {
+        return emptyElement;
     }
 
     @Override

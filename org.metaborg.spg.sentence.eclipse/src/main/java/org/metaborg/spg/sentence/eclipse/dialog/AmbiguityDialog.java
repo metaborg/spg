@@ -1,24 +1,17 @@
 package org.metaborg.spg.sentence.eclipse.dialog;
 
 import org.eclipse.jface.dialogs.IMessageProvider;
-import org.eclipse.jface.dialogs.TitleAreaDialog;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
-import org.eclipse.swt.widgets.Button;
-import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Control;
-import org.eclipse.swt.widgets.Group;
-import org.eclipse.swt.widgets.Label;
-import org.eclipse.swt.widgets.Shell;
-import org.eclipse.swt.widgets.Text;
+import org.eclipse.swt.widgets.*;
 
 public class AmbiguityDialog extends SentenceDialog {
     private static final String TITLE = "Ambiguity test";
     private static final String MESSAGE = "Specify the generator configuration.";
 
-    private static final String DEFAULT_MAX_NUMBER_OF_TERMS = "1000";
-    private static final String DEFAULT_MAX_TERM_SIZE = "1000";
+    private static final String DEFAULT_MAX_NUMBER_OF_TERMS = "10000";
+    private static final String DEFAULT_MAX_TERM_SIZE = "10000";
 
     private Text txtMaxNumberOfTerms;
     private Text txtMaxTermSize;

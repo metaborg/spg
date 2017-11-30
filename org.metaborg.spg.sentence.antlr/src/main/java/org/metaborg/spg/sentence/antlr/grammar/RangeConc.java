@@ -1,10 +1,10 @@
 package org.metaborg.spg.sentence.antlr.grammar;
 
-public class RangesConc implements Ranges {
+public class RangeConc implements Ranges {
     private final Ranges first;
     private final Ranges second;
 
-    public RangesConc(Ranges first, Ranges second) {
+    public RangeConc(Ranges first, Ranges second) {
         this.first = first;
         this.second = second;
     }

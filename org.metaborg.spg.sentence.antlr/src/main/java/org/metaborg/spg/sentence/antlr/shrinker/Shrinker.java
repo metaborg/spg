@@ -13,9 +13,11 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static java.util.stream.Stream.*;
+import static java.util.stream.Stream.empty;
+import static java.util.stream.Stream.of;
 import static org.metaborg.spg.sentence.antlr.functional.FlatMappingSpliterator.flatMap;
 import static org.metaborg.spg.sentence.antlr.functional.Utils.lift;
+import static org.metaborg.spg.sentence.antlr.utils.StreamUtils.snoc;
 
 public class Shrinker {
     private final Random random;
@@ -29,15 +31,63 @@ public class Shrinker {
     }
 
     public Stream<Term> shrink(Term term) {
-        List<Term> subtrees = subterms(term)
+        Term flatTerm = term; // flattenInjections(term);
+
+        List<Term> subtrees = subterms(flatTerm)
                 .filter(this::isLargeList)
                 .collect(Collectors.toList());
 
         Collections.shuffle(subtrees, random);
 
         return flatMap(subtrees.stream(), subTree ->
-                shrink(term, subTree)
+                shrink(flatTerm, subTree)
         );
+    }
+
+    // TODO: Can we prevent creating injections in the parse tree to begin with?
+    private Term flattenInjections(Term term) {
+        if (isNonterminal(term)) {
+            Term[] children = term.getChildren();
+
+            if (children.length == 1 && isNonterminal(children[0])) {
+                return flattenInjections(children[0]);
+            }
+        }
+
+        // TODO: replaceChildren method on Term?
+        if (term instanceof Appl) {
+            Appl appl = (Appl) term;
+            EmptyElement emptyElement = appl.getEmptyElement();
+            Term[] children = Arrays
+                    .stream(appl.getChildren())
+                    .map(this::flattenInjections)
+                    .toArray(Term[]::new);
+
+            return new Appl(emptyElement, children);
+        } else if (term instanceof TermList) {
+            TermList list = (TermList) term;
+            EmptyElement emptyElement = list.getEmptyElement();
+            Term[] children = Arrays
+                    .stream(list.getChildren())
+                    .map(this::flattenInjections)
+                    .toArray(Term[]::new);
+
+            return new TermList(emptyElement, children);
+        } else {
+            return term;
+        }
+    }
+
+    private boolean isNonterminal(Term term) {
+        if (term instanceof Appl) {
+            Appl appl = (Appl) term;
+
+            if (appl.getEmptyElement() instanceof Nonterminal) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private Stream<Term> shrink(Term term, Term subTerm) {
@@ -50,19 +100,20 @@ public class Shrinker {
         }
 
         // TODO: Do we still want/need shrinkAppl? shrinkAppl(term, (Appl) subTerm);
+        // TODO: An advantage of shrinkAppl is that it potentially shrinks a lot more than shrinkRecursive.
+        // TODO: Since parsing is the bottleneck, we want to shrink large parts soon.
+        // TODO: We could, of course, have shrinkRecursive pull up lowest trees first?
 
         throw new IllegalStateException("Unknown term: " + term);
     }
 
     private Stream<Term> shrinkRecursive(Term term, Appl appl) {
-        if (appl.getElementOpt() instanceof Nonterminal) {
-            Nonterminal nonterminal = (Nonterminal) appl.getElementOpt();
-            List<Term> descendants = descendants(appl).collect(Collectors.toList());
+        if (appl.getEmptyElement() instanceof Nonterminal) {
+            Nonterminal nonterminal = (Nonterminal) appl.getEmptyElement();
+            Stream<Term> descendants = descendants(appl);
             Set<Nonterminal> injections = grammar.getInjections(nonterminal);
 
-            Collections.shuffle(descendants, random);
-
-            return descendants.stream()
+            return descendants
                     .filter(descendant -> isValidDescendant(descendant, injections))
                     .map(descendant -> replace(term, appl, descendant));
         }
@@ -72,10 +123,10 @@ public class Shrinker {
 
     private boolean isValidDescendant(Term descendant, Set<Nonterminal> injections) {
         if (descendant instanceof Appl) {
-            ElementOpt elementOpt = ((Appl) descendant).getElementOpt();
+            EmptyElement emptyElement = ((Appl) descendant).getEmptyElement();
 
-            if (elementOpt instanceof Nonterminal) {
-                Nonterminal nonterminal = (Nonterminal) elementOpt;
+            if (emptyElement instanceof Nonterminal) {
+                Nonterminal nonterminal = (Nonterminal) emptyElement;
 
                 return injections.contains(nonterminal);
             }
@@ -88,7 +139,7 @@ public class Shrinker {
         int size = size(appl);
         int newSize = size - 1;
 
-        Optional<Term> newSubTerm = generator.forElement(appl.getElementOpt(), newSize);
+        Optional<Term> newSubTerm = generator.forElement(appl.getEmptyElement(), newSize);
 
         return lift(newSubTerm.map(replacement ->
                 replace(term, appl, replacement)
@@ -104,13 +155,13 @@ public class Shrinker {
     private boolean isLargeList(Term term) {
         if (term instanceof TermList) {
             TermList list = (TermList) term;
-            ElementOpt element = list.getElement();
+            EmptyElement emptyElement = list.getEmptyElement();
 
-            if (element instanceof Star && list.size() == 0) {
+            if (emptyElement instanceof Star && list.size() == 0) {
                 return false;
             }
 
-            if (element instanceof Plus && list.size() == 1) {
+            if (emptyElement instanceof Plus && list.size() == 1) {
                 return false;
             }
         }
@@ -128,7 +179,7 @@ public class Shrinker {
         Term[] oldChildren = list.getChildren();
         Term[] newChildren = ArrayUtils.remove(oldChildren, exclude);
 
-        return new TermList(list.getElement(), newChildren);
+        return new TermList(list.getEmptyElement(), newChildren);
     }
 
     private Term replace(Term term, Term subTree, Term replacement) {
@@ -148,11 +199,11 @@ public class Shrinker {
         if (term instanceof Appl) {
             Appl appl = (Appl) term;
 
-            return new Appl(appl.getElementOpt(), children);
+            return new Appl(appl.getEmptyElement(), children);
         } else if (term instanceof TermList) {
             TermList list = (TermList) term;
 
-            return new TermList(list.getElement(), children);
+            return new TermList(list.getEmptyElement(), children);
         }
 
         throw new IllegalArgumentException("Unexpected term (neither node nor leaf).");
@@ -165,25 +216,19 @@ public class Shrinker {
                 .sum();
     }
 
-    public Stream<Term> subterms(Term term) {
+    private Stream<Term> subterms(Term term) {
         if (term instanceof Text) {
             return empty();
         } else {
-            Stream<Term> children = Arrays
-                    .stream(term.getChildren())
-                    .flatMap(this::subterms);
+            Stream<Term> children = Arrays.stream(term.getChildren());
 
-            return concat(of(term), children);
+            return snoc(flatMap(children, this::subterms), term);
         }
     }
 
-    public Stream<Term> descendants(Term term) {
-        if (term instanceof Text) {
-            return empty();
-        } else {
-            return Arrays
-                    .stream(term.getChildren())
-                    .flatMap(this::subterms);
-        }
+    private Stream<Term> descendants(Term term) {
+        Stream<Term> children = Arrays.stream(term.getChildren());
+
+        return flatMap(children, this::subterms);
     }
 }

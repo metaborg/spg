@@ -6,6 +6,7 @@ import org.antlr.v4.tool.Rule;
 import org.metaborg.core.language.ILanguageImpl;
 import org.metaborg.core.syntax.ParseException;
 import org.metaborg.spoofax.core.syntax.ISpoofaxSyntaxService;
+import org.metaborg.spoofax.core.syntax.JSGLRParserConfiguration;
 import org.metaborg.spoofax.core.unit.ISpoofaxInputUnit;
 import org.metaborg.spoofax.core.unit.ISpoofaxParseUnit;
 import org.metaborg.spoofax.core.unit.ISpoofaxUnitService;
@@ -41,12 +42,12 @@ public abstract class DifferenceJob extends SentenceJob {
         return parser;
     }
 
-    protected boolean canParseSpoofax(ILanguageImpl languageImpl, String text) throws ParseException {
-        return parseSpoofax(languageImpl, text).success();
+    protected boolean canParseSpoofax(ILanguageImpl languageImpl, String text, JSGLRParserConfiguration config) throws ParseException {
+        return parseSpoofax(languageImpl, text, config).success();
     }
 
-    protected ISpoofaxParseUnit parseSpoofax(ILanguageImpl languageImpl, String text) throws ParseException {
-        ISpoofaxInputUnit inputUnit = unitService.inputUnit(text, languageImpl, null);
+    protected ISpoofaxParseUnit parseSpoofax(ILanguageImpl languageImpl, String text, JSGLRParserConfiguration config) throws ParseException {
+        ISpoofaxInputUnit inputUnit = unitService.inputUnit(text, languageImpl, null, config);
 
         return syntaxService.parse(inputUnit);
     }

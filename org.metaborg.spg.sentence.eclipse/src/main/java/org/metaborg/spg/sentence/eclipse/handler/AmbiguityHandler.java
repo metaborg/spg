@@ -7,7 +7,7 @@ import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.window.Window;
 import org.metaborg.core.language.ILanguageImpl;
 import org.metaborg.core.project.IProject;
-import org.metaborg.spg.sentence.ambiguity.AmbiguityTesterConfig;
+import org.metaborg.spg.sentence.ambiguity.TesterConfig;
 import org.metaborg.spg.sentence.eclipse.dialog.AmbiguityDialog;
 import org.metaborg.spg.sentence.eclipse.exception.LanguageNotFoundException;
 import org.metaborg.spg.sentence.eclipse.exception.ProjectNotFoundException;
@@ -39,10 +39,10 @@ public class AmbiguityHandler extends SentenceHandler {
         return null;
     }
 
-    private AmbiguityTesterConfig getConfig(AmbiguityDialog generateDialog) {
+    private TesterConfig getConfig(AmbiguityDialog generateDialog) {
         int maxNumberOfTerms = generateDialog.getMaxNumberOfTerms();
         int maxTermSize = generateDialog.getMaxTermSize();
 
-        return new AmbiguityTesterConfig(maxNumberOfTerms, maxTermSize);
+        return new TesterConfig(maxNumberOfTerms, maxTermSize);
     }
 }

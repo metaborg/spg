@@ -2,7 +2,7 @@ package org.metaborg.spg.sentence.shrinker;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.metaborg.sdf2table.grammar.*;
-import org.metaborg.spg.sentence.IRandom;
+import org.metaborg.spg.sentence.random.IRandom;
 import org.metaborg.spg.sentence.generator.Generator;
 import org.spoofax.interpreter.terms.*;
 import org.spoofax.jsglr.client.imploder.ImploderAttachment;
@@ -15,18 +15,20 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static java.util.stream.Stream.concat;
+import static java.util.stream.Stream.empty;
 import static java.util.stream.Stream.of;
+import static org.metaborg.spg.sentence.utils.StreamUtils.cons;
+import static org.metaborg.spg.sentence.utils.StreamUtils.o2s;
 
 public class Shrinker {
     private final IRandom random;
     private final Generator generator;
     private final ITermFactory termFactory;
 
-    public Shrinker(IRandom random, Generator generator, ITermFactory termFactory) {
+    public Shrinker(IRandom random, ITermFactory termFactory, Generator generator) {
         this.random = random;
-        this.generator = generator;
         this.termFactory = termFactory;
+        this.generator = generator;
     }
 
     public Stream<IStrategoTerm> shrink(IStrategoTerm term) {
@@ -45,15 +47,21 @@ public class Shrinker {
         }
 
         // TODO: This is naive; we can shrink recursive patterns (replace ancestor by descendant). But we need the signatures for this.
-        Optional<IStrategoTerm> generatedSubTerm = generator.generateSymbol(symbol, size(needle) - 1);
+        Optional<IStrategoTerm> generatedTermOpt = generator
+                .generateSymbol(symbol, size(needle) - 1);
 
-        return generatedSubTerm
-                .map(term -> of(replaceTerm(haystack, needle, term)))
-                .orElseGet(Stream::empty);
+        Optional<IStrategoTerm> replacedTermOpt = generatedTermOpt
+                .map(term -> replaceTerm(haystack, needle, term));
+
+        return o2s(replacedTermOpt);
     }
 
-    // TODO: Depending on the kind of list (Iter or IterStar), we may not be allowed to shrink this list! We need the productions for this?
     private Stream<IStrategoTerm> shrinkList(IStrategoTerm haystack, IStrategoList list) {
+        // TODO: If list is an IterStar we can shrink it further, but we do not know the kind of the list (Iter/IterStar)
+        if (list.size() < 2) {
+            return empty();
+        }
+
         return combinations(list).map(shrunkList ->
                 replaceTerm(haystack, list, shrunkList)
         );
@@ -140,10 +148,8 @@ public class Shrinker {
     protected Stream<IStrategoTerm> subTerms(IStrategoTerm term) {
         if (term instanceof IStrategoString) {
             return of(term);
-        } else if (term instanceof IStrategoAppl) {
-            return concat(of(term), subTerms(term.getAllSubterms()));
-        } else if (term instanceof IStrategoList) {
-            return concat(of(term), subTerms(term.getAllSubterms()));
+        } else if (term instanceof IStrategoAppl || term instanceof IStrategoList) {
+            return cons(term, subTerms(term.getAllSubterms()));
         }
 
         throw new IllegalStateException("Unknown term: " + term);

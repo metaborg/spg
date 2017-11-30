@@ -4,8 +4,9 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.inject.Inject;
 import org.metaborg.sdf2table.grammar.*;
-import org.metaborg.spg.sentence.IRandom;
-import org.metaborg.spg.sentence.Utils;
+import org.metaborg.spg.sentence.random.IRandom;
+import org.metaborg.spg.sentence.utils.SpoofaxUtils;
+import org.metaborg.spg.sentence.utils.SymbolUtils;
 import org.spoofax.interpreter.terms.IStrategoConstructor;
 import org.spoofax.interpreter.terms.IStrategoList;
 import org.spoofax.interpreter.terms.IStrategoTerm;
@@ -142,17 +143,17 @@ public class Generator {
     }
 
     public String generateCharacterClassConc(CharacterClassConc characterClassConc) {
-        Symbol printableCharacters = Utils.toPrintable(characterClassConc);
+        Symbol printableCharacters = SymbolUtils.toPrintable(characterClassConc);
 
         if (printableCharacters instanceof CharacterClassNumeric) {
             return generateCharacterClassNumeric((CharacterClassNumeric) printableCharacters);
         } else if (printableCharacters instanceof CharacterClassRange) {
             return generateCharacterClassRange((CharacterClassRange) printableCharacters);
         } else if (printableCharacters instanceof CharacterClassConc) {
-            int characterClassSize = Utils.size(printableCharacters);
+            int characterClassSize = SymbolUtils.size(printableCharacters);
             int randomCharacter = random.fromRange(characterClassSize);
 
-            return String.valueOf(Utils.get(printableCharacters, randomCharacter));
+            return String.valueOf(SymbolUtils.get(printableCharacters, randomCharacter));
         }
 
         throw new IllegalStateException("Unknown symbol: " + printableCharacters);

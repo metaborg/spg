@@ -1,4 +1,4 @@
-package org.metaborg.spg.sentence;
+package org.metaborg.spg.sentence.random;
 
 import java.util.List;
 

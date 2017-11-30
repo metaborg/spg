@@ -13,7 +13,7 @@ public class Opt implements Element {
 
     @Override
     public int size() {
-        return 1;
+        return 1 + element.size();
     }
 
     @Override

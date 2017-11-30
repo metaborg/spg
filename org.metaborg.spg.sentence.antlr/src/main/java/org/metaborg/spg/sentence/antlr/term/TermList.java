@@ -1,30 +1,30 @@
 package org.metaborg.spg.sentence.antlr.term;
 
-import org.metaborg.spg.sentence.antlr.grammar.ElementOpt;
+import org.metaborg.spg.sentence.antlr.grammar.EmptyElement;
 
 public class TermList implements Term {
-    private final ElementOpt element;
+    private final EmptyElement emptyElement;
     private final Term[] children;
 
-    public TermList(ElementOpt element, Term[] children) {
-        this.element = element;
+    public TermList(EmptyElement emptyElement, Term[] children) {
+        this.emptyElement = emptyElement;
         this.children = children;
     }
 
-    public TermList(ElementOpt element) {
-        this(element, new Term[0]);
+    public TermList(EmptyElement emptyElement) {
+        this(emptyElement, new Term[0]);
     }
 
-    public TermList(ElementOpt element, Term term, Term[] tail) {
-        this(element, arrayOf(term, tail));
+    public TermList(EmptyElement emptyElement, Term term, Term[] tail) {
+        this(emptyElement, arrayOf(term, tail));
     }
 
-    public TermList(ElementOpt element, Term term, TermList tail) {
-        this(element, term, tail.getChildren());
+    public TermList(EmptyElement emptyElement, Term term, TermList tail) {
+        this(emptyElement, term, tail.getChildren());
     }
 
-    public ElementOpt getElement() {
-        return element;
+    public EmptyElement getEmptyElement() {
+        return emptyElement;
     }
 
     public int size() {

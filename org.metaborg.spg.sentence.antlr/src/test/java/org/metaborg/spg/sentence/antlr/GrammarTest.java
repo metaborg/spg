@@ -5,7 +5,6 @@ import org.junit.Test;
 import org.metaborg.spg.sentence.antlr.grammar.*;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.is;

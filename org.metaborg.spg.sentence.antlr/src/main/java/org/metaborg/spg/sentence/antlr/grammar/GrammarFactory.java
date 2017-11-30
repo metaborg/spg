@@ -64,12 +64,12 @@ public class GrammarFactory {
 
     protected Rule toRule(IStrategoTerm term) {
         String name = termToString(term.getSubterm(1));
-        ElementOpt elementOpt = toElementOpt(term.getSubterm(2));
+        EmptyElement emptyElement = toEmptyElement(term.getSubterm(2));
 
-        return new Rule(name, elementOpt);
+        return new Rule(name, emptyElement);
     }
 
-    private ElementOpt toElementOpt(IStrategoTerm term) {
+    protected EmptyElement toEmptyElement(IStrategoTerm term) {
         IStrategoAppl appl = (IStrategoAppl) term;
 
         if ("Empty".equals(appl.getConstructor().getName())) {
@@ -93,12 +93,22 @@ public class GrammarFactory {
                 return toPlus(appl);
             case "Opt":
                 return toOpt(appl);
+            case "Not":
+                return toNot(appl);
             case "Nonterminal":
                 return toNonterminal(appl);
             case "Literal":
                 return toLiteral(appl);
+            case "DottedRange":
+                return toDottedRange(appl);
             case "CharClass":
                 return toCharacterClass(appl);
+            case "NegClass":
+                return toNegatedClass(appl);
+            case "Command":
+                return toCommand(appl);
+            case "Wildcard":
+                return toWildcard(appl);
             case "EOF":
                 return toEOF(appl);
         }
@@ -114,8 +124,8 @@ public class GrammarFactory {
     }
 
     protected Element toAlt(IStrategoAppl appl) {
-        Element first = toElement(appl.getSubterm(0));
-        Element second = toElement(appl.getSubterm(1));
+        EmptyElement first = toEmptyElement(appl.getSubterm(0));
+        EmptyElement second = toEmptyElement(appl.getSubterm(1));
 
         return new Alt(first, second);
     }
@@ -138,6 +148,12 @@ public class GrammarFactory {
         return new Opt(element);
     }
 
+    private Element toNot(IStrategoAppl appl) {
+        Element element = toElement(appl.getSubterm(0));
+
+        return new Not(element);
+    }
+
     protected Element toNonterminal(IStrategoAppl appl) {
         String name = termToString(appl.getSubterm(0));
 
@@ -145,29 +161,53 @@ public class GrammarFactory {
     }
 
     protected Element toLiteral(IStrategoAppl appl) {
-        String text = termToString(appl.getSubterm(0));
+        String text = unescape(unquote(termToString(appl.getSubterm(0))));
 
         return new Literal(text);
     }
 
-    protected CharacterClass toCharacterClass(IStrategoAppl appl) {
+    private Element toDottedRange(IStrategoAppl appl) {
+        String start = unquote(termToString(appl.getSubterm(0)));
+        String end = unquote(termToString(appl.getSubterm(1)));
+
+        return new DottedRange(start, end);
+    }
+
+    private Element toCommand(IStrategoAppl appl) {
+        Element element = toElement(appl.getSubterm(0));
+        String name = termToString(appl.getSubterm(1));
+
+        return new Command(element, name);
+    }
+
+    protected CharClass toCharacterClass(IStrategoAppl appl) {
         Ranges ranges = toRanges(appl.getSubterm(0));
 
-        return new CharacterClass(ranges);
+        return new CharClass(ranges);
+    }
+
+    private Element toNegatedClass(IStrategoAppl appl) {
+        CharacterClass characterClass = toCharacterClass((IStrategoAppl) appl.getSubterm(0));
+
+        return new NegClass(characterClass);
+    }
+
+    private Element toWildcard(IStrategoAppl appl) {
+        return new Wildcard();
     }
 
     protected Element toEOF(IStrategoAppl appl) {
         return new EOF();
     }
 
-    private Ranges toRanges(IStrategoTerm term) {
+    protected Ranges toRanges(IStrategoTerm term) {
         IStrategoAppl appl = (IStrategoAppl) term;
 
         if ("RangeConc".equals(appl.getConstructor().getName())) {
             Ranges first = toRanges(term.getSubterm(0));
             Ranges second = toRanges(term.getSubterm(1));
 
-            return new RangesConc(first, second);
+            return new RangeConc(first, second);
         } else {
             return toRange(term);
         }
@@ -189,7 +229,7 @@ public class GrammarFactory {
         throw new IllegalArgumentException("Unknown range: " + term);
     }
 
-    protected Char toChar(IStrategoTerm term) {
+    protected Character toChar(IStrategoTerm term) {
         String character = termToString(term.getSubterm(0));
 
         return new Single(character);
@@ -197,5 +237,14 @@ public class GrammarFactory {
 
     protected String termToString(IStrategoTerm term) {
         return ((IStrategoString) term).stringValue();
+    }
+
+    protected String unquote(String string) {
+        return string.substring(1, string.length() - 1);
+    }
+
+    // TODO: Should we also unescape control characters (such as newline)?
+    private String unescape(String string) {
+        return string.replace("\\'", "'");
     }
 }

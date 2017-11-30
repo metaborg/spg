@@ -1,10 +1,8 @@
 package org.metaborg.spg.sentence.guice;
 
 import com.google.inject.AbstractModule;
-import com.google.inject.assistedinject.FactoryModuleBuilder;
-import org.metaborg.spg.sentence.IRandom;
-import org.metaborg.spg.sentence.Random;
-import org.metaborg.spg.sentence.ambiguity.AmbiguityTesterFactory;
+import org.metaborg.spg.sentence.random.IRandom;
+import org.metaborg.spg.sentence.random.Random;
 import org.spoofax.interpreter.terms.ITermFactory;
 
 public class SentenceModule extends AbstractModule {

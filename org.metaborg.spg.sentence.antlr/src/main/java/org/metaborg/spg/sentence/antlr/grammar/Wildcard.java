@@ -1,6 +1,6 @@
 package org.metaborg.spg.sentence.antlr.grammar;
 
-public class Empty implements EmptyElement {
+public class Wildcard implements Element {
     @Override
     public int size() {
         return 1;

@@ -10,6 +10,7 @@ import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toSet;
 import static java.util.stream.Stream.*;
+import static org.metaborg.spg.sentence.antlr.utils.StreamUtils.cons;
 
 public class Grammar {
     private final String name;
@@ -68,7 +69,7 @@ public class Grammar {
 
     private Set<Nonterminal> injectionsClosure(Set<Nonterminal> nonterminals) {
         Stream<Nonterminal> injections = nonterminals.stream().flatMap(n ->
-                concat(of(n), injections(n))
+                cons(n, injections(n))
         );
 
         Set<Nonterminal> ns = injections.collect(toSet());
@@ -83,16 +84,16 @@ public class Grammar {
     private Stream<Nonterminal> injections(Nonterminal n) {
         Rule rule = getRule(n.getName());
 
-        return injections(rule.getElement());
+        return injections(rule.getEmptyElement());
     }
 
-    private Stream<Nonterminal> injections(ElementOpt elementOpt) {
-        if (elementOpt instanceof Alt) {
-            Alt alt = (Alt) elementOpt;
+    private Stream<Nonterminal> injections(EmptyElement emptyElement) {
+        if (emptyElement instanceof Alt) {
+            Alt alt = (Alt) emptyElement;
 
             return concat(injections(alt.getFirst()), injections(alt.getSecond()));
-        } else if (elementOpt instanceof Nonterminal) {
-            Nonterminal nonterminal = (Nonterminal) elementOpt;
+        } else if (emptyElement instanceof Nonterminal) {
+            Nonterminal nonterminal = (Nonterminal) emptyElement;
 
             return of(nonterminal);
         }

@@ -6,23 +6,26 @@ import org.eclipse.core.runtime.*;
 import org.metaborg.core.language.ILanguageImpl;
 import org.metaborg.core.project.IProject;
 import org.metaborg.spg.sentence.ambiguity.*;
+import org.metaborg.spg.sentence.ambiguity.result.FindResult;
+import org.metaborg.spg.sentence.ambiguity.result.ShrinkResult;
+import org.metaborg.spg.sentence.ambiguity.result.TestResult;
 import org.metaborg.spg.sentence.eclipse.Activator;
 
 public class AmbiguityJob extends SentenceJob {
-    private final AmbiguityTesterFactory ambiguityTesterFactory;
-    private final AmbiguityTesterConfig config;
+    private final TesterFactory testerFactory;
+    private final TesterConfig config;
     private final IProject project;
     private final ILanguageImpl language;
 
     @Inject
     public AmbiguityJob(
-            AmbiguityTesterFactory ambiguityTesterFactory,
-            @Assisted AmbiguityTesterConfig config,
+            TesterFactory testerFactory,
+            @Assisted TesterConfig config,
             @Assisted IProject project,
             @Assisted ILanguageImpl language) {
         super("Ambiguity test");
 
-        this.ambiguityTesterFactory = ambiguityTesterFactory;
+        this.testerFactory = testerFactory;
         this.config = config;
         this.project = project;
         this.language = language;
@@ -33,9 +36,9 @@ public class AmbiguityJob extends SentenceJob {
         try {
             final SubMonitor subMonitor = SubMonitor.convert(monitor, config.getMaxNumberOfTerms());
 
-            AmbiguityTester ambiguityTester = ambiguityTesterFactory.create(language, project);
+            Tester tester = testerFactory.create(language, project);
 
-            AmbiguityTesterProgress progress = new AmbiguityTesterProgress() {
+            TesterProgress progress = new TesterProgress() {
                 @Override
                 public void sentenceGenerated(String text) {
                     stream.println("=== Program ===");
@@ -44,29 +47,35 @@ public class AmbiguityJob extends SentenceJob {
                     try {
                         subMonitor.split(1);
                     } catch (OperationCanceledException e) {
-                        throw new AmbiguityTesterCancelledException(e);
+                        throw new TesterCancelledException(e);
                     }
                 }
 
                 @Override
                 public void sentenceShrinked(String text) {
-                    stream.println("=== Shrink ==");
+                    stream.println("=== Shrink ===");
                     stream.println(text);
 
                     try {
                         subMonitor.setWorkRemaining(50).split(1);
                     } catch (OperationCanceledException e) {
-                        throw new AmbiguityTesterCancelledException(e);
+                        throw new TesterCancelledException(e);
                     }
                 }
             };
 
-            AmbiguityTesterResult ambiguityTesterResult = ambiguityTester.findAmbiguity(config, progress);
+            TestResult testResult = tester.test(config, progress);
+            FindResult findResult = testResult.getFindResult();
+            ShrinkResult shrinkResult = testResult.getShrinkResult();
 
-            if (ambiguityTesterResult.foundAmbiguity()) {
-                stream.println("Found ambiguous sentence after " + ambiguityTesterResult.getTerms() + " sentences (" + ambiguityTesterResult.getDuration() + " ms).");
+            if (findResult.found()) {
+                print("Found ambiguous sentence after %d terms (%d ms). ", findResult.terms(), findResult.duration());
+
+                if (shrinkResult != null) {
+                    print("Shrunk from %d to %d characters (%d ms).", findResult.text().length(), shrinkResult.text().length(), shrinkResult.duration());
+                }
             } else {
-                stream.println("No ambiguous sentence found after " + ambiguityTesterResult.getTerms() + " sentences (" + ambiguityTesterResult.getDuration() + " ms).");
+                print("No ambiguous sentence found after %d terms (%d ms).", findResult.terms(), findResult.duration());
             }
 
             return Status.OK_STATUS;
@@ -75,5 +84,9 @@ public class AmbiguityJob extends SentenceJob {
 
             return Status.CANCEL_STATUS;
         }
+    }
+
+    private void print(String format, Object... arguments) {
+        stream.print(String.format(format, arguments));
     }
 }

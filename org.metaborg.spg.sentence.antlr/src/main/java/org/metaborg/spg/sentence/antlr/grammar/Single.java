@@ -1,6 +1,6 @@
 package org.metaborg.spg.sentence.antlr.grammar;
 
-public class Single implements Char {
+public class Single implements Character {
     private final String s;
 
     public Single(String s) {

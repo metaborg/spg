@@ -1,6 +1,6 @@
 package org.metaborg.spg.sentence.ambiguity;
 
-public class AmbiguityTesterProgressDefault implements AmbiguityTesterProgress {
+public class TesterProgressDefault implements TesterProgress {
     @Override
     public void sentenceGenerated(String text) {
         System.out.println("=== Program ===");

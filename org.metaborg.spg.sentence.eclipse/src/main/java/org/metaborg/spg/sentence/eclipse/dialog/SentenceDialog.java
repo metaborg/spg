@@ -6,10 +6,17 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.*;
 
 public abstract class SentenceDialog extends TitleAreaDialog {
+    private static final String EMPTY_STRING = "";
+
     public SentenceDialog(Shell parentShell) {
         super(parentShell);
     }
 
+    protected Text createField(Composite container, String fieldLabel) {
+        return createField(container, fieldLabel, EMPTY_STRING);
+    }
+
+    // TODO: Label + Widget = Fieldset?
     protected Text createField(Composite container, String fieldLabel, String fieldDefault) {
         Label label = new Label(container, SWT.NONE);
         label.setText(fieldLabel);

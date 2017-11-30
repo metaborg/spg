@@ -6,7 +6,7 @@ import org.metaborg.sdf2table.grammar.CharacterClassConc;
 import org.metaborg.sdf2table.grammar.CharacterClassNumeric;
 import org.metaborg.sdf2table.grammar.CharacterClassRange;
 import org.metaborg.sdf2table.grammar.Symbol;
-import org.metaborg.spg.sentence.Utils;
+import org.metaborg.spg.sentence.utils.SymbolUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -27,7 +27,7 @@ public class GeneratorTest {
                 range(35, 126)
         );
 
-        Symbol actualCharacterClass = Utils.toPrintable(characterClassConc);
+        Symbol actualCharacterClass = SymbolUtils.toPrintable(characterClassConc);
 
         assertEquals(expectedCharacterClass, actualCharacterClass);
     }
@@ -35,13 +35,13 @@ public class GeneratorTest {
     @Test
     @DisplayName("Size [a] = 1")
     public void testSizeNumeric() {
-        assertEquals(1, Utils.size(number(94)));
+        assertEquals(1, SymbolUtils.size(number(94)));
     }
 
     @Test
     @DisplayName("Size [0-9] = 10")
     public void testSizeRange() {
-        assertEquals(10, Utils.size(range(0, 9)));
+        assertEquals(10, SymbolUtils.size(range(0, 9)));
     }
 
     @Test
@@ -55,7 +55,7 @@ public class GeneratorTest {
                 )
         );
 
-        assertEquals(62, Utils.size(characterClass));
+        assertEquals(62, SymbolUtils.size(characterClass));
     }
 
     @Test
@@ -69,7 +69,7 @@ public class GeneratorTest {
                 )
         );
 
-        assertEquals(37, Utils.size(characterClass));
+        assertEquals(37, SymbolUtils.size(characterClass));
     }
 
     @Test
@@ -77,7 +77,7 @@ public class GeneratorTest {
     public void testGetCharacterClassRange() {
         CharacterClassRange characterClassRange = range(65, 90);
 
-        assertEquals('A', Utils.get(characterClassRange, 0));
+        assertEquals('A', SymbolUtils.get(characterClassRange, 0));
     }
 
     @Test
@@ -88,7 +88,7 @@ public class GeneratorTest {
                 number(97)
         );
 
-        assertEquals('a', Utils.get(characterClassConc, 26));
+        assertEquals('a', SymbolUtils.get(characterClassConc, 26));
     }
 
     @Test
@@ -99,7 +99,7 @@ public class GeneratorTest {
                 range(97, 122)
         );
 
-        assertEquals('c', Utils.get(characterClassConc, 28));
+        assertEquals('c', SymbolUtils.get(characterClassConc, 28));
     }
 
     private CharacterClassConc conc(CharacterClassRange first, Symbol second) {

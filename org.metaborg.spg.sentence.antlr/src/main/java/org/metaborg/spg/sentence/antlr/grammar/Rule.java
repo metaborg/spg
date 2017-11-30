@@ -1,34 +1,28 @@
 package org.metaborg.spg.sentence.antlr.grammar;
 
-import java.util.stream.Stream;
-
 public class Rule {
     private final String name;
-    private final ElementOpt element;
+    private final EmptyElement emptyElement;
 
-    public Rule(String name, ElementOpt element) {
+    public Rule(String name, EmptyElement emptyElement) {
         this.name = name;
-        this.element = element;
+        this.emptyElement = emptyElement;
     }
 
     public String getName() {
         return name;
     }
 
-    public ElementOpt getElement() {
-        return element;
+    public EmptyElement getEmptyElement() {
+        return emptyElement;
     }
 
     public boolean isLexical() {
-        return Character.isUpperCase(name.charAt(0));
+        return java.lang.Character.isUpperCase(name.charAt(0));
     }
 
     @Override
     public String toString() {
-        return name + ": " + element + ";";
-    }
-
-    public Stream<Nonterminal> getNonterminals() {
-        return null;
+        return name + ": " + emptyElement + ";";
     }
 }

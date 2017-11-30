@@ -1,6 +1,6 @@
 package org.metaborg.spg.sentence.ambiguity;
 
-public interface AmbiguityTesterProgress {
+public interface TesterProgress {
     void sentenceGenerated(String text);
 
     void sentenceShrinked(String text);

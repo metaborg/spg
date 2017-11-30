@@ -2,12 +2,19 @@ package org.metaborg.spg.sentence.ambiguity;
 
 import com.google.inject.Inject;
 import org.metaborg.core.language.ILanguageImpl;
+import org.metaborg.core.syntax.ParseException;
+import org.metaborg.spg.sentence.ambiguity.result.FindResult;
+import org.metaborg.spg.sentence.ambiguity.result.ShrinkResult;
+import org.metaborg.spg.sentence.ambiguity.result.TestResult;
 import org.metaborg.spg.sentence.generator.Generator;
-import org.metaborg.spg.sentence.parser.ParseRuntimeException;
-import org.metaborg.spg.sentence.parser.ParseService;
 import org.metaborg.spg.sentence.printer.Printer;
 import org.metaborg.spg.sentence.printer.PrinterRuntimeException;
 import org.metaborg.spg.sentence.shrinker.Shrinker;
+import org.metaborg.spoofax.core.syntax.ISpoofaxSyntaxService;
+import org.metaborg.spoofax.core.unit.ISpoofaxInputUnit;
+import org.metaborg.spoofax.core.unit.ISpoofaxParseUnit;
+import org.metaborg.spoofax.core.unit.ISpoofaxUnitService;
+import org.metaborg.util.time.Timer;
 import org.spoofax.interpreter.terms.IStrategoAppl;
 import org.spoofax.interpreter.terms.IStrategoList;
 import org.spoofax.interpreter.terms.IStrategoTerm;
@@ -17,35 +24,55 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-public class AmbiguityTester {
-    private final ParseService parseService;
+import static java.util.stream.Stream.empty;
+import static java.util.stream.Stream.of;
+
+public class Tester {
     private final ITermFactory termFactory;
+    private final ISpoofaxUnitService unitService;
+    private final ISpoofaxSyntaxService syntaxService;
     private final ILanguageImpl languageImpl;
     private final Printer printer;
     private final Generator generator;
     private final Shrinker shrinker;
 
     @Inject
-    public AmbiguityTester(
-            ParseService parseService,
+    public Tester(
             ITermFactory termFactory,
+            ISpoofaxUnitService unitService,
+            ISpoofaxSyntaxService syntaxService,
             ILanguageImpl languageImpl,
             Printer printer,
             Generator generator,
             Shrinker shrinker
     ) {
-        this.parseService = parseService;
         this.termFactory = termFactory;
+        this.unitService = unitService;
+        this.syntaxService = syntaxService;
         this.languageImpl = languageImpl;
         this.printer = printer;
         this.generator = generator;
         this.shrinker = shrinker;
     }
 
-    public AmbiguityTesterResult findAmbiguity(AmbiguityTesterConfig config, AmbiguityTesterProgress progress) throws Exception {
-        long startTime = System.currentTimeMillis();
+    public TestResult test(TesterConfig config, TesterProgress progress) {
+        FindResult findResult = find(config, progress);
 
-        for (int i = 0; i < config.getMaxNumberOfTerms(); i++) {
+        if (!findResult.found()) {
+            return new TestResult(findResult);
+        }
+
+        ShrinkResult shrinkResult = shrink(findResult, progress);
+
+        return new TestResult(findResult, shrinkResult);
+    }
+
+    public FindResult find(TesterConfig config, TesterProgress progress) {
+        Timer timer = new Timer(true);
+
+        int terms = config.getMaxNumberOfTerms();
+
+        for (int i = 0; i < terms; i++) {
             try {
                 Optional<IStrategoTerm> termOpt = generator.generate(config.getMaxTermSize());
 
@@ -55,31 +82,39 @@ public class AmbiguityTester {
 
                     progress.sentenceGenerated(text);
 
-                    IStrategoTerm parsedTerm = parseService.parse(languageImpl, text);
+                    ISpoofaxParseUnit parseUnit = parse(text);
 
-                    if (isAmbiguous(parsedTerm)) {
-                        long duration = System.currentTimeMillis() - startTime;
+                    if (parseUnit.success()) {
+                        IStrategoTerm parsedTerm = parseUnit.ast();
 
-                        shrink(parsedTerm, progress);
-
-                        return new AmbiguityTesterResult(i, duration, text);
+                        if (isAmbiguous(parsedTerm)) {
+                            return new FindResult(timer, i, parsedTerm, text);
+                        }
                     }
                 }
-            } catch (AmbiguityTesterCancelledException e) {
-                long duration = System.currentTimeMillis() - startTime;
-
-                return new AmbiguityTesterResult(i, duration);
-            } catch (ParseRuntimeException | PrinterRuntimeException e) {
+            } catch (TesterCancelledException e) {
+                return new FindResult(timer, i);
+            } catch (PrinterRuntimeException | ParseException e) {
                 e.printStackTrace();
             }
         }
 
-        long duration = System.currentTimeMillis() - startTime;
-
-        return new AmbiguityTesterResult(config.getMaxNumberOfTerms(), duration);
+        return new FindResult(timer, terms);
     }
 
-    protected IStrategoTerm shrink(IStrategoTerm term, AmbiguityTesterProgress progress) {
+    public ShrinkResult shrink(FindResult findResult, TesterProgress progress) {
+        Timer timer = new Timer(true);
+        IStrategoTerm shrunk = shrink(findResult.term(), progress);
+
+        try {
+            return new ShrinkResult(timer, shrunk, printer.print(shrunk));
+        } catch (TesterCancelledException e) {
+            return new ShrinkResult(timer);
+        }
+    }
+
+    protected IStrategoTerm shrink(IStrategoTerm term, TesterProgress progress) {
+        // TODO: This is printing an ambiguous term, but Spoofax' pretty-printer sometimes fails to pretty-print an ambiguous term.
         progress.sentenceShrinked(printer.print(term));
 
         Optional<IStrategoTerm> shrunkOpt = shrink(term).findAny();
@@ -91,18 +126,35 @@ public class AmbiguityTester {
         }
     }
 
-    public Stream<IStrategoTerm> shrink(IStrategoTerm term) {
-        IStrategoTerm nonambiguousTerm = disambiguate(term);
+    public Stream<IStrategoTerm> shrink(IStrategoTerm ambiguous) {
+        IStrategoTerm nonambiguous = disambiguate(ambiguous);
 
         return shrinker
-                .shrink(nonambiguousTerm)
-                .map(printer::print)
-                .map(this::parse)
+                .shrink(nonambiguous)
+                .flatMap(this::printParse)
                 .filter(this::isAmbiguous);
     }
 
-    protected IStrategoTerm parse(String text) {
-        return parseService.parse(languageImpl, text);
+    protected ISpoofaxParseUnit parse(String text) throws ParseException {
+        ISpoofaxInputUnit inputUnit = unitService.inputUnit(text, languageImpl, null);
+
+        return syntaxService.parse(inputUnit);
+    }
+
+    protected Stream<IStrategoTerm> printParse(IStrategoTerm term) {
+        String text = printer.print(term);
+
+        try {
+            ISpoofaxParseUnit parseUnit = parse(text);
+
+            if (parseUnit.success()) {
+                return of(parseUnit.ast());
+            }
+        } catch (ParseException e) {
+            return empty();
+        }
+
+        return empty();
     }
 
     protected IStrategoTerm disambiguate(IStrategoTerm term) {
@@ -155,7 +207,7 @@ public class AmbiguityTester {
         if (term instanceof IStrategoList) {
             return Arrays.stream(term.getAllSubterms());
         } else {
-            return Stream.of(term);
+            return of(term);
         }
     }
 

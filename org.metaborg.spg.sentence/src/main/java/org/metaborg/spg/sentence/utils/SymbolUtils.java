@@ -1,77 +1,21 @@
-package org.metaborg.spg.sentence;
+package org.metaborg.spg.sentence.utils;
 
-import org.apache.commons.vfs2.FileObject;
-import org.metaborg.core.MetaborgException;
-import org.metaborg.core.language.ILanguageImpl;
-import org.metaborg.core.project.IProject;
-import org.metaborg.core.project.SimpleProjectService;
 import org.metaborg.sdf2table.grammar.CharacterClassConc;
 import org.metaborg.sdf2table.grammar.CharacterClassNumeric;
 import org.metaborg.sdf2table.grammar.CharacterClassRange;
 import org.metaborg.sdf2table.grammar.Symbol;
-import org.metaborg.spg.sentence.functional.CheckedConsumer;
-import org.metaborg.spg.sentence.functional.CheckedPredicate;
-import org.metaborg.spoofax.core.Spoofax;
 
-import java.io.File;
-import java.util.Collections;
 import java.util.List;
-import java.util.function.Consumer;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static java.util.stream.Stream.*;
+import static java.util.stream.Stream.empty;
+import static java.util.stream.Stream.of;
 import static org.metaborg.spg.sentence.generator.Generator.MAXIMUM_PRINTABLE;
 import static org.metaborg.spg.sentence.generator.Generator.MINIMUM_PRINTABLE;
+import static org.metaborg.spg.sentence.utils.StreamUtils.cons;
 
-public class Utils {
-    public static ILanguageImpl loadLanguage(Spoofax spoofax, File file) throws MetaborgException {
-        FileObject languageLocation = spoofax.resourceService.resolve(file);
-
-        return spoofax.languageDiscoveryService.languageFromArchive(languageLocation);
-    }
-
-    public static IProject getOrCreateProject(Spoofax spoofax, File file) throws MetaborgException {
-        SimpleProjectService simpleProjectService = spoofax.injector.getInstance(SimpleProjectService.class);
-        FileObject resource = spoofax.resourceService.resolve(file);
-        IProject project = simpleProjectService.get(resource);
-
-        if (project == null) {
-            return simpleProjectService.create(resource);
-        } else {
-            return project;
-        }
-    }
-
-    public static <T> Predicate<T> uncheckPredicate(CheckedPredicate<T, Exception> function) {
-        return element -> {
-            try {
-                return function.test(element);
-            } catch (Exception ex) {
-                if (ex instanceof RuntimeException) {
-                    throw (RuntimeException) ex;
-                } else {
-                    throw new RuntimeException(ex);
-                }
-            }
-        };
-    }
-
-    public static <T> Consumer<T> uncheckConsumer(CheckedConsumer<T, Exception> function) {
-        return element -> {
-            try {
-                function.accept(element);
-            } catch (Exception ex) {
-                if (ex instanceof RuntimeException) {
-                    throw (RuntimeException) ex;
-                } else {
-                    throw new RuntimeException(ex);
-                }
-            }
-        };
-    }
-
+public class SymbolUtils {
     public static Symbol toPrintable(CharacterClassConc characterClassConc) {
         List<Symbol> symbols = characterClassToList(characterClassConc).collect(Collectors.toList());
         List<Symbol> printableSymbols = toPrintable(symbols).collect(Collectors.toList());
@@ -106,13 +50,13 @@ public class Utils {
                 } else {
                     Symbol nhead = range(MINIMUM_PRINTABLE, headMaximum);
 
-                    return concat(of(nhead), tail);
+                    return cons(nhead, tail);
                 }
             } else {
                 if (headMaximum > MAXIMUM_PRINTABLE) {
                     return empty();
                 } else {
-                    return concat(of(head), tail);
+                    return cons(head, tail);
                 }
             }
         }
@@ -144,7 +88,7 @@ public class Utils {
             Symbol first = characterClassConc.first();
             Symbol second = characterClassConc.second();
 
-            return concat(of(first), characterClassToList(second));
+            return cons(first, characterClassToList(second));
         } else if (characterClass instanceof CharacterClassRange) {
             return of(characterClass);
         } else if (characterClass instanceof CharacterClassNumeric) {
