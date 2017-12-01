@@ -71,11 +71,13 @@ public class AmbiguityJob extends SentenceJob {
             if (findResult.found()) {
                 print("Found ambiguous sentence after %d terms (%d ms). ", findResult.terms(), findResult.duration());
 
-                if (shrinkResult != null) {
-                    print("Shrunk from %d to %d characters (%d ms).", findResult.text().length(), shrinkResult.text().length(), shrinkResult.duration());
+                if (shrinkResult != null && shrinkResult.success()) {
+                    print("Shrunk from %d to %d characters (%d ms).\n", findResult.text().length(), shrinkResult.text().length(), shrinkResult.duration());
+                } else {
+                    print("Unable to shrink (%d ms).\n", shrinkResult.duration());
                 }
             } else {
-                print("No ambiguous sentence found after %d terms (%d ms).", findResult.terms(), findResult.duration());
+                print("No ambiguous sentence found after %d terms (%d ms).\n", findResult.terms(), findResult.duration());
             }
 
             return Status.OK_STATUS;

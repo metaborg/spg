@@ -7,6 +7,7 @@
 Pom-first and manifest-first projects cannot be mixed in the same reactor build ([source](https://goo.gl/akexsK)), so we need to separately build `org.metaborg.spg.sentence` and `org.metaborg.spg.sentence.eclipse*`:
 
 ```
+mvn clean install -f org.metaborg.spg.sentence.shared/pom.xml
 mvn clean install -f org.metaborg.spg.sentence/pom.xml
 mvn clean install -f org.metaborg.spg.sentence.antlr/pom.xml
 mvn clean install -f org.metaborg.spg.sentence.eclipse.externaldeps/pom.xml

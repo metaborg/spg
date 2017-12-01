@@ -1,4 +1,4 @@
-package org.metaborg.spg.sentence.antlr.functional;
+package org.metaborg.spg.sentence.shared.stream;
 
 import java.util.Objects;
 import java.util.Spliterator;

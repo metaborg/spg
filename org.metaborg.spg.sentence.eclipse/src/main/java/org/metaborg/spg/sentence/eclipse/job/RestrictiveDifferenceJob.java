@@ -26,7 +26,7 @@ import java.io.IOException;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import static org.metaborg.spg.sentence.antlr.functional.Utils.uncheck;
+import static org.metaborg.spg.sentence.shared.utils.FunctionalUtils.uncheckPredicate;
 
 public class RestrictiveDifferenceJob extends DifferenceJob {
     public static final JSGLRParserConfiguration PARSER_CONFIG = new JSGLRParserConfiguration(false, false, false, 30000, Integer.MAX_VALUE);
@@ -98,8 +98,8 @@ public class RestrictiveDifferenceJob extends DifferenceJob {
                                 Stream<Term> shrunkTrees = shrinker.shrink(term);
 
                                 Optional<Term> anyShrunkTree = shrunkTrees
-                                        .filter(uncheck(shrunkTree -> !canParseSpoofax(language, shrunkTree.toString(), PARSER_CONFIG)))
-                                        .filter(uncheck(shrunkTree -> canParseAntlr(antlrGrammar, antlrStartSymbol, shrunkTree.toString())))
+                                        .filter(uncheckPredicate(shrunkTree -> !canParseSpoofax(language, shrunkTree.toString(), PARSER_CONFIG)))
+                                        .filter(uncheckPredicate(shrunkTree -> canParseAntlr(antlrGrammar, antlrStartSymbol, shrunkTree.toString())))
                                         .findFirst();
 
                                 if (anyShrunkTree.isPresent()) {

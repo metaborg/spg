@@ -17,8 +17,8 @@ import java.util.stream.Stream;
 
 import static java.util.stream.Stream.empty;
 import static java.util.stream.Stream.of;
-import static org.metaborg.spg.sentence.utils.StreamUtils.cons;
-import static org.metaborg.spg.sentence.utils.StreamUtils.o2s;
+import static org.metaborg.spg.sentence.shared.utils.StreamUtils.cons;
+import static org.metaborg.spg.sentence.shared.utils.StreamUtils.o2s;
 
 public class Shrinker {
     private final IRandom random;

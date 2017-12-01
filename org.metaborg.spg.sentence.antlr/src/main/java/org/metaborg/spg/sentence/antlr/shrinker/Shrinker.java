@@ -15,9 +15,9 @@ import java.util.stream.Stream;
 
 import static java.util.stream.Stream.empty;
 import static java.util.stream.Stream.of;
-import static org.metaborg.spg.sentence.antlr.functional.FlatMappingSpliterator.flatMap;
-import static org.metaborg.spg.sentence.antlr.functional.Utils.lift;
-import static org.metaborg.spg.sentence.antlr.utils.StreamUtils.snoc;
+import static org.metaborg.spg.sentence.shared.stream.FlatMappingSpliterator.flatMap;
+import static org.metaborg.spg.sentence.shared.utils.StreamUtils.o2s;
+import static org.metaborg.spg.sentence.shared.utils.StreamUtils.snoc;
 
 public class Shrinker {
     private final Random random;
@@ -141,7 +141,7 @@ public class Shrinker {
 
         Optional<Term> newSubTerm = generator.forElement(appl.getEmptyElement(), newSize);
 
-        return lift(newSubTerm.map(replacement ->
+        return o2s(newSubTerm.map(replacement ->
                 replace(term, appl, replacement)
         ));
     }

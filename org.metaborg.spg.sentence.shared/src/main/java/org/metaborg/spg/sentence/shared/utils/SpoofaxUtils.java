@@ -1,4 +1,4 @@
-package org.metaborg.spg.sentence.utils;
+package org.metaborg.spg.sentence.shared.utils;
 
 import org.apache.commons.vfs2.FileObject;
 import org.metaborg.core.MetaborgException;

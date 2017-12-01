@@ -5,7 +5,6 @@ import com.google.common.collect.ListMultimap;
 import com.google.inject.Inject;
 import org.metaborg.sdf2table.grammar.*;
 import org.metaborg.spg.sentence.random.IRandom;
-import org.metaborg.spg.sentence.utils.SpoofaxUtils;
 import org.metaborg.spg.sentence.utils.SymbolUtils;
 import org.spoofax.interpreter.terms.IStrategoConstructor;
 import org.spoofax.interpreter.terms.IStrategoList;

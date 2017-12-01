@@ -1,4 +1,4 @@
-package org.metaborg.spg.sentence.antlr.functional;
+package org.metaborg.spg.sentence.shared.functional;
 
 @FunctionalInterface
 public interface CheckedPredicate<T, E extends Exception> {

@@ -31,6 +31,6 @@ public class ShrinkResult {
     }
 
     public boolean success() {
-        return false;
+        return term != null;
     }
 }

@@ -1,4 +1,4 @@
-package org.metaborg.spg.sentence.functional;
+package org.metaborg.spg.sentence.shared.functional;
 
 @FunctionalInterface
 public interface CheckedFunction<T, R, E extends Exception> {

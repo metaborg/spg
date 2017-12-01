@@ -26,6 +26,7 @@ import java.util.stream.Stream;
 
 import static java.util.stream.Stream.empty;
 import static java.util.stream.Stream.of;
+import static org.metaborg.spg.sentence.shared.stream.FlatMappingSpliterator.flatMap;
 
 public class Tester {
     private final ITermFactory termFactory;
@@ -62,7 +63,7 @@ public class Tester {
             return new TestResult(findResult);
         }
 
-        ShrinkResult shrinkResult = shrink(findResult, progress);
+        ShrinkResult shrinkResult = shrink(findResult.term(), progress);
 
         return new TestResult(findResult, shrinkResult);
     }
@@ -102,37 +103,36 @@ public class Tester {
         return new FindResult(timer, terms);
     }
 
-    public ShrinkResult shrink(FindResult findResult, TesterProgress progress) {
+    public ShrinkResult shrink(IStrategoTerm term, TesterProgress progress) {
         Timer timer = new Timer(true);
-        IStrategoTerm shrunk = shrink(findResult.term(), progress);
 
-        try {
-            return new ShrinkResult(timer, shrunk, printer.print(shrunk));
-        } catch (TesterCancelledException e) {
-            return new ShrinkResult(timer);
-        }
+        return shrink(term, progress, timer);
     }
 
-    protected IStrategoTerm shrink(IStrategoTerm term, TesterProgress progress) {
-        // TODO: This is printing an ambiguous term, but Spoofax' pretty-printer sometimes fails to pretty-print an ambiguous term.
-        progress.sentenceShrinked(printer.print(term));
+    protected ShrinkResult shrink(IStrategoTerm term, TesterProgress progress, Timer timer) {
+        // TODO: This is printing an ambiguous term, but Spoofax' pretty-printer has trouble with some ambiguous terms.
+        String text = printer.print(term);
+
+        try {
+            progress.sentenceShrinked(text);
+        } catch (TesterCancelledException e) {
+            return new ShrinkResult(timer, term, text);
+        }
 
         Optional<IStrategoTerm> shrunkOpt = shrink(term).findAny();
 
         if (!shrunkOpt.isPresent()) {
-            return term;
+            return new ShrinkResult(timer, term, text);
         } else {
-            return shrink(shrunkOpt.get(), progress);
+            return shrink(shrunkOpt.get(), progress, timer);
         }
     }
 
     public Stream<IStrategoTerm> shrink(IStrategoTerm ambiguous) {
         IStrategoTerm nonambiguous = disambiguate(ambiguous);
+        Stream<IStrategoTerm> shrunkTerms = shrinker.shrink(nonambiguous);
 
-        return shrinker
-                .shrink(nonambiguous)
-                .flatMap(this::printParse)
-                .filter(this::isAmbiguous);
+        return flatMap(shrunkTerms, this::printParse).filter(this::isAmbiguous);
     }
 
     protected ISpoofaxParseUnit parse(String text) throws ParseException {

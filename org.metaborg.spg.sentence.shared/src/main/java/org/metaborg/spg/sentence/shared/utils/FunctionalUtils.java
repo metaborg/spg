@@ -1,8 +1,8 @@
-package org.metaborg.spg.sentence.utils;
+package org.metaborg.spg.sentence.shared.utils;
 
-import org.metaborg.spg.sentence.functional.CheckedConsumer;
-import org.metaborg.spg.sentence.functional.CheckedFunction;
-import org.metaborg.spg.sentence.functional.CheckedPredicate;
+import org.metaborg.spg.sentence.shared.functional.CheckedConsumer;
+import org.metaborg.spg.sentence.shared.functional.CheckedFunction;
+import org.metaborg.spg.sentence.shared.functional.CheckedPredicate;
 
 import java.util.function.Consumer;
 import java.util.function.Function;

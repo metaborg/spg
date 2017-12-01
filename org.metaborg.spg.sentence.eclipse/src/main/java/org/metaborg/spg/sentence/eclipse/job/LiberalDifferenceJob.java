@@ -25,7 +25,7 @@ import org.spoofax.interpreter.terms.IStrategoTerm;
 
 import java.util.Optional;
 
-import static org.metaborg.spg.sentence.antlr.functional.Utils.uncheck;
+import static org.metaborg.spg.sentence.shared.utils.FunctionalUtils.uncheckPredicate;
 
 public class LiberalDifferenceJob extends DifferenceJob {
     public static final JSGLRParserConfiguration PARSER_CONFIG = new JSGLRParserConfiguration(true, false, false, 30000, Integer.MAX_VALUE);
@@ -93,8 +93,8 @@ public class LiberalDifferenceJob extends DifferenceJob {
                                         Optional<String> shrunkTextOpt = shrinker
                                                 .shrink(parseUnit.ast())
                                                 .map(printer::print)
-                                                .filter(uncheck(shrunkText -> !canParseAntlr(grammar, antlrStartSymbol, shrunkText)))
-                                                .filter(uncheck(shrunkText -> canParseSpoofax(language, shrunkText, PARSER_CONFIG)))
+                                                .filter(uncheckPredicate(shrunkText -> !canParseAntlr(grammar, antlrStartSymbol, shrunkText)))
+                                                .filter(uncheckPredicate(shrunkText -> canParseSpoofax(language, shrunkText, PARSER_CONFIG)))
                                                 .findAny();
 
                                         if (shrunkTextOpt.isPresent()) {

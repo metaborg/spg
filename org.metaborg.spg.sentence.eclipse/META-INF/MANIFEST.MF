@@ -8,6 +8,7 @@ Bundle-Version: 2.4.0.qualifier
 Bundle-Vendor: metaborg.org
 Require-Bundle: org.metaborg.spoofax.eclipse.externaldeps,
  org.metaborg.spg.sentence.eclipse.externaldeps,
+ org.metaborg.spg.sentence.shared,
  org.metaborg.spoofax.eclipse,
  org.metaborg.spoofax.eclipse.util,
  org.eclipse.equinox.common;bundle-version="3.8",

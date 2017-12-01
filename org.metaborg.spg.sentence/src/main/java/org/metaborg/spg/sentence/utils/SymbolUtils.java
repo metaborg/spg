@@ -13,7 +13,7 @@ import static java.util.stream.Stream.empty;
 import static java.util.stream.Stream.of;
 import static org.metaborg.spg.sentence.generator.Generator.MAXIMUM_PRINTABLE;
 import static org.metaborg.spg.sentence.generator.Generator.MINIMUM_PRINTABLE;
-import static org.metaborg.spg.sentence.utils.StreamUtils.cons;
+import static org.metaborg.spg.sentence.shared.utils.StreamUtils.cons;
 
 public class SymbolUtils {
     public static Symbol toPrintable(CharacterClassConc characterClassConc) {

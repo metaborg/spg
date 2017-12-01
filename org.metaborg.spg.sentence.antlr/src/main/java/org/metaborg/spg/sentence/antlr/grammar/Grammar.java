@@ -10,7 +10,7 @@ import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toSet;
 import static java.util.stream.Stream.*;
-import static org.metaborg.spg.sentence.antlr.utils.StreamUtils.cons;
+import static org.metaborg.spg.sentence.shared.utils.StreamUtils.cons;
 
 public class Grammar {
     private final String name;

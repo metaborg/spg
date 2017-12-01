@@ -13,8 +13,8 @@ import org.metaborg.spoofax.core.Spoofax;
 
 import java.io.File;
 
-import static org.metaborg.spg.sentence.utils.SpoofaxUtils.getOrCreateProject;
-import static org.metaborg.spg.sentence.utils.SpoofaxUtils.loadLanguage;
+import static org.metaborg.spg.sentence.shared.utils.SpoofaxUtils.getOrCreateProject;
+import static org.metaborg.spg.sentence.shared.utils.SpoofaxUtils.loadLanguage;
 
 public class Main {
     public static void main(String[] args) throws Exception {

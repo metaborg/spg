@@ -2,7 +2,6 @@ package org.metaborg.spg.sentence.antlr;
 
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.tool.Rule;
-import org.apache.commons.vfs2.FileObject;
 import org.metaborg.core.MetaborgException;
 import org.metaborg.core.language.ILanguageImpl;
 import org.metaborg.core.syntax.ParseException;
@@ -23,7 +22,8 @@ import java.io.IOException;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import static org.metaborg.spg.sentence.antlr.functional.Utils.uncheck;
+import static org.metaborg.spg.sentence.shared.utils.FunctionalUtils.uncheckPredicate;
+import static org.metaborg.spg.sentence.shared.utils.SpoofaxUtils.loadLanguage;
 
 public class Main {
     public static final JSGLRParserConfiguration JSGLR_PARSER_CONFIGURATION = new JSGLRParserConfiguration(
@@ -64,8 +64,8 @@ public class Main {
         int maxSize = Integer.valueOf(args[4]);
 
         try (final Spoofax spoofax = new Spoofax(new Module(0))) {
-            ILanguageImpl antlrLanguageImpl = getLanguageImpl(spoofax, antlrLanguageFile);
-            ILanguageImpl minijavaLanguageImpl = getLanguageImpl(spoofax, minijavaLanguageFile);
+            ILanguageImpl antlrLanguageImpl = loadLanguage(spoofax, antlrLanguageFile);
+            ILanguageImpl minijavaLanguageImpl = loadLanguage(spoofax, minijavaLanguageFile);
 
             GrammarFactory grammarFactory = spoofax.injector.getInstance(GrammarFactory.class);
             Grammar grammar = grammarFactory.create(grammarFile, antlrLanguageImpl);
@@ -100,8 +100,8 @@ public class Main {
                                 Stream<Term> shrunkTrees = shrinker.shrink(term);
 
                                 Optional<Term> anyShrunkTree = shrunkTrees
-                                        .filter(uncheck(shrunkTree -> !canParse(spoofax, minijavaLanguageImpl, shrunkTree.toString())))
-                                        .filter(uncheck(shrunkTree -> canParse(antlrGrammar, antlrStartSymbol, shrunkTree.toString())))
+                                        .filter(uncheckPredicate(shrunkTree -> !canParse(spoofax, minijavaLanguageImpl, shrunkTree.toString())))
+                                        .filter(uncheckPredicate(shrunkTree -> canParse(antlrGrammar, antlrStartSymbol, shrunkTree.toString())))
                                         .findFirst();
 
                                 if (anyShrunkTree.isPresent()) {
@@ -124,12 +124,6 @@ public class Main {
         } catch (MetaborgException | IOException e) {
             e.printStackTrace();
         }
-    }
-
-    private static ILanguageImpl getLanguageImpl(Spoofax spoofax, File antlrLanguageFile) throws MetaborgException {
-        FileObject languageLocation = spoofax.resourceService.resolve(antlrLanguageFile);
-
-        return spoofax.languageDiscoveryService.languageFromArchive(languageLocation);
     }
 
     private static boolean canParse(org.antlr.v4.tool.Grammar grammar, String antlrStartSymbol, String text) throws IOException {
