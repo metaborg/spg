@@ -15,6 +15,14 @@ public class Sort {
         this.parameter = parameter;
     }
 
+    public String getName() {
+        return name;
+    }
+
+    public Sort getParameter() {
+        return parameter;
+    }
+
     @Override
     public String toString() {
         if (parameter == null) {

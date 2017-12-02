@@ -26,14 +26,14 @@ public class Reader {
             IProject project = getOrCreateProject(spoofax, projectFile);
 
             GrammarFactory grammarFactory = spoofax.injector.getInstance(GrammarFactory.class);
-            Grammar grammar = grammarFactory.fromProject(project, loadLanguage(spoofax, languageFile));
+            Grammar grammar = grammarFactory.create(loadLanguage(spoofax, languageFile), project);
 
             for (Module module : grammar.getModules()) {
                 print(module);
             }
 
             SignatureFactory signatureFactory = spoofax.injector.getInstance(SignatureFactory.class);
-            Signature signature = signatureFactory.fromGrammar(grammar);
+            Signature signature = signatureFactory.create(grammar);
 
             System.out.println("signature");
             System.out.println("  constructors");

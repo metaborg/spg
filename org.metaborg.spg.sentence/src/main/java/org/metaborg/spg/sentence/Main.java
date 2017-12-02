@@ -18,7 +18,8 @@ import static org.metaborg.spg.sentence.shared.utils.SpoofaxUtils.loadLanguage;
 
 public class Main {
     public static void main(String[] args) throws Exception {
-        try (final Spoofax spoofax = new Spoofax(new SentenceModule(28))) {
+        try (final Spoofax spoofax = new Spoofax(new SentenceModule(0))) {
+            ILanguageImpl templateLanguage = loadLanguage(spoofax, new File("/Users/martijn/Projects/spoofax-releng/sdf/org.metaborg.meta.lang.template/target/org.metaborg.meta.lang.template-2.4.0-SNAPSHOT.spoofax-language"));
             ILanguageImpl language = loadLanguage(spoofax, new File(args[0]));
             IProject project = getOrCreateProject(spoofax, new File(args[1]));
 
@@ -27,7 +28,7 @@ public class Main {
 
             Injector injector = spoofax.injector;
             TesterFactory testerFactory = injector.getInstance(TesterFactory.class);
-            Tester tester = testerFactory.create(language, project);
+            Tester tester = testerFactory.create(templateLanguage, language, project);
             TesterProgress progress = new TesterProgressDefault();
             TesterConfig config = new TesterConfig(maxNumberOfTerms, maxTermSize);
 

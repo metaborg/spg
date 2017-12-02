@@ -1,6 +1,9 @@
 package org.metaborg.spg.sentence.shared.utils;
 
+import org.metaborg.spg.sentence.shared.functional.Pair;
+
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static java.util.stream.Stream.concat;
@@ -22,5 +25,9 @@ public class StreamUtils {
         } else {
             return empty();
         }
+    }
+
+    public static <T, R> Stream<Pair<T, R>> zipWith(Stream<T> stream, Function<? super T, R> function) {
+        return stream.map(e -> new Pair<>(e, function.apply(e)));
     }
 }

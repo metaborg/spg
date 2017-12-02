@@ -13,7 +13,7 @@ import static java.util.Collections.singleton;
 import static org.metaborg.spg.sentence.shared.utils.IterableUtils.getFirst;
 
 public class SignatureFactory {
-    public Signature fromGrammar(Grammar grammar) {
+    public Signature create(Grammar grammar) {
         Iterable<Operation> operations = FluentIterable
                 .from(grammar.getProductions())
                 .filter(Production::isNotBracket)

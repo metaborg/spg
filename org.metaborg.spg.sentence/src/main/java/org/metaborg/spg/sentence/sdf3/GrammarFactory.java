@@ -17,6 +17,8 @@ import org.metaborg.spoofax.core.unit.ISpoofaxInputUnit;
 import org.metaborg.spoofax.core.unit.ISpoofaxParseUnit;
 import org.metaborg.spoofax.core.unit.ISpoofaxUnitService;
 import org.metaborg.util.resource.FileSelectorUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.spoofax.interpreter.terms.IStrategoAppl;
 import org.spoofax.interpreter.terms.IStrategoList;
 import org.spoofax.interpreter.terms.IStrategoString;
@@ -30,6 +32,7 @@ import java.util.Set;
 import static org.metaborg.spg.sentence.shared.utils.FunctionalUtils.uncheck2;
 
 public class GrammarFactory {
+    private static final Logger logger = LoggerFactory.getLogger(GrammarFactory.class);
     private static final String SDF3_EXTENSION = "sdf3";
 
     private final ISpoofaxSyntaxService syntaxService;
@@ -43,7 +46,9 @@ public class GrammarFactory {
         this.unitService = unitService;
     }
 
-    public Grammar fromProject(IProject project, ILanguageImpl languageImpl) throws IOException, ParseException {
+    public Grammar create(ILanguageImpl languageImpl, IProject project) throws IOException, ParseException {
+        logger.trace("Read SDF grammar");
+
         FileSelector fileSelector = FileSelectorUtils.extension(SDF3_EXTENSION);
         Iterable<FileObject> files = Arrays.asList(project.location().findFiles(fileSelector));
 
@@ -56,6 +61,8 @@ public class GrammarFactory {
     }
 
     public Module readModule(FileObject file, ILanguageImpl languageImpl) throws ParseException, IOException {
+        logger.trace("Read SDF3 module " + file);
+
         String text = textService.text(file);
         ISpoofaxInputUnit input = unitService.inputUnit(file, text, languageImpl, null);
         ISpoofaxParseUnit parse = syntaxService.parse(input);

@@ -3,6 +3,7 @@ package org.metaborg.spg.sentence.shrinker;
 import com.google.inject.Inject;
 import org.metaborg.spg.sentence.random.IRandom;
 import org.metaborg.spg.sentence.generator.Generator;
+import org.metaborg.spg.sentence.signature.Signature;
 import org.spoofax.interpreter.terms.ITermFactory;
 
 public class ShrinkerFactory {
@@ -15,7 +16,7 @@ public class ShrinkerFactory {
         this.termFactory = termFactory;
     }
 
-    public Shrinker create(Generator generator) {
-        return new Shrinker(random, termFactory, generator);
+    public Shrinker create(Generator generator, Signature signature) {
+        return new Shrinker(random, termFactory, generator, signature);
     }
 }

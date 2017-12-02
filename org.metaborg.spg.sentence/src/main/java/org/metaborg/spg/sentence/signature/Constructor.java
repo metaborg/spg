@@ -2,6 +2,8 @@ package org.metaborg.spg.sentence.signature;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
+import org.spoofax.interpreter.terms.IStrategoAppl;
+import org.spoofax.interpreter.terms.IStrategoConstructor;
 
 import java.util.List;
 import java.util.Set;
@@ -37,6 +39,14 @@ public class Constructor extends Operation {
 
     public Sort getResult() {
         return result;
+    }
+
+    public boolean equals(IStrategoConstructor constructor) {
+        return constructor.getName().equals(name);
+    }
+
+    public boolean matches(IStrategoAppl appl) {
+        return appl.getSubtermCount() == getArity() && equals(appl.getConstructor());
     }
 
     @Override

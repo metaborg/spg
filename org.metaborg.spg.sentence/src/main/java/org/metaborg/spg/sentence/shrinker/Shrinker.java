@@ -2,8 +2,11 @@ package org.metaborg.spg.sentence.shrinker;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.metaborg.sdf2table.grammar.*;
-import org.metaborg.spg.sentence.random.IRandom;
 import org.metaborg.spg.sentence.generator.Generator;
+import org.metaborg.spg.sentence.random.IRandom;
+import org.metaborg.spg.sentence.signature.Signature;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.spoofax.interpreter.terms.*;
 import org.spoofax.jsglr.client.imploder.ImploderAttachment;
 import org.spoofax.terms.attachments.OriginAttachment;
@@ -11,24 +14,28 @@ import org.spoofax.terms.attachments.OriginAttachment;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static java.util.stream.Stream.empty;
-import static java.util.stream.Stream.of;
-import static org.metaborg.spg.sentence.shared.utils.StreamUtils.cons;
-import static org.metaborg.spg.sentence.shared.utils.StreamUtils.o2s;
+import static java.util.stream.Stream.*;
+import static org.metaborg.spg.sentence.shared.stream.FlatMappingSpliterator.flatMap;
+import static org.metaborg.spg.sentence.shared.utils.StreamUtils.*;
 
 public class Shrinker {
-    private final IRandom random;
-    private final Generator generator;
-    private final ITermFactory termFactory;
+    private static final Logger logger = LoggerFactory.getLogger(Shrinker.class);
 
-    public Shrinker(IRandom random, ITermFactory termFactory, Generator generator) {
+    private final IRandom random;
+    private final ITermFactory termFactory;
+    private final Generator generator;
+    private final Signature signature;
+
+    public Shrinker(IRandom random, ITermFactory termFactory, Generator generator, Signature signature) {
         this.random = random;
         this.termFactory = termFactory;
         this.generator = generator;
+        this.signature = signature;
     }
 
     public Stream<IStrategoTerm> shrink(IStrategoTerm term) {
@@ -39,14 +46,23 @@ public class Shrinker {
         );
     }
 
-    protected Stream<IStrategoTerm> shrink(IStrategoTerm haystack, IStrategoTerm needle) {
-        Symbol symbol = getRealSymbol(needle);
+    private Stream<IStrategoTerm> shrink(IStrategoTerm haystack, IStrategoTerm needle) {
+        logger.trace("Shrink term: " + needle);
 
         if (needle instanceof IStrategoList) {
             return shrinkList(haystack, (IStrategoList) needle);
+        } else if (needle instanceof IStrategoAppl) {
+            return concat(shrinkGenerate(haystack, needle), shrinkRecursive(haystack, (IStrategoAppl) needle));
+        } else {
+            return shrinkGenerate(haystack, needle);
         }
+    }
 
-        // TODO: This is naive; we can shrink recursive patterns (replace ancestor by descendant). But we need the signatures for this.
+    private Stream<IStrategoTerm> shrinkGenerate(IStrategoTerm haystack, IStrategoTerm needle) {
+        logger.trace("Shrink generate: " + needle);
+
+        Symbol symbol = getRealSymbol(needle);
+
         Optional<IStrategoTerm> generatedTermOpt = generator
                 .generateSymbol(symbol, size(needle) - 1);
 
@@ -56,8 +72,14 @@ public class Shrinker {
         return o2s(replacedTermOpt);
     }
 
+    // TODO: Check if empty list is allowed (list is of sort IterStar), and shrink further.
+      // TODO: For this we need the generator to attach the sort to the term.
+        // TODO: And use the generated term instead of the parsed term.
+          // TODO: And no longer use getSort
+            // TODO: And no longer implode & check the CST for ambiguities instead of the AST
     private Stream<IStrategoTerm> shrinkList(IStrategoTerm haystack, IStrategoList list) {
-        // TODO: If list is an IterStar we can shrink it further, but we do not know the kind of the list (Iter/IterStar)
+        logger.trace("Shrink list: " + list);
+
         if (list.size() < 2) {
             return empty();
         }
@@ -80,7 +102,19 @@ public class Shrinker {
         return termFactory.makeList(newChildren);
     }
 
-    protected Symbol getRealSymbol(IStrategoTerm term) {
+    private Stream<IStrategoTerm> shrinkRecursive(IStrategoTerm haystack, IStrategoAppl appl) {
+        logger.trace("Shrink recursive: " + appl);
+
+        org.metaborg.spg.sentence.signature.Sort sort = signature.getSort(haystack, appl);
+        Set<org.metaborg.spg.sentence.signature.Sort> injections = signature.getInjections(sort);
+        Stream<IStrategoTerm> descendants = descendants(appl);
+
+        return zipWith(descendants, descendant -> signature.getSort(appl, descendant))
+                .filter(pair -> injections.contains(pair.getValue()))
+                .map(pair -> replaceTerm(haystack, appl, pair.getKey()));
+    }
+
+    private Symbol getRealSymbol(IStrategoTerm term) {
         Sort sort = getSort(term);
 
         if (term instanceof IStrategoAppl) {
@@ -97,7 +131,7 @@ public class Shrinker {
         return new ContextFreeSymbol(sort);
     }
 
-    protected Sort getSort(IStrategoTerm term) {
+    private Sort getSort(IStrategoTerm term) {
         OriginAttachment originAttachment = term.getAttachment(OriginAttachment.TYPE);
 
         if (originAttachment != null) {
@@ -110,7 +144,7 @@ public class Shrinker {
         return new Sort(sort);
     }
 
-    protected IStrategoTerm replaceTerm(IStrategoTerm haystack, IStrategoTerm needle, IStrategoTerm replacement) {
+    private IStrategoTerm replaceTerm(IStrategoTerm haystack, IStrategoTerm needle, IStrategoTerm replacement) {
         if (haystack == needle) {
             return replacement;
         }
@@ -135,7 +169,7 @@ public class Shrinker {
         throw new IllegalArgumentException("Unable to replace in haystack: " + haystack);
     }
 
-    protected int size(IStrategoTerm term) {
+    private int size(IStrategoTerm term) {
         if (term instanceof IStrategoString) {
             return 1;
         } else if (term instanceof IStrategoAppl || term instanceof IStrategoList) {
@@ -145,19 +179,23 @@ public class Shrinker {
         throw new IllegalStateException("Unknown term: " + term);
     }
 
-    protected Stream<IStrategoTerm> subTerms(IStrategoTerm term) {
+    private Stream<IStrategoTerm> descendants(IStrategoTerm term) {
+        Stream<IStrategoTerm> children = Arrays.stream(term.getAllSubterms());
+
+        return flatMap(children, this::subTerms);
+    }
+
+    private Stream<IStrategoTerm> subTerms(IStrategoTerm term) {
         if (term instanceof IStrategoString) {
             return of(term);
         } else if (term instanceof IStrategoAppl || term instanceof IStrategoList) {
-            return cons(term, subTerms(term.getAllSubterms()));
+            return snoc(subTerms(term.getAllSubterms()), term);
         }
 
         throw new IllegalStateException("Unknown term: " + term);
     }
 
-    protected Stream<IStrategoTerm> subTerms(IStrategoTerm[] terms) {
-        return Arrays
-                .stream(terms)
-                .flatMap(this::subTerms);
+    private Stream<IStrategoTerm> subTerms(IStrategoTerm[] terms) {
+        return flatMap(Arrays.stream(terms), this::subTerms);
     }
 }

@@ -7,6 +7,7 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.SubMonitor;
+import org.metaborg.core.MetaborgException;
 import org.metaborg.core.language.ILanguageImpl;
 import org.metaborg.core.project.IProject;
 import org.metaborg.spg.sentence.eclipse.Activator;
@@ -15,24 +16,33 @@ import org.metaborg.spg.sentence.generator.Generator;
 import org.metaborg.spg.sentence.generator.GeneratorFactory;
 import org.metaborg.spg.sentence.printer.Printer;
 import org.metaborg.spg.sentence.printer.PrinterFactory;
+import org.metaborg.spg.sentence.sdf3.GrammarFactory;
 import org.metaborg.spg.sentence.shrinker.Shrinker;
 import org.metaborg.spg.sentence.shrinker.ShrinkerFactory;
+import org.metaborg.spg.sentence.signature.Signature;
+import org.metaborg.spg.sentence.signature.SignatureFactory;
 import org.metaborg.spoofax.core.syntax.ISpoofaxSyntaxService;
 import org.metaborg.spoofax.core.syntax.JSGLRParserConfiguration;
 import org.metaborg.spoofax.core.unit.ISpoofaxParseUnit;
 import org.metaborg.spoofax.core.unit.ISpoofaxUnitService;
+import org.metaborg.spoofax.eclipse.SpoofaxPlugin;
 import org.spoofax.interpreter.terms.IStrategoTerm;
 
+import java.io.File;
 import java.util.Optional;
 
 import static org.metaborg.spg.sentence.shared.utils.FunctionalUtils.uncheckPredicate;
+import static org.metaborg.spg.sentence.shared.utils.SpoofaxUtils.loadLanguage;
 
 public class LiberalDifferenceJob extends DifferenceJob {
     public static final JSGLRParserConfiguration PARSER_CONFIG = new JSGLRParserConfiguration(true, false, false, 30000, Integer.MAX_VALUE);
     private final PrinterFactory printerFactory;
     private final GeneratorFactory generatorFactory;
+    private final GrammarFactory grammarFactory;
+    private final SignatureFactory signatureFactory;
     private final ShrinkerFactory shrinkerFactory;
     private final DifferenceJobConfig config;
+    private final ILanguageImpl templateLanguage;
 
     @Inject
     public LiberalDifferenceJob(
@@ -40,14 +50,19 @@ public class LiberalDifferenceJob extends DifferenceJob {
             ISpoofaxSyntaxService syntaxService,
             PrinterFactory printerFactory,
             GeneratorFactory generatorFactory,
+            GrammarFactory grammarFactory,
+            SignatureFactory signatureFactory,
             ShrinkerFactory shrinkerFactory,
-            @Assisted DifferenceJobConfig config) {
+            @Assisted DifferenceJobConfig config) throws MetaborgException {
         super(unitService, syntaxService, "Difference test (liberal)");
 
         this.printerFactory = printerFactory;
         this.generatorFactory = generatorFactory;
+        this.grammarFactory = grammarFactory;
+        this.signatureFactory = signatureFactory;
         this.shrinkerFactory = shrinkerFactory;
         this.config = config;
+        this.templateLanguage = loadLanguage(SpoofaxPlugin.spoofax(), new File("/Users/martijn/Projects/spoofax-releng/sdf/org.metaborg.meta.lang.template/target/org.metaborg.meta.lang.template-2.4.0-SNAPSHOT.spoofax-language"));
     }
 
     @Override
@@ -56,7 +71,7 @@ public class LiberalDifferenceJob extends DifferenceJob {
         ILanguageImpl language = config.getLanguage();
         int maxNumberOfTerms = config.getMaxNumberOfTerms();
         int maxTermSize = config.getMaxTermSize();
-        Grammar grammar = Grammar.load(config.getAntlrGrammar());
+        Grammar antlrGrammar = Grammar.load(config.getAntlrGrammar());
         String antlrStartSymbol = config.getAntlrStartSymbol();
 
         SubMonitor subMonitor = SubMonitor.convert(progressMonitor, maxNumberOfTerms);
@@ -64,7 +79,9 @@ public class LiberalDifferenceJob extends DifferenceJob {
         try {
             Printer printer = printerFactory.create(language, project);
             Generator generator = generatorFactory.create(language, project);
-            Shrinker shrinker = shrinkerFactory.create(generator);
+            org.metaborg.spg.sentence.sdf3.Grammar grammar = grammarFactory.create(templateLanguage, project);
+            Signature signature = signatureFactory.create(grammar);
+            Shrinker shrinker = shrinkerFactory.create(generator, signature);
 
             for (int i = 0; i < maxNumberOfTerms; i++) {
                 try {
@@ -78,7 +95,7 @@ public class LiberalDifferenceJob extends DifferenceJob {
                         stream.println("=== Program ===");
                         stream.println(text);
 
-                        if (!canParseAntlr(grammar, antlrStartSymbol, text)) {
+                        if (!canParseAntlr(antlrGrammar, antlrStartSymbol, text)) {
                             ISpoofaxParseUnit parseUnit = parseSpoofax(config.getLanguage(), text, PARSER_CONFIG);
 
                             if (parseUnit.success()) {
@@ -93,7 +110,7 @@ public class LiberalDifferenceJob extends DifferenceJob {
                                         Optional<String> shrunkTextOpt = shrinker
                                                 .shrink(parseUnit.ast())
                                                 .map(printer::print)
-                                                .filter(uncheckPredicate(shrunkText -> !canParseAntlr(grammar, antlrStartSymbol, shrunkText)))
+                                                .filter(uncheckPredicate(shrunkText -> !canParseAntlr(antlrGrammar, antlrStartSymbol, shrunkText)))
                                                 .filter(uncheckPredicate(shrunkText -> canParseSpoofax(language, shrunkText, PARSER_CONFIG)))
                                                 .findAny();
 
