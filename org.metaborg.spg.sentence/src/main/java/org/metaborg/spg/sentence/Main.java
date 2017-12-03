@@ -37,20 +37,15 @@ public class Main {
             ShrinkResult shrinkResult = result.getShrinkResult();
 
             if (findResult.found()) {
-                print("Found ambiguous sentence after %d terms (%d ms). ",
-                        findResult.terms(),
-                        findResult.duration());
+                print("Found ambiguous sentence after %d terms (%d ms). ", findResult.terms(), findResult.duration());
 
                 if (shrinkResult != null) {
-                    print("Shrunk from %d to %d characters (%d ms).",
-                            findResult.text().length(),
-                            shrinkResult.text().length(),
-                            shrinkResult.duration());
+                    print("Shrunk from %d to %d characters (%d ms).\n", findResult.text().length(), shrinkResult.text().length(), shrinkResult.duration());
+                } else {
+                    print("Unable to shrink.\n");
                 }
             } else {
-                print("No ambiguous sentence found after %d terms (%d ms).",
-                        findResult.terms(),
-                        findResult.duration());
+                print("No ambiguous sentence found after %d terms (%d ms).", findResult.terms(), findResult.duration());
             }
         } catch (MetaborgException e) {
             e.printStackTrace();

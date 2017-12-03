@@ -1,4 +1,4 @@
-package org.metaborg.spg.sentence.generator;
+package org.metaborg.spg.sentence.utils;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -6,11 +6,10 @@ import org.metaborg.sdf2table.grammar.CharacterClassConc;
 import org.metaborg.sdf2table.grammar.CharacterClassNumeric;
 import org.metaborg.sdf2table.grammar.CharacterClassRange;
 import org.metaborg.sdf2table.grammar.Symbol;
-import org.metaborg.spg.sentence.utils.SymbolUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class GeneratorTest {
+public class SymbolUtilsTest {
     @Test
     @DisplayName("Printable [0-9,11-33,35-255] = [32-33,35-126]")
     public void testToPrintable() {

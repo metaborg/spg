@@ -10,7 +10,9 @@ import org.metaborg.spg.sentence.generator.Generator;
 import org.metaborg.spg.sentence.printer.Printer;
 import org.metaborg.spg.sentence.printer.PrinterRuntimeException;
 import org.metaborg.spg.sentence.shrinker.Shrinker;
+import org.metaborg.spg.sentence.terms.GeneratorTermFactory;
 import org.metaborg.spoofax.core.syntax.ISpoofaxSyntaxService;
+import org.metaborg.spoofax.core.syntax.JSGLRParserConfiguration;
 import org.metaborg.spoofax.core.unit.ISpoofaxInputUnit;
 import org.metaborg.spoofax.core.unit.ISpoofaxParseUnit;
 import org.metaborg.spoofax.core.unit.ISpoofaxUnitService;
@@ -18,18 +20,16 @@ import org.metaborg.util.time.Timer;
 import org.spoofax.interpreter.terms.IStrategoAppl;
 import org.spoofax.interpreter.terms.IStrategoList;
 import org.spoofax.interpreter.terms.IStrategoTerm;
-import org.spoofax.interpreter.terms.ITermFactory;
 
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import static java.util.stream.Stream.empty;
 import static java.util.stream.Stream.of;
-import static org.metaborg.spg.sentence.shared.stream.FlatMappingSpliterator.flatMap;
 
 public class Tester {
-    private final ITermFactory termFactory;
+    private static final JSGLRParserConfiguration PARSER_CONFIG = new JSGLRParserConfiguration(false, false);
+    private final GeneratorTermFactory termFactory;
     private final ISpoofaxUnitService unitService;
     private final ISpoofaxSyntaxService syntaxService;
     private final ILanguageImpl languageImpl;
@@ -39,7 +39,7 @@ public class Tester {
 
     @Inject
     public Tester(
-            ITermFactory termFactory,
+            GeneratorTermFactory termFactory,
             ISpoofaxUnitService unitService,
             ISpoofaxSyntaxService syntaxService,
             ILanguageImpl languageImpl,
@@ -83,14 +83,8 @@ public class Tester {
 
                     progress.sentenceGenerated(text);
 
-                    ISpoofaxParseUnit parseUnit = parse(text);
-
-                    if (parseUnit.success()) {
-                        IStrategoTerm parsedTerm = parseUnit.ast();
-
-                        if (isAmbiguous(parsedTerm)) {
-                            return new FindResult(timer, i, parsedTerm, text);
-                        }
+                    if (isAmbiguous(text)) {
+                        return new FindResult(timer, i, term, text);
                     }
                 }
             } catch (TesterCancelledException e) {
@@ -110,51 +104,50 @@ public class Tester {
     }
 
     protected ShrinkResult shrink(IStrategoTerm term, TesterProgress progress, Timer timer) {
-        // TODO: This is printing an ambiguous term, but Spoofax' pretty-printer has trouble with some ambiguous terms.
-        String text = printer.print(term);
+        IStrategoTerm nonambiguous = disambiguate(term);
+        String text = printer.print(nonambiguous);
 
         try {
             progress.sentenceShrinked(text);
         } catch (TesterCancelledException e) {
-            return new ShrinkResult(timer, term, text);
+            return new ShrinkResult(timer, nonambiguous, text);
         }
 
-        Optional<IStrategoTerm> shrunkOpt = shrink(term).findAny();
+        Optional<IStrategoTerm> shrunkOpt = shrink(nonambiguous).findAny();
 
         if (!shrunkOpt.isPresent()) {
-            return new ShrinkResult(timer, term, text);
+            return new ShrinkResult(timer, nonambiguous, text);
         } else {
             return shrink(shrunkOpt.get(), progress, timer);
         }
     }
 
-    public Stream<IStrategoTerm> shrink(IStrategoTerm ambiguous) {
-        IStrategoTerm nonambiguous = disambiguate(ambiguous);
+    public Stream<IStrategoTerm> shrink(IStrategoTerm nonambiguous) {
         Stream<IStrategoTerm> shrunkTerms = shrinker.shrink(nonambiguous);
 
-        return flatMap(shrunkTerms, this::printParse).filter(this::isAmbiguous);
+        return shrunkTerms.filter(this::printAmbiguous);
     }
 
-    protected ISpoofaxParseUnit parse(String text) throws ParseException {
-        ISpoofaxInputUnit inputUnit = unitService.inputUnit(text, languageImpl, null);
-
-        return syntaxService.parse(inputUnit);
-    }
-
-    protected Stream<IStrategoTerm> printParse(IStrategoTerm term) {
+    protected boolean printAmbiguous(IStrategoTerm term) {
         String text = printer.print(term);
 
         try {
             ISpoofaxParseUnit parseUnit = parse(text);
 
             if (parseUnit.success()) {
-                return of(parseUnit.ast());
+                return isAmbiguous(parseUnit.ast());
+            } else {
+                return false;
             }
         } catch (ParseException e) {
-            return empty();
+            return false;
         }
+    }
 
-        return empty();
+    protected ISpoofaxParseUnit parse(String text) throws ParseException {
+        ISpoofaxInputUnit inputUnit = unitService.inputUnit(text, languageImpl, null, PARSER_CONFIG);
+
+        return syntaxService.parse(inputUnit);
     }
 
     protected IStrategoTerm disambiguate(IStrategoTerm term) {
@@ -169,16 +162,16 @@ public class Tester {
             } else {
                 IStrategoTerm[] children = disambiguateChildren(appl);
 
-                return termFactory.replaceAppl(appl.getConstructor(), children, appl);
+                return termFactory.replaceAppl(children, appl);
             }
         } else if (term instanceof IStrategoList) {
             IStrategoList list = (IStrategoList) term;
             IStrategoTerm[] children = disambiguateChildren(list);
 
             if (isAmbiguousList(list)) {
-                return flatten(replaceList(children, list));
+                return flatten(termFactory.replaceList(children, list));
             } else {
-                return replaceList(children, list);
+                return termFactory.replaceList(children, list);
             }
         }
 
@@ -194,10 +187,13 @@ public class Tester {
 
     private IStrategoTerm flatten(IStrategoTerm term) {
         if (term instanceof IStrategoList) {
-            Stream<IStrategoTerm> oldChildren = Arrays.stream(term.getAllSubterms());
-            Stream<IStrategoTerm> newChildren = oldChildren.flatMap(this::flattenOne);
+            IStrategoList list = (IStrategoList) term;
 
-            return makeList(newChildren.toArray(IStrategoTerm[]::new), term);
+            Stream<IStrategoTerm> oldChildren = Arrays.stream(list.getAllSubterms());
+            Stream<IStrategoTerm> newChildren = oldChildren.flatMap(this::flattenOne);
+            IStrategoTerm[] children = newChildren.toArray(IStrategoTerm[]::new);
+
+            return termFactory.replaceList(children, list);
         } else {
             return term;
         }
@@ -209,6 +205,12 @@ public class Tester {
         } else {
             return of(term);
         }
+    }
+
+    private boolean isAmbiguous(String text) throws ParseException {
+        ISpoofaxParseUnit parseUnit = parse(text);
+
+        return parseUnit.success() && isAmbiguous(parseUnit.ast());
     }
 
     private boolean isAmbiguous(IStrategoTerm term) {
@@ -245,31 +247,5 @@ public class Tester {
         }
 
         return false;
-    }
-
-    /**
-     * Spoofax' default OriginTermFactory does not copy attachments when replacing a list.
-     *
-     * @param children
-     * @param oldList
-     * @return
-     */
-    private IStrategoTerm replaceList(IStrategoTerm[] children, IStrategoList oldList) {
-        IStrategoList newList = termFactory.replaceList(children, oldList);
-
-        return termFactory.copyAttachments(oldList, newList);
-    }
-
-    /**
-     * Spoofax' default OriginTermFactory does not copy attachments when replacing a list.
-     *
-     * @param children
-     * @param oldList
-     * @return
-     */
-    private IStrategoTerm makeList(IStrategoTerm[] children, IStrategoTerm oldList) {
-        IStrategoList newList = termFactory.makeList(children);
-
-        return termFactory.copyAttachments(oldList, newList);
     }
 }

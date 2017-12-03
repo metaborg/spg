@@ -119,8 +119,7 @@ public class Signature {
         if (term instanceof IStrategoAppl) {
             IStrategoAppl appl = (IStrategoAppl) term;
 
-            // TODO: Cache constructors by name *and* arity so this becomes O(1)?
-              // TODO: In that case, getSort also becomes easier?
+            // TODO: Cache constructors by name *and* arity so this becomes O(1)? In that case, getSymbol also becomes easier?
             for (Constructor constructor : getConstructors(appl.getConstructor().getName())) {
                 if (constructor.getArity() == appl.getConstructor().getArity()) {
                     return constructor;
@@ -139,7 +138,7 @@ public class Signature {
         return injectionCache.get(sort);
     }
 
-    private Set<Sort> injections(Sort sort) {
+    protected Set<Sort> injections(Sort sort) {
         return FluentIterable
                 .from(getInjections())
                 .filter(injection -> sort.equals(injection.getResult()))

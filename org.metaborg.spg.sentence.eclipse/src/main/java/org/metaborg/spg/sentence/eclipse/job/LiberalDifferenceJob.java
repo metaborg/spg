@@ -10,6 +10,7 @@ import org.eclipse.core.runtime.SubMonitor;
 import org.metaborg.core.MetaborgException;
 import org.metaborg.core.language.ILanguageImpl;
 import org.metaborg.core.project.IProject;
+import org.metaborg.core.syntax.ParseException;
 import org.metaborg.spg.sentence.eclipse.Activator;
 import org.metaborg.spg.sentence.eclipse.config.DifferenceJobConfig;
 import org.metaborg.spg.sentence.generator.Generator;
@@ -23,15 +24,14 @@ import org.metaborg.spg.sentence.signature.Signature;
 import org.metaborg.spg.sentence.signature.SignatureFactory;
 import org.metaborg.spoofax.core.syntax.ISpoofaxSyntaxService;
 import org.metaborg.spoofax.core.syntax.JSGLRParserConfiguration;
-import org.metaborg.spoofax.core.unit.ISpoofaxParseUnit;
 import org.metaborg.spoofax.core.unit.ISpoofaxUnitService;
 import org.metaborg.spoofax.eclipse.SpoofaxPlugin;
 import org.spoofax.interpreter.terms.IStrategoTerm;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Optional;
 
-import static org.metaborg.spg.sentence.shared.utils.FunctionalUtils.uncheckPredicate;
 import static org.metaborg.spg.sentence.shared.utils.SpoofaxUtils.loadLanguage;
 
 public class LiberalDifferenceJob extends DifferenceJob {
@@ -95,34 +95,14 @@ public class LiberalDifferenceJob extends DifferenceJob {
                         stream.println("=== Program ===");
                         stream.println(text);
 
-                        if (!canParseAntlr(antlrGrammar, antlrStartSymbol, text)) {
-                            ISpoofaxParseUnit parseUnit = parseSpoofax(config.getLanguage(), text, PARSER_CONFIG);
-
-                            if (parseUnit.success()) {
+                        if (cannotParseAntlr(antlrGrammar, antlrStartSymbol, text)) {
+                            if (canParseSpoofax(config.getLanguage(), text, PARSER_CONFIG)) {
                                 stream.println("=== Legal SDF3 illegal ANTLRv4 sentence ===");
                                 stream.println(text);
 
                                 // Shrink
                                 try {
-                                    while (true) {
-                                        subMonitor.setWorkRemaining(50).split(1);
-
-                                        Optional<String> shrunkTextOpt = shrinker
-                                                .shrink(parseUnit.ast())
-                                                .map(printer::print)
-                                                .filter(uncheckPredicate(shrunkText -> !canParseAntlr(antlrGrammar, antlrStartSymbol, shrunkText)))
-                                                .filter(uncheckPredicate(shrunkText -> canParseSpoofax(language, shrunkText, PARSER_CONFIG)))
-                                                .findAny();
-
-                                        if (shrunkTextOpt.isPresent()) {
-                                            stream.println("=== Shrunk ===");
-                                            stream.println(shrunkTextOpt.get());
-
-                                            parseUnit = parseSpoofax(language, shrunkTextOpt.get(), PARSER_CONFIG);
-                                        } else {
-                                            break;
-                                        }
-                                    }
+                                    shrinkStar(subMonitor, shrinker, printer, antlrGrammar, antlrStartSymbol, language, term);
                                 } catch (Exception e) {
                                     Activator.logError("An unexpected error occurred.", e);
                                 }
@@ -142,5 +122,36 @@ public class LiberalDifferenceJob extends DifferenceJob {
         } catch (Exception e) {
             return Status.CANCEL_STATUS;
         }
+    }
+
+    private IStrategoTerm shrinkStar(SubMonitor subMonitor, Shrinker shrinker, Printer printer, Grammar antlrGrammar, String antlrStartSymbol, ILanguageImpl language, IStrategoTerm term) throws IOException, ParseException {
+        subMonitor.setWorkRemaining(50).split(1);
+
+        Optional<IStrategoTerm> shrinkOpt = shrink(shrinker, printer, antlrGrammar, antlrStartSymbol, language, term);
+
+        if (shrinkOpt.isPresent()) {
+            return shrinkStar(subMonitor, shrinker, printer, antlrGrammar, antlrStartSymbol, language, shrinkOpt.get());
+        } else {
+            return term;
+        }
+    }
+
+    private Optional<IStrategoTerm> shrink(Shrinker shrinker, Printer printer, Grammar antlrGrammar, String antlrStartSymbol, ILanguageImpl language, IStrategoTerm term) throws IOException, ParseException {
+        Iterable<IStrategoTerm> iterable = shrinker.shrink(term)::iterator;
+
+        for (IStrategoTerm shrunkTerm : iterable) {
+            String shrunkText = printer.print(shrunkTerm);
+
+            if (cannotParseAntlr(antlrGrammar, antlrStartSymbol, shrunkText)) {
+                if (canParseSpoofax(language, shrunkText, PARSER_CONFIG)) {
+                    stream.println("=== Shrunk to " + shrunkText.length() + " characters ===");
+                    stream.println(shrunkText);
+
+                    return Optional.of(shrunkTerm);
+                }
+            }
+        }
+
+        return Optional.empty();
     }
 }

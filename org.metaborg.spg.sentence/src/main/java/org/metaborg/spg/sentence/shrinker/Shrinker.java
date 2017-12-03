@@ -3,13 +3,14 @@ package org.metaborg.spg.sentence.shrinker;
 import org.apache.commons.lang3.ArrayUtils;
 import org.metaborg.sdf2table.grammar.*;
 import org.metaborg.spg.sentence.generator.Generator;
+import org.metaborg.spg.sentence.generator.GeneratorAttachment;
 import org.metaborg.spg.sentence.random.IRandom;
 import org.metaborg.spg.sentence.signature.Signature;
+import org.metaborg.spg.sentence.signature.Sort;
+import org.metaborg.spg.sentence.terms.GeneratorTermFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.spoofax.interpreter.terms.*;
-import org.spoofax.jsglr.client.imploder.ImploderAttachment;
-import org.spoofax.terms.attachments.OriginAttachment;
 
 import java.util.Arrays;
 import java.util.List;
@@ -27,11 +28,11 @@ public class Shrinker {
     private static final Logger logger = LoggerFactory.getLogger(Shrinker.class);
 
     private final IRandom random;
-    private final ITermFactory termFactory;
+    private final GeneratorTermFactory termFactory;
     private final Generator generator;
     private final Signature signature;
 
-    public Shrinker(IRandom random, ITermFactory termFactory, Generator generator, Signature signature) {
+    public Shrinker(IRandom random, GeneratorTermFactory termFactory, Generator generator, Signature signature) {
         this.random = random;
         this.termFactory = termFactory;
         this.generator = generator;
@@ -61,7 +62,7 @@ public class Shrinker {
     private Stream<IStrategoTerm> shrinkGenerate(IStrategoTerm haystack, IStrategoTerm needle) {
         logger.trace("Shrink generate: " + needle);
 
-        Symbol symbol = getRealSymbol(needle);
+        Symbol symbol = getSymbol(needle);
 
         Optional<IStrategoTerm> generatedTermOpt = generator
                 .generateSymbol(symbol, size(needle) - 1);
@@ -72,21 +73,28 @@ public class Shrinker {
         return o2s(replacedTermOpt);
     }
 
-    // TODO: Check if empty list is allowed (list is of sort IterStar), and shrink further.
-      // TODO: For this we need the generator to attach the sort to the term.
-        // TODO: And use the generated term instead of the parsed term.
-          // TODO: And no longer use getSort
-            // TODO: And no longer implode & check the CST for ambiguities instead of the AST
     private Stream<IStrategoTerm> shrinkList(IStrategoTerm haystack, IStrategoList list) {
         logger.trace("Shrink list: " + list);
 
-        if (list.size() < 2) {
+        if (!isEmptyAllowed(list) && list.size() < 2) {
             return empty();
         }
 
         return combinations(list).map(shrunkList ->
                 replaceTerm(haystack, list, shrunkList)
         );
+    }
+
+    private boolean isEmptyAllowed(IStrategoList list) {
+        Symbol symbol = getSymbol(list);
+
+        if (symbol instanceof IterSymbol) {
+            return false;
+        } else if (symbol instanceof IterStarSymbol) {
+            return true;
+        }
+
+        throw new IllegalArgumentException("Cannot compute if empty is allowed for list: " + list);
     }
 
     private Stream<IStrategoTerm> combinations(IStrategoList list) {
@@ -99,49 +107,57 @@ public class Shrinker {
         IStrategoTerm[] oldChildren = list.getAllSubterms();
         IStrategoTerm[] newChildren = ArrayUtils.remove(oldChildren, exclude);
 
-        return termFactory.makeList(newChildren);
+        return termFactory.replaceList(newChildren, list);
     }
 
     private Stream<IStrategoTerm> shrinkRecursive(IStrategoTerm haystack, IStrategoAppl appl) {
         logger.trace("Shrink recursive: " + appl);
 
-        org.metaborg.spg.sentence.signature.Sort sort = signature.getSort(haystack, appl);
+        org.metaborg.spg.sentence.signature.Sort sort = getSort(appl);
         Set<org.metaborg.spg.sentence.signature.Sort> injections = signature.getInjections(sort);
         Stream<IStrategoTerm> descendants = descendants(appl);
 
-        return zipWith(descendants, descendant -> signature.getSort(appl, descendant))
+        return zipWith(descendants, this::getSort)
                 .filter(pair -> injections.contains(pair.getValue()))
                 .map(pair -> replaceTerm(haystack, appl, pair.getKey()));
     }
 
-    private Symbol getRealSymbol(IStrategoTerm term) {
-        Sort sort = getSort(term);
-
-        if (term instanceof IStrategoAppl) {
-            IStrategoAppl appl = (IStrategoAppl) term;
-
-            if ("None".equals(appl.getConstructor().getName()) || "Some".equals(appl.getConstructor().getName())) {
-                return new ContextFreeSymbol(new OptionalSymbol(sort));
-            }
-        } else if (term instanceof IStrategoList) {
-            // TODO: This does not correctly identify Iter and IterStar (it just defaults to Iter)
-            return new ContextFreeSymbol(new IterSymbol(sort));
-        }
-
-        return new ContextFreeSymbol(sort);
+    private Sort getSort(IStrategoTerm term) {
+        return getSort(getSymbol(term));
     }
 
-    private Sort getSort(IStrategoTerm term) {
-        OriginAttachment originAttachment = term.getAttachment(OriginAttachment.TYPE);
+    private Sort getSort(Symbol symbol) {
+        if (symbol instanceof org.metaborg.sdf2table.grammar.Sort) {
+            org.metaborg.sdf2table.grammar.Sort sort = (org.metaborg.sdf2table.grammar.Sort) symbol;
 
-        if (originAttachment != null) {
-            return getSort(originAttachment.getOrigin());
+            return new Sort(sort.name());
+        } else if (symbol instanceof IterStarSymbol) {
+            IterStarSymbol iterStarSymbol = (IterStarSymbol) symbol;
+
+            return new Sort("IterStar", getSort(iterStarSymbol.getSymbol()));
+        } else if (symbol instanceof IterSymbol) {
+            IterSymbol iterSymbol = (IterSymbol) symbol;
+
+            return new Sort("Iter", getSort(iterSymbol.getSymbol()));
+        } else if (symbol instanceof OptionalSymbol) {
+            OptionalSymbol optionalSymbol = (OptionalSymbol) symbol;
+
+            return new Sort("Option", getSort(optionalSymbol.getSymbol()));
+        } else if (symbol instanceof ContextFreeSymbol) {
+            ContextFreeSymbol contextFreeSymbol = (ContextFreeSymbol) symbol;
+
+            return getSort(contextFreeSymbol.getSymbol());
+        } else if (symbol instanceof LexicalSymbol) {
+            return new Sort("String");
         }
 
-        ImploderAttachment attachment = term.getAttachment(ImploderAttachment.TYPE);
-        String sort = attachment.getElementSort();
+        throw new IllegalArgumentException("Unable to convert symbol " + symbol + " to a sort.");
+    }
 
-        return new Sort(sort);
+    private Symbol getSymbol(IStrategoTerm term) {
+        GeneratorAttachment generatorAttachment = term.getAttachment(GeneratorAttachment.TYPE);
+
+        return generatorAttachment.getSymbol();
     }
 
     private IStrategoTerm replaceTerm(IStrategoTerm haystack, IStrategoTerm needle, IStrategoTerm replacement) {
@@ -189,7 +205,7 @@ public class Shrinker {
         if (term instanceof IStrategoString) {
             return of(term);
         } else if (term instanceof IStrategoAppl || term instanceof IStrategoList) {
-            return snoc(subTerms(term.getAllSubterms()), term);
+            return cons(term, subTerms(term.getAllSubterms()));
         }
 
         throw new IllegalStateException("Unknown term: " + term);

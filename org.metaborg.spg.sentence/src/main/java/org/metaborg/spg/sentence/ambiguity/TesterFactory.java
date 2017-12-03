@@ -13,12 +13,12 @@ import org.metaborg.spg.sentence.shrinker.Shrinker;
 import org.metaborg.spg.sentence.shrinker.ShrinkerFactory;
 import org.metaborg.spg.sentence.signature.Signature;
 import org.metaborg.spg.sentence.signature.SignatureFactory;
+import org.metaborg.spg.sentence.terms.GeneratorTermFactory;
 import org.metaborg.spoofax.core.syntax.ISpoofaxSyntaxService;
 import org.metaborg.spoofax.core.unit.ISpoofaxUnitService;
-import org.spoofax.interpreter.terms.ITermFactory;
 
 public class TesterFactory {
-    private final ITermFactory termFactory;
+    private final GeneratorTermFactory termFactory;
     private final ISpoofaxUnitService unitService;
     private final ISpoofaxSyntaxService syntaxService;
     private final PrinterFactory printerFactory;
@@ -29,7 +29,7 @@ public class TesterFactory {
 
     @Inject
     public TesterFactory(
-            ITermFactory termFactory,
+            GeneratorTermFactory termFactory,
             ISpoofaxUnitService unitService,
             ISpoofaxSyntaxService syntaxService,
             PrinterFactory printerFactory,

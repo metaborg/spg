@@ -29,7 +29,7 @@ import java.util.stream.Stream;
 import static org.metaborg.spg.sentence.shared.utils.FunctionalUtils.uncheckPredicate;
 
 public class RestrictiveDifferenceJob extends DifferenceJob {
-    public static final JSGLRParserConfiguration PARSER_CONFIG = new JSGLRParserConfiguration(false, false, false, 30000, Integer.MAX_VALUE);
+    private static final JSGLRParserConfiguration PARSER_CONFIG = new JSGLRParserConfiguration(false, false);
     private final GrammarFactory grammarFactory;
     private final GeneratorFactory generatorFactory;
     private final ShrinkerFactory shrinkerFactory;
@@ -103,8 +103,10 @@ public class RestrictiveDifferenceJob extends DifferenceJob {
                                         .findFirst();
 
                                 if (anyShrunkTree.isPresent()) {
-                                    stream.println("=== Shrunk ===");
-                                    stream.println(anyShrunkTree.get().toString());
+                                    String shrunkText = anyShrunkTree.get().toString();
+
+                                    stream.println("=== Shrunk to " + shrunkText.length() + " characters ===");
+                                    stream.println(shrunkText);
 
                                     term = anyShrunkTree.get();
                                 } else {

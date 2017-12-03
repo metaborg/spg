@@ -5,12 +5,10 @@ import com.google.common.collect.ListMultimap;
 import com.google.inject.Inject;
 import org.metaborg.sdf2table.grammar.*;
 import org.metaborg.spg.sentence.random.IRandom;
+import org.metaborg.spg.sentence.terms.GeneratorTermFactory;
 import org.metaborg.spg.sentence.utils.SymbolUtils;
-import org.spoofax.interpreter.terms.IStrategoConstructor;
 import org.spoofax.interpreter.terms.IStrategoList;
 import org.spoofax.interpreter.terms.IStrategoTerm;
-import org.spoofax.interpreter.terms.ITermFactory;
-import org.spoofax.terms.StrategoConstructor;
 
 import java.util.*;
 import java.util.function.Predicate;
@@ -20,14 +18,14 @@ public class Generator {
     public static final int MINIMUM_PRINTABLE = 32;
     public static final int MAXIMUM_PRINTABLE = 126;
 
-    private final ITermFactory termFactory;
+    private final GeneratorTermFactory termFactory;
     private final IRandom random;
     private final String startSymbol;
     private final NormGrammar grammar;
     private final ListMultimap<Symbol, IProduction> productionsMap;
 
     @Inject
-    public Generator(ITermFactory termFactory, IRandom random, String startSymbol, NormGrammar grammar) {
+    public Generator(GeneratorTermFactory termFactory, IRandom random, String startSymbol, NormGrammar grammar) {
         this.termFactory = termFactory;
         this.random = random;
         this.startSymbol = startSymbol;
@@ -51,7 +49,7 @@ public class Generator {
         if (symbol instanceof LexicalSymbol) {
             String generatedString = generateLexicalSymbol(symbol);
 
-            return Optional.of(termFactory.makeString(generatedString));
+            return Optional.of(termFactory.makeString(symbol, generatedString));
         } else if (symbol instanceof ContextFreeSymbol) {
             Symbol innerSymbol = ((ContextFreeSymbol) symbol).getSymbol();
 
@@ -76,8 +74,10 @@ public class Generator {
     }
 
     private Optional<IStrategoTerm> generateIterStar(Symbol symbol, int size) {
+        IterStarSymbol iterStarSymbol = new IterStarSymbol(symbol);
+
         if (random.flip()) {
-            return Optional.of(termFactory.makeList());
+            return Optional.of(termFactory.makeList(iterStarSymbol));
         } else {
             Optional<IStrategoTerm> headOpt = generateSymbol(symbol, size / 2);
 
@@ -85,7 +85,11 @@ public class Generator {
                 Optional<IStrategoTerm> tailOpt = generateIterStar(symbol, size / 2);
 
                 if (tailOpt.isPresent()) {
-                    return Optional.of(termFactory.makeListCons(headOpt.get(), (IStrategoList) tailOpt.get()));
+                    IStrategoTerm head = headOpt.get();
+                    IStrategoList tail = (IStrategoList) tailOpt.get();
+                    IStrategoList list = termFactory.makeListCons(iterStarSymbol, head, tail);
+
+                    return Optional.of(list);
                 }
             }
         }
@@ -94,13 +98,17 @@ public class Generator {
     }
 
     private Optional<IStrategoTerm> generateIter(Symbol symbol, int size) {
+        IterSymbol iterSymbol = new IterSymbol(symbol);
         Optional<IStrategoTerm> headOpt = generateSymbol(symbol, size / 2);
 
         if (headOpt.isPresent()) {
             Optional<IStrategoTerm> tailOpt = generateIterStar(symbol, size / 2);
 
             if (tailOpt.isPresent()) {
-                return Optional.of(termFactory.makeListCons(headOpt.get(), (IStrategoList) tailOpt.get()));
+                IStrategoTerm head = headOpt.get();
+                IStrategoList tail = (IStrategoList) tailOpt.get();
+
+                return Optional.of(termFactory.makeListCons(iterSymbol, head, tail));
             }
         }
 
@@ -108,21 +116,15 @@ public class Generator {
     }
 
     private Optional<IStrategoTerm> generateOptional(Symbol symbol, int size) {
+        OptionalSymbol optionalSymbol = new OptionalSymbol(symbol);
+
         if (random.flip()) {
-            return Optional.of(makeNone());
+            return Optional.of(termFactory.makeNone(optionalSymbol));
         } else {
-            Optional<IStrategoTerm> term = generateSymbol(symbol, size - 1);
+            Optional<IStrategoTerm> termOpt = generateSymbol(symbol, size - 1);
 
-            return term.map(this::makeSome);
+            return termOpt.map(term -> termFactory.makeSome(optionalSymbol, term));
         }
-    }
-
-    private IStrategoTerm makeSome(IStrategoTerm term) {
-        return termFactory.makeAppl(termFactory.makeConstructor("Some", 1), term);
-    }
-
-    private IStrategoTerm makeNone() {
-        return termFactory.makeAppl(termFactory.makeConstructor("None", 0));
     }
 
     public String generateLex(Symbol symbol) {
@@ -227,7 +229,7 @@ public class Generator {
             Optional<String> constructor = getConstructor(production);
 
             if (constructor.isPresent()) {
-                return Optional.of(makeAppl(constructor.get(), children));
+                return Optional.of(termFactory.makeAppl(production.leftHand(), constructor.get(), children));
             } else {
                 if (children.size() == 0) {
                     return Optional.empty();
@@ -238,13 +240,6 @@ public class Generator {
         }
 
         return Optional.empty();
-    }
-
-    protected IStrategoTerm makeAppl(String constructorName, List<IStrategoTerm> children) {
-        IStrategoConstructor constructor = new StrategoConstructor(constructorName, children.size());
-        IStrategoTerm[] terms = new IStrategoTerm[children.size()];
-
-        return termFactory.makeAppl(constructor, children.toArray(terms));
     }
 
     protected Optional<String> getConstructor(IProduction production) {

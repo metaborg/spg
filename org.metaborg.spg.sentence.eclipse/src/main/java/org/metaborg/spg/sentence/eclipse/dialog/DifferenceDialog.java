@@ -4,15 +4,12 @@ import org.antlr.v4.tool.Grammar;
 import org.antlr.v4.tool.Rule;
 import org.eclipse.jface.dialogs.IMessageProvider;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.events.SelectionAdapter;
-import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.*;
 import org.metaborg.spg.sentence.eclipse.widget.SmartCombo;
 
 import java.io.File;
-import java.util.Arrays;
 
 public class DifferenceDialog extends SentenceDialog {
     private static final String TITLE = "Difference test";
@@ -24,7 +21,7 @@ public class DifferenceDialog extends SentenceDialog {
     private Text txtMaxNumberOfTerms;
     private Text txtMaxTermSize;
     private Combo txtAntlrGrammar;
-    private Combo txtAntlrStartSymbol;
+    private Text txtAntlrStartSymbol;
 
     private String maxNumberOfTerms;
     private String maxTermSize;
@@ -72,27 +69,13 @@ public class DifferenceDialog extends SentenceDialog {
         txtAntlrGrammar = createSmartCombo("antlrGrammar", group, "ANTLR grammar:");
         txtAntlrGrammar.setFocus();
 
-        txtAntlrStartSymbol = createCombo(group, "ANTLR start symbol:");
+        txtAntlrStartSymbol = createField(group, "ANTLR start symbol:");
 
         txtAntlrGrammar.addListener(SWT.Traverse, e -> {
             if (e.keyCode == SWT.CR) {
                 if (e.detail == SWT.TRAVERSE_RETURN) {
                     e.doit = false;
                 }
-
-                scanGrammar(txtAntlrGrammar.getText().trim());
-            }
-        });
-
-        txtAntlrGrammar.addSelectionListener(new SelectionAdapter() {
-            public void widgetDefaultSelected(SelectionEvent e) {
-                scanGrammar(txtAntlrGrammar.getText().trim());
-            }
-
-            public void widgetSelected(SelectionEvent e) {
-                Display.getDefault().asyncExec(() ->
-                        scanGrammar(txtAntlrGrammar.getText().trim())
-                );
             }
         });
     }
@@ -123,21 +106,6 @@ public class DifferenceDialog extends SentenceDialog {
         combo.setLayoutData(gridData);
 
         return combo;
-    }
-
-    protected void scanGrammar(String location) {
-        if (!new File(location).exists()) {
-            return;
-        }
-
-        String[] rules = Grammar.load(location).getRuleNames();
-        Arrays.sort(rules);
-
-        populateStartSymbols(rules);
-    }
-
-    protected void populateStartSymbols(String[] symbols) {
-        txtAntlrStartSymbol.setItems(symbols);
     }
 
     @Override

@@ -61,7 +61,7 @@ public class AmbiguityJob extends SentenceJob {
 
                 @Override
                 public void sentenceShrinked(String text) {
-                    stream.println("=== Shrink ===");
+                    stream.println("=== Shrunk to " + text.length() + " characters ===");
                     stream.println(text);
 
                     try {

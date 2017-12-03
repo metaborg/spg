@@ -24,6 +24,10 @@ public abstract class DifferenceJob extends SentenceJob {
         this.syntaxService = syntaxService;
     }
 
+    protected boolean cannotParseAntlr(Grammar grammar, String antlrStartSymbol, String text) throws IOException {
+        return !canParseAntlr(grammar, antlrStartSymbol, text);
+    }
+
     protected boolean canParseAntlr(Grammar grammar, String antlrStartSymbol, String text) throws IOException {
         return parseAntlr(grammar, antlrStartSymbol, text).getNumberOfSyntaxErrors() == 0;
     }
