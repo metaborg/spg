@@ -10,10 +10,24 @@
           id="spgMenu"
           label="SPG">
         <command
-           commandId="org.metaborg.spg.sentence.eclipse.command.sentence"
-           label="Generate sentences"
+           commandId="org.metaborg.spg.sentence.eclipse.command.ambiguity"
+           label="Ambiguity test"
            style="push">
         </command>
+        <menu
+           id="differenceSpgMenu"
+           label="Difference test">
+          <command
+             commandId="org.metaborg.spg.sentence.eclipse.command.difference.liberal"
+             label="Liberal"
+             style="push">
+          </command>
+          <command
+             commandId="org.metaborg.spg.sentence.eclipse.command.difference.restrictive"
+             label="Restrictive"
+             style="push">
+          </command>
+        </menu>
       </menu>
     </menuContribution>
   </extension>
@@ -21,9 +35,19 @@
   <extension
       point="org.eclipse.ui.commands">
     <command
-        id="org.metaborg.spg.sentence.eclipse.command.sentence"
-        name="Generate sentences"
-        defaultHandler="org.metaborg.spg.sentence.eclipse.handler.SentenceHandler">
+        id="org.metaborg.spg.sentence.eclipse.command.ambiguity"
+        name="Ambiguity test"
+        defaultHandler="org.metaborg.spg.sentence.eclipse.handler.AmbiguityHandler">
+    </command>
+    <command
+        id="org.metaborg.spg.sentence.eclipse.command.difference.liberal"
+        name="Liberal Difference test"
+        defaultHandler="org.metaborg.spg.sentence.eclipse.handler.LiberalDifferenceHandler">
+    </command>
+    <command
+        id="org.metaborg.spg.sentence.eclipse.command.difference.restrictive"
+        name="Restrictive Difference test"
+        defaultHandler="org.metaborg.spg.sentence.eclipse.handler.RestrictiveDifferenceHandler">
     </command>
   </extension>
 </plugin>

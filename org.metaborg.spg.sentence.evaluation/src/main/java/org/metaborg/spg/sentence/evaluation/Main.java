@@ -88,16 +88,16 @@ public class Main {
                             "tmp/sdf3-demo/sdf3-demo"
                     ),
 
-                    new Subject(
+                    /*new Subject(
                             "metaborg.tiger",
                             "tmp/metaborg-tiger/org.metaborg.lang.tiger/correct/target/org.metaborg.lang.tiger-0.1.0-SNAPSHOT.spoofax-language",
                             "tmp/metaborg-tiger/org.metaborg.lang.tiger/correct"
-                    ),
+                    ),*/
 
                     new Subject(
                             "metaborg.jasmin",
-                            "tmp/spoofax-jasmin/jasmin/target/jasmin-1.0.0-SNAPSHOT.spoofax-language",
-                            "tmp/spoofax-jasmin/jasmin"
+                            "tmp/metaborg-jasmin/jasmin/target/jasmin-1.0.0-SNAPSHOT.spoofax-language",
+                            "tmp/metaborg-jasmin/jasmin"
                     ),
 
                     new Subject(
@@ -113,22 +113,34 @@ public class Main {
                     ),
 
                     new Subject(
-                            "java-front-17",
-                            "tmp/java-front-17/lang.java/target/lang.java-1.0.0-SNAPSHOT.spoofax-language",
-                            "tmp/java-front-17/lang.java"
+                            "metaborg.smalltalk",
+                            "tmp/metaborg-smalltalk/Smalltalk/target/Smalltalk-0.1.0-SNAPSHOT.spoofax-language",
+                            "tmp/metaborg-smalltalk/Smalltalk"
                     ),
 
-                    new Subject(
-                            "java-front-18",
-                            "tmp/java-front-18/lang.java/target/lang.java-1.0.0-SNAPSHOT.spoofax-language",
-                            "tmp/java-front-18/lang.java"
-                    ),
+                    /*new Subject(
+                            "metaborg.coq",
+                            "tmp/metaborg-coq/org.metaborg.lang.coq/target/org.metaborg.lang.coq-2.4.0-SNAPSHOT.spoofax-language",
+                            "tmp/metaborg-coq/org.metaborg.lang.coq"
+                    ),*/
 
                     new Subject(
                             "metaborg.grace",
-                            "/Users/martijn/Projects/metaborg-grace/grace/target/grace-0.3.0-SNAPSHOT.spoofax-language",
-                            "/Users/martijn/Projects/metaborg-grace/grace"
-                    )
+                            "tmp/metaborg-grace/grace/target/grace-0.3.0-SNAPSHOT.spoofax-language",
+                            "tmp/metaborg-grace/grace"
+                    )/*,
+
+                    new Subject(
+                            "java-front-17",
+                            "tmp/java-front-17/lang.java/target/lang.java-1.0.0-SNAPSHOT.spoofax-language",
+                            "tmp/java-front-17/lang.java"
+                    ),*/
+
+                    /*new Subject(
+                            "java-front-18",
+                            "tmp/java-front-18/lang.java/target/lang.java-1.0.0-SNAPSHOT.spoofax-language",
+                            "tmp/java-front-18/lang.java"
+                    )*/
 
                     /*
                     Also ambiguous:

@@ -7,13 +7,10 @@ import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.core.resources.IResource;
-import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.jdt.core.IJavaProject;
-import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.ITreeSelection;
 import org.eclipse.jface.viewers.TreePath;
-import org.eclipse.jface.window.Window;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.handlers.HandlerUtil;
@@ -25,47 +22,17 @@ import org.metaborg.core.language.ILanguageService;
 import org.metaborg.core.messages.IMessage;
 import org.metaborg.core.project.IProject;
 import org.metaborg.core.project.IProjectService;
-import org.metaborg.spg.sentence.ambiguity.AmbiguityTesterConfig;
 import org.metaborg.spg.sentence.eclipse.Activator;
 import org.metaborg.spg.sentence.eclipse.SentenceEclipseModule;
-import org.metaborg.spg.sentence.eclipse.dialog.SentenceDialog;
 import org.metaborg.spg.sentence.eclipse.exception.LanguageNotFoundException;
 import org.metaborg.spg.sentence.eclipse.exception.ProjectNotFoundException;
-import org.metaborg.spg.sentence.eclipse.job.SentenceJobFactory;
+import org.metaborg.spoofax.core.Spoofax;
 import org.metaborg.spoofax.eclipse.SpoofaxPlugin;
 import org.metaborg.spoofax.eclipse.resource.IEclipseResourceService;
 
-public class SentenceHandler extends AbstractHandler {
-    private final Injector injector;
-
-    public SentenceHandler() {
-        this.injector = SpoofaxPlugin.spoofax().injector.createChildInjector(new SentenceEclipseModule());
-    }
-
-    public Object execute(ExecutionEvent executionEvent) throws ExecutionException {
-        try {
-            IProject project = getProject(executionEvent);
-            ILanguageImpl languageImpl = getLanguageImpl(project);
-
-            SentenceDialog sentenceDialog = new SentenceDialog(getShell(executionEvent));
-            sentenceDialog.create();
-
-            if (sentenceDialog.open() == Window.OK) {
-                SentenceJobFactory jobFactory = injector.getInstance(SentenceJobFactory.class);
-
-                Job job = jobFactory.createSentenceJob(getConfig(sentenceDialog), project, languageImpl);
-                job.setPriority(Job.SHORT);
-                job.setUser(true);
-                job.schedule();
-            }
-        } catch (ProjectNotFoundException e) {
-            MessageDialog.openError(null, "Project not found", "Cannot find a Spoofax project for generation. Did you select it in the Package Explorer?");
-        } catch (LanguageNotFoundException e) {
-            MessageDialog.openError(null, "Language not found", "Cannot find a Spoofax language for generation. Did you build the project?");
-        }
-
-        return null;
-    }
+public abstract class SentenceHandler extends AbstractHandler {
+    public static final Spoofax spoofax = SpoofaxPlugin.spoofax();
+    public static final Injector injector = spoofax.injector.createChildInjector(new SentenceEclipseModule());
 
     protected IProject getProject(ExecutionEvent event) throws ProjectNotFoundException, ExecutionException {
         FileObject projectFile = getProjectFile(event);
@@ -167,12 +134,5 @@ public class SentenceHandler extends AbstractHandler {
 
     protected Shell getShell(ExecutionEvent event) {
         return HandlerUtil.getActiveShell(event);
-    }
-
-    protected AmbiguityTesterConfig getConfig(SentenceDialog generateDialog) {
-        int maxNumberOfTerms = generateDialog.getMaxNumberOfTerms();
-        int maxTermSize = generateDialog.getMaxTermSize();
-
-        return new AmbiguityTesterConfig(maxNumberOfTerms, maxTermSize);
     }
 }

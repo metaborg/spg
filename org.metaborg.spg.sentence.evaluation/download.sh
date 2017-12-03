@@ -44,7 +44,7 @@ git clone git@github.com:spg-subjects/metaborg-tiger.git
 
 # metaborg-jasmin
 git clone git@github.com:spg-subjects/metaborg-jasmin.git
-(cd metaborg-jasmin/jasmin; git checkout 208da8f; mvn clean package)
+(cd metaborg-jasmin/jasmin; git checkout 66411e1; mvn clean package)
 
 # metaborg-pascal
 git clone git@github.com:spg-subjects/metaborg-pascal.git
@@ -53,6 +53,14 @@ git clone git@github.com:spg-subjects/metaborg-pascal.git
 # metaborg-llir
 git clone git@github.com:spg-subjects/metaborg-llir.git
 (cd metaborg-llir/metaborg-llir; git checkout 0b422ea; mvn clean package)
+
+# metaborg-smalltalk
+git clone git@github.com:spg-subjects/metaborg-smalltalk.git
+(cd metaborg-smalltalk/Smalltalk; git checkout b216ca3; mvn clean package)
+
+# metaborg-coq
+git clone git@github.com:spg-subjects/metaborg-coq.git
+(cd metaborg-coq/org.metaborg.lang.coq; git checkout e224d2c; mvn clean package)
 
 # metaborg-grace
 git clone git@github.com:spg-subjects/metaborg-grace.git
@@ -64,5 +72,5 @@ git clone git@github.com:spg-subjects/java-front.git java-front-17
 
 # java-front/java-1.8
 git clone git@github.com:spg-subjects/java-front.git java-front-18
-(cd java-front-18/lang.java; git checkout ffde5be; mvn clean package)
+(cd java-front-18/lang.java; git checkout 35107e7; mvn clean package)
 

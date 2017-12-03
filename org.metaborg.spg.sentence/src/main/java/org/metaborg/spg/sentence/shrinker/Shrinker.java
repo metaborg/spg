@@ -1,137 +1,166 @@
 package org.metaborg.spg.sentence.shrinker;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.metaborg.sdf2table.grammar.*;
-import org.metaborg.spg.sentence.IRandom;
 import org.metaborg.spg.sentence.generator.Generator;
-import org.metaborg.spg.sentence.parser.ParseService;
+import org.metaborg.spg.sentence.generator.GeneratorAttachment;
+import org.metaborg.spg.sentence.random.IRandom;
+import org.metaborg.spg.sentence.signature.Signature;
+import org.metaborg.spg.sentence.signature.Sort;
+import org.metaborg.spg.sentence.terms.GeneratorTermFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.spoofax.interpreter.terms.*;
-import org.spoofax.jsglr.client.imploder.ImploderAttachment;
-import org.spoofax.terms.attachments.OriginAttachment;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static java.util.stream.Stream.*;
+import static org.metaborg.spg.sentence.shared.stream.FlatMappingSpliterator.flatMap;
+import static org.metaborg.spg.sentence.shared.utils.StreamUtils.*;
 
 public class Shrinker {
+    private static final Logger logger = LoggerFactory.getLogger(Shrinker.class);
+
     private final IRandom random;
-    private final ParseService parseService;
+    private final GeneratorTermFactory termFactory;
     private final Generator generator;
-    private final ITermFactory termFactory;
-    private final ShrinkerConfig shrinkerConfig;
+    private final Signature signature;
 
-    public Shrinker(IRandom random, ParseService parseService, Generator generator, ITermFactory termFactory, ShrinkerConfig shrinkerConfig) {
+    public Shrinker(IRandom random, GeneratorTermFactory termFactory, Generator generator, Signature signature) {
         this.random = random;
-        this.parseService = parseService;
-        this.generator = generator;
         this.termFactory = termFactory;
-        this.shrinkerConfig = shrinkerConfig;
+        this.generator = generator;
+        this.signature = signature;
     }
 
-    /**
-     * Repeatedly shrink the term until a local minimum is found.
-     *
-     * @param shrinkerUnit
-     * @return
-     */
-    public Optional<ShrinkerUnit> shrinkStar(ShrinkerUnit shrinkerUnit) {
-        Stream<ShrinkerUnit> shrunkTerms = shrink(shrinkerUnit);
-
-        return shrunkTerms
-                .findAny()
-                .map(this::shrinkStar)
-                .orElse(Optional.of(shrinkerUnit));
-    }
-
-    /**
-     * Given an ambiguous parse unit, try to generate a smaller yet ambiguous term.
-     *
-     * @param shrinkerUnit
-     * @return
-     */
-    public Stream<ShrinkerUnit> shrink(ShrinkerUnit shrinkerUnit) {
-        IStrategoTerm nonambiguousTerm = disambiguate(shrinkerUnit.getTerm());
-
-        return shrink(nonambiguousTerm)
-                .map(term -> shrinkerConfig.getPrinter().print(term))
-                .map(text -> parseService.parseUnit(shrinkerConfig.getLanguage(), text))
-                .map(ShrinkerUnit::new)
-                .filter(shrunkenUnit -> parseService.isAmbiguous(shrunkenUnit.getTerm()));
-    }
-
-    /**
-     * Given a non-ambiguous term, create an iterable of smaller terms.
-     *
-     * A random sub-term from the given term is selected and a strictly smaller term of the same sort
-     * is generated. If no such term can be generated, this sub-term cannot be made any smaller.
-     *
-     * @param nonambiguousTerm
-     * @return
-     */
-    public Stream<IStrategoTerm> shrink(IStrategoTerm nonambiguousTerm) {
-        List<IStrategoTerm> subTerms = subTerms(nonambiguousTerm).collect(Collectors.toList());
+    public Stream<IStrategoTerm> shrink(IStrategoTerm term) {
+        List<IStrategoTerm> subTerms = subTerms(term).collect(Collectors.toList());
 
         return random.shuffle(subTerms).stream().flatMap(subTerm ->
-                shrinkTerm(nonambiguousTerm, subTerm)
+                shrink(term, subTerm)
         );
     }
 
-    /**
-     * Replace needle inside haystack by a smaller term, if possible.
-     *
-     * @param haystack
-     * @param needle
-     * @return
-     */
-    protected Stream<IStrategoTerm> shrinkTerm(IStrategoTerm haystack, IStrategoTerm needle) {
-        Symbol symbol = getRealSymbol(needle);
-        Optional<IStrategoTerm> generatedSubTerm = generator.generateSymbol(symbol, size(needle) - 1);
+    private Stream<IStrategoTerm> shrink(IStrategoTerm haystack, IStrategoTerm needle) {
+        logger.trace("Shrink term: " + needle);
 
-        if (generatedSubTerm.isPresent()) {
-            return of(replaceTerm(haystack, needle, generatedSubTerm.get()));
+        if (needle instanceof IStrategoList) {
+            return shrinkList(haystack, (IStrategoList) needle);
+        } else if (needle instanceof IStrategoAppl) {
+            return concat(shrinkGenerate(haystack, needle), shrinkRecursive(haystack, (IStrategoAppl) needle));
+        } else {
+            return shrinkGenerate(haystack, needle);
         }
-
-        return empty();
     }
 
-    /**
-     * If the term is a Some/None term, then its sort is actually Optional.
-     *
-     * @param term
-     * @return
-     */
-    protected Symbol getRealSymbol(IStrategoTerm term) {
-        if (term instanceof IStrategoAppl) {
-            Sort sort = getSort(term);
-            IStrategoAppl appl = (IStrategoAppl) term;
+    private Stream<IStrategoTerm> shrinkGenerate(IStrategoTerm haystack, IStrategoTerm needle) {
+        logger.trace("Shrink generate: " + needle);
 
-            if ("None".equals(appl.getConstructor().getName()) || "Some".equals(appl.getConstructor().getName())) {
-                return new ContextFreeSymbol(new OptionalSymbol(sort));
-            }
-        } else if (term instanceof IStrategoList) {
-            IStrategoList list = (IStrategoList) term;
-            Sort sort = getSort(list.head());
+        Symbol symbol = getSymbol(needle);
 
-            return new ContextFreeSymbol(new IterSymbol(sort));
-        }
+        Optional<IStrategoTerm> generatedTermOpt = generator
+                .generateSymbol(symbol, size(needle) - 1);
 
-        Sort sort = getSort(term);
+        Optional<IStrategoTerm> replacedTermOpt = generatedTermOpt
+                .map(term -> replaceTerm(haystack, needle, term));
 
-        return new ContextFreeSymbol(sort);
+        return o2s(replacedTermOpt);
     }
 
-    /**
-     * Replace needle by replacement in haystack.
-     *
-     * @param haystack
-     * @param needle
-     * @param replacement
-     * @return
-     */
-    protected IStrategoTerm replaceTerm(IStrategoTerm haystack, IStrategoTerm needle, IStrategoTerm replacement) {
+    private Stream<IStrategoTerm> shrinkList(IStrategoTerm haystack, IStrategoList list) {
+        logger.trace("Shrink list: " + list);
+
+        if (!isEmptyAllowed(list) && list.size() < 2) {
+            return empty();
+        }
+
+        return combinations(list).map(shrunkList ->
+                replaceTerm(haystack, list, shrunkList)
+        );
+    }
+
+    private boolean isEmptyAllowed(IStrategoList list) {
+        Symbol symbol = getSymbol(list);
+
+        if (symbol instanceof IterSymbol) {
+            return false;
+        } else if (symbol instanceof IterStarSymbol) {
+            return true;
+        }
+
+        throw new IllegalArgumentException("Cannot compute if empty is allowed for list: " + list);
+    }
+
+    private Stream<IStrategoTerm> combinations(IStrategoList list) {
+        return IntStream.range(0, list.size()).mapToObj(exclude ->
+                without(list, exclude)
+        );
+    }
+
+    private IStrategoTerm without(IStrategoList list, int exclude) {
+        IStrategoTerm[] oldChildren = list.getAllSubterms();
+        IStrategoTerm[] newChildren = ArrayUtils.remove(oldChildren, exclude);
+
+        return termFactory.replaceList(newChildren, list);
+    }
+
+    private Stream<IStrategoTerm> shrinkRecursive(IStrategoTerm haystack, IStrategoAppl appl) {
+        logger.trace("Shrink recursive: " + appl);
+
+        org.metaborg.spg.sentence.signature.Sort sort = getSort(appl);
+        Set<org.metaborg.spg.sentence.signature.Sort> injections = signature.getInjections(sort);
+        Stream<IStrategoTerm> descendants = descendants(appl);
+
+        return zipWith(descendants, this::getSort)
+                .filter(pair -> injections.contains(pair.getValue()))
+                .map(pair -> replaceTerm(haystack, appl, pair.getKey()));
+    }
+
+    private Sort getSort(IStrategoTerm term) {
+        return getSort(getSymbol(term));
+    }
+
+    private Sort getSort(Symbol symbol) {
+        if (symbol instanceof org.metaborg.sdf2table.grammar.Sort) {
+            org.metaborg.sdf2table.grammar.Sort sort = (org.metaborg.sdf2table.grammar.Sort) symbol;
+
+            return new Sort(sort.name());
+        } else if (symbol instanceof IterStarSymbol) {
+            IterStarSymbol iterStarSymbol = (IterStarSymbol) symbol;
+
+            return new Sort("IterStar", getSort(iterStarSymbol.getSymbol()));
+        } else if (symbol instanceof IterSymbol) {
+            IterSymbol iterSymbol = (IterSymbol) symbol;
+
+            return new Sort("Iter", getSort(iterSymbol.getSymbol()));
+        } else if (symbol instanceof OptionalSymbol) {
+            OptionalSymbol optionalSymbol = (OptionalSymbol) symbol;
+
+            return new Sort("Option", getSort(optionalSymbol.getSymbol()));
+        } else if (symbol instanceof ContextFreeSymbol) {
+            ContextFreeSymbol contextFreeSymbol = (ContextFreeSymbol) symbol;
+
+            return getSort(contextFreeSymbol.getSymbol());
+        } else if (symbol instanceof LexicalSymbol) {
+            return new Sort("String");
+        }
+
+        throw new IllegalArgumentException("Unable to convert symbol " + symbol + " to a sort.");
+    }
+
+    private Symbol getSymbol(IStrategoTerm term) {
+        GeneratorAttachment generatorAttachment = term.getAttachment(GeneratorAttachment.TYPE);
+
+        return generatorAttachment.getSymbol();
+    }
+
+    private IStrategoTerm replaceTerm(IStrategoTerm haystack, IStrategoTerm needle, IStrategoTerm replacement) {
         if (haystack == needle) {
             return replacement;
         }
@@ -156,33 +185,7 @@ public class Shrinker {
         throw new IllegalArgumentException("Unable to replace in haystack: " + haystack);
     }
 
-    /**
-     * Get the sort of given term.
-     *
-     * @param term
-     * @return
-     */
-    protected Sort getSort(IStrategoTerm term) {
-        OriginAttachment originAttachment = term.getAttachment(OriginAttachment.TYPE);
-
-        if (originAttachment != null) {
-            return getSort(originAttachment.getOrigin());
-        }
-
-        ImploderAttachment attachment = term.getAttachment(ImploderAttachment.TYPE);
-
-        String sort = attachment.getElementSort();
-
-        return new Sort(sort);
-    }
-
-    /**
-     * Compute the size of the given term.
-     *
-     * @param term
-     * @return
-     */
-    protected int size(IStrategoTerm term) {
+    private int size(IStrategoTerm term) {
         if (term instanceof IStrategoString) {
             return 1;
         } else if (term instanceof IStrategoAppl || term instanceof IStrategoList) {
@@ -192,126 +195,23 @@ public class Shrinker {
         throw new IllegalStateException("Unknown term: " + term);
     }
 
-    /**
-     * Get all subterms of a term (the "powerset" of a term).
-     *
-     * @param term
-     * @return
-     */
-    protected Stream<IStrategoTerm> subTerms(IStrategoTerm term) {
+    private Stream<IStrategoTerm> descendants(IStrategoTerm term) {
+        Stream<IStrategoTerm> children = Arrays.stream(term.getAllSubterms());
+
+        return flatMap(children, this::subTerms);
+    }
+
+    private Stream<IStrategoTerm> subTerms(IStrategoTerm term) {
         if (term instanceof IStrategoString) {
             return of(term);
-        } else if (term instanceof IStrategoAppl) {
-            return concat(of(term), subTerms(term.getAllSubterms()));
-        } else if (term instanceof IStrategoList) {
-            IStrategoList list = (IStrategoList) term;
-
-            if (list.isEmpty()) {
-                return empty();
-            } else {
-                return concat(of(term), subTerms(term.getAllSubterms()));
-            }
+        } else if (term instanceof IStrategoAppl || term instanceof IStrategoList) {
+            return cons(term, subTerms(term.getAllSubterms()));
         }
 
         throw new IllegalStateException("Unknown term: " + term);
     }
 
-    protected Stream<IStrategoTerm> subTerms(IStrategoTerm[] terms) {
-        return Arrays
-                .stream(terms)
-                .flatMap(this::subTerms);
-    }
-
-    /**
-     * Disambiguate the ambiguous tree by picking the first alternative.
-     *
-     * @param term
-     * @return
-     */
-    protected IStrategoTerm disambiguate(IStrategoTerm term) {
-        if (term instanceof IStrategoAppl) {
-            IStrategoAppl appl = (IStrategoAppl) term;
-
-            if ("amb".equals(appl.getConstructor().getName())) {
-                IStrategoTerm alternatives = appl.getSubterm(0);
-                IStrategoTerm alternative = alternatives.getSubterm(0);
-
-                return disambiguate(alternative);
-            } else {
-                IStrategoTerm[] children = disambiguateChildren(appl);
-
-                return termFactory.replaceAppl(appl.getConstructor(), children, appl);
-            }
-        } else if (term instanceof IStrategoList) {
-            IStrategoList list = (IStrategoList) term;
-            IStrategoTerm[] children = disambiguateChildren(list);
-
-            if (isAmbiguousList(list)) {
-                return flatten(termFactory.replaceList(children, list));
-            } else {
-                return termFactory.replaceList(children, list);
-            }
-        }
-
-        return term;
-    }
-
-    private IStrategoTerm[] disambiguateChildren(IStrategoTerm term) {
-        return Arrays
-                .stream(term.getAllSubterms())
-                .map(this::disambiguate)
-                .toArray(IStrategoTerm[]::new);
-    }
-
-    /**
-     * Check if the given list contains an amb-node.
-     *
-     * @param term
-     * @return
-     */
-    private boolean isAmbiguousList(IStrategoTerm term) {
-        return Arrays
-                .stream(term.getAllSubterms())
-                .anyMatch(this::isAmbiguousNode);
-    }
-
-    /**
-     * Check if the given term is an amb-node.
-     *
-     * @param term
-     * @return
-     */
-    private boolean isAmbiguousNode(IStrategoTerm term) {
-        if (term instanceof IStrategoAppl) {
-            IStrategoAppl appl = (IStrategoAppl) term;
-
-            if ("amb".equals(appl.getConstructor().getName())) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Flatten a list of a list to a single list (one level).
-     *
-     * @param term
-     * @return
-     */
-    private IStrategoTerm flatten(IStrategoTerm term) {
-        if (term instanceof IStrategoList) {
-            Stream<IStrategoTerm> children = Arrays.stream(term.getAllSubterms()).flatMap(subTerm -> {
-                if (subTerm instanceof IStrategoList) {
-                    return Arrays.stream(subTerm.getAllSubterms());
-                } else {
-                    return Stream.of(subTerm);
-                }
-            });
-
-            return termFactory.makeList(children.collect(Collectors.toList()));
-        } else {
-            return term;
-        }
+    private Stream<IStrategoTerm> subTerms(IStrategoTerm[] terms) {
+        return flatMap(Arrays.stream(terms), this::subTerms);
     }
 }

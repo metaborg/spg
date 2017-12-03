@@ -7,6 +7,8 @@ Bundle-SymbolicName: org.metaborg.spg.sentence.eclipse;singleton:=true
 Bundle-Version: 2.4.0.qualifier
 Bundle-Vendor: metaborg.org
 Require-Bundle: org.metaborg.spoofax.eclipse.externaldeps,
+ org.metaborg.spg.sentence.eclipse.externaldeps,
+ org.metaborg.spg.sentence.shared,
  org.metaborg.spoofax.eclipse,
  org.metaborg.spoofax.eclipse.util,
  org.eclipse.equinox.common;bundle-version="3.8",
@@ -14,6 +16,7 @@ Require-Bundle: org.metaborg.spoofax.eclipse.externaldeps,
  org.eclipse.ui,
  org.eclipse.ui.console,
  org.metaborg.spg.sentence,
+ org.metaborg.spg.sentence.antlr,
  org.metaborg.spoofax.core,
  org.metaborg.core,
  org.metaborg.util,

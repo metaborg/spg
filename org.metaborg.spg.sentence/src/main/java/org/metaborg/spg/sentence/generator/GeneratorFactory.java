@@ -7,7 +7,8 @@ import org.metaborg.core.project.IProject;
 import org.metaborg.core.resource.IResourceService;
 import org.metaborg.sdf2table.grammar.NormGrammar;
 import org.metaborg.sdf2table.io.GrammarReader;
-import org.metaborg.spg.sentence.IRandom;
+import org.metaborg.spg.sentence.random.IRandom;
+import org.metaborg.spg.sentence.terms.GeneratorTermFactory;
 import org.metaborg.spoofax.core.build.SpoofaxCommonPaths;
 import org.metaborg.spoofax.core.syntax.SyntaxFacet;
 import org.metaborg.spoofax.core.terms.ITermFactoryService;
@@ -19,18 +20,17 @@ import java.util.List;
 
 public class GeneratorFactory {
     private final IResourceService resourceService;
-    private final ITermFactoryService termFactoryService;
+    private final GeneratorTermFactory termFactory;
     private final IRandom random;
 
     @Inject
-    public GeneratorFactory(IResourceService resourceService, ITermFactoryService termFactoryService, IRandom random) {
+    public GeneratorFactory(IResourceService resourceService, GeneratorTermFactory termFactory, IRandom random) {
         this.resourceService = resourceService;
-        this.termFactoryService = termFactoryService;
+        this.termFactory = termFactory;
         this.random = random;
     }
 
     public Generator create(ILanguageImpl language, IProject project) throws Exception {
-        ITermFactory termFactory = termFactoryService.getGeneric();
         GrammarReader grammarReader = new GrammarReader(termFactory);
         SpoofaxCommonPaths spoofaxCommonPaths = new SpoofaxCommonPaths(project.location());
 
