@@ -1,7 +1,5 @@
 package org.metaborg.spg.sentence.antlr.generator;
 
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Iterables;
 import org.metaborg.spg.sentence.antlr.grammar.*;
 import org.metaborg.spg.sentence.antlr.grammar.Character;
 import org.metaborg.spg.sentence.antlr.term.Appl;
@@ -37,7 +35,7 @@ public class Generator {
 
         Rule rule = grammar.getRule(nonterminal.getName());
 
-        return forRule(rule, size).map(term -> node(nonterminal, term));
+        return forRule(rule, size - 1).map(term -> node(nonterminal, term));
 
     }
 
@@ -52,7 +50,7 @@ public class Generator {
     }
 
     public Optional<Term> forElement(EmptyElement emptyElement, int size) {
-        if (size <= 0 && !emptyElement.nonterminals().isEmpty()) {
+        if (size <= 0) {
             return empty();
         }
 
@@ -73,7 +71,7 @@ public class Generator {
         } else if (emptyElement instanceof Nonterminal) {
             return generateNonterminal((Nonterminal) emptyElement, size);
         } else if (emptyElement instanceof Literal) {
-            return generateLiteral((Literal) emptyElement, size);
+            return generateLiteral((Literal) emptyElement);
         } else if (emptyElement instanceof DottedRange) {
             return generateDottedRange((DottedRange) emptyElement);
         } else if (emptyElement instanceof CharClass) {
@@ -93,13 +91,14 @@ public class Generator {
         return of(Text.EMPTY);
     }
 
-    private Optional<Term> generateLiteral(Literal element, int size) {
+    private Optional<Term> generateLiteral(Literal element) {
         return of(leaf(element.getText()));
     }
 
     private Optional<Term> generateConc(Conc element, int size) {
-        int headSize = divideSize(element, element.getFirst(), size);
-        int tailSize = size - headSize;
+        int remainingSize = size - 1;
+        int headSize = element.divideSize(remainingSize);
+        int tailSize = remainingSize - headSize;
 
         Optional<Term> headOpt = forElement(element.getFirst(), headSize);
 
@@ -112,23 +111,6 @@ public class Generator {
         }
 
         return empty();
-    }
-
-    private int divideSize(Conc conc, Element headElement, int size) {
-        Iterable<EmptyElement> elements = conc.toList();
-        int concSize = Iterables.size(elements);
-
-        if (headElement instanceof Literal) {
-            return 1;
-        } else {
-            return (int) ((size) / (double) concSize);
-        }
-    }
-
-    private FluentIterable<EmptyElement> notLiteral(Iterable<EmptyElement> elements) {
-        return FluentIterable
-                .from(elements)
-                .filter(e -> !(e instanceof Literal));
     }
 
     private Optional<Term> generateAlt(Alt element, int size) {
