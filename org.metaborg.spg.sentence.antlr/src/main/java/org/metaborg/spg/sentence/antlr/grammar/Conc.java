@@ -1,5 +1,11 @@
 package org.metaborg.spg.sentence.antlr.grammar;
 
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+
+import java.util.Set;
+
 public class Conc implements Element {
     private final Element first;
     private final Element second;
@@ -20,6 +26,15 @@ public class Conc implements Element {
     @Override
     public int size() {
         return first.size() + second.size();
+    }
+
+    @Override
+    public Set<Element> nonterminals() {
+        return Sets.union(first.nonterminals(), second.nonterminals());
+    }
+
+    public Iterable<EmptyElement> toList() {
+        return Iterables.concat(first.toList(), second.toList());
     }
 
     @Override

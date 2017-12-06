@@ -1,5 +1,7 @@
 package org.metaborg.spg.sentence.antlr.generator;
 
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Iterables;
 import org.metaborg.spg.sentence.antlr.grammar.*;
 import org.metaborg.spg.sentence.antlr.grammar.Character;
 import org.metaborg.spg.sentence.antlr.term.Appl;
@@ -50,7 +52,7 @@ public class Generator {
     }
 
     public Optional<Term> forElement(EmptyElement emptyElement, int size) {
-        if (size <= 0) {
+        if (size <= 0 && !emptyElement.nonterminals().isEmpty()) {
             return empty();
         }
 
@@ -78,6 +80,8 @@ public class Generator {
             return generateCharacterClass((CharClass) emptyElement, size);
         } else if (emptyElement instanceof NegClass) {
             return generateNegatedClass((NegClass) emptyElement, size);
+        } else if (emptyElement instanceof Wildcard) {
+            return generateWildcard();
         } else if (emptyElement instanceof EOF) {
             return generateEof();
         }
@@ -94,7 +98,7 @@ public class Generator {
     }
 
     private Optional<Term> generateConc(Conc element, int size) {
-        int headSize = (int) (1.0 / element.size() * size);
+        int headSize = divideSize(element, element.getFirst(), size);
         int tailSize = size - headSize;
 
         Optional<Term> headOpt = forElement(element.getFirst(), headSize);
@@ -108,6 +112,23 @@ public class Generator {
         }
 
         return empty();
+    }
+
+    private int divideSize(Conc conc, Element headElement, int size) {
+        Iterable<EmptyElement> elements = conc.toList();
+        int concSize = Iterables.size(elements);
+
+        if (headElement instanceof Literal) {
+            return 1;
+        } else {
+            return (int) ((size) / (double) concSize);
+        }
+    }
+
+    private FluentIterable<EmptyElement> notLiteral(Iterable<EmptyElement> elements) {
+        return FluentIterable
+                .from(elements)
+                .filter(e -> !(e instanceof Literal));
     }
 
     private Optional<Term> generateAlt(Alt element, int size) {
@@ -190,6 +211,10 @@ public class Generator {
 
     private Optional<Term> generateNegatedClass(NegClass negatedClass, int size) {
         return of(leaf("x")); // TODO
+    }
+
+    private Optional<Term> generateWildcard() {
+        return of(leaf("a")); // TODO: A single token (in parser rule) or a single character (in lexer rule)
     }
 
     private Optional<Term> generateEof() {

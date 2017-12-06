@@ -11,17 +11,17 @@ import org.metaborg.spg.sentence.ambiguity.result.TestResult;
 import org.metaborg.spg.sentence.guice.SentenceModule;
 import org.metaborg.spoofax.core.Spoofax;
 
-import java.io.File;
-
 import static org.metaborg.spg.sentence.shared.utils.SpoofaxUtils.getOrCreateProject;
 import static org.metaborg.spg.sentence.shared.utils.SpoofaxUtils.loadLanguage;
 
 public class Main {
+    private static final String TEMPLATE_LANG = "/Users/martijn/Projects/spoofax-releng/sdf/org.metaborg.meta.lang.template/target/org.metaborg.meta.lang.template-2.4.0-SNAPSHOT.spoofax-language";
+
     public static void main(String[] args) throws Exception {
         try (final Spoofax spoofax = new Spoofax(new SentenceModule(0))) {
-            ILanguageImpl templateLanguage = loadLanguage(spoofax, new File("/Users/martijn/Projects/spoofax-releng/sdf/org.metaborg.meta.lang.template/target/org.metaborg.meta.lang.template-2.4.0-SNAPSHOT.spoofax-language"));
-            ILanguageImpl language = loadLanguage(spoofax, new File(args[0]));
-            IProject project = getOrCreateProject(spoofax, new File(args[1]));
+            ILanguageImpl templateLanguage = loadLanguage(spoofax, TEMPLATE_LANG);
+            ILanguageImpl language = loadLanguage(spoofax, args[0]);
+            IProject project = getOrCreateProject(spoofax, args[1]);
 
             int maxNumberOfTerms = 1000;
             int maxTermSize = 10000;

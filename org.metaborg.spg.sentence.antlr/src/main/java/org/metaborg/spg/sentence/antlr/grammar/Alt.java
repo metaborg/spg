@@ -1,5 +1,9 @@
 package org.metaborg.spg.sentence.antlr.grammar;
 
+import com.google.common.collect.Sets;
+
+import java.util.Set;
+
 public class Alt implements Element {
     private final EmptyElement first;
     private final EmptyElement second;
@@ -20,6 +24,11 @@ public class Alt implements Element {
     @Override
     public int size() {
         return first.size() + second.size();
+    }
+
+    @Override
+    public Set<Element> nonterminals() {
+        return Sets.union(first.nonterminals(), second.nonterminals());
     }
 
     @Override

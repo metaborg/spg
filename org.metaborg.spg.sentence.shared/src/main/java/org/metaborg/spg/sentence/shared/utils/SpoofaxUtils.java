@@ -10,10 +10,18 @@ import org.metaborg.spoofax.core.Spoofax;
 import java.io.File;
 
 public class SpoofaxUtils {
+    public static ILanguageImpl loadLanguage(Spoofax spoofax, String file) throws MetaborgException {
+        return loadLanguage(spoofax, new File(file));
+    }
+
     public static ILanguageImpl loadLanguage(Spoofax spoofax, File file) throws MetaborgException {
         FileObject languageLocation = spoofax.resourceService.resolve(file);
 
         return spoofax.languageDiscoveryService.languageFromArchive(languageLocation);
+    }
+
+    public static IProject getOrCreateProject(Spoofax spoofax, String file) throws MetaborgException {
+        return getOrCreateProject(spoofax, new File(file));
     }
 
     public static IProject getOrCreateProject(Spoofax spoofax, File file) throws MetaborgException {

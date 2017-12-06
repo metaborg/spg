@@ -1,6 +1,8 @@
 package org.metaborg.spg.sentence.antlr.grammar;
 
+import java.util.Collections;
 import java.util.Objects;
+import java.util.Set;
 
 public class Nonterminal implements Element {
     private final String name;
@@ -16,6 +18,11 @@ public class Nonterminal implements Element {
     @Override
     public int size() {
         return 1;
+    }
+
+    @Override
+    public Set<Element> nonterminals() {
+        return Collections.singleton(this);
     }
 
     @Override

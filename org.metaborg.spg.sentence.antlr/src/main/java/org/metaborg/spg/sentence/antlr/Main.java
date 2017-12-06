@@ -78,7 +78,7 @@ public class Main {
 
             org.antlr.v4.tool.Grammar antlrGrammar = org.antlr.v4.tool.Grammar.load(args[1]);
 
-            for (int i = 0; i < 10000; i++) {
+            for (int i = 0; i < 1000000; i++) {
                 Optional<Term> termOpt = generator.generate(antlrStartSymbol, maxSize);
 
                 if (termOpt.isPresent()) {
@@ -87,12 +87,8 @@ public class Main {
 
                     System.out.println(sentence);
 
-                    boolean spoofaxResult = canParse(spoofax, minijavaLanguageImpl, sentence);
-
-                    if (!spoofaxResult) {
-                        boolean antlrResult = canParse(antlrGrammar, antlrStartSymbol, sentence);
-
-                        if (antlrResult) {
+                    if (cannotParse(spoofax, minijavaLanguageImpl, sentence)) {
+                        if (canParse(antlrGrammar, antlrStartSymbol, sentence)) {
                             System.out.println("Legal ANTLRv4 illegal SDF3 sentence:");
                             System.out.println(sentence);
 
@@ -100,13 +96,15 @@ public class Main {
                                 Stream<Term> shrunkTrees = shrinker.shrink(term);
 
                                 Optional<Term> anyShrunkTree = shrunkTrees
-                                        .filter(uncheckPredicate(shrunkTree -> !canParse(spoofax, minijavaLanguageImpl, shrunkTree.toString())))
+                                        .filter(uncheckPredicate(shrunkTree -> cannotParse(spoofax, minijavaLanguageImpl, shrunkTree.toString())))
                                         .filter(uncheckPredicate(shrunkTree -> canParse(antlrGrammar, antlrStartSymbol, shrunkTree.toString())))
                                         .findFirst();
 
                                 if (anyShrunkTree.isPresent()) {
-                                    System.out.println("Shrunk sentence to smaller sentence:");
-                                    System.out.println(anyShrunkTree.get().toString());
+                                    String shrunkText = anyShrunkTree.get().toString();
+
+                                    System.out.println("Shrunk to " + shrunkText.length() + " chars:");
+                                    System.out.println(shrunkText);
 
                                     term = anyShrunkTree.get();
                                 } else {
@@ -140,6 +138,10 @@ public class Main {
         parser.parse(startRule.index);
 
         return parser.getNumberOfSyntaxErrors() == 0;
+    }
+
+    private static boolean cannotParse(Spoofax spoofax, ILanguageImpl languageImpl, String text) throws ParseException {
+        return !canParse(spoofax, languageImpl, text);
     }
 
     private static boolean canParse(Spoofax spoofax, ILanguageImpl languageImpl, String text) throws ParseException {
