@@ -14,11 +14,15 @@ import org.metaborg.spg.sentence.eclipse.Activator;
 import org.metaborg.spg.sentence.statistics.Histogram;
 import org.metaborg.spoofax.eclipse.SpoofaxPlugin;
 
+import java.text.NumberFormat;
+import java.util.Locale;
+
 import static org.metaborg.spg.sentence.shared.utils.SpoofaxUtils.loadLanguage;
 
 public class AmbiguityJob extends SentenceJob {
     // TODO: Make this part of the build (unpack to resources)
     private static final String TEMPLATE_LANG = "/Users/martijn/Projects/spoofax-releng/sdf/org.metaborg.meta.lang.template/target/org.metaborg.meta.lang.template-2.4.0-SNAPSHOT.spoofax-language";
+    private static final NumberFormat numberFormat = NumberFormat.getNumberInstance(Locale.US);
 
     private final TesterFactory testerFactory;
     private final TesterConfig config;
@@ -81,17 +85,25 @@ public class AmbiguityJob extends SentenceJob {
             ShrinkResult shrinkResult = testResult.getShrinkResult();
 
             if (findResult.found()) {
-                print("Found ambiguous sentence after %d terms (%d ms). ", findResult.terms(), findResult.duration());
+                print("Found ambiguous sentence after %s terms (%s ms). ",
+                        numberFormat.format(findResult.terms()),
+                        numberFormat.format(findResult.duration()));
 
                 if (shrinkResult != null) {
                     if (shrinkResult.success()) {
-                        print("Shrunk from %d to %d characters (%d ms).\n\n", findResult.text().length(), shrinkResult.text().length(), shrinkResult.duration());
+                        print("Shrunk from %s to %s characters (%s ms).\n\n",
+                                numberFormat.format(findResult.text().length()),
+                                numberFormat.format(shrinkResult.text().length()),
+                                numberFormat.format(shrinkResult.duration()));
                     } else {
-                        print("Unable to shrink (%d ms).\n\n", shrinkResult.duration());
+                        print("Unable to shrink (%s ms).\n\n",
+                                numberFormat.format(shrinkResult.duration()));
                     }
                 }
             } else {
-                print("No ambiguous sentence found after %d terms (%d ms).\n\n", findResult.terms(), findResult.duration());
+                print("No ambiguous sentence found after %s terms (%s ms).\n\n",
+                        numberFormat.format(findResult.terms()),
+                        numberFormat.format(findResult.duration()));
             }
 
             print("### Statistics ###\n");

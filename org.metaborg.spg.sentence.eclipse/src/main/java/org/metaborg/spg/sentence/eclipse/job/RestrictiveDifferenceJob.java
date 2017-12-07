@@ -116,8 +116,6 @@ public class RestrictiveDifferenceJob extends DifferenceJob {
                             }
 
                             break;
-                        } else {
-                            stream.println("Unparsable sentence: " + sentence);
                         }
                     }
                 }

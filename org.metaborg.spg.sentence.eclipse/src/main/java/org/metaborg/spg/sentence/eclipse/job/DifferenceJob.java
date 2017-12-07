@@ -29,7 +29,11 @@ public abstract class DifferenceJob extends SentenceJob {
     }
 
     protected boolean canParseAntlr(Grammar grammar, String antlrStartSymbol, String text) throws IOException {
-        return parseAntlr(grammar, antlrStartSymbol, text).getNumberOfSyntaxErrors() == 0;
+        try {
+            return parseAntlr(grammar, antlrStartSymbol, text).getNumberOfSyntaxErrors() == 0;
+        } catch (StringIndexOutOfBoundsException e) {
+            return false;
+        }
     }
 
     protected Parser parseAntlr(Grammar grammar, String antlrStartSymbol, String text) throws IOException {
