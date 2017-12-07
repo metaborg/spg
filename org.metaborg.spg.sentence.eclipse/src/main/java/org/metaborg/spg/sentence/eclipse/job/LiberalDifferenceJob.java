@@ -28,14 +28,16 @@ import org.metaborg.spoofax.core.unit.ISpoofaxUnitService;
 import org.metaborg.spoofax.eclipse.SpoofaxPlugin;
 import org.spoofax.interpreter.terms.IStrategoTerm;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Optional;
 
 import static org.metaborg.spg.sentence.shared.utils.SpoofaxUtils.loadLanguage;
 
 public class LiberalDifferenceJob extends DifferenceJob {
-    public static final JSGLRParserConfiguration PARSER_CONFIG = new JSGLRParserConfiguration(true, false, false, 30000, Integer.MAX_VALUE);
+    private static final JSGLRParserConfiguration PARSER_CONFIG = new JSGLRParserConfiguration(true, false, false, 30000, Integer.MAX_VALUE);
+    // TODO: Make this part of the build (unpack to resources)
+    private static final String TEMPLATE_LANG = "/Users/martijn/Projects/spoofax-releng/sdf/org.metaborg.meta.lang.template/target/org.metaborg.meta.lang.template-2.4.0-SNAPSHOT.spoofax-language";
+
     private final PrinterFactory printerFactory;
     private final GeneratorFactory generatorFactory;
     private final GrammarFactory grammarFactory;
@@ -62,7 +64,7 @@ public class LiberalDifferenceJob extends DifferenceJob {
         this.signatureFactory = signatureFactory;
         this.shrinkerFactory = shrinkerFactory;
         this.config = config;
-        this.templateLanguage = loadLanguage(SpoofaxPlugin.spoofax(), new File("/Users/martijn/Projects/spoofax-releng/sdf/org.metaborg.meta.lang.template/target/org.metaborg.meta.lang.template-2.4.0-SNAPSHOT.spoofax-language"));
+        this.templateLanguage = loadLanguage(SpoofaxPlugin.spoofax(), TEMPLATE_LANG);
     }
 
     @Override

@@ -11,13 +11,15 @@ import org.metaborg.spg.sentence.ambiguity.result.FindResult;
 import org.metaborg.spg.sentence.ambiguity.result.ShrinkResult;
 import org.metaborg.spg.sentence.ambiguity.result.TestResult;
 import org.metaborg.spg.sentence.eclipse.Activator;
+import org.metaborg.spg.sentence.statistics.Histogram;
 import org.metaborg.spoofax.eclipse.SpoofaxPlugin;
-
-import java.io.File;
 
 import static org.metaborg.spg.sentence.shared.utils.SpoofaxUtils.loadLanguage;
 
 public class AmbiguityJob extends SentenceJob {
+    // TODO: Make this part of the build (unpack to resources)
+    private static final String TEMPLATE_LANG = "/Users/martijn/Projects/spoofax-releng/sdf/org.metaborg.meta.lang.template/target/org.metaborg.meta.lang.template-2.4.0-SNAPSHOT.spoofax-language";
+
     private final TesterFactory testerFactory;
     private final TesterConfig config;
     private final IProject project;
@@ -36,7 +38,7 @@ public class AmbiguityJob extends SentenceJob {
         this.config = config;
         this.project = project;
         this.language = language;
-        this.templateLanguage = loadLanguage(SpoofaxPlugin.spoofax(), new File("/Users/martijn/Projects/spoofax-releng/sdf/org.metaborg.meta.lang.template/target/org.metaborg.meta.lang.template-2.4.0-SNAPSHOT.spoofax-language"));
+        this.templateLanguage = loadLanguage(SpoofaxPlugin.spoofax(), TEMPLATE_LANG);
     }
 
     @Override
@@ -46,9 +48,11 @@ public class AmbiguityJob extends SentenceJob {
 
             Tester tester = testerFactory.create(templateLanguage, language, project);
 
-            TesterProgress progress = new TesterProgress() {
+            StatisticsTesterProgress progress = new StatisticsTesterProgress() {
                 @Override
                 public void sentenceGenerated(String text) {
+                    super.sentenceGenerated(text);
+
                     stream.println("=== Program ===");
                     stream.println(text);
 
@@ -81,14 +85,17 @@ public class AmbiguityJob extends SentenceJob {
 
                 if (shrinkResult != null) {
                     if (shrinkResult.success()) {
-                        print("Shrunk from %d to %d characters (%d ms).\n", findResult.text().length(), shrinkResult.text().length(), shrinkResult.duration());
+                        print("Shrunk from %d to %d characters (%d ms).\n\n", findResult.text().length(), shrinkResult.text().length(), shrinkResult.duration());
                     } else {
-                        print("Unable to shrink (%d ms).\n", shrinkResult.duration());
+                        print("Unable to shrink (%d ms).\n\n", shrinkResult.duration());
                     }
                 }
             } else {
-                print("No ambiguous sentence found after %d terms (%d ms).\n", findResult.terms(), findResult.duration());
+                print("No ambiguous sentence found after %d terms (%d ms).\n\n", findResult.terms(), findResult.duration());
             }
+
+            print("### Statistics ###\n");
+            print("%s", new Histogram(progress.getLengths()));
 
             return Status.OK_STATUS;
         } catch (Exception e) {

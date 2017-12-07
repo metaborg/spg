@@ -9,6 +9,7 @@ import org.metaborg.spg.sentence.ambiguity.result.FindResult;
 import org.metaborg.spg.sentence.ambiguity.result.ShrinkResult;
 import org.metaborg.spg.sentence.ambiguity.result.TestResult;
 import org.metaborg.spg.sentence.guice.SentenceModule;
+import org.metaborg.spg.sentence.statistics.Histogram;
 import org.metaborg.spoofax.core.Spoofax;
 
 import static org.metaborg.spg.sentence.shared.utils.SpoofaxUtils.getOrCreateProject;
@@ -29,7 +30,7 @@ public class Main {
             Injector injector = spoofax.injector;
             TesterFactory testerFactory = injector.getInstance(TesterFactory.class);
             Tester tester = testerFactory.create(templateLanguage, language, project);
-            TesterProgress progress = new TesterProgressDefault();
+            TesterProgressDefault progress = new TesterProgressDefault();
             TesterConfig config = new TesterConfig(maxNumberOfTerms, maxTermSize);
 
             TestResult result = tester.test(config, progress);
@@ -40,13 +41,16 @@ public class Main {
                 print("Found ambiguous sentence after %d terms (%d ms). ", findResult.terms(), findResult.duration());
 
                 if (shrinkResult != null) {
-                    print("Shrunk from %d to %d characters (%d ms).\n", findResult.text().length(), shrinkResult.text().length(), shrinkResult.duration());
+                    print("Shrunk from %d to %d characters (%d ms).\n\n", findResult.text().length(), shrinkResult.text().length(), shrinkResult.duration());
                 } else {
-                    print("Unable to shrink.\n");
+                    print("Unable to shrink.\n\n");
                 }
             } else {
-                print("No ambiguous sentence found after %d terms (%d ms).", findResult.terms(), findResult.duration());
+                print("No ambiguous sentence found after %d terms (%d ms).\n\n", findResult.terms(), findResult.duration());
             }
+
+            print("### Statistics ###\n");
+            print("%s", new Histogram(progress.getLengths()));
         } catch (MetaborgException e) {
             e.printStackTrace();
         }
