@@ -17,11 +17,11 @@ import org.metaborg.spoofax.eclipse.SpoofaxPlugin;
 import java.text.NumberFormat;
 import java.util.Locale;
 
+import static org.metaborg.spg.sentence.shared.utils.SpoofaxUtils.getLanguage;
 import static org.metaborg.spg.sentence.shared.utils.SpoofaxUtils.loadLanguage;
 
 public class AmbiguityJob extends SentenceJob {
-    // TODO: Make this part of the build (unpack to resources)
-    private static final String TEMPLATE_LANG = "/Users/martijn/Projects/spoofax-releng/sdf/org.metaborg.meta.lang.template/target/org.metaborg.meta.lang.template-2.4.0-SNAPSHOT.spoofax-language";
+    private static final String TEMPLATE_LANG = "TemplateLang";
     private static final NumberFormat numberFormat = NumberFormat.getNumberInstance(Locale.US);
 
     private final TesterFactory testerFactory;
@@ -42,7 +42,7 @@ public class AmbiguityJob extends SentenceJob {
         this.config = config;
         this.project = project;
         this.language = language;
-        this.templateLanguage = loadLanguage(SpoofaxPlugin.spoofax(), TEMPLATE_LANG);
+        this.templateLanguage = getLanguage(SpoofaxPlugin.spoofax(), TEMPLATE_LANG);
     }
 
     @Override

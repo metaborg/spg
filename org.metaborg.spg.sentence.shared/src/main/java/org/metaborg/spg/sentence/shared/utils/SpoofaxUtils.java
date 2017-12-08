@@ -20,6 +20,16 @@ public class SpoofaxUtils {
         return spoofax.languageDiscoveryService.languageFromArchive(languageLocation);
     }
 
+    public static ILanguageImpl getLanguage(Spoofax spoofax, String name) {
+        ILanguageImpl language = spoofax.languageService.getLanguage(name).activeImpl();
+
+        if (language == null) {
+            throw new IllegalArgumentException("Cannot get language with naem " + name + ", it is not loaded.");
+        }
+
+        return language;
+    }
+
     public static IProject getOrCreateProject(Spoofax spoofax, String file) throws MetaborgException {
         return getOrCreateProject(spoofax, new File(file));
     }
