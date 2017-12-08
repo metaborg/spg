@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feature
+      id="org.metaborg.spg.sentence.antlr.eclipse.feature"
+      label="Spoofax Generator"
+      version="2.4.0.qualifier"
+      provider-name="org.metaborg">
+
+   <description url="https://github.com/metaborg/spg">
+      Spoofax Generator
+   </description>
+
+   <plugin
+         id="org.metaborg.spg.sentence.shared"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"
+         unpack="false"/>
+
+   <plugin
+         id="org.metaborg.spg.sentence.sdf"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"
+         unpack="false"/>
+
+   <plugin
+         id="org.metaborg.spg.sentence.antlr"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"
+         unpack="false"/>
+
+   <plugin
+         id="org.metaborg.spg.sentence.sdf.eclipse"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"
+         unpack="false"/>
+
+   <plugin
+         id="org.metaborg.spg.sentence.antlr.eclipse"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"
+         unpack="false"/>
+
+   <plugin
+         id="org.metaborg.spg.sentence.antlr.eclipse.externaldeps"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"
+         unpack="false"/>
+</feature>

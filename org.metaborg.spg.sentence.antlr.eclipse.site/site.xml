@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<site>
+    <feature url="features/org.metaborg.spg.sentence.antlr.eclipse.feature_2.4.0.qualifier.jar" id="org.metaborg.spg.sentence.antlr.eclipse.feature" version="2.4.0.qualifier">
+        <category name="SPG"/>
+    </feature>
+    <category-def name="SPG" label="Spoofax Generator Eclipse plugin">
+        <description>Spoofax Generator Eclipse plugin.</description>
+    </category-def>
+</site>

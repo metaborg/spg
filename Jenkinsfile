@@ -18,13 +18,13 @@ node {
   ){
     // Build pom-first projects first. Maven and Tycho dependencies in a single reactor build are not supported? (https://goo.gl/akexsK)
     sh "mvn -B -U clean install -f org.metaborg.spg.sentence.shared/pom.xml"
-    sh "mvn -B -U clean install -f org.metaborg.spg.sentence/pom.xml"
+    sh "mvn -B -U clean install -f org.metaborg.spg.sentence.sdf/pom.xml"
     sh "mvn -B -U clean install -f org.metaborg.spg.sentence.antlr/pom.xml"
-    sh "mvn -B -U clean install -f org.metaborg.spg.sentence.eclipse.externaldeps/pom.xml"
+    sh "mvn -B -U clean install -f org.metaborg.spg.sentence.antlr.eclipse.externaldeps/pom.xml"
 
     // Build the rest
     sh "mvn -B -U clean install -f pom.xml -DforceContextQualifier=\$(date +%Y%m%d%H%M)"
   }
-  archiveArtifacts artifacts: 'org.metaborg.spg.sentence.eclipse.site/target/site/', excludes: null, onlyIfSuccessful: true
+  archiveArtifacts artifacts: 'org.metaborg.spg.sentence.antlr.eclipse.site/target/site/', excludes: null, onlyIfSuccessful: true
 }
 

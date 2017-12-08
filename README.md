@@ -33,13 +33,13 @@ language:
     sdf2table: java
 ```
 
-### Using org.metaborg.spg.sentence
+### Using org.metaborg.spg.sentence.(sdf|antlr)
 
 The `Main` class expects as its first and second argument the path to a Spoofax language artifact and the path to a Spoofax project, respectively.
 
 ### Using org.metaborg.spg.sentence.eclipse*
 
-An update site is generated at `org.metaborg.spg.sentence.eclipse.site/target/site/`. To install the plugin in Eclipse:
+An update site is generated at `org.metaborg.spg.sentence.antlr.eclipse.site/target/site/`. This Eclipse plugin contains both the SDF-generator (ambiguity testing) and ANTLR-generator (difference testing). To install the plugin in Eclipse:
 
 1. _Help_ > _Install New Software..._
 2. _Work with_: the built update site.

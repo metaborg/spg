@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+  xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+>
+  <modelVersion>4.0.0</modelVersion>
+  <artifactId>org.metaborg.spg.sentence.antlr.eclipse.externaldeps</artifactId>
+  <packaging>bundle</packaging>
+  <description>Bundle to import non-Eclipse external dependencies into Eclipse</description>
+
+  <parent>
+    <groupId>org.metaborg</groupId>
+    <artifactId>parent</artifactId>
+    <version>2.4.0-SNAPSHOT</version>
+    <relativePath />
+  </parent>
+
+  <dependencies>
+    <!-- ANTLR -->
+    <dependency>
+	  <groupId>org.antlr</groupId>
+	  <artifactId>antlr-runtime</artifactId>
+	  <version>3.5.2</version>
+    </dependency>
+    <dependency>
+	  <groupId>org.antlr</groupId>
+	  <artifactId>antlr4</artifactId>
+	  <version>4.7</version>
+    </dependency>
+    <dependency>
+      <groupId>org.antlr</groupId>
+      <artifactId>antlr4-runtime</artifactId>
+      <version>4.7</version>
+    </dependency>
+    <dependency>
+      <groupId>org.antlr</groupId>
+      <artifactId>ST4</artifactId>
+      <version>4.0.8</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <sourceDirectory>src</sourceDirectory>
+
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+      </plugin>
+      <!-- Generate MANIFEST.MF from project, to make project available to Eclipse plugins. -->
+      <plugin>
+        <groupId>org.apache.felix</groupId>
+        <artifactId>maven-bundle-plugin</artifactId>
+        <configuration>
+          <unpackBundle>true</unpackBundle>
+          <instructions>
+            <!-- Fix names not to include the groupId. -->
+            <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
+            <Bundle-Name>${project.artifactId}</Bundle-Name>
+            <!-- Replace SNAPSHOT in the manifest version with given qualifier. -->
+            <Bundle-Version>$(replace;${project.version};-SNAPSHOT;.${forceContextQualifier})</Bundle-Version>
+            <!-- Embed dependencies into plugin bundle, so they are exportable. -->
+            <Embed-Dependency>
+              antlr4,
+              antlr4-runtime,
+              antlr-runtime,
+              ST4
+            </Embed-Dependency>
+            <!-- Export dependency packages -->
+            <Export-Package>
+              org.antlr.runtime.*;provider=metaborg;mandatory:=provider;version=0,
+              org.antlr.runtime.tree.*;provider=metaborg;mandatory:=provider;version=0,
+              org.antlr.v4.tool.*;provider=metaborg;mandatory:=provider;version=0,
+              org.antlr.v4.runtime.*;provider=metaborg;mandatory:=provider;version=0,
+              org.abego.treelayout.*;provider=metaborg;mandatory:=provider;version=0,
+              org.abego.treelayout.util;provider=metaborg;mandatory:=provider;version=0,
+              org.strintemplate.v4.*;provider=metaborg;mandatory:=provider;version=0,
+              org.stringtemplate.v4.compiler.*;provider=metaborg;mandatory:=provider;version=0,
+              org.stringtemplate.v4.*;provider=metaborg;mandatory:=provider;version=0,
+            </Export-Package>
+            <!-- Don't declare dependency on JDK, internal, or non-existent packages. -->
+            <Import-Package>
+              !javax*,
+              !com.ibm.icu.*,
+              !org.antlr.runtime.*,
+              !org.antlr.stringtemplate.*,
+              !org.antlr.v4.runtime.*,
+              !org.stringtemplate.v4.*,
+              !org.abego.treelayout.*,
+              *;provider=metaborg;mandatory:=provider;version=0
+            </Import-Package>
+            <!-- Don't generate uses declarations in exported packages. -->
+            <_nouses>true</_nouses>
+            <!-- Don't use version of this package if no version can be determined. -->
+            <_nodefaultversion>true</_nodefaultversion>
+            <!-- Allow buddy class loading, so that other bundles can merge their classpath with this bundle, which
+              some libraries require. -->
+            <Eclipse-BuddyPolicy>registered</Eclipse-BuddyPolicy>
+          </instructions>
+        </configuration>
+      </plugin>
+      <!-- Add the generated MANIFEST.MF is used in the resulting JAR file. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <configuration>
+          <archive>
+            <manifestFile>META-INF/MANIFEST.MF</manifestFile>
+          </archive>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+  <developers>
+    <developer>
+      <name>Martijn Dwars</name>
+      <email>ikben@martijndwars.nl</email>
+      <organization>Delft University of Technology</organization>
+      <organizationUrl>http://www.ewi.tudelft.nl/en</organizationUrl>
+    </developer>
+  </developers>
+</project>
