@@ -2,7 +2,7 @@
 <feature
       id="org.metaborg.spg.sentence.antlr.eclipse.feature"
       label="Spoofax Generator"
-      version="2.4.0.qualifier"
+      version="2.4.0"
       provider-name="org.metaborg">
 
    <description url="https://github.com/metaborg/spg">
