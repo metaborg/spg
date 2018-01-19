@@ -24,8 +24,8 @@ public class Generator {
     private final NormGrammar grammar;
     private final ListMultimap<Symbol, IProduction> productionsMap;
 
-    @Inject
-    public Generator(GeneratorTermFactory termFactory, IRandom random, String startSymbol, NormGrammar grammar) {
+    @Inject public Generator(GeneratorTermFactory termFactory, IRandom random, String startSymbol,
+        NormGrammar grammar) {
         this.termFactory = termFactory;
         this.random = random;
         this.startSymbol = startSymbol;
@@ -42,28 +42,28 @@ public class Generator {
     }
 
     public Optional<IStrategoTerm> generateSymbol(Symbol symbol, int size) {
-        if (size <= 0) {
+        if(size <= 0) {
             return Optional.empty();
         }
 
-        if (symbol instanceof LexicalSymbol) {
+        if(symbol instanceof LexicalSymbol) {
             String generatedString = generateLexicalSymbol(symbol);
 
             return Optional.of(termFactory.makeString(symbol, generatedString));
-        } else if (symbol instanceof ContextFreeSymbol) {
+        } else if(symbol instanceof ContextFreeSymbol) {
             Symbol innerSymbol = ((ContextFreeSymbol) symbol).getSymbol();
 
-            if (innerSymbol instanceof IterSymbol) {
+            if(innerSymbol instanceof IterSymbol) {
                 return generateIter(new ContextFreeSymbol(((IterSymbol) innerSymbol).getSymbol()), size);
-            } else if (innerSymbol instanceof IterSepSymbol) {
+            } else if(innerSymbol instanceof IterSepSymbol) {
                 return generateIter(new ContextFreeSymbol(((IterSepSymbol) innerSymbol).getSymbol()), size);
-            } else if (innerSymbol instanceof IterStarSymbol) {
+            } else if(innerSymbol instanceof IterStarSymbol) {
                 return generateIterStar(new ContextFreeSymbol(((IterStarSymbol) innerSymbol).getSymbol()), size);
-            } else if (innerSymbol instanceof IterStarSepSymbol) {
+            } else if(innerSymbol instanceof IterStarSepSymbol) {
                 return generateIterStar(new ContextFreeSymbol(((IterStarSepSymbol) innerSymbol).getSymbol()), size);
-            } else if (innerSymbol instanceof OptionalSymbol) {
+            } else if(innerSymbol instanceof OptionalSymbol) {
                 return generateOptional(new ContextFreeSymbol(((OptionalSymbol) innerSymbol).getSymbol()), size);
-            } else if (innerSymbol instanceof Sort) {
+            } else if(innerSymbol instanceof Sort) {
                 return generateCf(symbol, size);
             }
         } else {
@@ -76,15 +76,15 @@ public class Generator {
     private Optional<IStrategoTerm> generateIterStar(Symbol symbol, int size) {
         IterStarSymbol iterStarSymbol = new IterStarSymbol(symbol);
 
-        if (random.flip()) {
+        if(random.flip()) {
             return Optional.of(termFactory.makeList(iterStarSymbol));
         } else {
             Optional<IStrategoTerm> headOpt = generateSymbol(symbol, size / 2);
 
-            if (headOpt.isPresent()) {
+            if(headOpt.isPresent()) {
                 Optional<IStrategoTerm> tailOpt = generateIterStar(symbol, size / 2);
 
-                if (tailOpt.isPresent()) {
+                if(tailOpt.isPresent()) {
                     IStrategoTerm head = headOpt.get();
                     IStrategoList tail = (IStrategoList) tailOpt.get();
                     IStrategoList list = termFactory.makeListCons(iterStarSymbol, head, tail);
@@ -101,10 +101,10 @@ public class Generator {
         IterSymbol iterSymbol = new IterSymbol(symbol);
         Optional<IStrategoTerm> headOpt = generateSymbol(symbol, size / 2);
 
-        if (headOpt.isPresent()) {
+        if(headOpt.isPresent()) {
             Optional<IStrategoTerm> tailOpt = generateIterStar(symbol, size / 2);
 
-            if (tailOpt.isPresent()) {
+            if(tailOpt.isPresent()) {
                 IStrategoTerm head = headOpt.get();
                 IStrategoList tail = (IStrategoList) tailOpt.get();
 
@@ -118,7 +118,7 @@ public class Generator {
     private Optional<IStrategoTerm> generateOptional(Symbol symbol, int size) {
         OptionalSymbol optionalSymbol = new OptionalSymbol(symbol);
 
-        if (random.flip()) {
+        if(random.flip()) {
             return Optional.of(termFactory.makeNone(optionalSymbol));
         } else {
             Optional<IStrategoTerm> termOpt = generateSymbol(symbol, size - 1);
@@ -128,80 +128,72 @@ public class Generator {
     }
 
     public String generateLex(Symbol symbol) {
-        if (symbol instanceof CharacterClass) {
-            return generateLex(((CharacterClass) symbol).symbol());
-        } else if (symbol instanceof CharacterClassConc) {
-            return generateCharacterClassConc((CharacterClassConc) symbol);
-        } else if (symbol instanceof CharacterClassRange) {
-            return generateCharacterClassRange((CharacterClassRange) symbol);
-        } else if (symbol instanceof CharacterClassNumeric) {
-            return generateCharacterClassNumeric((CharacterClassNumeric) symbol);
-        } else if (symbol instanceof LexicalSymbol || symbol instanceof Sort) {
+        if(symbol instanceof CharacterClass) {
+            return generateCharacterClass(((CharacterClass) symbol));
+        } else if(symbol instanceof LexicalSymbol || symbol instanceof Sort) {
             return generateLexicalSymbol(symbol);
         }
 
         throw new IllegalStateException("Unknown symbol: " + symbol);
     }
 
-    public String generateCharacterClassConc(CharacterClassConc characterClassConc) {
+    public String generateCharacterClass(CharacterClass characterClassConc) {
         Symbol printableCharacters = SymbolUtils.toPrintable(characterClassConc);
-
-        if (printableCharacters instanceof CharacterClassNumeric) {
-            return generateCharacterClassNumeric((CharacterClassNumeric) printableCharacters);
-        } else if (printableCharacters instanceof CharacterClassRange) {
-            return generateCharacterClassRange((CharacterClassRange) printableCharacters);
-        } else if (printableCharacters instanceof CharacterClassConc) {
-            int characterClassSize = SymbolUtils.size(printableCharacters);
-            int randomCharacter = random.fromRange(characterClassSize);
-
-            return String.valueOf(SymbolUtils.get(printableCharacters, randomCharacter));
-        }
+        // FIXME reimplement this according to the new character class representation
+        
+        
+        // if (printableCharacters instanceof CharacterClassNumeric) {
+        // return generateCharacterClassNumeric((CharacterClassNumeric) printableCharacters);
+        // } else if (printableCharacters instanceof CharacterClassRange) {
+        // return generateCharacterClassRange((CharacterClassRange) printableCharacters);
+        // } else if (printableCharacters instanceof CharacterClassConc) {
+        // int characterClassSize = SymbolUtils.size(printableCharacters);
+        // int randomCharacter = random.fromRange(characterClassSize);
+        //
+        // return String.valueOf(SymbolUtils.get(printableCharacters, randomCharacter));
+        // }
 
         throw new IllegalStateException("Unknown symbol: " + printableCharacters);
     }
 
-    public String generateCharacterClassRange(CharacterClassRange characterClassRange) {
-        int minimumPrintable = Math.max(characterClassRange.minimum(), MINIMUM_PRINTABLE);
-        int maximumPrintable = Math.min(characterClassRange.maximum(), MAXIMUM_PRINTABLE);
-
-        int range = maximumPrintable - minimumPrintable + 1;
-
-        if (range > 0) {
-            char character = (char) (minimumPrintable + random.fromRange(range));
-
-            return String.valueOf(character);
-        } else {
-            return "";
-        }
-    }
-
-    public String generateCharacterClassNumeric(CharacterClassNumeric characterClassNumeric) {
-        return String.valueOf(Character.toChars(characterClassNumeric.getCharacter()));
-    }
+    // public String generateCharacterClassRange(CharacterClassRange characterClassRange) {
+    // int minimumPrintable = Math.max(characterClassRange.minimum(), MINIMUM_PRINTABLE);
+    // int maximumPrintable = Math.min(characterClassRange.maximum(), MAXIMUM_PRINTABLE);
+    //
+    // int range = maximumPrintable - minimumPrintable + 1;
+    //
+    // if (range > 0) {
+    // char character = (char) (minimumPrintable + random.fromRange(range));
+    //
+    // return String.valueOf(character);
+    // } else {
+    // return "";
+    // }
+    // }
+    //
+    // public String generateCharacterClassNumeric(CharacterClassNumeric characterClassNumeric) {
+    // return String.valueOf(Character.toChars(characterClassNumeric.getCharacter()));
+    // }
 
     public String generateLexicalSymbol(Symbol symbol) {
         List<IProduction> productions = productionsMap.get(symbol);
 
-        if (productions.isEmpty()) {
+        if(productions.isEmpty()) {
             throw new IllegalStateException("No productions found for symbol " + symbol);
         }
 
         IProduction production = random.fromList(productions);
 
-        return production
-                .rightHand()
-                .stream()
-                .map(this::generateLex)
-                .collect(Collectors.joining());
+        return production.rightHand().stream().map(this::generateLex).collect(Collectors.joining());
     }
 
     public Optional<IStrategoTerm> generateCf(Symbol symbol, int size) {
         List<IProduction> productions = productionsMap.get(symbol);
 
-        for (IProduction production : random.shuffle(productions)) {
+        for(IProduction production : random.shuffle(productions)) {
             Optional<IStrategoTerm> term = generateProduction(production, size);
 
-            if (term.isPresent()) {
+            if(term.isPresent()) {
                 return term;
             }
         }
@@ -215,23 +207,23 @@ public class Generator {
 
         int childSize = (size - 1) / Math.max(1, rhsSymbols.size());
 
-        for (Symbol rhsSymbol : rhsSymbols) {
+        for(Symbol rhsSymbol : rhsSymbols) {
             Optional<IStrategoTerm> childTerm = generateSymbol(rhsSymbol, childSize);
 
-            if (childTerm.isPresent()) {
+            if(childTerm.isPresent()) {
                 children.add(childTerm.get());
             } else {
                 break;
             }
         }
 
-        if (children.size() == rhsSymbols.size()) {
+        if(children.size() == rhsSymbols.size()) {
             Optional<String> constructor = getConstructor(production);
 
-            if (constructor.isPresent()) {
+            if(constructor.isPresent()) {
                 return Optional.of(termFactory.makeAppl(production.leftHand(), constructor.get(), children));
             } else {
-                if (children.size() == 0) {
+                if(children.size() == 0) {
                     return Optional.empty();
                 }
 
@@ -253,14 +245,11 @@ public class Generator {
     }
 
     protected List<Symbol> cleanRhs(List<Symbol> rightHand) {
-        return rightHand
-                .stream()
-                .filter(this::isProperSymbol)
-                .collect(Collectors.toList());
+        return rightHand.stream().filter(this::isProperSymbol).collect(Collectors.toList());
     }
 
     protected boolean isProperSymbol(Symbol symbol) {
-        if ("LAYOUT?-CF".equals(symbol.name())) {
+        if("LAYOUT?-CF".equals(symbol.name())) {
             return false;
         }
 
@@ -275,7 +264,7 @@ public class Generator {
     protected ListMultimap<Symbol, IProduction> createProductionMap(Collection<IProduction> productions) {
         ListMultimap<Symbol, IProduction> productionsMap = ArrayListMultimap.create();
 
-        for (IProduction production : productions) {
+        for(IProduction production : productions) {
             productionsMap.put(production.leftHand(), production);
         }
 
@@ -315,10 +304,10 @@ public class Generator {
     }
 
     protected boolean isAttribute(IAttribute attribute, String name) {
-        if (attribute instanceof GeneralAttribute) {
+        if(attribute instanceof GeneralAttribute) {
             GeneralAttribute generalAttribute = (GeneralAttribute) attribute;
 
-            if (name.equals(generalAttribute.getName())) {
+            if(name.equals(generalAttribute.getName())) {
                 return true;
             }
         }
@@ -329,8 +318,8 @@ public class Generator {
     protected Optional<IAttribute> findAttribute(IProduction production, Predicate<IAttribute> predicate) {
         Set<IAttribute> attributes = grammar.getProductionAttributesMapping().get(production);
 
-        for (IAttribute attribute : attributes) {
-            if (predicate.test(attribute)) {
+        for(IAttribute attribute : attributes) {
+            if(predicate.test(attribute)) {
                 return Optional.of(attribute);
             }
         }
