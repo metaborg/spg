@@ -2,7 +2,7 @@
 <feature
       id="org.metaborg.spg.sentence.sdf.eclipse.feature"
       label="Spoofax Generator (SDF)"
-      version="2.5.0.qualifier"
+      version="2.4.1"
       provider-name="org.metaborg">
 
    <description url="https://github.com/metaborg/spg">
