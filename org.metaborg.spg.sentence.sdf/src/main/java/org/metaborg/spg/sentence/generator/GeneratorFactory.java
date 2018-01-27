@@ -31,7 +31,7 @@ public class GeneratorFactory {
     }
 
     public Generator create(ILanguageImpl language, IProject project) throws Exception {
-        GrammarReader grammarReader = new GrammarReader(termFactory);
+        GrammarReader grammarReader = new GrammarReader();
         SpoofaxCommonPaths spoofaxCommonPaths = new SpoofaxCommonPaths(project.location());
 
         File syntaxMainFile = getSyntaxMainFile(spoofaxCommonPaths, language);
