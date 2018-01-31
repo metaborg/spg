@@ -1,13 +1,18 @@
 package org.metaborg.spg.sentence.antlr.eclipse.job;
 
-import com.google.inject.Inject;
-import com.google.inject.assistedinject.Assisted;
+import static org.metaborg.spg.sentence.shared.utils.FunctionalUtils.uncheckPredicate;
+
+import java.io.IOException;
+import java.util.Optional;
+import java.util.stream.Stream;
+
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.SubMonitor;
 import org.metaborg.core.MetaborgException;
 import org.metaborg.core.language.ILanguageImpl;
+import org.metaborg.spg.sentence.antlr.eclipse.config.DifferenceJobConfig;
 import org.metaborg.spg.sentence.antlr.generator.Generator;
 import org.metaborg.spg.sentence.antlr.generator.GeneratorFactory;
 import org.metaborg.spg.sentence.antlr.grammar.Grammar;
@@ -15,24 +20,18 @@ import org.metaborg.spg.sentence.antlr.grammar.GrammarFactory;
 import org.metaborg.spg.sentence.antlr.shrinker.Shrinker;
 import org.metaborg.spg.sentence.antlr.shrinker.ShrinkerFactory;
 import org.metaborg.spg.sentence.antlr.term.Term;
-import org.metaborg.spg.sentence.antlr.eclipse.config.DifferenceJobConfig;
 import org.metaborg.spg.sentence.shared.utils.SpoofaxUtils;
 import org.metaborg.spoofax.core.syntax.ISpoofaxSyntaxService;
 import org.metaborg.spoofax.core.syntax.JSGLRParserConfiguration;
 import org.metaborg.spoofax.core.unit.ISpoofaxUnitService;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Optional;
-import java.util.stream.Stream;
-
-import static org.metaborg.spg.sentence.shared.utils.FunctionalUtils.uncheckPredicate;
+import com.google.inject.Inject;
+import com.google.inject.assistedinject.Assisted;
 
 public class RestrictiveDifferenceJob extends DifferenceJob {
     private static final JSGLRParserConfiguration PARSER_CONFIG = new JSGLRParserConfiguration(false, false);
 
-    // TODO: Make this part of the build (unpack to resources)
-    private static final String ANTLR_LANG = "/Users/martijn/Projects/metaborg-antlr/org.metaborg.lang.antlr/target/org.metaborg.lang.antlr-0.1.0-SNAPSHOT.spoofax-language";
+    private static final String ANTLR_LANG_NAME = "ANTLRv4";
 
     private final GrammarFactory grammarFactory;
     private final GeneratorFactory generatorFactory;
@@ -62,11 +61,11 @@ public class RestrictiveDifferenceJob extends DifferenceJob {
             String antlrStartSymbol = config.getAntlrStartSymbol();
             int maxTermSize = config.getMaxTermSize();
             int maxNumberOfTerms = config.getMaxNumberOfTerms();
-            ILanguageImpl antlrLanguageImpl = SpoofaxUtils.loadLanguage(spoofax, ANTLR_LANG);
+            ILanguageImpl antlrLanguageImpl = SpoofaxUtils.getLanguage(spoofax, ANTLR_LANG_NAME);
             org.antlr.v4.tool.Grammar antlrGrammar = org.antlr.v4.tool.Grammar.load(config.getAntlrGrammar());
             SubMonitor subMonitor = SubMonitor.convert(progressMonitor, maxNumberOfTerms);
 
-            Grammar grammar = grammarFactory.create(new File(config.getAntlrGrammar()), antlrLanguageImpl);
+            Grammar grammar = grammarFactory.create(spoofax.resolve(config.getAntlrGrammar()), antlrLanguageImpl);
             Generator generator = generatorFactory.create(grammar);
             Shrinker shrinker = shrinkerFactory.create(generator, grammar);
 

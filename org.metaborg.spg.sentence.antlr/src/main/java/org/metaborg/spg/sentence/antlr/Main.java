@@ -1,7 +1,19 @@
 package org.metaborg.spg.sentence.antlr;
 
-import org.antlr.v4.runtime.*;
+import static org.metaborg.spg.sentence.shared.utils.FunctionalUtils.uncheckPredicate;
+
+import java.io.IOException;
+import java.util.Optional;
+import java.util.stream.Stream;
+
+import org.antlr.v4.runtime.CharStream;
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.ConsoleErrorListener;
+import org.antlr.v4.runtime.LexerInterpreter;
+import org.antlr.v4.runtime.ParserInterpreter;
 import org.antlr.v4.tool.Rule;
+import org.apache.commons.vfs2.FileObject;
 import org.metaborg.core.MetaborgException;
 import org.metaborg.core.language.ILanguageImpl;
 import org.metaborg.core.syntax.ParseException;
@@ -13,17 +25,10 @@ import org.metaborg.spg.sentence.antlr.shrinker.Shrinker;
 import org.metaborg.spg.sentence.antlr.shrinker.ShrinkerFactory;
 import org.metaborg.spg.sentence.antlr.term.Term;
 import org.metaborg.spoofax.core.Spoofax;
+import org.metaborg.spoofax.core.shell.CLIUtils;
 import org.metaborg.spoofax.core.syntax.JSGLRParserConfiguration;
 import org.metaborg.spoofax.core.unit.ISpoofaxInputUnit;
 import org.metaborg.spoofax.core.unit.ISpoofaxParseUnit;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.Optional;
-import java.util.stream.Stream;
-
-import static org.metaborg.spg.sentence.shared.utils.FunctionalUtils.uncheckPredicate;
-import static org.metaborg.spg.sentence.shared.utils.SpoofaxUtils.loadLanguage;
 
 public class Main {
     public static final JSGLRParserConfiguration JSGLR_PARSER_CONFIGURATION = new JSGLRParserConfiguration(
@@ -35,37 +40,33 @@ public class Main {
     );
 
     public static void main(String[] args) {
-        File antlrLanguageFile = new File(args[0]);
-
-        if (!antlrLanguageFile.exists()) {
-            System.err.println("The provided ANTLRv4 .spoofax-language file does not exist.");
-
-            return;
-        }
-
-        File grammarFile = new File(args[1]);
-
-        if (!grammarFile.exists()) {
-            System.err.println("The provided ANTLRv4 grammar file does not exist.");
-
-            return;
-        }
-
-        File minijavaLanguageFile = new File(args[2]);
-
-        if (!minijavaLanguageFile.exists()) {
-            System.err.println("The provided MiniJava language file does not exist.");
-
-            return;
-        }
-
-        String antlrStartSymbol = args[3];
-
-        int maxSize = Integer.valueOf(args[4]);
 
         try (final Spoofax spoofax = new Spoofax(new Module(0))) {
-            ILanguageImpl antlrLanguageImpl = loadLanguage(spoofax, antlrLanguageFile);
-            ILanguageImpl minijavaLanguageImpl = loadLanguage(spoofax, minijavaLanguageFile);
+            final CLIUtils cli = new CLIUtils(spoofax);
+
+            FileObject antlrLanguageFile = spoofax.resourceService.resolve(args[0]);
+            if (!antlrLanguageFile.exists()) {
+                System.err.println("The provided ANTLRv4 .spoofax-language file does not exist.");
+                return;
+            }
+
+            FileObject grammarFile = spoofax.resourceService.resolve(args[1]);
+            if (!grammarFile.exists()) {
+                System.err.println("The provided ANTLRv4 grammar file does not exist.");
+                return;
+            }
+
+            FileObject minijavaLanguageFile = spoofax.resourceService.resolve(args[2]);
+            if (!minijavaLanguageFile.exists()) {
+                System.err.println("The provided MiniJava language file does not exist.");
+                return;
+            }
+
+            String antlrStartSymbol = args[3];
+            int maxSize = Integer.valueOf(args[4]);
+
+            ILanguageImpl antlrLanguageImpl = cli.loadLanguage(antlrLanguageFile);
+            ILanguageImpl minijavaLanguageImpl = cli.loadLanguage(minijavaLanguageFile);
 
             GrammarFactory grammarFactory = spoofax.injector.getInstance(GrammarFactory.class);
             Grammar grammar = grammarFactory.create(grammarFile, antlrLanguageImpl);

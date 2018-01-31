@@ -1,7 +1,8 @@
 package org.metaborg.spg.sentence.antlr.eclipse.job;
 
-import com.google.inject.Inject;
-import com.google.inject.assistedinject.Assisted;
+import java.io.IOException;
+import java.util.Optional;
+
 import org.antlr.v4.tool.Grammar;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
@@ -18,25 +19,23 @@ import org.metaborg.spg.sentence.generator.GeneratorFactory;
 import org.metaborg.spg.sentence.printer.Printer;
 import org.metaborg.spg.sentence.printer.PrinterFactory;
 import org.metaborg.spg.sentence.sdf3.GrammarFactory;
+import org.metaborg.spg.sentence.shared.utils.SpoofaxUtils;
 import org.metaborg.spg.sentence.shrinker.Shrinker;
 import org.metaborg.spg.sentence.shrinker.ShrinkerFactory;
 import org.metaborg.spg.sentence.signature.Signature;
 import org.metaborg.spg.sentence.signature.SignatureFactory;
+import org.metaborg.spoofax.core.SpoofaxConstants;
 import org.metaborg.spoofax.core.syntax.ISpoofaxSyntaxService;
 import org.metaborg.spoofax.core.syntax.JSGLRParserConfiguration;
 import org.metaborg.spoofax.core.unit.ISpoofaxUnitService;
 import org.metaborg.spoofax.eclipse.SpoofaxPlugin;
 import org.spoofax.interpreter.terms.IStrategoTerm;
 
-import java.io.IOException;
-import java.util.Optional;
-
-import static org.metaborg.spg.sentence.shared.utils.SpoofaxUtils.loadLanguage;
+import com.google.inject.Inject;
+import com.google.inject.assistedinject.Assisted;
 
 public class LiberalDifferenceJob extends DifferenceJob {
     private static final JSGLRParserConfiguration PARSER_CONFIG = new JSGLRParserConfiguration(true, false, false, 30000, Integer.MAX_VALUE);
-    // TODO: Make this part of the build (unpack to resources)
-    private static final String TEMPLATE_LANG = "/Users/martijn/Projects/spoofax-releng/sdf/org.metaborg.meta.lang.template/target/org.metaborg.meta.lang.template-2.4.0-SNAPSHOT.spoofax-language";
 
     private final PrinterFactory printerFactory;
     private final GeneratorFactory generatorFactory;
@@ -64,7 +63,7 @@ public class LiberalDifferenceJob extends DifferenceJob {
         this.signatureFactory = signatureFactory;
         this.shrinkerFactory = shrinkerFactory;
         this.config = config;
-        this.templateLanguage = loadLanguage(SpoofaxPlugin.spoofax(), TEMPLATE_LANG);
+        this.templateLanguage = SpoofaxUtils.getLanguage(SpoofaxPlugin.spoofax(), SpoofaxConstants.LANG_SDF3_NAME);
     }
 
     @Override

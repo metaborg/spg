@@ -1,9 +1,13 @@
 package org.metaborg.spg.sentence.antlr.grammar;
 
-import com.google.common.base.Charsets;
-import com.google.common.io.Files;
-import com.google.inject.Inject;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.apache.commons.vfs2.FileObject;
 import org.metaborg.core.language.ILanguageImpl;
+import org.metaborg.core.source.ISourceTextService;
 import org.metaborg.core.syntax.ParseException;
 import org.metaborg.spoofax.core.syntax.ISpoofaxSyntaxService;
 import org.metaborg.spoofax.core.unit.ISpoofaxInputUnit;
@@ -13,24 +17,23 @@ import org.spoofax.interpreter.terms.IStrategoAppl;
 import org.spoofax.interpreter.terms.IStrategoString;
 import org.spoofax.interpreter.terms.IStrategoTerm;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
+import com.google.inject.Inject;
 
 public class GrammarFactory {
     private final ISpoofaxUnitService unitService;
     private final ISpoofaxSyntaxService syntaxService;
+    private final ISourceTextService sourceTextService;
 
     @Inject
-    public GrammarFactory(ISpoofaxUnitService unitService, ISpoofaxSyntaxService syntaxService) {
+    public GrammarFactory(ISpoofaxUnitService unitService, ISpoofaxSyntaxService syntaxService,
+            ISourceTextService sourceTextService) {
         this.unitService = unitService;
         this.syntaxService = syntaxService;
+        this.sourceTextService = sourceTextService;
     }
 
-    public Grammar create(File file, ILanguageImpl languageImpl) throws IOException, ParseException {
-        String text = Files.toString(file, Charsets.UTF_8);
+    public Grammar create(FileObject file, ILanguageImpl languageImpl) throws IOException, ParseException {
+        String text = sourceTextService.text(file);
 
         return create(text, languageImpl);
     }
