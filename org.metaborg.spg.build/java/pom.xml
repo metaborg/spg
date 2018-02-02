@@ -14,8 +14,14 @@
   </parent>
 
   <modules>
+    <!-- Shared -->
     <module>../../org.metaborg.spg.sentence.shared</module>
+
+    <!-- SDF -->
     <module>../../org.metaborg.spg.sentence.sdf</module>
+
+    <!-- ANTLR -->
     <module>../../org.metaborg.spg.sentence.antlr</module>
+    <module>../../org.metaborg.spg.sentence.antlr.eclipse.externaldeps</module>
   </modules>
 </project>

@@ -20,7 +20,6 @@
 
     <!-- ANTLR -->
     <module>../../org.metaborg.spg.sentence.antlr.eclipse</module>
-    <module>../../org.metaborg.spg.sentence.antlr.eclipse.externaldeps</module>
     <module>../../org.metaborg.spg.sentence.antlr.eclipse.feature</module>
     <module>../../org.metaborg.spg.sentence.antlr.eclipse.site</module>
   </modules>
