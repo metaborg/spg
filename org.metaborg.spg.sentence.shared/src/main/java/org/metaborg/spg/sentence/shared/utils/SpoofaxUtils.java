@@ -1,48 +1,22 @@
 package org.metaborg.spg.sentence.shared.utils;
 
-import org.apache.commons.vfs2.FileObject;
-import org.metaborg.core.MetaborgException;
+import org.metaborg.core.MetaborgRuntimeException;
+import org.metaborg.core.language.ILanguage;
 import org.metaborg.core.language.ILanguageImpl;
-import org.metaborg.core.project.IProject;
-import org.metaborg.core.project.SimpleProjectService;
 import org.metaborg.spoofax.core.Spoofax;
 
-import java.io.File;
-
 public class SpoofaxUtils {
-    public static ILanguageImpl loadLanguage(Spoofax spoofax, String file) throws MetaborgException {
-        return loadLanguage(spoofax, new File(file));
-    }
-
-    public static ILanguageImpl loadLanguage(Spoofax spoofax, File file) throws MetaborgException {
-        FileObject languageLocation = spoofax.resourceService.resolve(file);
-
-        return spoofax.languageDiscoveryService.languageFromArchive(languageLocation);
-    }
 
     public static ILanguageImpl getLanguage(Spoofax spoofax, String name) {
-        ILanguageImpl language = spoofax.languageService.getLanguage(name).activeImpl();
-
-        if (language == null) {
-            throw new IllegalArgumentException("Cannot get language with naem " + name + ", it is not loaded.");
+        ILanguage language = spoofax.languageService.getLanguage(name);
+        if(language == null) {
+            throw new MetaborgRuntimeException("Language " + name + " not found.");
         }
-
-        return language;
-    }
-
-    public static IProject getOrCreateProject(Spoofax spoofax, String file) throws MetaborgException {
-        return getOrCreateProject(spoofax, new File(file));
-    }
-
-    public static IProject getOrCreateProject(Spoofax spoofax, File file) throws MetaborgException {
-        SimpleProjectService simpleProjectService = spoofax.injector.getInstance(SimpleProjectService.class);
-        FileObject resource = spoofax.resourceService.resolve(file);
-        IProject project = simpleProjectService.get(resource);
-
-        if (project == null) {
-            return simpleProjectService.create(resource);
-        } else {
-            return project;
+        ILanguageImpl impl = language.activeImpl();
+        if(impl == null) {
+            throw new MetaborgRuntimeException("Language " + name + " has no active implementation.");
         }
+        return impl;
     }
+
 }

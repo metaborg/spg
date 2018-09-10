@@ -4,8 +4,8 @@ Bundle-Name: Generator
 Bundle-ActivationPolicy: lazy
 Bundle-Activator: org.metaborg.spg.sentence.sdf.eclipse.Activator
 Bundle-SymbolicName: org.metaborg.spg.sentence.sdf.eclipse;singleton:=true
-Bundle-Version: 2.4.1
-Bundle-Vendor: metaborg.org
+Bundle-Version: 2.5.0.qualifier
+Bundle-Vendor: org.metaborg
 Require-Bundle: org.metaborg.spoofax.eclipse.externaldeps,
  org.metaborg.spg.sentence.shared,
  org.metaborg.spoofax.eclipse,

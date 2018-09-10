@@ -1,27 +1,35 @@
 package org.metaborg.spg.sentence.sdf.eclipse.job;
 
-import com.google.inject.Inject;
-import com.google.inject.assistedinject.Assisted;
-import org.eclipse.core.runtime.*;
+import static org.metaborg.spg.sentence.shared.utils.SpoofaxUtils.getLanguage;
+
+import java.text.NumberFormat;
+import java.util.Locale;
+
+import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.OperationCanceledException;
+import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.SubMonitor;
 import org.metaborg.core.MetaborgException;
 import org.metaborg.core.language.ILanguageImpl;
 import org.metaborg.core.project.IProject;
-import org.metaborg.spg.sentence.ambiguity.*;
+import org.metaborg.spg.sentence.ambiguity.StatisticsTesterProgress;
+import org.metaborg.spg.sentence.ambiguity.Tester;
+import org.metaborg.spg.sentence.ambiguity.TesterCancelledException;
+import org.metaborg.spg.sentence.ambiguity.TesterConfig;
+import org.metaborg.spg.sentence.ambiguity.TesterFactory;
 import org.metaborg.spg.sentence.ambiguity.result.FindResult;
 import org.metaborg.spg.sentence.ambiguity.result.ShrinkResult;
 import org.metaborg.spg.sentence.ambiguity.result.TestResult;
 import org.metaborg.spg.sentence.sdf.eclipse.Activator;
 import org.metaborg.spg.sentence.statistics.Histogram;
+import org.metaborg.spoofax.core.SpoofaxConstants;
 import org.metaborg.spoofax.eclipse.SpoofaxPlugin;
 
-import java.text.NumberFormat;
-import java.util.Locale;
-
-import static org.metaborg.spg.sentence.shared.utils.SpoofaxUtils.getLanguage;
-import static org.metaborg.spg.sentence.shared.utils.SpoofaxUtils.loadLanguage;
+import com.google.inject.Inject;
+import com.google.inject.assistedinject.Assisted;
 
 public class AmbiguityJob extends SentenceJob {
-    private static final String TEMPLATE_LANG = "TemplateLang";
     private static final NumberFormat numberFormat = NumberFormat.getNumberInstance(Locale.US);
 
     private final TesterFactory testerFactory;
@@ -42,7 +50,7 @@ public class AmbiguityJob extends SentenceJob {
         this.config = config;
         this.project = project;
         this.language = language;
-        this.templateLanguage = getLanguage(SpoofaxPlugin.spoofax(), TEMPLATE_LANG);
+        this.templateLanguage = getLanguage(SpoofaxPlugin.spoofax(), SpoofaxConstants.LANG_SDF3_NAME);
     }
 
     @Override
