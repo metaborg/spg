@@ -6,7 +6,7 @@ import org.metaborg.core.language.ILanguageImpl;
 import org.metaborg.core.project.IProject;
 import org.metaborg.core.resource.IResourceService;
 import org.metaborg.sdf2table.grammar.NormGrammar;
-import org.metaborg.sdf2table.io.GrammarReader;
+import org.metaborg.sdf2table.io.NormGrammarReader;
 import org.metaborg.spg.sentence.random.IRandom;
 import org.metaborg.spg.sentence.terms.GeneratorTermFactory;
 import org.metaborg.spoofax.core.build.SpoofaxCommonPaths;
@@ -34,7 +34,7 @@ public class GeneratorFactory {
         File syntaxMainFile = getSyntaxMainFile(spoofaxCommonPaths, language);
         List<String> syntaxPath = getSyntaxPath(spoofaxCommonPaths);
         
-        GrammarReader grammarReader = new GrammarReader(syntaxPath);
+        NormGrammarReader grammarReader = new NormGrammarReader(syntaxPath);
         NormGrammar grammar = grammarReader.readGrammar(syntaxMainFile);
 
         String startSymbol = getStartSymbol(language);
