@@ -12,7 +12,7 @@ import java.util.stream.Stream;
 
 import org.metaborg.sdf2table.grammar.CharacterClass;
 import org.metaborg.sdf2table.grammar.Symbol;
-import org.metaborg.sdf2table.io.ParseTableGenerator;
+import org.metaborg.sdf2table.io.ParseTableIO;
 
 public class SymbolUtils {
     public static Symbol toPrintable(CharacterClass characterClassConc) {
@@ -30,7 +30,7 @@ public class SymbolUtils {
         } else if(symbols.size() == 1) {
             CharacterClass characterClass = (CharacterClass) symbols.get(0);
 
-            return of(new CharacterClass(ParseTableGenerator.getCharacterClassFactory().fromRange(
+            return of(new CharacterClass(ParseTableIO.getCharacterClassFactory().fromRange(
                 Math.max(MINIMUM_PRINTABLE, characterClass.min()), Math.min(MAXIMUM_PRINTABLE, characterClass.max()))));
         } else {
             Symbol head = symbols.get(0);
@@ -150,7 +150,7 @@ public class SymbolUtils {
     }
 
     private static Symbol range(int min, int max) {
-        return new CharacterClass(ParseTableGenerator.getCharacterClassFactory().fromRange(min, max));
+        return new CharacterClass(ParseTableIO.getCharacterClassFactory().fromRange(min, max));
     }
 
     private static <T> List<T> tail(List<T> list) {
