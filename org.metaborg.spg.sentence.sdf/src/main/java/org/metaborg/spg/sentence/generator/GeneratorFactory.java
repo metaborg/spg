@@ -6,13 +6,11 @@ import org.metaborg.core.language.ILanguageImpl;
 import org.metaborg.core.project.IProject;
 import org.metaborg.core.resource.IResourceService;
 import org.metaborg.sdf2table.grammar.NormGrammar;
-import org.metaborg.sdf2table.io.GrammarReader;
+import org.metaborg.sdf2table.io.NormGrammarReader;
 import org.metaborg.spg.sentence.random.IRandom;
 import org.metaborg.spg.sentence.terms.GeneratorTermFactory;
 import org.metaborg.spoofax.core.build.SpoofaxCommonPaths;
 import org.metaborg.spoofax.core.syntax.SyntaxFacet;
-import org.metaborg.spoofax.core.terms.ITermFactoryService;
-import org.spoofax.interpreter.terms.ITermFactory;
 
 import java.io.File;
 import java.util.Collections;
@@ -31,12 +29,13 @@ public class GeneratorFactory {
     }
 
     public Generator create(ILanguageImpl language, IProject project) throws Exception {
-        GrammarReader grammarReader = new GrammarReader();
         SpoofaxCommonPaths spoofaxCommonPaths = new SpoofaxCommonPaths(project.location());
 
         File syntaxMainFile = getSyntaxMainFile(spoofaxCommonPaths, language);
         List<String> syntaxPath = getSyntaxPath(spoofaxCommonPaths);
-        NormGrammar grammar = grammarReader.readGrammar(syntaxMainFile, syntaxPath);
+        
+        NormGrammarReader grammarReader = new NormGrammarReader(syntaxPath);
+        NormGrammar grammar = grammarReader.readGrammar(syntaxMainFile);
 
         String startSymbol = getStartSymbol(language);
 
