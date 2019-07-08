@@ -3,10 +3,12 @@ package org.metaborg.spg.sentence.generator;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.inject.Inject;
+import org.metaborg.characterclasses.CharacterClassFactory;
+import org.metaborg.parsetable.characterclasses.ICharacterClass;
 import org.metaborg.sdf2table.grammar.*;
+import org.metaborg.sdf2table.io.ParseTableIO;
 import org.metaborg.spg.sentence.random.IRandom;
 import org.metaborg.spg.sentence.terms.GeneratorTermFactory;
-import org.metaborg.spg.sentence.utils.SymbolUtils;
 import org.spoofax.interpreter.terms.IStrategoList;
 import org.spoofax.interpreter.terms.IStrategoTerm;
 
@@ -128,8 +130,8 @@ public class Generator {
     }
 
     public String generateLex(Symbol symbol) {
-        if(symbol instanceof CharacterClass) {
-            return generateCharacterClass(((CharacterClass) symbol));
+        if(symbol instanceof CharacterClassSymbol) {
+            return generateCharacterClass(((CharacterClassSymbol) symbol));
         } else if(symbol instanceof LexicalSymbol || symbol instanceof Sort) {
             return generateLexicalSymbol(symbol);
         }
@@ -137,43 +139,22 @@ public class Generator {
         throw new IllegalStateException("Unknown symbol: " + symbol);
     }
 
-    public String generateCharacterClass(CharacterClass characterClassConc) {
-        Symbol printableCharacters = SymbolUtils.toPrintable(characterClassConc);
-        // FIXME reimplement this according to the new character class representation
-        
-        
-        // if (printableCharacters instanceof CharacterClassNumeric) {
-        // return generateCharacterClassNumeric((CharacterClassNumeric) printableCharacters);
-        // } else if (printableCharacters instanceof CharacterClassRange) {
-        // return generateCharacterClassRange((CharacterClassRange) printableCharacters);
-        // } else if (printableCharacters instanceof CharacterClassConc) {
-        // int characterClassSize = SymbolUtils.size(printableCharacters);
-        // int randomCharacter = random.fromRange(characterClassSize);
-        //
-        // return String.valueOf(SymbolUtils.get(printableCharacters, randomCharacter));
-        // }
+    public String generateCharacterClass(CharacterClassSymbol characterClassSymbol) {
+        ICharacterClass printableRange = characterClassSymbol.getCC()
+            .intersection(ParseTableIO.getCharacterClassFactory().fromRange(MINIMUM_PRINTABLE, MAXIMUM_PRINTABLE));
 
-        throw new IllegalStateException("Unknown symbol: " + printableCharacters);
+        List<Integer> list = new ArrayList<>(MAXIMUM_PRINTABLE);
+        for(int i = MINIMUM_PRINTABLE; i <= MAXIMUM_PRINTABLE; i++) {
+            if(printableRange.contains(i)) {
+                list.add(i);
+            }
+        }
+
+        if(list.size() == 0)
+            return "";
+
+        return CharacterClassFactory.intToString(random.fromList(list));
     }
-
-    // public String generateCharacterClassRange(CharacterClassRange characterClassRange) {
-    // int minimumPrintable = Math.max(characterClassRange.minimum(), MINIMUM_PRINTABLE);
-    // int maximumPrintable = Math.min(characterClassRange.maximum(), MAXIMUM_PRINTABLE);
-    //
-    // int range = maximumPrintable - minimumPrintable + 1;
-    //
-    // if (range > 0) {
-    // char character = (char) (minimumPrintable + random.fromRange(range));
-    //
-    // return String.valueOf(character);
-    // } else {
-    // return "";
-    // }
-    // }
-    //
-    // public String generateCharacterClassNumeric(CharacterClassNumeric characterClassNumeric) {
-    // return String.valueOf(Character.toChars(characterClassNumeric.getCharacter()));
-    // }
 
     public String generateLexicalSymbol(Symbol symbol) {
         List<IProduction> productions = productionsMap.get(symbol);
