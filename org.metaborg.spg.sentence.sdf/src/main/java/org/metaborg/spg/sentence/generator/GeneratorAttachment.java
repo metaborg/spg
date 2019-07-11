@@ -1,6 +1,6 @@
 package org.metaborg.spg.sentence.generator;
 
-import org.metaborg.sdf2table.grammar.Symbol;
+import org.metaborg.parsetable.grammar.ISymbol;
 import org.spoofax.interpreter.terms.IStrategoTerm;
 import org.spoofax.interpreter.terms.ITermFactory;
 import org.spoofax.terms.attachments.AbstractTermAttachment;
@@ -19,13 +19,13 @@ public class GeneratorAttachment extends AbstractTermAttachment {
         }
     };
 
-    private final Symbol symbol;
+    private final ISymbol symbol;
 
-    public GeneratorAttachment(Symbol symbol) {
+    public GeneratorAttachment(ISymbol symbol) {
         this.symbol = symbol;
     }
 
-    public Symbol getSymbol() {
+    public ISymbol getSymbol() {
         return symbol;
     }
 

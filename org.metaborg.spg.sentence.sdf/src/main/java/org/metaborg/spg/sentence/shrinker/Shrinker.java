@@ -1,16 +1,12 @@
 package org.metaborg.spg.sentence.shrinker;
 
-import org.apache.commons.lang3.ArrayUtils;
-import org.metaborg.sdf2table.grammar.*;
-import org.metaborg.spg.sentence.generator.Generator;
-import org.metaborg.spg.sentence.generator.GeneratorAttachment;
-import org.metaborg.spg.sentence.random.IRandom;
-import org.metaborg.spg.sentence.signature.Signature;
-import org.metaborg.spg.sentence.signature.Sort;
-import org.metaborg.spg.sentence.terms.GeneratorTermFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.spoofax.interpreter.terms.*;
+import static java.util.stream.Stream.concat;
+import static java.util.stream.Stream.empty;
+import static java.util.stream.Stream.of;
+import static org.metaborg.spg.sentence.shared.stream.FlatMappingSpliterator.flatMap;
+import static org.metaborg.spg.sentence.shared.utils.StreamUtils.cons;
+import static org.metaborg.spg.sentence.shared.utils.StreamUtils.o2s;
+import static org.metaborg.spg.sentence.shared.utils.StreamUtils.zipWith;
 
 import java.util.Arrays;
 import java.util.List;
@@ -20,9 +16,26 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static java.util.stream.Stream.*;
-import static org.metaborg.spg.sentence.shared.stream.FlatMappingSpliterator.flatMap;
-import static org.metaborg.spg.sentence.shared.utils.StreamUtils.*;
+import org.apache.commons.lang3.ArrayUtils;
+import org.metaborg.parsetable.grammar.ISymbol;
+import org.metaborg.sdf2table.grammar.ContextFreeSymbol;
+import org.metaborg.sdf2table.grammar.IterStarSymbol;
+import org.metaborg.sdf2table.grammar.IterSymbol;
+import org.metaborg.sdf2table.grammar.LexicalSymbol;
+import org.metaborg.sdf2table.grammar.OptionalSymbol;
+import org.metaborg.sdf2table.grammar.Symbol;
+import org.metaborg.spg.sentence.generator.Generator;
+import org.metaborg.spg.sentence.generator.GeneratorAttachment;
+import org.metaborg.spg.sentence.random.IRandom;
+import org.metaborg.spg.sentence.signature.Signature;
+import org.metaborg.spg.sentence.signature.Sort;
+import org.metaborg.spg.sentence.terms.GeneratorTermFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.spoofax.interpreter.terms.IStrategoAppl;
+import org.spoofax.interpreter.terms.IStrategoList;
+import org.spoofax.interpreter.terms.IStrategoString;
+import org.spoofax.interpreter.terms.IStrategoTerm;
 
 public class Shrinker {
     private static final Logger logger = LoggerFactory.getLogger(Shrinker.class);
@@ -62,7 +75,7 @@ public class Shrinker {
     private Stream<IStrategoTerm> shrinkGenerate(IStrategoTerm haystack, IStrategoTerm needle) {
         logger.trace("Shrink generate: " + needle);
 
-        Symbol symbol = getSymbol(needle);
+        ISymbol symbol = getSymbol(needle);
 
         Optional<IStrategoTerm> generatedTermOpt = generator
                 .generateSymbol(symbol, size(needle) - 1);
@@ -86,7 +99,7 @@ public class Shrinker {
     }
 
     private boolean isEmptyAllowed(IStrategoList list) {
-        Symbol symbol = getSymbol(list);
+        ISymbol symbol = getSymbol(list);
 
         if (symbol instanceof IterSymbol) {
             return false;
@@ -126,7 +139,7 @@ public class Shrinker {
         return getSort(getSymbol(term));
     }
 
-    private Sort getSort(Symbol symbol) {
+    private Sort getSort(ISymbol symbol) {
         if (symbol instanceof org.metaborg.sdf2table.grammar.Sort) {
             org.metaborg.sdf2table.grammar.Sort sort = (org.metaborg.sdf2table.grammar.Sort) symbol;
 
@@ -154,7 +167,7 @@ public class Shrinker {
         throw new IllegalArgumentException("Unable to convert symbol " + symbol + " to a sort.");
     }
 
-    private Symbol getSymbol(IStrategoTerm term) {
+    private ISymbol getSymbol(IStrategoTerm term) {
         GeneratorAttachment generatorAttachment = term.getAttachment(GeneratorAttachment.TYPE);
 
         return generatorAttachment.getSymbol();

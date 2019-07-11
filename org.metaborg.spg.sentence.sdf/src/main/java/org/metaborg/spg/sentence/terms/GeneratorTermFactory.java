@@ -1,14 +1,20 @@
 package org.metaborg.spg.sentence.terms;
 
-import org.metaborg.sdf2table.grammar.Symbol;
-import org.metaborg.spg.sentence.generator.GeneratorAttachment;
-import org.spoofax.interpreter.terms.*;
-import org.spoofax.terms.StrategoConstructor;
-import org.spoofax.terms.attachments.AbstractWrappedTermFactory;
+import static org.spoofax.interpreter.terms.IStrategoTerm.MUTABLE;
 
 import java.util.List;
 
-import static org.spoofax.interpreter.terms.IStrategoTerm.MUTABLE;
+import org.metaborg.parsetable.grammar.ISymbol;
+import org.metaborg.sdf2table.grammar.Symbol;
+import org.metaborg.spg.sentence.generator.GeneratorAttachment;
+import org.spoofax.interpreter.terms.IStrategoAppl;
+import org.spoofax.interpreter.terms.IStrategoConstructor;
+import org.spoofax.interpreter.terms.IStrategoList;
+import org.spoofax.interpreter.terms.IStrategoString;
+import org.spoofax.interpreter.terms.IStrategoTerm;
+import org.spoofax.interpreter.terms.ITermFactory;
+import org.spoofax.terms.StrategoConstructor;
+import org.spoofax.terms.attachments.AbstractWrappedTermFactory;
 
 public class GeneratorTermFactory extends AbstractWrappedTermFactory {
     private final ITermFactory baseFactory;
@@ -19,7 +25,7 @@ public class GeneratorTermFactory extends AbstractWrappedTermFactory {
         this.baseFactory = baseFactory;
     }
 
-    public IStrategoString makeString(Symbol symbol, String text) {
+    public IStrategoString makeString(ISymbol symbol, String text) {
         IStrategoString string = baseFactory.makeString(text);
         string.putAttachment(new GeneratorAttachment(symbol));
 
@@ -40,7 +46,7 @@ public class GeneratorTermFactory extends AbstractWrappedTermFactory {
         return appl;
     }
 
-    public IStrategoAppl makeAppl(Symbol symbol, String constructorName, List<IStrategoTerm> children) {
+    public IStrategoAppl makeAppl(ISymbol symbol, String constructorName, List<IStrategoTerm> children) {
         IStrategoTerm[] terms = new IStrategoTerm[children.size()];
         IStrategoAppl appl = makeAppl(constructorName, children.toArray(terms), symbol);
         appl.putAttachment(new GeneratorAttachment(symbol));
@@ -48,7 +54,7 @@ public class GeneratorTermFactory extends AbstractWrappedTermFactory {
         return appl;
     }
 
-    public IStrategoAppl makeAppl(String constructorName, IStrategoTerm[] children, Symbol symbol) {
+    public IStrategoAppl makeAppl(String constructorName, IStrategoTerm[] children, ISymbol symbol) {
         IStrategoConstructor constructor = new StrategoConstructor(constructorName, children.length);
         IStrategoAppl appl = baseFactory.makeAppl(constructor, children, null);
         appl.putAttachment(new GeneratorAttachment(symbol));
