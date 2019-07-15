@@ -3,7 +3,7 @@ package org.metaborg.spg.sentence.generator;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.inject.Inject;
-import org.metaborg.characterclasses.CharacterClassFactory;
+import org.metaborg.parsetable.characterclasses.CharacterClassFactory;
 import org.metaborg.parsetable.characterclasses.ICharacterClass;
 import org.metaborg.sdf2table.grammar.*;
 import org.metaborg.sdf2table.io.ParseTableIO;
