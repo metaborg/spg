@@ -1,6 +1,6 @@
 package org.metaborg.spg.sentence.generator;
 
-import org.metaborg.parsetable.grammar.ISymbol;
+import org.metaborg.sdf2table.grammar.ISymbol;
 import org.spoofax.interpreter.terms.IStrategoTerm;
 import org.spoofax.interpreter.terms.ITermFactory;
 import org.spoofax.terms.attachments.AbstractTermAttachment;

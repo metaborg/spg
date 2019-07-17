@@ -4,7 +4,7 @@ import static org.spoofax.interpreter.terms.IStrategoTerm.MUTABLE;
 
 import java.util.List;
 
-import org.metaborg.parsetable.grammar.ISymbol;
+import org.metaborg.sdf2table.grammar.ISymbol;
 import org.metaborg.sdf2table.grammar.Symbol;
 import org.metaborg.spg.sentence.generator.GeneratorAttachment;
 import org.spoofax.interpreter.terms.IStrategoAppl;
