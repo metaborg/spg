@@ -8,19 +8,17 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ListMultimap;
-import com.google.inject.Inject;
 import org.metaborg.parsetable.characterclasses.CharacterClassFactory;
 import org.metaborg.parsetable.characterclasses.ICharacterClass;
-import org.metaborg.sdf2table.grammar.IAttribute;
-import org.metaborg.sdf2table.grammar.IProduction;
-import org.metaborg.sdf2table.grammar.ISymbol;
 import org.metaborg.sdf2table.grammar.CharacterClassSymbol;
 import org.metaborg.sdf2table.grammar.ConstructorAttribute;
 import org.metaborg.sdf2table.grammar.ContextFreeSymbol;
 import org.metaborg.sdf2table.grammar.FileStartSymbol;
 import org.metaborg.sdf2table.grammar.GeneralAttribute;
+import org.metaborg.sdf2table.grammar.GrammarFactory;
+import org.metaborg.sdf2table.grammar.IAttribute;
+import org.metaborg.sdf2table.grammar.IProduction;
+import org.metaborg.sdf2table.grammar.ISymbol;
 import org.metaborg.sdf2table.grammar.IterSepSymbol;
 import org.metaborg.sdf2table.grammar.IterStarSepSymbol;
 import org.metaborg.sdf2table.grammar.IterStarSymbol;
@@ -51,6 +49,7 @@ public class Generator {
     private final String startSymbol;
     private final NormGrammar grammar;
     private final ListMultimap<ISymbol, IProduction> productionsMap;
+    private final GrammarFactory gf;
 
     @Inject public Generator(GeneratorTermFactory termFactory, IRandom random, String startSymbol,
         NormGrammar grammar) {
@@ -58,14 +57,14 @@ public class Generator {
         this.random = random;
         this.startSymbol = startSymbol;
         this.grammar = grammar;
+        this.gf = new GrammarFactory();
 
         Collection<IProduction> productions = retainRealProductions(grammar.getCacheProductionsRead().values());
         this.productionsMap = createProductionMap(productions);
     }
 
     public Optional<IStrategoTerm> generate(int size) {
-        ContextFreeSymbol symbol = new ContextFreeSymbol(new Sort(startSymbol));
-
+        ContextFreeSymbol symbol = gf.createContextFreeSymbol(gf.createSort(startSymbol));
         return generateSymbol(symbol, size);
     }
 
@@ -82,15 +81,15 @@ public class Generator {
             Symbol innerSymbol = ((ContextFreeSymbol) symbol).getSymbol();
 
             if(innerSymbol instanceof IterSymbol) {
-                return generateIter(new ContextFreeSymbol(((IterSymbol) innerSymbol).getSymbol()), size);
+                return generateIter(gf.createContextFreeSymbol(((IterSymbol) innerSymbol).getSymbol()), size);
             } else if(innerSymbol instanceof IterSepSymbol) {
-                return generateIter(new ContextFreeSymbol(((IterSepSymbol) innerSymbol).getSymbol()), size);
+                return generateIter(gf.createContextFreeSymbol(((IterSepSymbol) innerSymbol).getSymbol()), size);
             } else if(innerSymbol instanceof IterStarSymbol) {
-                return generateIterStar(new ContextFreeSymbol(((IterStarSymbol) innerSymbol).getSymbol()), size);
+                return generateIterStar(gf.createContextFreeSymbol(((IterStarSymbol) innerSymbol).getSymbol()), size);
             } else if(innerSymbol instanceof IterStarSepSymbol) {
-                return generateIterStar(new ContextFreeSymbol(((IterStarSepSymbol) innerSymbol).getSymbol()), size);
+                return generateIterStar(gf.createContextFreeSymbol(((IterStarSepSymbol) innerSymbol).getSymbol()), size);
             } else if(innerSymbol instanceof OptionalSymbol) {
-                return generateOptional(new ContextFreeSymbol(((OptionalSymbol) innerSymbol).getSymbol()), size);
+                return generateOptional(gf.createContextFreeSymbol(((OptionalSymbol) innerSymbol).getSymbol()), size);
             } else if(innerSymbol instanceof Sort) {
                 return generateCf(symbol, size);
             }
@@ -102,7 +101,7 @@ public class Generator {
     }
 
     private Optional<IStrategoTerm> generateIterStar(Symbol symbol, int size) {
-        IterStarSymbol iterStarSymbol = new IterStarSymbol(symbol);
+        IterStarSymbol iterStarSymbol = gf.createIterStarSymbol(symbol);
 
         if(random.flip()) {
             return Optional.of(termFactory.makeList(iterStarSymbol));
@@ -126,7 +125,7 @@ public class Generator {
     }
 
     private Optional<IStrategoTerm> generateIter(Symbol symbol, int size) {
-        IterSymbol iterSymbol = new IterSymbol(symbol);
+        IterSymbol iterSymbol = gf.createIterSymbol(symbol);
         Optional<IStrategoTerm> headOpt = generateSymbol(symbol, size / 2);
 
         if(headOpt.isPresent()) {
@@ -144,7 +143,7 @@ public class Generator {
     }
 
     private Optional<IStrategoTerm> generateOptional(Symbol symbol, int size) {
-        OptionalSymbol optionalSymbol = new OptionalSymbol(symbol);
+        OptionalSymbol optionalSymbol = gf.createOptionalSymbol(symbol);
 
         if(random.flip()) {
             return Optional.of(termFactory.makeNone(optionalSymbol));
