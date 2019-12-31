@@ -1,7 +1,5 @@
 package org.metaborg.spg.sentence.terms;
 
-import static org.spoofax.interpreter.terms.IStrategoTerm.MUTABLE;
-
 import java.util.List;
 
 import org.metaborg.sdf2table.grammar.ISymbol;
@@ -20,7 +18,7 @@ public class GeneratorTermFactory extends AbstractWrappedTermFactory {
     private final ITermFactory baseFactory;
 
     public GeneratorTermFactory(ITermFactory baseFactory) {
-        super(MUTABLE, baseFactory);
+        super(baseFactory);
 
         this.baseFactory = baseFactory;
     }
@@ -81,7 +79,8 @@ public class GeneratorTermFactory extends AbstractWrappedTermFactory {
     }
 
     @Override
-    public IStrategoAppl replaceAppl(IStrategoConstructor constructor, IStrategoTerm[] children, IStrategoAppl oldAppl) {
+    public IStrategoAppl replaceAppl(IStrategoConstructor constructor, IStrategoTerm[] children,
+        IStrategoAppl oldAppl) {
         IStrategoAppl newAppl = baseFactory.replaceAppl(constructor, children, oldAppl);
 
         return (IStrategoAppl) baseFactory.copyAttachments(oldAppl, newAppl);
@@ -92,10 +91,5 @@ public class GeneratorTermFactory extends AbstractWrappedTermFactory {
         IStrategoList newList = baseFactory.replaceList(children, oldList);
 
         return (IStrategoList) baseFactory.copyAttachments(oldList, newList);
-    }
-
-    @Override
-    public ITermFactory getFactoryWithStorageType(int storageType) {
-        return null;
     }
 }
