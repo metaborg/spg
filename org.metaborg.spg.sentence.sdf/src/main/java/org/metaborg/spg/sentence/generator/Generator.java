@@ -1,35 +1,12 @@
 package org.metaborg.spg.sentence.generator;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.metaborg.parsetable.characterclasses.CharacterClassFactory;
 import org.metaborg.parsetable.characterclasses.ICharacterClass;
-import org.metaborg.sdf2table.grammar.CharacterClassSymbol;
-import org.metaborg.sdf2table.grammar.ConstructorAttribute;
-import org.metaborg.sdf2table.grammar.ContextFreeSymbol;
-import org.metaborg.sdf2table.grammar.FileStartSymbol;
-import org.metaborg.sdf2table.grammar.GeneralAttribute;
-import org.metaborg.sdf2table.grammar.GrammarFactory;
-import org.metaborg.sdf2table.grammar.IAttribute;
-import org.metaborg.sdf2table.grammar.IProduction;
-import org.metaborg.sdf2table.grammar.ISymbol;
-import org.metaborg.sdf2table.grammar.IterSepSymbol;
-import org.metaborg.sdf2table.grammar.IterStarSepSymbol;
-import org.metaborg.sdf2table.grammar.IterStarSymbol;
-import org.metaborg.sdf2table.grammar.IterSymbol;
-import org.metaborg.sdf2table.grammar.LexicalSymbol;
-import org.metaborg.sdf2table.grammar.NormGrammar;
-import org.metaborg.sdf2table.grammar.OptionalSymbol;
-import org.metaborg.sdf2table.grammar.Production;
-import org.metaborg.sdf2table.grammar.Sort;
-import org.metaborg.sdf2table.grammar.StartSymbol;
-import org.metaborg.sdf2table.grammar.Symbol;
+import org.metaborg.sdf2table.grammar.*;
 import org.metaborg.sdf2table.io.ParseTableIO;
 import org.metaborg.spg.sentence.random.IRandom;
 import org.metaborg.spg.sentence.terms.GeneratorTermFactory;
@@ -263,6 +240,7 @@ public class Generator {
         return symbol instanceof ContextFreeSymbol
             || symbol instanceof FileStartSymbol
             || symbol instanceof StartSymbol
+            || symbol instanceof EOFSymbol
             || symbol instanceof LexicalSymbol;
         // @formatter:on
     }
