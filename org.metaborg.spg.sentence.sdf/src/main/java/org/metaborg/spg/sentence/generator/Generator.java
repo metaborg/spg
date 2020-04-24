@@ -1,18 +1,21 @@
 package org.metaborg.spg.sentence.generator;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ListMultimap;
-import com.google.inject.Inject;
-import org.metaborg.sdf2table.grammar.*;
-import org.metaborg.spg.sentence.random.IRandom;
-import org.metaborg.spg.sentence.terms.GeneratorTermFactory;
-import org.metaborg.spg.sentence.utils.SymbolUtils;
-import org.spoofax.interpreter.terms.IStrategoList;
-import org.spoofax.interpreter.terms.IStrategoTerm;
-
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+
+import org.metaborg.parsetable.characterclasses.CharacterClassFactory;
+import org.metaborg.parsetable.characterclasses.ICharacterClass;
+import org.metaborg.sdf2table.grammar.*;
+import org.metaborg.sdf2table.io.ParseTableIO;
+import org.metaborg.spg.sentence.random.IRandom;
+import org.metaborg.spg.sentence.terms.GeneratorTermFactory;
+import org.spoofax.interpreter.terms.IStrategoList;
+import org.spoofax.interpreter.terms.IStrategoTerm;
+
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ListMultimap;
+import com.google.inject.Inject;
 
 public class Generator {
     public static final int MINIMUM_PRINTABLE = 32;
@@ -22,7 +25,8 @@ public class Generator {
     private final IRandom random;
     private final String startSymbol;
     private final NormGrammar grammar;
-    private final ListMultimap<Symbol, IProduction> productionsMap;
+    private final ListMultimap<ISymbol, IProduction> productionsMap;
+    private final GrammarFactory gf;
 
     @Inject public Generator(GeneratorTermFactory termFactory, IRandom random, String startSymbol,
         NormGrammar grammar) {
@@ -30,18 +34,18 @@ public class Generator {
         this.random = random;
         this.startSymbol = startSymbol;
         this.grammar = grammar;
+        this.gf = new GrammarFactory();
 
         Collection<IProduction> productions = retainRealProductions(grammar.getCacheProductionsRead().values());
         this.productionsMap = createProductionMap(productions);
     }
 
     public Optional<IStrategoTerm> generate(int size) {
-        ContextFreeSymbol symbol = new ContextFreeSymbol(new Sort(startSymbol));
-
+        ContextFreeSymbol symbol = gf.createContextFreeSymbol(gf.createSort(startSymbol));
         return generateSymbol(symbol, size);
     }
 
-    public Optional<IStrategoTerm> generateSymbol(Symbol symbol, int size) {
+    public Optional<IStrategoTerm> generateSymbol(ISymbol symbol, int size) {
         if(size <= 0) {
             return Optional.empty();
         }
@@ -54,15 +58,15 @@ public class Generator {
             Symbol innerSymbol = ((ContextFreeSymbol) symbol).getSymbol();
 
             if(innerSymbol instanceof IterSymbol) {
-                return generateIter(new ContextFreeSymbol(((IterSymbol) innerSymbol).getSymbol()), size);
+                return generateIter(gf.createContextFreeSymbol(((IterSymbol) innerSymbol).getSymbol()), size);
             } else if(innerSymbol instanceof IterSepSymbol) {
-                return generateIter(new ContextFreeSymbol(((IterSepSymbol) innerSymbol).getSymbol()), size);
+                return generateIter(gf.createContextFreeSymbol(((IterSepSymbol) innerSymbol).getSymbol()), size);
             } else if(innerSymbol instanceof IterStarSymbol) {
-                return generateIterStar(new ContextFreeSymbol(((IterStarSymbol) innerSymbol).getSymbol()), size);
+                return generateIterStar(gf.createContextFreeSymbol(((IterStarSymbol) innerSymbol).getSymbol()), size);
             } else if(innerSymbol instanceof IterStarSepSymbol) {
-                return generateIterStar(new ContextFreeSymbol(((IterStarSepSymbol) innerSymbol).getSymbol()), size);
+                return generateIterStar(gf.createContextFreeSymbol(((IterStarSepSymbol) innerSymbol).getSymbol()), size);
             } else if(innerSymbol instanceof OptionalSymbol) {
-                return generateOptional(new ContextFreeSymbol(((OptionalSymbol) innerSymbol).getSymbol()), size);
+                return generateOptional(gf.createContextFreeSymbol(((OptionalSymbol) innerSymbol).getSymbol()), size);
             } else if(innerSymbol instanceof Sort) {
                 return generateCf(symbol, size);
             }
@@ -74,7 +78,7 @@ public class Generator {
     }
 
     private Optional<IStrategoTerm> generateIterStar(Symbol symbol, int size) {
-        IterStarSymbol iterStarSymbol = new IterStarSymbol(symbol);
+        IterStarSymbol iterStarSymbol = gf.createIterStarSymbol(symbol);
 
         if(random.flip()) {
             return Optional.of(termFactory.makeList(iterStarSymbol));
@@ -98,7 +102,7 @@ public class Generator {
     }
 
     private Optional<IStrategoTerm> generateIter(Symbol symbol, int size) {
-        IterSymbol iterSymbol = new IterSymbol(symbol);
+        IterSymbol iterSymbol = gf.createIterSymbol(symbol);
         Optional<IStrategoTerm> headOpt = generateSymbol(symbol, size / 2);
 
         if(headOpt.isPresent()) {
@@ -116,7 +120,7 @@ public class Generator {
     }
 
     private Optional<IStrategoTerm> generateOptional(Symbol symbol, int size) {
-        OptionalSymbol optionalSymbol = new OptionalSymbol(symbol);
+        OptionalSymbol optionalSymbol = gf.createOptionalSymbol(symbol);
 
         if(random.flip()) {
             return Optional.of(termFactory.makeNone(optionalSymbol));
@@ -127,9 +131,9 @@ public class Generator {
         }
     }
 
-    public String generateLex(Symbol symbol) {
-        if(symbol instanceof CharacterClass) {
-            return generateCharacterClass(((CharacterClass) symbol));
+    public String generateLex(ISymbol symbol) {
+        if(symbol instanceof CharacterClassSymbol) {
+            return generateCharacterClass(((CharacterClassSymbol) symbol));
         } else if(symbol instanceof LexicalSymbol || symbol instanceof Sort) {
             return generateLexicalSymbol(symbol);
         }
@@ -137,45 +141,24 @@ public class Generator {
         throw new IllegalStateException("Unknown symbol: " + symbol);
     }
 
-    public String generateCharacterClass(CharacterClass characterClassConc) {
-        Symbol printableCharacters = SymbolUtils.toPrintable(characterClassConc);
-        // FIXME reimplement this according to the new character class representation
-        
-        
-        // if (printableCharacters instanceof CharacterClassNumeric) {
-        // return generateCharacterClassNumeric((CharacterClassNumeric) printableCharacters);
-        // } else if (printableCharacters instanceof CharacterClassRange) {
-        // return generateCharacterClassRange((CharacterClassRange) printableCharacters);
-        // } else if (printableCharacters instanceof CharacterClassConc) {
-        // int characterClassSize = SymbolUtils.size(printableCharacters);
-        // int randomCharacter = random.fromRange(characterClassSize);
-        //
-        // return String.valueOf(SymbolUtils.get(printableCharacters, randomCharacter));
-        // }
+    public String generateCharacterClass(CharacterClassSymbol characterClassSymbol) {
+        ICharacterClass printableRange = characterClassSymbol.getCC()
+            .intersection(ParseTableIO.getCharacterClassFactory().fromRange(MINIMUM_PRINTABLE, MAXIMUM_PRINTABLE));
 
-        throw new IllegalStateException("Unknown symbol: " + printableCharacters);
+        List<Integer> list = new ArrayList<>(MAXIMUM_PRINTABLE);
+        for(int i = MINIMUM_PRINTABLE; i <= MAXIMUM_PRINTABLE; i++) {
+            if(printableRange.contains(i)) {
+                list.add(i);
+            }
+        }
+
+        if(list.size() == 0)
+            return "";
+
+        return CharacterClassFactory.intToString(random.fromList(list));
     }
 
-    // public String generateCharacterClassRange(CharacterClassRange characterClassRange) {
-    // int minimumPrintable = Math.max(characterClassRange.minimum(), MINIMUM_PRINTABLE);
-    // int maximumPrintable = Math.min(characterClassRange.maximum(), MAXIMUM_PRINTABLE);
-    //
-    // int range = maximumPrintable - minimumPrintable + 1;
-    //
-    // if (range > 0) {
-    // char character = (char) (minimumPrintable + random.fromRange(range));
-    //
-    // return String.valueOf(character);
-    // } else {
-    // return "";
-    // }
-    // }
-    //
-    // public String generateCharacterClassNumeric(CharacterClassNumeric characterClassNumeric) {
-    // return String.valueOf(Character.toChars(characterClassNumeric.getCharacter()));
-    // }
-
-    public String generateLexicalSymbol(Symbol symbol) {
+    public String generateLexicalSymbol(ISymbol symbol) {
         List<IProduction> productions = productionsMap.get(symbol);
 
         if(productions.isEmpty()) {
@@ -187,7 +170,7 @@ public class Generator {
         return production.rightHand().stream().map(this::generateLex).collect(Collectors.joining());
     }
 
-    public Optional<IStrategoTerm> generateCf(Symbol symbol, int size) {
+    public Optional<IStrategoTerm> generateCf(ISymbol symbol, int size) {
         List<IProduction> productions = productionsMap.get(symbol);
 
         for(IProduction production : random.shuffle(productions)) {
@@ -202,12 +185,12 @@ public class Generator {
     }
 
     public Optional<IStrategoTerm> generateProduction(IProduction production, int size) {
-        List<Symbol> rhsSymbols = cleanRhs(production.rightHand());
+        List<ISymbol> rhsSymbols = cleanRhs(production.rightHand());
         List<IStrategoTerm> children = new ArrayList<>();
 
         int childSize = (size - 1) / Math.max(1, rhsSymbols.size());
 
-        for(Symbol rhsSymbol : rhsSymbols) {
+        for(ISymbol rhsSymbol : rhsSymbols) {
             Optional<IStrategoTerm> childTerm = generateSymbol(rhsSymbol, childSize);
 
             if(childTerm.isPresent()) {
@@ -244,11 +227,11 @@ public class Generator {
         return attribute instanceof ConstructorAttribute;
     }
 
-    protected List<Symbol> cleanRhs(List<Symbol> rightHand) {
+    protected List<ISymbol> cleanRhs(List<ISymbol> rightHand) {
         return rightHand.stream().filter(this::isProperSymbol).collect(Collectors.toList());
     }
 
-    protected boolean isProperSymbol(Symbol symbol) {
+    protected boolean isProperSymbol(ISymbol symbol) {
         if("LAYOUT?-CF".equals(symbol.name())) {
             return false;
         }
@@ -257,12 +240,13 @@ public class Generator {
         return symbol instanceof ContextFreeSymbol
             || symbol instanceof FileStartSymbol
             || symbol instanceof StartSymbol
+            || symbol instanceof EOFSymbol
             || symbol instanceof LexicalSymbol;
         // @formatter:on
     }
 
-    protected ListMultimap<Symbol, IProduction> createProductionMap(Collection<IProduction> productions) {
-        ListMultimap<Symbol, IProduction> productionsMap = ArrayListMultimap.create();
+    protected ListMultimap<ISymbol, IProduction> createProductionMap(Collection<IProduction> productions) {
+        ListMultimap<ISymbol, IProduction> productionsMap = ArrayListMultimap.create();
 
         for(IProduction production : productions) {
             productionsMap.put(production.leftHand(), production);
@@ -271,8 +255,8 @@ public class Generator {
         return productionsMap;
     }
 
-    protected Collection<IProduction> retainRealProductions(Collection<IProduction> productions) {
-        return productions.stream().filter(this::isRealProduction).collect(Collectors.toList());
+    protected Collection<IProduction> retainRealProductions(Collection<Production> collection) {
+        return collection.stream().filter(this::isRealProduction).collect(Collectors.toList());
     }
 
     protected boolean isRealProduction(IProduction production) {
