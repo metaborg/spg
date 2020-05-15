@@ -30,7 +30,7 @@ public class PrinterFactory {
         IContext context = contextService.getTemporary(languageLocation, project, language);
 
         ILanguageComponent component = Iterables.get(language.components(), 0);
-        HybridInterpreter interpreter = runtimeService.runtime(component, context, false);
+        HybridInterpreter interpreter = runtimeService.runtime(component, context);
 
         return new Printer(stratego, interpreter);
     }
