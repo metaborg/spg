@@ -1,16 +1,19 @@
 package org.metaborg.spg.sentence.antlr.grammar;
 
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
-
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import org.metaborg.util.collection.Sets;
 
 public class Conc implements Element {
     private final Element first;
     private final Element second;
 
-    private Iterable<EmptyElement> list;
+    private Collection<EmptyElement> list;
     private int literalsSize;
     private int elementsSize;
 
@@ -39,9 +42,10 @@ public class Conc implements Element {
         return Sets.union(first.nonterminals(), second.nonterminals());
     }
 
-    public Iterable<EmptyElement> toList() {
+    public Collection<EmptyElement> toList() {
         if (list == null) {
-            list = Iterables.concat(first.toList(), second.toList());
+            list = new ArrayList<>(first.toList());
+            list.addAll(second.toList());
         }
 
         return list;
@@ -54,21 +58,19 @@ public class Conc implements Element {
             return 1;
         } else {
             if (elementsSize == -1 && literalsSize == -1) {
-                Iterable<EmptyElement> elements = this.toList();
-                Iterable<Literal> literals = literals(elements);
+                Collection<EmptyElement> elements = this.toList();
+                List<Literal> literals = literals(elements);
 
-                elementsSize = Iterables.size(elements);
-                literalsSize = Iterables.size(literals);
+                elementsSize = elements.size();
+                literalsSize = literals.size();
             }
         }
 
         return (int) ((size - literalsSize) / (double) elementsSize);
     }
 
-    private FluentIterable<Literal> literals(Iterable<EmptyElement> elements) {
-        return FluentIterable
-                .from(elements)
-                .filter(Literal.class);
+    private List<Literal> literals(Collection<EmptyElement> elements) {
+        return elements.stream().filter(e -> e instanceof Literal).map(e -> (Literal) e).collect(Collectors.toList());
     }
 
     @Override

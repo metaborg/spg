@@ -1,14 +1,16 @@
 package org.metaborg.spg.sentence.sdf3;
 
-public class ContextFreeSection extends Section {
-    private final Iterable<Production> productions;
+import java.util.Collection;
 
-    public ContextFreeSection(Iterable<Production> productions) {
+public class ContextFreeSection extends Section {
+    private final Collection<Production> productions;
+
+    public ContextFreeSection(Collection<Production> productions) {
         this.productions = productions;
     }
 
     @Override
-    public Iterable<Production> getProductions() {
+    public Collection<Production> getProductions() {
         return productions;
     }
 }

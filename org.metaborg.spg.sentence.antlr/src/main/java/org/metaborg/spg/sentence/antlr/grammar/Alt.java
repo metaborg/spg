@@ -1,8 +1,8 @@
 package org.metaborg.spg.sentence.antlr.grammar;
 
-import com.google.common.collect.Sets;
-
 import java.util.Set;
+
+import org.metaborg.util.collection.Sets;
 
 public class Alt implements Element {
     private final EmptyElement first;

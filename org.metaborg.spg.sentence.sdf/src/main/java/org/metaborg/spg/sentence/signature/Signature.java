@@ -1,7 +1,19 @@
 package org.metaborg.spg.sentence.signature;
 
-import com.google.common.collect.*;
-import org.apache.commons.lang3.tuple.Pair;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import org.metaborg.spg.sentence.shared.utils.StreamUtils;
+import org.metaborg.util.collection.MultiSetMap;
+import org.metaborg.util.iterators.Iterables2;
+import org.metaborg.util.tuple.Tuple2;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.spoofax.interpreter.terms.IStrategoAppl;
@@ -9,35 +21,30 @@ import org.spoofax.interpreter.terms.IStrategoList;
 import org.spoofax.interpreter.terms.IStrategoString;
 import org.spoofax.interpreter.terms.IStrategoTerm;
 
-import java.util.*;
-
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
-import static org.metaborg.spg.sentence.shared.utils.FunctionalUtils.zip;
-import static org.metaborg.spg.sentence.shared.utils.SetUtils.cons;
 
 public class Signature {
     private static final Logger logger = LoggerFactory.getLogger(Signature.class);
 
-    private final Iterable<Operation> operations;
-    private final Multimap<String, Constructor> constructorCache;
+    private final Collection<Operation> operations;
+    private final MultiSetMap.Immutable<String, Constructor> constructorCache;
     private final Map<Sort, Set<Sort>> injectionCache;
 
-    public Signature(Iterable<Operation> operations) {
+    public Signature(Collection<Operation> operations) {
         this.operations = operations;
-        this.constructorCache = Multimaps.index(getConstructors(), Constructor::getName);
-        this.injectionCache = Maps.toMap(getSorts(), this::injectionsTransitive);
+        final MultiSetMap.Transient<String, Constructor> constructorCache = MultiSetMap.Transient.of();
+        getConstructors().forEach(constructor -> constructorCache.put(constructor.getName(), constructor));
+        this.constructorCache = constructorCache.freeze();
+        this.injectionCache = getSorts().collect(Collectors.toMap(Function.identity(), this::injectionsTransitive));
     }
 
-    public Iterable<Operation> getOperations() {
+    public Collection<Operation> getOperations() {
         return operations;
     }
 
-    public Set<Sort> getSorts() {
-        return FluentIterable
-                .from(operations)
-                .transformAndConcat(Operation::getSorts)
-                .toSet();
+    public Stream<Sort> getSorts() {
+        return operations.stream().flatMap(o -> o.getSorts().stream());
     }
 
     public Sort getSort(IStrategoTerm haystack, IStrategoTerm needle) {
@@ -67,8 +74,8 @@ public class Signature {
         Iterable<Sort> arguments = getArguments(haystack, sort);
         Iterable<IStrategoTerm> terms = Arrays.asList(haystack.getAllSubterms());
 
-        for (Pair<Sort, IStrategoTerm> sortTerm : zip(arguments, terms)) {
-            Optional<Sort> sortOptional = getSort(sortTerm.getRight(), needle, sortTerm.getLeft());
+        for (Tuple2<Sort, IStrategoTerm> sortTerm : Iterables2.zip(arguments, terms, Tuple2::of)) {
+            Optional<Sort> sortOptional = getSort(sortTerm._2(), needle, sortTerm._1());
 
             if (sortOptional.isPresent()) {
                 return sortOptional;
@@ -105,14 +112,12 @@ public class Signature {
     }
 
     private Set<Constructor> getConstructors() {
-        return FluentIterable
-                .from(operations)
-                .filter(Constructor.class)
-                .toSet();
+        return operations.stream().filter(o -> o instanceof Constructor).map(o -> (Constructor) o)
+            .collect(Collectors.toSet());
     }
 
     private Collection<Constructor> getConstructors(String name) {
-        return constructorCache.get(name);
+        return constructorCache.get(name).toCollection();
     }
 
     private Constructor getConstructor(IStrategoTerm term) {
@@ -130,30 +135,30 @@ public class Signature {
         throw new IllegalArgumentException("Constructor for term " + term + " not found.");
     }
 
-    public Iterable<Injection> getInjections() {
-        return Iterables.filter(operations, Injection.class);
+    public Stream<Injection> getInjections() {
+        return operations.stream().filter(o -> o instanceof Injection).map(o -> (Injection) o);
     }
 
     public Set<Sort> getInjections(Sort sort) {
         return injectionCache.get(sort);
     }
 
-    protected Set<Sort> injections(Sort sort) {
-        return FluentIterable
-                .from(getInjections())
+    protected Stream<Sort> injections(Sort sort) {
+        return getInjections()
                 .filter(injection -> sort.equals(injection.getResult()))
-                .transform(Injection::getArgument)
-                .toSet();
+                .map(Injection::getArgument);
     }
 
     private Set<Sort> injectionsTransitive(Sort sort) {
+        return injectionsTransitiveStream(sort).collect(Collectors.toSet());
+    }
+
+    private Stream<Sort> injectionsTransitiveStream(Sort sort) {
         logger.trace("Compute transitive injections for sort {}", sort);
 
-        Set<Sort> sorts = FluentIterable
-                .from(injections(sort))
-                .transformAndConcat(this::injectionsTransitive)
-                .toSet();
+        Stream<Sort> sorts =
+            injections(sort).flatMap(this::injectionsTransitiveStream);
 
-        return cons(sort, sorts);
+        return StreamUtils.cons(sort, sorts);
     }
 }

@@ -1,13 +1,14 @@
 package org.metaborg.spg.sentence.sdf3;
 
-import com.google.common.collect.FluentIterable;
+import java.util.Collection;
+import java.util.stream.Stream;
 
 public class Module {
     private final String name;
-    private final Iterable<String> imports;
-    private final Iterable<Section> sections;
+    private final Collection<String> imports;
+    private final Collection<Section> sections;
 
-    public Module(String name, Iterable<String> imports, Iterable<Section> sections) {
+    public Module(String name, Collection<String> imports, Collection<Section> sections) {
         this.name = name;
         this.imports = imports;
         this.sections = sections;
@@ -17,17 +18,15 @@ public class Module {
         return name;
     }
 
-    public Iterable<String> getImports() {
+    public Collection<String> getImports() {
         return imports;
     }
 
-    public Iterable<Section> getSections() {
+    public Collection<Section> getSections() {
         return sections;
     }
 
-    public Iterable<Production> getProductions() {
-        return FluentIterable
-                .from(sections)
-                .transformAndConcat(Section::getProductions);
+    public Stream<Production> getProductions() {
+        return sections.stream().flatMap(s -> s.getProductions().stream());
     }
 }

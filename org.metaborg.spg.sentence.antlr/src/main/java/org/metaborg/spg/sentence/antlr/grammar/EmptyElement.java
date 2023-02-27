@@ -1,5 +1,6 @@
 package org.metaborg.spg.sentence.antlr.grammar;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 
@@ -10,7 +11,7 @@ public interface EmptyElement {
         return Collections.emptySet();
     }
 
-    default Iterable<EmptyElement> toList() {
+    default Collection<EmptyElement> toList() {
         return Collections.singletonList(this);
     }
 }
