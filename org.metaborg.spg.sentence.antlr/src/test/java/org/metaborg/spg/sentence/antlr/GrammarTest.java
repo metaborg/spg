@@ -1,8 +1,8 @@
 package org.metaborg.spg.sentence.antlr;
 
-import com.google.common.collect.ImmutableSet;
 import org.junit.Test;
 import org.metaborg.spg.sentence.antlr.grammar.*;
+import org.metaborg.util.collection.CapsuleUtil;
 
 import java.util.Arrays;
 import java.util.Set;
@@ -40,7 +40,7 @@ public class GrammarTest {
         Set<Nonterminal> injections = grammar
                 .getInjections(new Nonterminal("conditionalOrExpression"));
 
-        Set<Nonterminal> expected = ImmutableSet.of(
+        Set<Nonterminal> expected = CapsuleUtil.toSet(
                 new Nonterminal("conditionalOrExpression"),
                 new Nonterminal("conditionalAndExpression")
         );
@@ -92,7 +92,7 @@ public class GrammarTest {
         Set<Nonterminal> injectionsClosure = grammar
                 .getInjections(new Nonterminal("conditionalOrExpression"));
 
-        Set<Nonterminal> expected = ImmutableSet.of(
+        Set<Nonterminal> expected = CapsuleUtil.toSet(
                 new Nonterminal("conditionalOrExpression"),
                 new Nonterminal("conditionalAndExpression"),
                 new Nonterminal("inclusiveOrExpression")

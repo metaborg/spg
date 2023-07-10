@@ -1,6 +1,5 @@
 package org.metaborg.spg.sentence.printer;
 
-import com.google.common.collect.Iterables;
 import com.google.inject.Inject;
 import org.apache.commons.vfs2.FileObject;
 import org.metaborg.core.MetaborgException;
@@ -26,10 +25,10 @@ public class PrinterFactory {
     }
 
     public Printer create(ILanguageImpl language, IProject project) throws MetaborgException {
-        FileObject languageLocation = Iterables.get(language.locations(), 0);
+        FileObject languageLocation = language.locations().get(0);
         IContext context = contextService.getTemporary(languageLocation, project, language);
 
-        ILanguageComponent component = Iterables.get(language.components(), 0);
+        ILanguageComponent component = language.components().iterator().next();
         HybridInterpreter interpreter = runtimeService.runtime(component, context);
 
         return new Printer(stratego, interpreter);

@@ -1,6 +1,5 @@
 package org.metaborg.spg.sentence.signature;
 
-import com.google.common.collect.Sets;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -18,7 +17,7 @@ public class SignatureTest {
 
         Set<Sort> sorts = signature.getSorts();
 
-        assertEquals(Sets.newHashSet(sort("Foo"), sort("Bar"), sort("Baz")), sorts);
+        assertEquals(new HashSet<>(Arrays.asList(sort("Foo"), sort("Bar"), sort("Baz"))), sorts);
     }
 
     @Test
@@ -30,7 +29,7 @@ public class SignatureTest {
 
         Set<Sort> subsorts = signature.injections(sort("Bar"));
 
-        assertEquals(Sets.newHashSet(sort("Foo"), sort("Baz")), subsorts);
+        assertEquals(new HashSet<>(Arrays.asList(sort("Foo"), sort("Baz"))), subsorts);
     }
 
     @Test
@@ -42,7 +41,7 @@ public class SignatureTest {
 
         Set<Sort> subsorts = signature.getInjections(sort("Bar"));
 
-        assertEquals(Sets.newHashSet(sort("Foo"), sort("Bar"), sort("Baz")), subsorts);
+        assertEquals(new HashSet<>(Arrays.asList(sort("Foo"), sort("Bar"), sort("Baz"))), subsorts);
     }
 
     private Injection inj(Sort s1, Sort s2) {

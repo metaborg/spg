@@ -1,7 +1,7 @@
 package org.metaborg.spg.sentence.signature;
 
-import com.google.common.collect.Sets;
-
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Set;
 
 public class Injection extends Operation {
@@ -23,7 +23,7 @@ public class Injection extends Operation {
 
     @Override
     public Set<Sort> getSorts() {
-        return Sets.newHashSet(argument, result);
+        return new HashSet<>(Arrays.asList(argument, result));
     }
 
     @Override

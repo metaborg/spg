@@ -1,14 +1,15 @@
 package org.metaborg.spg.sentence.sdf3;
 
-import com.google.common.base.Joiner;
+import java.util.Optional;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.metaborg.spg.sentence.sdf3.attribute.Attribute;
 import org.metaborg.spg.sentence.sdf3.attribute.Bracket;
 import org.metaborg.spg.sentence.sdf3.attribute.Reject;
 import org.metaborg.spg.sentence.sdf3.symbol.Nonterminal;
 import org.metaborg.spg.sentence.sdf3.symbol.Symbol;
-
-import java.util.Optional;
-import java.util.function.Predicate;
 
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
@@ -16,15 +17,15 @@ import static java.util.Optional.ofNullable;
 
 public class Production {
     private final Nonterminal lhs;
-    private final Iterable<Symbol> rhs;
-    private final Iterable<Attribute> attributes;
+    private final Stream<Symbol> rhs;
+    private final Stream<Attribute> attributes;
     private final String constructor;
 
-    public Production(Nonterminal lhs, Iterable<Symbol> rhs, Iterable<Attribute> attributes) {
+    public Production(Nonterminal lhs, Stream<Symbol> rhs, Stream<Attribute> attributes) {
         this(lhs, rhs, attributes, null);
     }
 
-    public Production(Nonterminal lhs, Iterable<Symbol> rhs, Iterable<Attribute> attributes, String constructor) {
+    public Production(Nonterminal lhs, Stream<Symbol> rhs, Stream<Attribute> attributes, String constructor) {
         this.lhs = lhs;
         this.rhs = rhs;
         this.attributes = attributes;
@@ -35,7 +36,7 @@ public class Production {
         return lhs;
     }
 
-    public Iterable<Symbol> getRhs() {
+    public Stream<Symbol> getRhs() {
         return rhs;
     }
 
@@ -66,7 +67,7 @@ public class Production {
     }
 
     private Optional<Attribute> getAttribute(Predicate<Attribute> predicate) {
-        for (Attribute attribute : attributes) {
+        for (Attribute attribute : (Iterable<Attribute>) attributes::iterator) {
             if (predicate.test(attribute)) {
                 return of(attribute);
             }
@@ -77,10 +78,11 @@ public class Production {
 
     @Override
     public String toString() {
+        final String rhsString = rhs.map(Symbol::toString).collect(Collectors.joining(" "));
         if (constructor != null) {
-            return lhs + "." + constructor + " = " + Joiner.on(" ").join(rhs);
+            return lhs + "." + constructor + " = " + rhsString;
         } else {
-            return lhs + " = " + Joiner.on(" ").join(rhs);
+            return lhs + " = " + rhsString;
         }
     }
 }
