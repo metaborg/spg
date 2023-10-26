@@ -21,7 +21,7 @@ public class GeneratorFactory {
     private final GeneratorTermFactory termFactory;
     private final IRandom random;
 
-    @Inject
+    @jakarta.inject.Inject @javax.inject.Inject
     public GeneratorFactory(IResourceService resourceService, GeneratorTermFactory termFactory, IRandom random) {
         this.resourceService = resourceService;
         this.termFactory = termFactory;

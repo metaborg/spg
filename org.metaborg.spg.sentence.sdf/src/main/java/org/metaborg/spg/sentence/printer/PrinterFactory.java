@@ -17,7 +17,7 @@ public class PrinterFactory {
     private final IStrategoRuntimeService runtimeService;
     private IStrategoCommon stratego;
 
-    @Inject
+    @jakarta.inject.Inject @javax.inject.Inject
     public PrinterFactory(IContextService contextService, IStrategoRuntimeService runtimeService, IStrategoCommon stratego) {
         this.contextService = contextService;
         this.runtimeService = runtimeService;

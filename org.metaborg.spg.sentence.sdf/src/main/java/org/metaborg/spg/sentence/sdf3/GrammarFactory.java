@@ -51,7 +51,7 @@ public class GrammarFactory {
     private final ISpoofaxUnitService unitService;
     private final ISourceTextService textService;
 
-    @Inject
+    @jakarta.inject.Inject @javax.inject.Inject
     public GrammarFactory(ISpoofaxSyntaxService syntaxService, ISourceTextService textService, ISpoofaxUnitService unitService) {
         this.syntaxService = syntaxService;
         this.textService = textService;
