@@ -1,11 +1,11 @@
 package org.metaborg.spg.sentence.antlr.grammar;
 
-import com.google.common.collect.Maps;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toSet;
@@ -21,8 +21,8 @@ public class Grammar {
     public Grammar(String name, List<Rule> rules) {
         this.name = name;
         this.rules = rules;
-        this.ruleCache = Maps.uniqueIndex(rules, Rule::getName);
-        this.injectionCache = Maps.toMap(getNonterminals(), this::injectionsClosure);
+        this.ruleCache = rules.stream().collect(Collectors.toMap(Rule::getName, Function.identity()));
+        this.injectionCache = getNonterminals().collect(Collectors.toMap(Function.identity(), this::injectionsClosure));
     }
 
     public String getName() {
@@ -43,12 +43,11 @@ public class Grammar {
         return ruleCache.get(name);
     }
 
-    public Set<Nonterminal> getNonterminals() {
+    public Stream<Nonterminal> getNonterminals() {
         return rules
                 .stream()
                 .map(Rule::getName)
-                .map(Nonterminal::new)
-                .collect(toSet());
+                .map(Nonterminal::new);
     }
 
     public Map<Nonterminal, Set<Nonterminal>> getInjections() {

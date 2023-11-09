@@ -1,6 +1,5 @@
 package org.metaborg.spg.sentence.generator;
 
-import com.google.common.collect.Iterables;
 import com.google.inject.Inject;
 import org.metaborg.core.language.ILanguageImpl;
 import org.metaborg.core.project.IProject;
@@ -14,6 +13,7 @@ import org.metaborg.spoofax.core.syntax.SyntaxFacet;
 
 import java.io.File;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
 public class GeneratorFactory {
@@ -21,7 +21,7 @@ public class GeneratorFactory {
     private final GeneratorTermFactory termFactory;
     private final IRandom random;
 
-    @Inject
+    @jakarta.inject.Inject @javax.inject.Inject
     public GeneratorFactory(IResourceService resourceService, GeneratorTermFactory termFactory, IRandom random) {
         this.resourceService = resourceService;
         this.termFactory = termFactory;
@@ -63,6 +63,7 @@ public class GeneratorFactory {
             return null;
         }
 
-        return Iterables.getFirst(syntaxFacet.startSymbols, null);
+        final Iterator<String> it = syntaxFacet.startSymbols.iterator();
+        return it.hasNext() ? it.next() : null;
     }
 }

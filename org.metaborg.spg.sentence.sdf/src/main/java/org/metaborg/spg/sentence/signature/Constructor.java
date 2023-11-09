@@ -1,14 +1,12 @@
 package org.metaborg.spg.sentence.signature;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.Sets;
 import org.spoofax.interpreter.terms.IStrategoAppl;
 import org.spoofax.interpreter.terms.IStrategoConstructor;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
-import static org.metaborg.spg.sentence.shared.utils.IterableUtils.snoc;
+import java.util.stream.Collectors;
 
 public class Constructor extends Operation {
     private final String name;
@@ -51,13 +49,14 @@ public class Constructor extends Operation {
 
     @Override
     public Set<Sort> getSorts() {
-        Iterable<Sort> sorts = snoc(arguments, result);
+        Set<Sort> sorts = new HashSet<>(arguments);
+        sorts.add(result);
 
-        return Sets.newHashSet(sorts);
+        return sorts;
     }
 
     @Override
     public String toString() {
-        return name + " : " + Joiner.on(" * ").join(arguments) + " -> " + result;
+        return name + " : " + arguments.stream().map(Sort::toString).collect(Collectors.joining(" * ")) + " -> " + result;
     }
 }

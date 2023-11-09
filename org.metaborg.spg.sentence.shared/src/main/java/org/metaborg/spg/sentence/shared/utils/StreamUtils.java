@@ -6,25 +6,17 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
-import static java.util.stream.Stream.concat;
-import static java.util.stream.Stream.empty;
-import static java.util.stream.Stream.of;
-
 public class StreamUtils {
     public static <T> Stream<T> cons(T head, Stream<? extends T> tail) {
-        return concat(of(head), tail);
+        return Stream.concat(Stream.of(head), tail);
     }
 
     public static <T> Stream<T> snoc(Stream<? extends T> init, T last) {
-        return concat(init, of(last));
+        return Stream.concat(init, Stream.of(last));
     }
 
     public static <T> Stream<T> o2s(Optional<T> optional) {
-        if (optional.isPresent()) {
-            return of(optional.get());
-        } else {
-            return empty();
-        }
+        return optional.map(Stream::of).orElseGet(Stream::empty);
     }
 
     public static <T, R> Stream<Pair<T, R>> zipWith(Stream<T> stream, Function<? super T, R> function) {

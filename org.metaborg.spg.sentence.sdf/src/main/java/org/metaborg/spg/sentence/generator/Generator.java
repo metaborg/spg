@@ -10,11 +10,10 @@ import org.metaborg.sdf2table.grammar.*;
 import org.metaborg.sdf2table.io.ParseTableIO;
 import org.metaborg.spg.sentence.random.IRandom;
 import org.metaborg.spg.sentence.terms.GeneratorTermFactory;
+import org.metaborg.util.collection.MultiSetMap;
 import org.spoofax.interpreter.terms.IStrategoList;
 import org.spoofax.interpreter.terms.IStrategoTerm;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ListMultimap;
 import com.google.inject.Inject;
 
 public class Generator {
@@ -25,10 +24,10 @@ public class Generator {
     private final IRandom random;
     private final String startSymbol;
     private final NormGrammar grammar;
-    private final ListMultimap<ISymbol, IProduction> productionsMap;
+    private final MultiSetMap.Immutable<ISymbol, IProduction> productionsMap;
     private final GrammarFactory gf;
 
-    @Inject public Generator(GeneratorTermFactory termFactory, IRandom random, String startSymbol,
+    @jakarta.inject.Inject @javax.inject.Inject public Generator(GeneratorTermFactory termFactory, IRandom random, String startSymbol,
         NormGrammar grammar) {
         this.termFactory = termFactory;
         this.random = random;
@@ -159,7 +158,7 @@ public class Generator {
     }
 
     public String generateLexicalSymbol(ISymbol symbol) {
-        List<IProduction> productions = productionsMap.get(symbol);
+        List<IProduction> productions = new ArrayList<>(productionsMap.get(symbol).toCollection());
 
         if(productions.isEmpty()) {
             throw new IllegalStateException("No productions found for symbol " + symbol);
@@ -171,7 +170,7 @@ public class Generator {
     }
 
     public Optional<IStrategoTerm> generateCf(ISymbol symbol, int size) {
-        List<IProduction> productions = productionsMap.get(symbol);
+        List<IProduction> productions = new ArrayList<>(productionsMap.get(symbol).toCollection());
 
         for(IProduction production : random.shuffle(productions)) {
             Optional<IStrategoTerm> term = generateProduction(production, size);
@@ -245,14 +244,14 @@ public class Generator {
         // @formatter:on
     }
 
-    protected ListMultimap<ISymbol, IProduction> createProductionMap(Collection<IProduction> productions) {
-        ListMultimap<ISymbol, IProduction> productionsMap = ArrayListMultimap.create();
+    protected MultiSetMap.Immutable<ISymbol, IProduction> createProductionMap(Collection<IProduction> productions) {
+        MultiSetMap.Transient<ISymbol, IProduction> productionsMap = MultiSetMap.Transient.of();
 
         for(IProduction production : productions) {
             productionsMap.put(production.leftHand(), production);
         }
 
-        return productionsMap;
+        return productionsMap.freeze();
     }
 
     protected Collection<IProduction> retainRealProductions(Collection<Production> collection) {

@@ -1,6 +1,5 @@
 package org.metaborg.spg.sentence.sdf.eclipse.handler;
 
-import com.google.common.collect.Iterables;
 import com.google.inject.Injector;
 import org.apache.commons.vfs2.FileObject;
 import org.eclipse.core.commands.AbstractHandler;
@@ -107,7 +106,7 @@ public abstract class SentenceHandler extends AbstractHandler {
                 .getInstance(ILanguageComponentConfigService.class)
                 .get(project.location());
 
-        if (Iterables.size(projectConfig.errors()) != 0) {
+        if (projectConfig.errors().iterator().hasNext()) {
             for (IMessage message : projectConfig.errors()) {
                 Activator.logError(message.message(), message.exception());
             }

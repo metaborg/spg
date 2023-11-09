@@ -1,7 +1,15 @@
 package org.metaborg.spg.sentence.sdf3;
 
-import com.google.common.collect.FluentIterable;
-import com.google.inject.Inject;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSelector;
 import org.metaborg.core.language.ILanguageImpl;
@@ -11,7 +19,14 @@ import org.metaborg.core.syntax.ParseException;
 import org.metaborg.spg.sentence.sdf3.attribute.Attribute;
 import org.metaborg.spg.sentence.sdf3.attribute.Bracket;
 import org.metaborg.spg.sentence.sdf3.attribute.Reject;
-import org.metaborg.spg.sentence.sdf3.symbol.*;
+import org.metaborg.spg.sentence.sdf3.symbol.Iter;
+import org.metaborg.spg.sentence.sdf3.symbol.IterSep;
+import org.metaborg.spg.sentence.sdf3.symbol.IterStar;
+import org.metaborg.spg.sentence.sdf3.symbol.IterStarSep;
+import org.metaborg.spg.sentence.sdf3.symbol.Literal;
+import org.metaborg.spg.sentence.sdf3.symbol.Nonterminal;
+import org.metaborg.spg.sentence.sdf3.symbol.Opt;
+import org.metaborg.spg.sentence.sdf3.symbol.Symbol;
 import org.metaborg.spoofax.core.syntax.ISpoofaxSyntaxService;
 import org.metaborg.spoofax.core.unit.ISpoofaxInputUnit;
 import org.metaborg.spoofax.core.unit.ISpoofaxParseUnit;
@@ -24,10 +39,7 @@ import org.spoofax.interpreter.terms.IStrategoList;
 import org.spoofax.interpreter.terms.IStrategoString;
 import org.spoofax.interpreter.terms.IStrategoTerm;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Set;
+import com.google.inject.Inject;
 
 import static org.metaborg.spg.sentence.shared.utils.FunctionalUtils.uncheck2;
 
@@ -39,7 +51,7 @@ public class GrammarFactory {
     private final ISpoofaxUnitService unitService;
     private final ISourceTextService textService;
 
-    @Inject
+    @jakarta.inject.Inject @javax.inject.Inject
     public GrammarFactory(ISpoofaxSyntaxService syntaxService, ISourceTextService textService, ISpoofaxUnitService unitService) {
         this.syntaxService = syntaxService;
         this.textService = textService;
@@ -50,12 +62,12 @@ public class GrammarFactory {
         logger.trace("Read SDF grammar");
 
         FileSelector fileSelector = FileSelectorUtils.extension(SDF3_EXTENSION);
-        Iterable<FileObject> files = Arrays.asList(project.location().findFiles(fileSelector));
+        List<FileObject> files;
+        try(final FileObject location = project.location()) {
+            files = Arrays.asList(location.findFiles(fileSelector));
+        }
 
-        Set<Module> modules = FluentIterable
-                .from(files)
-                .transform(uncheck2(file -> readModule(file, languageImpl)))
-                .toSet();
+        Set<Module> modules = files.stream().map(uncheck2(file -> readModule(file, languageImpl))).collect(Collectors.toSet());
 
         return new Grammar(modules);
     }
@@ -67,71 +79,66 @@ public class GrammarFactory {
         ISpoofaxInputUnit input = unitService.inputUnit(file, text, languageImpl, null);
         ISpoofaxParseUnit parse = syntaxService.parse(input);
 
-        return readModule(parse.ast());
+        return readModule(Objects.requireNonNull(parse.ast()));
     }
 
     private Module readModule(IStrategoTerm term) {
         String name = readString(term.getSubterm(0).getSubterm(0));
-        Iterable<String> imports = readImports(term.getSubterm(1));
-        Iterable<Section> sections = readSections(term.getSubterm(2));
+        Collection<String> imports = readImports(term.getSubterm(1));
+        Collection<Section> sections = readSections(term.getSubterm(2));
 
         return new Module(name, imports, sections);
     }
 
-    private Iterable<String> readImports(IStrategoTerm term) {
+    private Collection<String> readImports(IStrategoTerm term) {
         IStrategoList list = (IStrategoList) term;
 
         if (list.size() == 0) {
             return Collections.emptySet();
         }
 
-        Iterable<IStrategoTerm> modules = Arrays.asList(list.getSubterm(0).getSubterm(0).getAllSubterms());
+        List<IStrategoTerm> modules = Arrays.asList(list.getSubterm(0).getSubterm(0).getAllSubterms());
 
-        return FluentIterable
-                .from(modules)
-                .transform(this::readImport);
+        return modules.stream().map(this::readImport).collect(Collectors.toList());
     }
 
     private String readImport(IStrategoTerm term) {
         return readString(term.getSubterm(0).getSubterm(0));
     }
 
-    private Iterable<Section> readSections(IStrategoTerm term) {
-        Iterable<IStrategoTerm> sections = Arrays.asList(term.getAllSubterms());
+    private Collection<Section> readSections(IStrategoTerm term) {
+        List<IStrategoTerm> sections = Arrays.asList(term.getAllSubterms());
 
-        return FluentIterable
-                .from(sections)
-                .transformAndConcat(this::readSection);
+        return sections.stream()
+                .flatMap(this::readSection).collect(Collectors.toList());
     }
 
-    private Iterable<Section> readSection(IStrategoTerm term) {
+    private Stream<Section> readSection(IStrategoTerm term) {
         IStrategoAppl appl = (IStrategoAppl) term;
 
         if ("SDFSection".equals(appl.getConstructor().getName())) {
             return readSdfSection(term.getSubterm(0));
         }
 
-        return Collections.emptySet();
+        return Stream.empty();
     }
 
-    private Iterable<Section> readSdfSection(IStrategoTerm term) {
+    private Stream<Section> readSdfSection(IStrategoTerm term) {
         IStrategoAppl appl = (IStrategoAppl) term;
 
         if ("ContextFreeSyntax".equals(appl.getConstructor().getName())) {
-            Iterable<Production> productions = readProductions(appl.getSubterm(0));
+            Collection<Production> productions = readProductions(appl.getSubterm(0));
 
-            return Collections.singleton(new ContextFreeSection(productions));
+            return Stream.of(new ContextFreeSection(productions));
         }
 
-        return Collections.emptySet();
+        return Stream.empty();
     }
 
-    private Iterable<Production> readProductions(IStrategoTerm term) {
-        Iterable<IStrategoTerm> productions = Arrays.asList(term.getAllSubterms());
+    private Collection<Production> readProductions(IStrategoTerm term) {
+        Collection<IStrategoTerm> productions = Arrays.asList(term.getAllSubterms());
 
-        return FluentIterable
-                .from(productions)
-                .transform(this::readProduction);
+        return productions.stream().map(this::readProduction).collect(Collectors.toList());
     }
 
     private Production readProduction(IStrategoTerm term) {
@@ -153,8 +160,8 @@ public class GrammarFactory {
 
     private Production readSdfProduction(IStrategoAppl appl) {
         Nonterminal lhs = readNonterminal(appl.getSubterm(0));
-        Iterable<Symbol> rhs = readRhs(appl.getSubterm(1));
-        Iterable<Attribute> attributes = readAttributes(appl.getSubterm(2));
+        Stream<Symbol> rhs = readRhs(appl.getSubterm(1));
+        Stream<Attribute> attributes = readAttributes(appl.getSubterm(2));
 
         return new Production(lhs, rhs, attributes);
     }
@@ -162,16 +169,16 @@ public class GrammarFactory {
     private Production readSdfProductionWithCons(IStrategoAppl appl) {
         Nonterminal lhs = readNonterminal(appl.getSubterm(0).getSubterm(0));
         String constructor = readConstructor(appl.getSubterm(0).getSubterm(1));
-        Iterable<Symbol> rhs = readRhs(appl.getSubterm(1));
-        Iterable<Attribute> attributes = readAttributes(appl.getSubterm(2));
+        Stream<Symbol> rhs = readRhs(appl.getSubterm(1));
+        Stream<Attribute> attributes = readAttributes(appl.getSubterm(2));
 
         return new Production(lhs, rhs, attributes, constructor);
     }
 
     private Production readTemplateProduction(IStrategoAppl appl) {
         Nonterminal lhs = readNonterminal(appl.getSubterm(0));
-        Iterable<Symbol> rhs = readTemplate(appl.getSubterm(1));
-        Iterable<Attribute> attributes = readAttributes(appl.getSubterm(2));
+        Stream<Symbol> rhs = readTemplate(appl.getSubterm(1));
+        Stream<Attribute> attributes = readAttributes(appl.getSubterm(2));
 
         return new Production(lhs, rhs, attributes);
     }
@@ -179,8 +186,8 @@ public class GrammarFactory {
     private Production readTemplateProductionWithCons(IStrategoAppl appl) {
         Nonterminal lhs = readNonterminal(appl.getSubterm(0).getSubterm(0));
         String constructor = readConstructor(appl.getSubterm(0).getSubterm(1));
-        Iterable<Symbol> rhs = readTemplate(appl.getSubterm(1));
-        Iterable<Attribute> attributes = readAttributes(appl.getSubterm(2));
+        Stream<Symbol> rhs = readTemplate(appl.getSubterm(1));
+        Stream<Attribute> attributes = readAttributes(appl.getSubterm(2));
 
         return new Production(lhs, rhs, attributes, constructor);
     }
@@ -205,39 +212,35 @@ public class GrammarFactory {
         throw new IllegalArgumentException("Cannot read constructor from term: " + term);
     }
 
-    private Iterable<Symbol> readTemplate(IStrategoTerm term) {
-        Iterable<IStrategoTerm> symbols = Arrays.asList(term.getSubterm(0).getAllSubterms());
+    private Stream<Symbol> readTemplate(IStrategoTerm term) {
+        Collection<IStrategoTerm> symbols = Arrays.asList(term.getSubterm(0).getAllSubterms());
 
-        return FluentIterable
-                .from(symbols)
-                .transformAndConcat(this::readTemplateLine);
+        return symbols.stream().flatMap(this::readTemplateLine);
     }
 
-    private Iterable<Symbol> readTemplateLine(IStrategoTerm term) {
-        Iterable<IStrategoTerm> symbols = Arrays.asList(term.getSubterm(0).getAllSubterms());
+    private Stream<Symbol> readTemplateLine(IStrategoTerm term) {
+        Collection<IStrategoTerm> symbols = Arrays.asList(term.getSubterm(0).getAllSubterms());
 
-        return FluentIterable
-                .from(symbols)
-                .transformAndConcat(this::readTemplatePart);
+        return symbols.stream().flatMap(this::readTemplatePart);
     }
 
-    private Iterable<Symbol> readTemplatePart(IStrategoTerm term) {
+    private Stream<Symbol> readTemplatePart(IStrategoTerm term) {
         IStrategoAppl appl = (IStrategoAppl) term;
 
         switch (appl.getConstructor().getName()) {
             case "Angled":
             case "Squared":
-                return Collections.singleton(readPlaceholder(appl.getSubterm(0)));
+                return Stream.of(readPlaceholder(appl.getSubterm(0)));
         }
 
-        return Collections.emptySet();
+        return Stream.empty();
     }
 
     private Symbol readPlaceholder(IStrategoTerm term) {
         return readSymbol(term.getSubterm(0));
     }
 
-    private Iterable<Symbol> readRhs(IStrategoTerm term) {
+    private Stream<Symbol> readRhs(IStrategoTerm term) {
         IStrategoAppl appl = (IStrategoAppl) term;
 
         if ("Rhs".equals(appl.getConstructor().getName())) {
@@ -247,12 +250,10 @@ public class GrammarFactory {
         throw new IllegalArgumentException("Cannot read rhs from term: " + term);
     }
 
-    private Iterable<Symbol> readSymbols(IStrategoTerm term) {
-        Iterable<IStrategoTerm> productions = Arrays.asList(term.getAllSubterms());
+    private Stream<Symbol> readSymbols(IStrategoTerm term) {
+        Collection<IStrategoTerm> productions = Arrays.asList(term.getAllSubterms());
 
-        return FluentIterable
-                .from(productions)
-                .transform(this::readSymbol);
+        return productions.stream().map(this::readSymbol);
     }
 
     private Symbol readSymbol(IStrategoTerm term) {
@@ -278,12 +279,12 @@ public class GrammarFactory {
         throw new IllegalArgumentException("Cannot read symbol from term: " + term);
     }
 
-    private Iterable<Attribute> readAttributes(IStrategoTerm term) {
+    private Stream<Attribute> readAttributes(IStrategoTerm term) {
         IStrategoAppl appl = (IStrategoAppl) term;
 
         switch (appl.getConstructor().getName()) {
             case "NoAttrs":
-                return Collections.emptySet();
+                return Stream.empty();
             case "Attrs":
                 return readAttributesList(term);
         }
@@ -291,25 +292,23 @@ public class GrammarFactory {
         throw new IllegalArgumentException("Cannot read attributes from term: " + term);
     }
 
-    private Iterable<Attribute> readAttributesList(IStrategoTerm term) {
-        Iterable<IStrategoTerm> attributes = Arrays.asList(term.getSubterm(0).getAllSubterms());
+    private Stream<Attribute> readAttributesList(IStrategoTerm term) {
+        Collection<IStrategoTerm> attributes = Arrays.asList(term.getSubterm(0).getAllSubterms());
 
-        return FluentIterable
-                .from(attributes)
-                .transformAndConcat(this::readAttribute);
+        return attributes.stream().flatMap(this::readAttribute);
     }
 
-    private Iterable<Attribute> readAttribute(IStrategoTerm term) {
+    private Stream<Attribute> readAttribute(IStrategoTerm term) {
         IStrategoAppl appl = (IStrategoAppl) term;
 
         switch (appl.getConstructor().getName()) {
             case "Bracket":
-                return Collections.singleton(new Bracket());
+                return Stream.of(new Bracket());
             case "Reject":
-                return Collections.singleton(new Reject());
+                return Stream.of(new Reject());
         }
 
-        return Collections.emptySet();
+        return Stream.empty();
     }
 
     private String readString(IStrategoTerm term) {

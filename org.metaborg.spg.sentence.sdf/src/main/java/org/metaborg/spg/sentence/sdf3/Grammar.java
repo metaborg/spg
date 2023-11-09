@@ -1,8 +1,7 @@
 package org.metaborg.spg.sentence.sdf3;
 
-import com.google.common.collect.FluentIterable;
-
 import java.util.Collection;
+import java.util.stream.Stream;
 
 public class Grammar {
     private final Collection<Module> modules;
@@ -15,9 +14,7 @@ public class Grammar {
         return modules;
     }
 
-    public Iterable<Production> getProductions() {
-        return FluentIterable
-                .from(modules)
-                .transformAndConcat(Module::getProductions);
+    public Stream<Production> getProductions() {
+        return modules.stream().flatMap(Module::getProductions);
     }
 }

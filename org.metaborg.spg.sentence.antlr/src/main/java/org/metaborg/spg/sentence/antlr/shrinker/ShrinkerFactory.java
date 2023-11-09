@@ -9,7 +9,7 @@ import java.util.Random;
 public class ShrinkerFactory {
     private final Random random;
 
-    @Inject
+    @jakarta.inject.Inject @javax.inject.Inject
     public ShrinkerFactory(Random random) {
         this.random = random;
     }

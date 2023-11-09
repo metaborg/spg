@@ -1,53 +1,54 @@
 package org.metaborg.spg.sentence.signature;
 
-import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.metaborg.spg.sentence.sdf3.Grammar;
 import org.metaborg.spg.sentence.sdf3.Production;
-import org.metaborg.spg.sentence.sdf3.symbol.*;
-
-import java.util.List;
-import java.util.Optional;
-
-import static java.util.Collections.singleton;
-import static org.metaborg.spg.sentence.shared.utils.IterableUtils.getFirst;
+import org.metaborg.spg.sentence.sdf3.symbol.Iter;
+import org.metaborg.spg.sentence.sdf3.symbol.IterSep;
+import org.metaborg.spg.sentence.sdf3.symbol.IterStar;
+import org.metaborg.spg.sentence.sdf3.symbol.IterStarSep;
+import org.metaborg.spg.sentence.sdf3.symbol.Nonterminal;
+import org.metaborg.spg.sentence.sdf3.symbol.Opt;
+import org.metaborg.spg.sentence.sdf3.symbol.Symbol;
 
 public class SignatureFactory {
     public Signature create(Grammar grammar) {
-        Iterable<Operation> operations = FluentIterable
-                .from(grammar.getProductions())
+        Collection<Operation> operations = grammar.getProductions()
                 .filter(Production::isNotBracket)
                 .filter(Production::isNotReject)
-                .transformAndConcat(this::createOperation);
+                .map(this::createOperation)
+                .collect(Collectors.toList());
 
         return new Signature(operations);
     }
 
-    private Iterable<Operation> createOperation(Production production) {
+    private Operation createOperation(Production production) {
         Optional<String> constructorOpt = production.getConstructor();
 
         if (constructorOpt.isPresent()) {
             String name = constructorOpt.get();
             Sort sort = createSort(production.getLhs());
             List<Sort> arguments = createSorts(production.getRhs());
-            Constructor constructor = new Constructor(name, arguments, sort);
 
-            return singleton(constructor);
+            return new Constructor(name, arguments, sort);
         } else {
-            Sort argument = createSort(getFirst(production.getRhs()));
+            Sort argument = createSort(production.getRhs().iterator().next());
             Sort result = createSort(production.getLhs());
-            Injection injection = new Injection(argument, result);
 
-            return singleton(injection);
+            return new Injection(argument, result);
         }
     }
 
-    private List<Sort> createSorts(Iterable<Symbol> symbols) {
-        return FluentIterable
-                .from(symbols)
-                .transform(this::createSort)
-                .filter(Predicates.notNull())
-                .toList();
+    private List<Sort> createSorts(Stream<Symbol> symbols) {
+        return symbols.map(this::createSort)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
     }
 
     private Sort createSort(Symbol symbol) {
