@@ -11,7 +11,7 @@ public class ShrinkerFactory {
     private final IRandom random;
     private final GeneratorTermFactory termFactory;
 
-    @jakarta.inject.Inject @javax.inject.Inject
+    @jakarta.inject.Inject
     public ShrinkerFactory(IRandom random, GeneratorTermFactory termFactory) {
         this.random = random;
         this.termFactory = termFactory;

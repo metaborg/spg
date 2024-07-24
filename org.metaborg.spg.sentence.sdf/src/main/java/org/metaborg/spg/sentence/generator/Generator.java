@@ -27,7 +27,7 @@ public class Generator {
     private final MultiSetMap.Immutable<ISymbol, IProduction> productionsMap;
     private final GrammarFactory gf;
 
-    @jakarta.inject.Inject @javax.inject.Inject public Generator(GeneratorTermFactory termFactory, IRandom random, String startSymbol,
+    @jakarta.inject.Inject public Generator(GeneratorTermFactory termFactory, IRandom random, String startSymbol,
         NormGrammar grammar) {
         this.termFactory = termFactory;
         this.random = random;
