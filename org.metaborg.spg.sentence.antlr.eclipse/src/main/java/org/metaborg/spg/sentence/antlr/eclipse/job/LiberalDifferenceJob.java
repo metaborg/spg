@@ -45,7 +45,7 @@ public class LiberalDifferenceJob extends DifferenceJob {
     private final DifferenceJobConfig config;
     private final ILanguageImpl templateLanguage;
 
-    @jakarta.inject.Inject @javax.inject.Inject
+    @jakarta.inject.Inject
     public LiberalDifferenceJob(
             ISpoofaxUnitService unitService,
             ISpoofaxSyntaxService syntaxService,

@@ -27,7 +27,7 @@ public class TesterFactory {
     private final SignatureFactory signatureFactory;
     private final ShrinkerFactory shrinkerFactory;
 
-    @jakarta.inject.Inject @javax.inject.Inject
+    @jakarta.inject.Inject
     public TesterFactory(
             GeneratorTermFactory termFactory,
             ISpoofaxUnitService unitService,

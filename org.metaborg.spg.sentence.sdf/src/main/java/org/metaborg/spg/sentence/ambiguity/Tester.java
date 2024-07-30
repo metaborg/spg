@@ -37,7 +37,7 @@ public class Tester {
     private final Generator generator;
     private final Shrinker shrinker;
 
-    @jakarta.inject.Inject @javax.inject.Inject
+    @jakarta.inject.Inject
     public Tester(
             GeneratorTermFactory termFactory,
             ISpoofaxUnitService unitService,

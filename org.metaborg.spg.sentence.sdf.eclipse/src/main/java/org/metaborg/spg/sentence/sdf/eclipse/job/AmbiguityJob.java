@@ -38,7 +38,7 @@ public class AmbiguityJob extends SentenceJob {
     private final ILanguageImpl language;
     private final ILanguageImpl templateLanguage;
 
-    @jakarta.inject.Inject @javax.inject.Inject
+    @jakarta.inject.Inject
     public AmbiguityJob(
             TesterFactory testerFactory,
             @Assisted TesterConfig config,

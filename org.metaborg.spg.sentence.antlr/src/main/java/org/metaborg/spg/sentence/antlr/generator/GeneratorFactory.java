@@ -8,7 +8,7 @@ import java.util.Random;
 public class GeneratorFactory {
     private final Random random;
 
-    @jakarta.inject.Inject @javax.inject.Inject
+    @jakarta.inject.Inject
     public GeneratorFactory(Random random) {
         this.random = random;
     }

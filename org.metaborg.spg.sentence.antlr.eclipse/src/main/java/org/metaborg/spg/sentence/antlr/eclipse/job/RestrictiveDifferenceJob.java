@@ -38,7 +38,7 @@ public class RestrictiveDifferenceJob extends DifferenceJob {
     private final ShrinkerFactory shrinkerFactory;
     private final DifferenceJobConfig config;
 
-    @jakarta.inject.Inject @javax.inject.Inject
+    @jakarta.inject.Inject
     public RestrictiveDifferenceJob(
             ISpoofaxUnitService unitService,
             ISpoofaxSyntaxService syntaxService,
